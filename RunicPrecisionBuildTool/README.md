@@ -31,9 +31,9 @@ placement preview and snapping behavior.
 | Mouse wheel | Vanilla yaw rotation |
 | `Left Alt + Wheel` | Pitch around the piece's current local axis |
 | `Left Alt + Left Shift + Wheel` | Roll/twist around the piece's current local axis |
-| `Left Alt + Left/Right Arrow` | Move along world X |
-| `Left Alt + Up/Down Arrow` | Move along world Y |
-| `Left Alt + Page Up/Page Down` | Move along world Z |
+| `Right Alt + Left/Right Arrow` | Move along world X |
+| `Right Alt + Up/Down Arrow` | Move along world Y |
+| `Right Alt + Page Up/Page Down` | Move along world Z |
 | Hold `V` while adjusting | Use the fine step |
 | `Left Alt + R` | Reset rotation, yaw, movement offset, and snap selection |
 | `G` | Toggle the 3D guides and expanded native control hints |
@@ -62,7 +62,8 @@ After the first launch, configuration is written to:
 
 The normal and fine rotation steps, normal and fine movement distances, control modifiers, and
 general enable state can be changed there. The default fine modifier is `V`; this mod deliberately
-does not use Ctrl so it can coexist with build-camera controls.
+does not use Ctrl so it can coexist with build-camera controls. Movement defaults to `Right Alt`
+so it does not collide with Infinity Hammer's `Left Alt + Arrow/Page` placement commands.
 
 ## Multiplayer and compatibility
 

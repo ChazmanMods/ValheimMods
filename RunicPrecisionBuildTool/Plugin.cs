@@ -15,11 +15,12 @@ namespace QuietBuildRotation
     {
         public const string Guid = "chazman.RunicPrecisionBuildTool";
         public const string Name = "Runic Precision Build Tool";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.2";
 
         internal static ConfigEntry<bool> Enabled;
         internal static ConfigEntry<KeyboardShortcut> PitchModifier;
         internal static ConfigEntry<KeyboardShortcut> RollModifier;
+        internal static ConfigEntry<KeyboardShortcut> MoveModifier;
         internal static ConfigEntry<KeyboardShortcut> FineModifier;
         internal static ConfigEntry<KeyboardShortcut> ResetShortcut;
         internal static ConfigEntry<float> NormalStep;
@@ -36,6 +37,7 @@ namespace QuietBuildRotation
             Enabled = Config.Bind("General", "Enabled", true, "Enable advanced rotation. Vanilla rotation is unchanged when disabled.");
             PitchModifier = Config.Bind("Controls", "Pitch", new KeyboardShortcut(KeyCode.LeftAlt), "Hold and scroll to pitch.");
             RollModifier = Config.Bind("Controls", "Roll", new KeyboardShortcut(KeyCode.LeftAlt, KeyCode.LeftShift), "Hold and scroll to roll.");
+            MoveModifier = Config.Bind("Controls", "Move", new KeyboardShortcut(KeyCode.RightAlt), "Hold with arrows or Page Up/Page Down to move. Right Alt avoids Infinity Hammer's Left Alt movement bindings.");
             FineModifier = Config.Bind("Controls", "Fine", new KeyboardShortcut(KeyCode.V), "Hold as well for fine rotation or movement. Ctrl is intentionally unused.");
             ResetShortcut = Config.Bind("Controls", "Reset", new KeyboardShortcut(KeyCode.R, KeyCode.LeftAlt), "Reserved reset binding. Alt+R resets rotation, vanilla yaw, and translation.");
             NormalStep = Config.Bind("Rotation", "StepDegrees", 15f, new ConfigDescription("Normal pitch/roll step.", new AcceptableValueRange<float>(0.1f, 90f)));
@@ -45,7 +47,7 @@ namespace QuietBuildRotation
 
             _harmony = new Harmony(Guid);
             _harmony.PatchAll();
-            Logger.LogInfo($"{Name} v{Version} loaded. Alt+wheel pitches, Alt+Shift+wheel rolls, Alt+arrows/PageUp/PageDown moves, Alt+R resets.");
+            Logger.LogInfo($"{Name} v{Version} loaded. Left Alt+wheel pitches, Left Alt+Shift+wheel rolls, Right Alt+arrows/PageUp/PageDown moves, Left Alt+R resets.");
         }
 
         private void Update()
@@ -79,7 +81,9 @@ namespace QuietBuildRotation
         private static string _activePiece;
         private static PlacementState _state = PlacementState.Identity;
         private static int _rotationBeforeInput;
+        private static float _scrollBeforeInput;
         private static bool _advancedInput;
+        private static bool _rollInput;
         private static bool _guideVisible;
         private static bool _resetRequested;
         private static readonly AccessTools.FieldRef<Player, int> PlaceRotation = AccessTools.FieldRefAccess<Player, int>("m_placeRotation");
@@ -91,9 +95,16 @@ namespace QuietBuildRotation
 
         internal static void BeforePlacementInput(Player player)
         {
+            _advancedInput = false;
+            _rollInput = false;
+            if (!CanOperate(player)) return;
+
             ExecutePendingReset(player);
             _rotationBeforeInput = PlaceRotation(player);
-            _advancedInput = CanOperate(player) && (Plugin.PitchModifier.Value.IsPressed() || Plugin.RollModifier.Value.IsPressed());
+            _scrollBeforeInput = ScrollAmount(player);
+            bool pitchInput = IsShortcutHeld(Plugin.PitchModifier.Value);
+            _rollInput = IsShortcutHeld(Plugin.RollModifier.Value);
+            _advancedInput = pitchInput || _rollInput;
         }
 
         internal static void AfterPlacementInput(Player player)
@@ -112,14 +123,15 @@ namespace QuietBuildRotation
                 // Vanilla sees the wheel too. Put yaw back so the modifier never steals or
                 // synthesizes input globally; it only cancels vanilla yaw for this player.
                 PlaceRotation(player) = _rotationBeforeInput;
-                float wheel = Input.mouseScrollDelta.y;
+                ScrollAmount(player) = _scrollBeforeInput;
+                float wheel = ZInput.GetMouseScrollWheel();
                 if (Mathf.Abs(wheel) > 0.01f)
                 {
                     float direction = Mathf.Sign(wheel);
-                    float step = Plugin.FineModifier.Value.IsPressed() ? Plugin.FineStep.Value : Plugin.NormalStep.Value;
+                    float step = IsShortcutHeld(Plugin.FineModifier.Value) ? Plugin.FineStep.Value : Plugin.NormalStep.Value;
                     // Post-multiplication makes every increment intrinsic: the axis belongs to
                     // the object in its current orientation, not to the original prefab/world.
-                    Vector3 localAxis = Plugin.RollModifier.Value.IsPressed() ? Vector3.forward : Vector3.right;
+                    Vector3 localAxis = _rollInput ? Vector3.forward : Vector3.right;
                     state.Rotation = state.Rotation * Quaternion.AngleAxis(direction * step, localAxis);
                     state.Rotation.Normalize();
                     SaveState(key, state);
@@ -131,28 +143,25 @@ namespace QuietBuildRotation
         internal static void PollKeyboard()
         {
             Player player = Player.m_localPlayer;
-            if (!CanOperate(player)) return;
+            if (!player || !CanOperate(player)) return;
             GameObject ghost = PlacementGhost(player);
             if (!ghost || !ghost.activeInHierarchy) return;
             GetState(ghost.name); // Also resets manipulation when selection changes.
 
-            if (Input.GetKeyDown(KeyCode.G))
+            if (ZInput.GetKeyDown(KeyCode.G, false))
             {
                 _guideVisible = !_guideVisible;
                 return;
             }
 
-            bool alt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
-            bool resetChord = (alt && Input.GetKeyDown(KeyCode.R)) ||
-                              (Input.GetKey(KeyCode.R) && (Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt)));
-            if (resetChord)
+            if (IsShortcutDown(Plugin.ResetShortcut.Value))
             {
                 _resetRequested = true;
                 return;
             }
-            if (!alt) return;
+            if (!IsShortcutHeld(Plugin.MoveModifier.Value)) return;
 
-            float step = Plugin.FineModifier.Value.IsPressed() ? Plugin.FineMoveStep.Value : Plugin.MoveStep.Value;
+            float step = IsShortcutHeld(Plugin.FineModifier.Value) ? Plugin.FineMoveStep.Value : Plugin.MoveStep.Value;
             Vector3 movement = ReadWorldMovementStep();
             if (movement != Vector3.zero) _state.WorldOffset += movement * step;
         }
@@ -216,7 +225,9 @@ namespace QuietBuildRotation
 
         private static bool CanOperate(Player player)
         {
-            return Plugin.Enabled.Value && player == Player.m_localPlayer &&
+            if (!player || player != Player.m_localPlayer) return false;
+
+            return Plugin.Enabled.Value &&
                    !Console.IsVisible() && (Chat.instance == null || !Chat.instance.HasFocus()) &&
                    Hud.instance != null && !Hud.IsPieceSelectionVisible();
         }
@@ -239,13 +250,34 @@ namespace QuietBuildRotation
 
         private static Vector3 ReadWorldMovementStep()
         {
-            if (Input.GetKeyDown(KeyCode.LeftArrow)) return Vector3.left;
-            if (Input.GetKeyDown(KeyCode.RightArrow)) return Vector3.right;
-            if (Input.GetKeyDown(KeyCode.UpArrow)) return Vector3.up;
-            if (Input.GetKeyDown(KeyCode.DownArrow)) return Vector3.down;
-            if (Input.GetKeyDown(KeyCode.PageUp)) return Vector3.forward;
-            if (Input.GetKeyDown(KeyCode.PageDown)) return Vector3.back;
+            if (ZInput.GetKeyDown(KeyCode.LeftArrow, false)) return Vector3.left;
+            if (ZInput.GetKeyDown(KeyCode.RightArrow, false)) return Vector3.right;
+            if (ZInput.GetKeyDown(KeyCode.UpArrow, false)) return Vector3.up;
+            if (ZInput.GetKeyDown(KeyCode.DownArrow, false)) return Vector3.down;
+            if (ZInput.GetKeyDown(KeyCode.PageUp, false)) return Vector3.forward;
+            if (ZInput.GetKeyDown(KeyCode.PageDown, false)) return Vector3.back;
             return Vector3.zero;
+        }
+
+        private static bool IsShortcutHeld(KeyboardShortcut shortcut)
+        {
+            if (shortcut.MainKey == KeyCode.None || !ZInput.GetKey(shortcut.MainKey, false)) return false;
+            foreach (KeyCode modifier in shortcut.Modifiers)
+            {
+                if (!ZInput.GetKey(modifier, false)) return false;
+            }
+            return true;
+        }
+
+        private static bool IsShortcutDown(KeyboardShortcut shortcut)
+        {
+            if (!IsShortcutHeld(shortcut)) return false;
+            if (ZInput.GetKeyDown(shortcut.MainKey, false)) return true;
+            foreach (KeyCode modifier in shortcut.Modifiers)
+            {
+                if (ZInput.GetKeyDown(modifier, false)) return true;
+            }
+            return false;
         }
     }
 
@@ -268,8 +300,8 @@ namespace QuietBuildRotation
 
             Add(template, keyboard, "Alt+Wheel", "Pitch");
             Add(template, keyboard, "Alt+Shift+Wheel", "Roll");
-            Add(template, keyboard, "Alt+Arrows", "Move X/Y");
-            Add(template, keyboard, "Alt+PgUp/PgDn", "Move Z");
+            Add(template, keyboard, "RightAlt+Arrows", "Move X/Y");
+            Add(template, keyboard, "RightAlt+PgUp/PgDn", "Move Z");
             Add(template, keyboard, "V", "Fine");
             Add(template, keyboard, "Alt+R", "Reset");
             Add(template, keyboard, "G", "Guides");
