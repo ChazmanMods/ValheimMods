@@ -1,0 +1,112 @@
+## Runic Build Camera v1.0.0 example configuration
+## Copy to BepInEx/config/chazman.RunicBuildCamera.cfg while the game is closed.
+
+[General]
+
+## Enable Runic Build Camera. Disabling it leaves Valheim's normal build controls unchanged.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+[Controls]
+
+## Keyboard shortcut that enters or exits the detached build camera.
+# Setting type: KeyboardShortcut
+# Default value: B
+ToggleShortcut = B
+
+## Invert horizontal mouse look while the detached camera is active.
+# Setting type: Boolean
+# Default value: false
+InvertMouseHorizontal = false
+
+## Invert vertical mouse look while the detached camera is active.
+# Setting type: Boolean
+# Default value: false
+InvertMouseVertical = false
+
+## Invert horizontal controller look while the detached camera is active.
+# Setting type: Boolean
+# Default value: false
+InvertControllerHorizontal = false
+
+## Invert vertical controller look while the detached camera is active.
+# Setting type: Boolean
+# Default value: false
+InvertControllerVertical = false
+
+[Camera]
+
+## Maximum distance, in metres, that the detached camera may travel from the player.
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From 1 to 100
+CameraRange = 60
+
+## Base detached-camera movement speed in metres per second.
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 0.5 to 50
+MoveSpeed = 10
+
+## Multiplier applied while the fast-move input is held.
+# Setting type: Single
+# Default value: 3
+# Acceptable value range: From 1 to 10
+FastMoveMultiplier = 3
+
+## Move on fixed world axes instead of axes derived from the camera view.
+# Setting type: Boolean
+# Default value: false
+WorldRelativeMovement = false
+
+[Remote Actions]
+
+## Maximum avatar-to-target distance, in metres, while detached placement, repair, or removal runs.
+## Effective crafting-station range is raised only inside the scoped call; station data is unchanged.
+## Valheim's camera ray remains limited to 50 metres from the detached camera.
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 1 to 100
+RemoteActionDistance = 100
+
+[Pickup]
+
+## Allow nearby loose world-item drops to be collected while the detached camera is active.
+## Chests and other containers are never searched or transferred from by this feature.
+# Setting type: Boolean
+# Default value: true
+PickupEnabled = true
+
+## Collection radius, in metres, around the detached camera for eligible loose world items.
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 1 to 50
+PickupRange = 10
+
+## Minimum time, in seconds, between detached-camera pickup scans.
+# Setting type: Single
+# Default value: 0.25
+# Acceptable value range: From 0.05 to 2
+PickupIntervalSeconds = 0.25
+
+[Mist]
+
+## Move the player's active Wisplight mist-clearing effect with the detached camera.
+## This does nothing when the player does not have an active Wisplight demister.
+# Setting type: Boolean
+# Default value: true
+DemisterFollowCamera = true
+
+## Multiplier applied to mist-clearing range while it follows the detached camera.
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0.25 to 5
+DemisterRangeMultiplier = 2
+
+[Diagnostics]
+
+## Write additional state-transition diagnostics. Per-frame logging remains disabled.
+# Setting type: Boolean
+# Default value: false
+VerboseLogging = false

@@ -1,0 +1,9 @@
+{
+  "name": "RunicAgriculture",
+  "version_number": "1.0.0",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Bounded planting patterns, a live keyboard/controller control bar, exact-Pickable area harvest, per-position validation, and confirmed replant offers.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

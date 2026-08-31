@@ -1,0 +1,24 @@
+## Runic Core v1.0.0 example configuration
+## Copy to BepInEx/config/chazman.RunicCore.cfg while Valheim is closed.
+
+[Notifications]
+
+## Default cooldown for the same source module, reason code, and deduplication context.
+## A publishing module may request a longer interval for a specific notification.
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 0 to 300
+MinimumIntervalSeconds = 10
+
+## Write notifications published through the shared bus to the BepInEx log.
+# Setting type: Boolean
+# Default value: true
+LogPublishedNotifications = true
+
+[Diagnostics]
+
+## Log module, capability, service, and keybinding registry changes.
+## Per-frame logging is never emitted.
+# Setting type: Boolean
+# Default value: false
+VerboseLogging = false

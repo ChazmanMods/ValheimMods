@@ -1,0 +1,37 @@
+## Settings file was created by plugin Runic Crafting v1.0.0
+## Plugin GUID: chazman.RunicCrafting
+
+[General]
+
+Enabled = true
+
+[Materials]
+
+CraftFromContainers = true
+BuildFromContainers = true
+RangeCapMeters = 20
+MaximumCandidateContainers = 64
+MaximumReturnedContainers = 32
+ExcludePersonalContainers = true
+RequireWardAccess = false
+
+[Stationless Building]
+
+Enabled = true
+PlayerLocalRangeMeters = 20
+AllowedPrefabIds = blackmarble_pile,blackwood_stack,bone_stack,bonfire,coal_pile,fire_pit,fire_pit_iron,grausten_pile,guard_stone,piece_artisanstation,piece_cookingstation,piece_groundtorch_mist,piece_logbench01,piece_pot1,piece_pot1_cracked,piece_pot1_red,piece_pot2,piece_pot2_cracked,piece_pot2_red,piece_pot3,piece_pot3_cracked,piece_pot3_red,piece_workbench,sapling_barley,sapling_carrot,sapling_flax,sapling_jotunpuffs,sapling_magecap,sapling_onion,sapling_seedcarrot,sapling_seedonion,sapling_seedturnip,sapling_turnip,sign,skull_pile,stone_pile,treasure_pile,treasure_stack,wood_core_stack,wood_fine_stack,wood_stack,wood_yggdrasil_stack
+DeniedPrefabIds =
+
+[Workshop Access]
+
+DefaultStationUse = Everyone
+DefaultLocalMaterialUse = Approved
+
+[Repair]
+
+RepairAll = true
+
+[Diagnostics]
+
+ShowStatusMessages = true
+DetailedLogging = false

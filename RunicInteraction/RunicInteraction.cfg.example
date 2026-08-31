@@ -1,0 +1,79 @@
+## Runic Interaction 1.0.0 example configuration
+## Copy to BepInEx/config/chazman.RunicInteraction.cfg while Valheim is closed.
+## Every feature is reversible and delegates state changes to installed vanilla methods.
+
+[General]
+
+## Master switch. False makes every Harmony patch yield to vanilla behavior.
+Enabled = true
+
+[Features]
+
+## Repeat validated fuel/input interactions at Valheim's installed 0.2 second cadence.
+HoldToRepeat = true
+
+## Add Alt-click full-stack transfer and guard vanilla controller/Ctrl moves.
+TransferGestures = true
+
+## Reserved fail-closed gate; no safe atomic drag-sweep boundary exists in Valheim 0.221.12.
+DragTransfer = false
+
+## Session-only delayed close for doors opened by the native local player. Off by default.
+AutoCloseDoors = false
+
+## Restore a still-legal prior hand item after swimming or putting away a temporary Tool.
+EquipmentRestore = true
+
+## Remember crafting recipe and active group by station and craft/upgrade context for this session.
+MenuMemory = true
+
+## Validate portal, sign, and tame text immediately before vanilla commit.
+TextEntryPolish = true
+
+## Decline configured drops before ownership, inventory, or world mutation.
+PickupFilters = true
+
+[Door Auto-Close]
+
+## Seconds after the qualifying local open before a close attempt.
+DelaySeconds = 4
+
+## Minimum quiet time; the effective delay is the greater of this and DelaySeconds.
+RecentUseSafetySeconds = 1.5
+
+## Non-alloc character/movable-body scan radius around the doorway.
+ObstructionRadiusMeters = 0.9
+
+[Text Entry]
+
+## Cannot exceed vanilla's portal limit.
+PortalCharacterLimit = 10
+
+## Upper bound; a smaller sign prefab limit wins.
+SignCharacterLimit = 50
+
+## Cannot exceed vanilla's tame-name limit.
+TameCharacterLimit = 10
+
+## Maximum portal/sign distance at commit. Tame naming retains vanilla's 15 m bound.
+CommitRangeMeters = 6
+
+[Pickup Filter]
+
+## Up to 128 exact prefab IDs or localized item tokens, separated by comma/semicolon/newline.
+Items =
+
+## False guarantees quest items cannot be filtered.
+AllowQuestItemFiltering = false
+
+[Controller]
+
+## Generic ZInput action held with the implicit JoyUse pickup action.
+## JoyRStick is right-stick click and remains physically distinct from JoyUse in all three
+## installed Valheim 0.221.12 controller layouts.
+PickupBypassModifierAction = JoyRStick
+
+[Diagnostics]
+
+## Bounded decisions only; inventory contents and entered text are never logged.
+VerboseLogging = false

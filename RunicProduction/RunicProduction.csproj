@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>RunicProduction</AssemblyName>
+    <RootNamespace>RunicProduction</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    <VALHEIM_INSTALL Condition="'$(VALHEIM_INSTALL)' == ''">E:\SteamLibrary\steamapps\common\Valheim</VALHEIM_INSTALL>
+    <GAME_MANAGED>$(VALHEIM_INSTALL)\valheim_Data\Managed</GAME_MANAGED>
+    <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Tests\**\*.cs" />
+    <None Remove="Tests\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="false" />
+    <Reference Include="assembly_guiutils" HintPath="$(GAME_MANAGED)\assembly_guiutils.dll" Private="false" />
+    <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="false" />
+    <Reference Include="System.Net.Http" HintPath="$(GAME_MANAGED)\System.Net.Http.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.InputLegacyModule" HintPath="$(GAME_MANAGED)\UnityEngine.InputLegacyModule.dll" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GAME_MANAGED)\UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AudioModule" HintPath="$(GAME_MANAGED)\UnityEngine.AudioModule.dll" Private="false" />
+    <Reference Include="UnityEngine.ParticleSystemModule" HintPath="$(GAME_MANAGED)\UnityEngine.ParticleSystemModule.dll" Private="false" />
+  </ItemGroup>
+</Project>

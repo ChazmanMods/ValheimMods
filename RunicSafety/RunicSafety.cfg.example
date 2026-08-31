@@ -1,0 +1,23 @@
+## Settings file generated for Runic Safety 1.0.0
+
+[General]
+Enabled = true
+
+[Confirmations]
+RareItemSacrifice = true
+OccupiedContainerDestruction = true
+ShipOrCartDestruction = true
+PortalOverwrite = true
+RepeatWindowSeconds = 4
+
+[Protected Items]
+Enabled = true
+AdministratorBypass = false
+RarePrefabNames = DragonEgg,DvergrKey,DvergrKeyFragment,QueenDrop,Sealbreaker,Wishbone,TrophyTheQueen,TrophySeekerQueen
+
+[Migration Backups]
+# The generated config uses your actual BepInEx config path here.
+RootDirectory = BepInEx/config/RunicSafety/backups
+RetentionCount = 5
+MaximumFiles = 32
+MaximumTotalMiB = 2048

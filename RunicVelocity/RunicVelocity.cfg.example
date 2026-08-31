@@ -1,0 +1,14 @@
+## Runic Velocity 1.0.0
+
+[General]
+# When false, Runic Velocity registers no module/services and starts no timeline or worker.
+Enabled = true
+
+[Manifest]
+# Reuse cached hashes/metadata only when relative path, byte length, and UTC modification time match.
+WarmCache = true
+# Range 1..4096. The scan also hard-limits directories to 4096 and individual DLLs to 512 MiB.
+MaximumFiles = 2048
+
+[Diagnostics]
+DetailedTracing = false

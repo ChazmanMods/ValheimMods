@@ -1,0 +1,109 @@
+## Runic Precision Build Tool v2.0.1 example configuration
+## Copy to BepInEx/config/chazman.RunicPrecisionBuildTool.cfg while Valheim is closed.
+
+[General]
+Enabled = true
+RequirePrecisionMode = true
+
+[Compatibility]
+## Internal one-time wheel-binding migration marker. Leave this value unchanged.
+WheelBindingSchemaVersion = 1
+
+[Controls - Rotation Wheel]
+## Roll wins when its selector is held together with the pitch selector. Keys that are not
+## configured in any rotation selector, including Ctrl by default, do not change wheel selection.
+YawWheelChord = None
+PitchWheelChord = LeftAlt
+RollWheelChord = LeftShift
+FineYawWheelChord = V
+FinePitchWheelChord = V + LeftAlt
+FineRollWheelChord = V + LeftShift
+
+[Controls - Actions]
+## P is accepted only while the exact Hammer build table is active.
+PrecisionModeToggle = P
+MatchRotation = Keypad0
+MatchPitch = Keypad1
+MatchRoll = Keypad2
+MatchYaw = Keypad3
+MatchPositionX = Keypad4
+MatchPositionY = Keypad5
+MatchPositionZ = Keypad6
+MatchPosition = Keypad7
+MatchTransform = Keypad8
+MatchSnapSide = Keypad9
+RepeatTransform = KeypadPeriod
+AxisGuides = G
+Reset = F10
+
+[Controls - Axis Reset]
+ResetPitch = Keypad1 + LeftShift
+ResetRoll = Keypad2 + LeftShift
+ResetYaw = Keypad3 + LeftShift
+ResetSway = Keypad4 + LeftShift
+ResetHeave = Keypad5 + LeftShift
+ResetSurge = Keypad6 + LeftShift
+
+[Controls - Movement]
+MoveUp = UpArrow + LeftAlt
+MoveDown = DownArrow + LeftAlt
+MoveLeft = LeftArrow + LeftAlt
+MoveRight = RightArrow + LeftAlt
+MoveForward = PageUp + LeftAlt
+MoveBackward = PageDown + LeftAlt
+
+[Controls - Movement Fine]
+FineMoveUp = UpArrow + LeftAlt + V
+FineMoveDown = DownArrow + LeftAlt + V
+FineMoveLeft = LeftArrow + LeftAlt + V
+FineMoveRight = RightArrow + LeftAlt + V
+FineMoveForward = PageUp + LeftAlt + V
+FineMoveBackward = PageDown + LeftAlt + V
+
+[Controls - Build Catalog]
+SearchNext = F6
+ToggleFavorite = F7
+NextFavorite = F8
+NextRecent = F9
+
+[Controls - Safe Utilities]
+UndoLastPlacement = F11
+AreaRepair = F12
+
+[Rotation]
+## Equal divisions of 360 degrees. 16 = 22.5 degrees; 360 = 1 degree.
+IncrementsPerCircle = 16
+FineIncrementsPerCircle = 360
+
+[Movement]
+SideStepMeters = 0.25
+UpDownStepMeters = 0.25
+ForwardBackStepMeters = 0.25
+FineSideStepMeters = 0.05
+FineUpDownStepMeters = 0.05
+FineForwardBackStepMeters = 0.05
+## World or Local. Local rotates each new step; prior steps never orbit later.
+ReferenceFrame = World
+
+[Build Catalog]
+## Bounded to 64 characters; unsafe rich-text/control input is ignored. Leave empty to make F6
+## cycle every currently unlocked piece.
+SearchQuery =
+## Internal bounded safe-prefab lists (64 favorites, 16 recents).
+Favorites =
+Recents =
+
+[Safe Utilities]
+## Solo/listen/dedicated client. Only pieces currently owned by this local Valheim peer are changed.
+## Native hammer range, creator, ward, no-build, and removal/repair policy remain required.
+AreaRepairRadiusMeters = 5
+AreaRepairMaximumPieces = 16
+
+[UI]
+ShowPlacementAngles = true
+ShowTargetAngles = true
+ShowPositionReadout = true
+ReadoutFontSize = 36
+
+[Diagnostics]
+VerboseLogging = false

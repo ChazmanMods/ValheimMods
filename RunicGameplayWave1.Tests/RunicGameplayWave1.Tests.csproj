@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>RunicGameplayWave1.Tests</AssemblyName>
+    <RootNamespace>RunicGameplayWave1.Tests</RootNamespace>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <VALHEIM_INSTALL Condition="'$(VALHEIM_INSTALL)' == ''">E:\SteamLibrary\steamapps\common\Valheim</VALHEIM_INSTALL>
+    <GAME_MANAGED>$(VALHEIM_INSTALL)\valheim_Data\Managed</GAME_MANAGED>
+    <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RunicStorage\RunicStorage.csproj" />
+    <ProjectReference Include="..\RunicCrafting\RunicCrafting.csproj" />
+    <ProjectReference Include="..\RunicAgriculture\RunicAgriculture.csproj" />
+    <ProjectReference Include="..\RunicProduction\RunicProduction.csproj" />
+    <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="true" />
+    <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="true" />
+    <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="true" />
+    <Reference Include="assembly_guiutils" HintPath="$(GAME_MANAGED)\assembly_guiutils.dll" Private="true" />
+    <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="true" />
+    <Reference Include="System.Net.Http" HintPath="$(GAME_MANAGED)\System.Net.Http.dll" Private="true" />
+    <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="true" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="true" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GAME_MANAGED)\UnityEngine.PhysicsModule.dll" Private="true" />
+    <Reference Include="UnityEngine.UI" HintPath="$(GAME_MANAGED)\UnityEngine.UI.dll" Private="true" />
+    <Reference Include="UnityEngine.InputLegacyModule" HintPath="$(GAME_MANAGED)\UnityEngine.InputLegacyModule.dll" Private="true" />
+    <Reference Include="Unity.TextMeshPro" HintPath="$(GAME_MANAGED)\Unity.TextMeshPro.dll" Private="true" />
+  </ItemGroup>
+</Project>

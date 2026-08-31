@@ -1,0 +1,22 @@
+[General]
+Enabled = true
+
+[Panels]
+KnownPinBrowser = true
+SelectedPinNavigation = true
+SailingReadout = true
+
+[KnownMap]
+IncludeSharedPins = true
+
+[Performance]
+RefreshIntervalSeconds = 0.5
+
+[Display]
+MaximumVisibleResults = 12
+UiScale = 1.0
+ControllerScaleMultiplier = 1.15
+PanelSide = Left
+
+[Diagnostics]
+VerboseLogging = false

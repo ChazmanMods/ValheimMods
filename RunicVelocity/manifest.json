@@ -1,0 +1,9 @@
+{
+  "name": "RunicVelocity",
+  "version_number": "1.0.0",
+  "website_url": "",
+  "description": "Bounded startup diagnostics and an integrity-checked, change-aware local plugin manifest cache.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

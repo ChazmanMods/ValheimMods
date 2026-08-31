@@ -1,0 +1,28 @@
+[General]
+Enabled = true
+
+[Panels]
+FoodTimers = true
+EffectTimers = true
+ComfortBreakdown = true
+ItemComparison = true
+ProductionContext = true
+AgricultureContext = true
+BuildingContext = true
+TamedAnimalContext = true
+
+[Display]
+TimerPrecision = WholeSecond
+RefreshIntervalSeconds = 0.35
+MaximumEffectRows = 5
+MaximumComfortWinnerRows = 6
+MaximumContextLines = 5
+UiScale = 1.0
+ControllerScaleMultiplier = 1.15
+Anchor = MiddleLeft
+
+[Migrations]
+DefaultAnchorMovedToMiddleLeft = true
+
+[Diagnostics]
+VerboseLogging = false

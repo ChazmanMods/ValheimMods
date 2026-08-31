@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>RunicTransactions.Tests</AssemblyName>
+    <RootNamespace>RunicTransactions.Tests</RootNamespace>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <VALHEIM_INSTALL Condition="'$(VALHEIM_INSTALL)' == ''">E:\SteamLibrary\steamapps\common\Valheim</VALHEIM_INSTALL>
+    <GAME_MANAGED>$(VALHEIM_INSTALL)\valheim_Data\Managed</GAME_MANAGED>
+    <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RunicTransactions.csproj" />
+    <ProjectReference Include="..\..\RunicPersistence\RunicPersistence.csproj" />
+    <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="true" />
+    <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="true" />
+    <Reference Include="Mono.Cecil" HintPath="$(BEPINEX_PROFILE)\core\Mono.Cecil.dll" Private="true" />
+    <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="true" />
+    <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="true" />
+    <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="true" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="true" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+{
+  "name": "RunicSafety",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicSafety",
+  "description": "Fail-safe confirmations, protected-item policy, recovery planning, atomic backups, and direct pre-admission compatibility gates.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

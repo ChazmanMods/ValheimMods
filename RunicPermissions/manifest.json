@@ -1,0 +1,11 @@
+{
+  "name": "RunicPermissions",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicPermissions",
+  "description": "Canonical fail-closed identities, ownership, action scopes, wards, groups, and audited permission evaluation for Runic mods.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333",
+    "Chazman-RunicCore-1.0.0",
+    "Chazman-RunicPersistence-1.0.0"
+  ]
+}

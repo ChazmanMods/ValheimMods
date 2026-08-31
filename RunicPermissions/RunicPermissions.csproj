@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>RunicPermissions</AssemblyName>
+    <RootNamespace>RunicPermissions</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+    <VALHEIM_INSTALL Condition="'$(VALHEIM_INSTALL)' == ''">E:\SteamLibrary\steamapps\common\Valheim</VALHEIM_INSTALL>
+    <GAME_MANAGED>$(VALHEIM_INSTALL)\valheim_Data\Managed</GAME_MANAGED>
+    <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Solo\BepInEx</BEPINEX_PROFILE>
+  </PropertyGroup>
+
+  <Target Name="RequireRunicCoreSource" BeforeTargets="ResolveProjectReferences"
+          Condition="!Exists('$(MSBuildProjectDirectory)\..\RunicCore\RunicCore.csproj')">
+    <Error Text="RunicPermissions requires ..\RunicCore\RunicCore.csproj. Build or restore RunicCore before building this module." />
+  </Target>
+
+  <Target Name="RequireRunicPersistenceSource" BeforeTargets="ResolveProjectReferences"
+          Condition="!Exists('$(MSBuildProjectDirectory)\..\RunicPersistence\RunicPersistence.csproj')">
+    <Error Text="RunicPermissions requires ..\RunicPersistence\RunicPersistence.csproj. Build or restore Runic Persistence before building this module." />
+  </Target>
+
+  <ItemGroup>
+    <Compile Remove="Tests\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RunicCore\RunicCore.csproj" Private="false" />
+    <ProjectReference Include="..\RunicPersistence\RunicPersistence.csproj" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="false" />
+    <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />
+  </ItemGroup>
+</Project>

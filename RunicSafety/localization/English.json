@@ -1,0 +1,9 @@
+{
+  "runicsafety_confirm_container": "Runic Safety: repeat the same removal to destroy this occupied container.",
+  "runicsafety_confirm_vehicle": "Runic Safety: repeat the same removal to destroy this ship or cart.",
+  "runicsafety_confirm_portal": "Runic Safety: submit the same tag again to overwrite this portal.",
+  "runicsafety_confirm_rare": "Runic Safety: repeat the same action to use the protected rare item.",
+  "runicsafety_protected_denied": "Runic Safety blocked a protected item from this destination.",
+  "runicsafety_provider_missing": "Runic Safety blocked the action because the installed inventory protection provider is unavailable.",
+  "runicsafety_recovery_unsafe": "Runic Safety could not verify expanded death recovery; see the correlated log before migrating topology."
+}

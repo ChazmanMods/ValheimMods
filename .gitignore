@@ -2,6 +2,14 @@
 **/obj/
 **/package/
 **/release/
+artifacts/
+docs/_render_*/
+**/Tests/LiveEvidence/
+**/TestResults/
+*.log
+*.trx
+*.coverage
+*.coveragexml
 *.user
 *.suo
 .vs/

@@ -1,0 +1,172 @@
+## Runic Production 1.0.0 example configuration
+## Copy to BepInEx/config/chazman.RunicProduction.cfg while Valheim is closed.
+## Each process applies its local values to exact objects it currently owns.
+
+[General]
+
+## Enable explicit Input, Fuel Input, Output, and Replenishment links. Disabling stops
+## Production automation without changing saved links or leaving operation state.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+[Links]
+
+## Maximum station-to-container distance in meters.
+# Setting type: Single
+# Default value: 12
+# Acceptable value range: From 2 to 30
+MaximumLinkRange = 12
+
+## Distance a linked chest may move from its recorded ZDO-root position before
+## automation pauses. Explicitly refresh the exact relation after an intentional move.
+# Setting type: Single
+# Default value: 0.75
+# Acceptable value range: From 0.1 to 3
+MovedTargetTolerance = 0.75
+
+## Single soft limit for Input, Fuel Input, Output, and Replenishment chests per
+## station and role. Lowering it does not erase existing links. Hard limit: 16.
+# Setting type: Int32
+# Default value: 8
+# Acceptable value range: From 1 to 16
+MaximumChestsPerRole = 8
+
+[Fuel]
+
+## Minimum exact fuel-item count retained when a station draws fuel from Fuel Input.
+# Setting type: Int32
+# Default value: 10
+# Acceptable value range: From 0 to 1000
+ProtectedReserve = 10
+
+[Transfers]
+
+## Maximum items staged per station update. Capacity, reserves, access, and
+## native ownership are checked again for each mutation.
+# Setting type: Int32
+# Default value: 1
+# Acceptable value range: From 1 to 10
+PullBatchSize = 1
+
+[Cooking Stations]
+
+## Exact CookingStation prefab IDs allowed to automate. A listed prefab must
+## still pass the installed structure, conversion, visual, heat, and state checks.
+# Setting type: String
+# Default value: piece_cookingstation,piece_cookingstation_iron,piece_oven
+AllowedPrefabIds = piece_cookingstation,piece_cookingstation_iron,piece_oven
+
+## Exact CookingStation prefab IDs denied automation. Deny overrides allow.
+# Setting type: String
+# Default value:
+DeniedPrefabIds =
+
+[Recipe Stations]
+
+## Exact CraftingStation prefab IDs allowed to create signed replenishment batches.
+## Recipes must still pass identity, DLC, station-level, fire, roof, and signature checks.
+# Setting type: String
+# Default value: piece_cauldron,piece_MeadCauldron,piece_preptable
+AllowedPrefabIds = piece_cauldron,piece_MeadCauldron,piece_preptable
+
+## Exact recipe-station prefab IDs denied replenishment. Deny overrides allow.
+# Setting type: String
+# Default value:
+DeniedPrefabIds =
+
+[Recipe Nearby Ingredients]
+
+## Use bounded station-centered ingredient discovery for recipe, cooking, and
+## fermenter replenishment. Direct recipes may combine one exact batch across
+## several chests. False uses only exact Input links. Donors must be static, in
+## range, accessible, ward-allowed, and locally owned.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Maximum eligible donor chests accepted by one station. The deterministic
+## query stops without mutation if this limit or the hard 64-candidate bound is exceeded.
+# Setting type: Int32
+# Default value: 32
+# Acceptable value range: From 1 to 64
+MaximumSourceChests = 32
+
+[Fermenters]
+
+## Exact Fermenter prefab IDs allowed to automate. A listed prefab must still
+## pass installed conversion, cover, timing, batch, and state checks.
+# Setting type: String
+# Default value: fermenter
+AllowedPrefabIds = fermenter
+
+## Exact Fermenter prefab IDs denied automation. Deny overrides allow.
+# Setting type: String
+# Default value:
+DeniedPrefabIds =
+
+[Ingredient Reserves]
+
+## Default exact-prefab count retained in the linked Input and independently
+## in every optional nearby donor chest.
+# Setting type: Int32
+# Default value: 0
+# Acceptable value range: From 0 to 1000000
+DefaultProtectedReserve = 0
+
+## Case-sensitive exact prefab reserves separated by semicolons.
+## Example: DeerMeat=10;Blueberries=20;Carrot=10
+## Invalid or duplicate rules stop stock input consumption.
+# Setting type: String
+# Default value:
+ProtectedPrefabAmounts =
+
+[Replenishment Stock]
+
+## Default exact count maintained for every designated exemplar item. Production
+## starts when a positive exemplar count falls below this number.
+# Setting type: Int32
+# Default value: 10
+# Acceptable value range: From 1 to 1000000
+DefaultReserve = 10
+
+## Case-sensitive exact prefab reserve overrides separated by semicolons.
+## Example: QueensJam=20;MeadHealthMinor=10
+# Setting type: String
+# Default value:
+PrefabReserves =
+
+[Stock Scheduler]
+
+## Native-owner replenishment service quantum. Unloaded time creates no catch-up crafts.
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0.5 to 10
+IntervalSeconds = 2
+
+## Global cap shared by fire/lamp, recipe, cooking, and fermenter mutations per quantum.
+## Each loaded station receives at most one operation in that quantum.
+# Setting type: Int32
+# Default value: 64
+# Acceptable value range: From 1 to 256
+MaximumOperationsPerQuantum = 64
+
+[UI]
+
+## Append the most recent compact automation result to station hover text.
+# Setting type: Boolean
+# Default value: true
+ShowStatusOverlay = true
+
+## Show the station-to-chest Alt+mouse link workflow, Shift+Alt unlink workflow,
+## and Input/Fuel Input/Output/Replenishment link counts in station hover text.
+# Setting type: Boolean
+# Default value: true
+ShowControlHints = true
+
+[Diagnostics]
+
+## Log bounded configuration, link, and transfer transitions without per-frame scans.
+# Setting type: Boolean
+# Default value: false
+VerboseLogging = false

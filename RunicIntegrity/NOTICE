@@ -1,0 +1,6 @@
+Runic Integrity includes a compatibility technique adapted from StructureHealth:
+https://github.com/lubertmiliutin/valheim-structure-health
+
+StructureHealth is Copyright (c) 2026 Mykhailo Liubart and is distributed under
+the MIT License. Its UpdateSupport placement-ghost patch was used as a technical
+reference and adapted for this project.

@@ -1,0 +1,9 @@
+{
+  "name": "RunicWorldEngine",
+  "version_number": "1.0.0",
+  "website_url": "",
+  "description": "Bounded read-only ZDO observability with unknown world data preserved.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

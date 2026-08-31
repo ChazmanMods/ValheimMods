@@ -1,0 +1,40 @@
+using System;
+using System.IO;
+
+namespace RunicBuildCamera.Tests
+{
+    internal static class TestPaths
+    {
+        private static string _repositoryRoot;
+
+        internal static string RepositoryRoot => _repositoryRoot ??= FindRepositoryRoot();
+
+        internal static string PluginFile(string relativePath) =>
+            Path.Combine(RepositoryRoot, "RunicBuildCamera", relativePath);
+
+        private static string FindRepositoryRoot()
+        {
+            string[] starts =
+            {
+                Directory.GetCurrentDirectory(),
+                AppContext.BaseDirectory
+            };
+            foreach (string start in starts)
+            {
+                DirectoryInfo current = new DirectoryInfo(start);
+                while (current != null)
+                {
+                    if (File.Exists(Path.Combine(
+                            current.FullName,
+                            "RunicBuildCamera",
+                            "RunicBuildCamera.csproj")))
+                        return current.FullName;
+                    current = current.Parent;
+                }
+            }
+
+            throw new DirectoryNotFoundException(
+                "Could not locate the repository root containing RunicBuildCamera.csproj.");
+        }
+    }
+}

@@ -1,0 +1,22 @@
+## Runic Sentinel 1.0.0
+
+[General]
+# Sampled at startup. False creates no worker or network handlers.
+Enabled = true
+
+[Policy]
+# Exact canonical RUNIC-SENTINEL/2 bytes. Relative paths resolve under BepInEx/config.
+ManifestFile = RunicSentinel.policy
+# One canonical Base64 RSA-3072 signature followed by exactly one LF.
+SignatureFile = RunicSentinel.policy.sig
+# Exact canonical RUNIC-RSA-PUBLIC/1 verification-only key file.
+# The private signer remains external in Server Forge/offline provisioning; Sentinel never loads it.
+PublicKeyFile = RunicSentinel.policy.pub
+# Required lowercase SHA-256 of the exact public-key file bytes. Empty means monitor-only.
+TrustedPublicKeySha256 =
+
+[Remote Admission]
+# Optional admits compatibility mismatches and records them. Required rejects them before PeerInfo.
+# Required also requires a verified signed policy on both server and client; client evidence remains self-reported.
+# Disabled still publishes this client's self-report to servers but installs no local requirement or evaluator.
+Policy = Optional

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>RunicPermissions.Tests</AssemblyName>
+    <RootNamespace>RunicPermissions.Tests</RootNamespace>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Contracts\*.cs" Link="Contracts\%(Filename)%(Extension)" />
+    <Compile Include="..\Evaluation\*.cs" Link="Evaluation\%(Filename)%(Extension)" />
+    <Compile Include="..\Groups\*.cs" Link="Groups\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

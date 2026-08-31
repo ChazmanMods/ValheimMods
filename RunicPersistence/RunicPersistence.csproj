@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>RunicPersistence</AssemblyName>
+    <RootNamespace>Runic.Foundation.Persistence</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+    <VALHEIM_INSTALL Condition="'$(VALHEIM_INSTALL)' == ''">E:\SteamLibrary\steamapps\common\Valheim</VALHEIM_INSTALL>
+    <GAME_MANAGED>$(VALHEIM_INSTALL)\valheim_Data\Managed</GAME_MANAGED>
+    <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="false" />
+    <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="false" />
+    <Reference Include="com.rlabrecque.steamworks.net" HintPath="$(GAME_MANAGED)\com.rlabrecque.steamworks.net.dll" Private="false" />
+    <Reference Include="System.Net.Http" HintPath="$(GAME_MANAGED)\System.Net.Http.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RunicCore\RunicCore.csproj" Private="false" />
+  </ItemGroup>
+</Project>

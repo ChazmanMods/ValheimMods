@@ -1,0 +1,9 @@
+{
+  "name": "RunicCore",
+  "version_number": "1.0.0",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Shared module discovery, typed services, input-conflict reporting, and actionable notifications for the Runic mod suite.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

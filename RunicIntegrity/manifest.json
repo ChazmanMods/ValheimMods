@@ -1,0 +1,9 @@
+{
+  "name": "RunicIntegrity",
+  "version_number": "0.2.2",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicIntegrity",
+  "description": "Silent colored beam and brace routes from weak roof pieces to strong structural anchors.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

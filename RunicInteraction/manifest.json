@@ -1,0 +1,9 @@
+{
+  "name": "RunicInteraction",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicInteraction",
+  "description": "Reversible Valheim interaction polish: validated hold-repeat, safe transfers and doors, legal equipment restore, menu memory, text validation, and non-destructive pickup filters.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

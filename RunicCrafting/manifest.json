@@ -1,0 +1,9 @@
+{
+  "name": "RunicCrafting",
+  "version_number": "1.0.0",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Vanilla-preserving nearby-container crafting and building for solo, listen servers, and dedicated clients, with Workshop Access and Repair All.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

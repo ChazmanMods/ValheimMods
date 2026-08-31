@@ -1,0 +1,15 @@
+## Runic Permissions 1.0.0
+## Copy to BepInEx/config/chazman.RunicPermissions.cfg only if you want to
+## preconfigure the value before the first launch.
+## Group management needs no configuration and no F5 console. In Valheim chat,
+## type /group help. Active Group choices are stored server-side per world/player.
+
+[Security]
+
+## Enables the audited administrative bypass path. An administrator must still
+## deliberately enter admin mode and provide a session ID and justification for
+## every request. Explicit server/object denies and uncertain security data are
+## never bypassed. Restart the game/server after changing this setting.
+# Setting type: Boolean
+# Default value: false
+AdminBypassEnabled = false

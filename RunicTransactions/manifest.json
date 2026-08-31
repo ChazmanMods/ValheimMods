@@ -1,0 +1,11 @@
+{
+  "name": "RunicTransactions",
+  "version_number": "1.0.0",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Deterministic material transactions, persistent Valheim world-object identity, and restart-durable exact operation claims for the Runic mod suite.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333",
+    "Chazman-RunicCore-1.0.0",
+    "Chazman-RunicPersistence-1.0.0"
+  ]
+}

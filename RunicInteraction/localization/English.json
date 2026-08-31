@@ -1,0 +1,21 @@
+{
+  "language": "English",
+  "module": "Runic Interaction",
+  "features": {
+    "hold-repeat": "Hold to Repeat",
+    "transfer-gesture": "Transfer Gestures",
+    "door-auto-close": "Door Auto-Close",
+    "equipment-restore": "Equipment Restore",
+    "menu-memory": "Menu Memory",
+    "text-entry": "Text Entry Polish",
+    "pickup-filter": "Pickup Filters"
+  },
+  "disabled_gates": {
+    "drag-transfer": "Disabled: no authority-safe atomic drag-sweep boundary is available.",
+    "filter-memory": "Disabled: no stable generic filter context is available."
+  },
+  "notes": {
+    "runtime": "Runtime denials use Valheim's own localized message tokens.",
+    "privacy": "Entered text and inventory contents are never logged."
+  }
+}

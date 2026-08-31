@@ -1,0 +1,15 @@
+{
+  "runicportals_editor": "network|public/private/group|... (or standard)",
+  "runicportals_selected": "Destination selected",
+  "runicportals_none": "No authorized online destinations are available in this network.",
+  "runicportals_oneway": "Warning: this route is one-way. Step out and re-enter before the warning expires to proceed.",
+  "runicportals_authority": "Universal routing is unavailable because authoritative validation is not available here.",
+  "runicportals_restricted": "You cannot teleport with this inventory under the current world rules.",
+  "runicportals_disabled": "Portals are disabled by the current world rules.",
+  "runicportals_boss": "Portal travel is blocked by the active boss rule.",
+  "runicportals_stale": "The selected route changed; select a destination again.",
+  "runicportals_duplicate": "Multiple authorized portals have that name; select the stable-ID disambiguated entry.",
+  "runicportals_unlink": "Unlink this Standard Pair with a unique vanilla tag before opting into a network.",
+  "runicportals_standard": "Portal restored to Standard Pair mode; set its vanilla tag normally.",
+  "runicportals_network": "Network portal saved. Alt+Use selects an authorized destination."
+}

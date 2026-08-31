@@ -1,0 +1,77 @@
+## Runic Storage 1.0.0 example configuration
+## Copy to BepInEx/config/chazman.RunicStorage.cfg while Valheim is closed.
+
+[General]
+
+Enabled = true
+ShowReadyMessage = true
+## Fresh configurations enable Storage and chest hover. An explicit false remains respected.
+
+[Discovery]
+
+RangeMeters = 20
+MaximumCandidates = 64
+
+[Safety]
+
+ProtectHotbar = true
+## Applies to Quick Stack, Store All, and Consolidate.
+
+[Hover]
+
+ShowContents = true
+MaximumItemKinds = 8
+ItemsPerLine = 3
+MaximumCharacters = 320
+MaximumStacksExamined = 256
+MaximumSnapshotCharacters = 262144
+FailedRefreshRetrySeconds = 0.5
+
+## Snapshot hard ceilings that are not configurable: 1024 stacks and 4096 custom-data entries.
+## Oversized, unsynchronized, or otherwise unverified containers keep their vanilla hover text.
+
+[Keys]
+
+## Chords are exact. Extra Alt/Ctrl/Shift/Command keys do not also fire a shorter chord.
+## None, duplicate modifiers, and using the main key as its own modifier are invalid and inert.
+
+QuickStack = Q + LeftAlt
+Restock = R + LeftAlt
+SortOpenedContainer = S + LeftAlt
+StoreAllOpenedContainer = A + LeftAlt
+ConsolidateCarriedStacks = C + LeftAlt
+Search = F + LeftAlt
+
+[Restock]
+
+Targets = Wood=50,Stone=50
+
+[Sort]
+
+LockedSlots =
+## Semicolon-separated zero-based x,y slots, for example: 0,0;1,0
+## A remote Sort freezes the canonical valid set into its durable operation before mutation.
+
+[Search]
+
+## Legacy compatibility value. Alt+F now opens a list populated from eligible nearby chests.
+SearchItem = Wood
+## Alt+F window appearance. Size is bounded to 10-32. MenuFontColor is a named dropdown
+## in Configuration Manager: LightGray, White, Gold, Yellow, Orange, Red, Pink, Purple,
+## Blue, Cyan, Turquoise, Green, or Lime.
+MenuFontSize = 14
+MenuFontColor = LightGray
+
+[Controller]
+
+Enabled = true
+ModifierAction = JoyAltKeys
+QuickStackAction = JoyDPadDown
+RestockAction = JoyDPadUp
+SortOpenedContainerAction = JoyRStick
+ConsolidateAction = JoyDPadLeft
+SearchAction = JoyDPadRight
+
+[Diagnostics]
+
+DebugTransfers = false

@@ -1,0 +1,42 @@
+[General]
+Enabled = true
+
+[Features]
+UniversalRouting = true
+
+[Display]
+ShowSetupPanel = true
+PanelScale = 1
+
+[Authority]
+EditRangeMeters = 5
+
+[Performance]
+IndexRefreshSeconds = 2
+MaximumNetworkEndpoints = 1024
+
+[Directory]
+# The walk-in large-map picker is always limited to authorized arrive/both destinations in the
+# source portal's exact NetworkName. On the normal large map, unmodified P shows or hides one
+# world-wide directory containing vanilla Standard Pair portals, public Runic portals, the player's
+# private portals, and current-member Group portals in every direction. No nearby source portal is
+# required. These temporary pins are never saved or shared.
+# Entering an eligible source freezes the locally owned player while the picker is open. Selection
+# rechecks the source, destination, explicit Public/private/Group policy, wards, revisions, and native
+# teleportability before using Valheim's local teleport path. Source and edit wards require definite
+# local permission. An unloaded remote destination is not rejected solely because no local ward
+# instance exists, but a loaded destination ward known to be hostile still denies the route. The mod
+# does not claim portal ownership or create a deferred source lease; missing ownership or current
+# route evidence cancels the action.
+# Valid online Network Portals visibly activate, including arrive-only endpoints. Standard Pair
+# discovery and travel remain strictly Standard-to-Standard and never route into Runic networks.
+CyclePageSize = 32
+
+[Routes]
+ReturnRouteMinutes = 15
+# Clicking a destination marked one-way acknowledges that exact route immediately. This setting
+# bounds the conservative retry acknowledgement used by non-picker compatibility paths.
+OneWayAcknowledgementSeconds = 10
+
+[Diagnostics]
+VerboseLogging = false

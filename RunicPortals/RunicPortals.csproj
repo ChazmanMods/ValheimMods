@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>RunicPortals</AssemblyName>
+    <RootNamespace>RunicPortals</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+    <VALHEIM_INSTALL Condition="'$(VALHEIM_INSTALL)' == ''">E:\SteamLibrary\steamapps\common\Valheim</VALHEIM_INSTALL>
+    <GAME_MANAGED>$(VALHEIM_INSTALL)\valheim_Data\Managed</GAME_MANAGED>
+    <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\RunicPermissions\Contracts\StableIdentity.cs" Link="Embedded\StableIdentity.cs" />
+    <Compile Include="..\RunicPermissions\Groups\GroupDomain.cs" Link="Embedded\GroupDomain.cs" />
+    <Compile Include="..\RunicPermissions\Groups\GroupCommandLedger.cs" Link="Embedded\GroupCommandLedger.cs" />
+    <Compile Include="..\RunicPermissions\Groups\GroupCatalog.cs" Link="Embedded\GroupCatalog.cs" />
+    <Compile Include="..\RunicPermissions\Groups\GroupCatalogCodec.cs" Link="Embedded\GroupCatalogCodec.cs" />
+    <Compile Include="..\RunicPermissions\Groups\GroupCommandProtocol.cs" Link="Embedded\GroupCommandProtocol.cs" />
+    <Compile Include="..\RunicPermissions\Groups\GroupCommandProcessor.cs" Link="Embedded\GroupCommandProcessor.cs" />
+    <Compile Include="..\RunicPermissions\Groups\GroupActiveSelection.cs" Link="Embedded\GroupActiveSelection.cs" />
+    <Compile Include="..\RunicPermissions\Groups\GroupQueryProtocol.cs" Link="Embedded\GroupQueryProtocol.cs" />
+    <Compile Include="..\RunicPermissions\Groups\GroupFriendlyProtocol.cs" Link="Embedded\GroupFriendlyProtocol.cs" />
+    <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="false" />
+    <Reference Include="assembly_guiutils" HintPath="$(GAME_MANAGED)\assembly_guiutils.dll" Private="false" />
+    <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="false" />
+    <Reference Include="Splatform" HintPath="$(GAME_MANAGED)\Splatform.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.ImageConversionModule" HintPath="$(GAME_MANAGED)\UnityEngine.ImageConversionModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(GAME_MANAGED)\UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GAME_MANAGED)\UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(GAME_MANAGED)\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="UnityEngine.UI" HintPath="$(GAME_MANAGED)\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="UnityEngine.UIModule" HintPath="$(GAME_MANAGED)\UnityEngine.UIModule.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\RunicPortalMapPin.png"
+                      LogicalName="RunicPortals.Assets.RunicPortalMapPin.png" />
+  </ItemGroup>
+</Project>

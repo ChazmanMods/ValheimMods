@@ -1,0 +1,9 @@
+{
+  "name": "RunicStorage",
+  "version_number": "1.0.0",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Secure chest hover plus authorized quick stack, opened-chest store-all, restock, search, sorting, and safe stack consolidation for Valheim.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

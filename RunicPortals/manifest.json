@@ -1,0 +1,9 @@
+{
+  "name": "RunicPortals",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicPortals",
+  "description": "Permission-aware named portal networks with native Valheim ownership and vanilla Standard Pair fallback.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

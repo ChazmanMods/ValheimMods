@@ -1,439 +1,195 @@
+using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Reflection.Emit;
 using BepInEx;
-using BepInEx.Configuration;
+using BepInEx.Logging;
 using HarmonyLib;
-using TMPro;
+using QuietBuildRotation.Integration;
+using QuietBuildRotation.UI;
 using UnityEngine;
-using Valheim.SettingsGui;
 
 namespace QuietBuildRotation
 {
     [BepInPlugin(Guid, Name, Version)]
+    [BepInDependency(
+        CompatibilityGuard.PerfectPlacementGuid,
+        BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "chazman.RunicPrecisionBuildTool";
         public const string Name = "Runic Precision Build Tool";
-        public const string Version = "1.0.2";
+        public const string Version = "2.0.1";
 
-        internal static ConfigEntry<bool> Enabled;
-        internal static ConfigEntry<KeyboardShortcut> PitchModifier;
-        internal static ConfigEntry<KeyboardShortcut> RollModifier;
-        internal static ConfigEntry<KeyboardShortcut> MoveModifier;
-        internal static ConfigEntry<KeyboardShortcut> FineModifier;
-        internal static ConfigEntry<KeyboardShortcut> ResetShortcut;
-        internal static ConfigEntry<float> NormalStep;
-        internal static ConfigEntry<float> FineStep;
-        internal static ConfigEntry<float> MoveStep;
-        internal static ConfigEntry<float> FineMoveStep;
-        internal static BepInEx.Logging.ManualLogSource Log;
+        internal static ManualLogSource Log { get; private set; }
 
         private Harmony _harmony;
+        private string _lastConflictReport;
 
         private void Awake()
         {
             Log = Logger;
-            Enabled = Config.Bind("General", "Enabled", true, "Enable advanced rotation. Vanilla rotation is unchanged when disabled.");
-            PitchModifier = Config.Bind("Controls", "Pitch", new KeyboardShortcut(KeyCode.LeftAlt), "Hold and scroll to pitch.");
-            RollModifier = Config.Bind("Controls", "Roll", new KeyboardShortcut(KeyCode.LeftAlt, KeyCode.LeftShift), "Hold and scroll to roll.");
-            MoveModifier = Config.Bind("Controls", "Move", new KeyboardShortcut(KeyCode.RightAlt), "Hold with arrows or Page Up/Page Down to move. Right Alt avoids Infinity Hammer's Left Alt movement bindings.");
-            FineModifier = Config.Bind("Controls", "Fine", new KeyboardShortcut(KeyCode.V), "Hold as well for fine rotation or movement. Ctrl is intentionally unused.");
-            ResetShortcut = Config.Bind("Controls", "Reset", new KeyboardShortcut(KeyCode.R, KeyCode.LeftAlt), "Reserved reset binding. Alt+R resets rotation, vanilla yaw, and translation.");
-            NormalStep = Config.Bind("Rotation", "StepDegrees", 15f, new ConfigDescription("Normal pitch/roll step.", new AcceptableValueRange<float>(0.1f, 90f)));
-            FineStep = Config.Bind("Rotation", "FineStepDegrees", 1f, new ConfigDescription("Fine pitch/roll step.", new AcceptableValueRange<float>(0.01f, 45f)));
-            MoveStep = Config.Bind("Movement", "StepMeters", 0.25f, new ConfigDescription("Normal local-axis movement step.", new AcceptableValueRange<float>(0.01f, 5f)));
-            FineMoveStep = Config.Bind("Movement", "FineStepMeters", 0.05f, new ConfigDescription("Fine local-axis movement step.", new AcceptableValueRange<float>(0.001f, 1f)));
+            Diagnostics.Initialize(Logger);
+            PluginConfig.Bind(Config);
+            PluginConfig.Changed += OnConfigurationChanged;
+            ReportBindingConflicts();
+
+            string compatibilityReason;
+            try
+            {
+                if (!CompatibilityGuard.ShouldDisableForPerfectPlacement(out compatibilityReason))
+                    compatibilityReason = null;
+            }
+            catch (Exception exception)
+            {
+                compatibilityReason =
+                    $"PerfectPlacement compatibility state could not be verified: " +
+                    $"{exception.GetType().Name}: {exception.Message}";
+            }
+
+            if (!string.IsNullOrEmpty(compatibilityReason))
+            {
+                Diagnostics.DisableForCompatibility(compatibilityReason);
+                Logger.LogInfo($"{Name} v{Version} loaded with Runic manipulation disabled.");
+                return;
+            }
+
+            if (!PlacementAdapter.Initialize(out string adapterError))
+            {
+                Diagnostics.DisableAdapter(adapterError);
+                Logger.LogInfo($"{Name} v{Version} loaded with Runic manipulation disabled.");
+                return;
+            }
 
             _harmony = new Harmony(Guid);
-            _harmony.PatchAll();
-            Logger.LogInfo($"{Name} v{Version} loaded. Left Alt+wheel pitches, Left Alt+Shift+wheel rolls, Right Alt+arrows/PageUp/PageDown moves, Left Alt+R resets.");
+            try
+            {
+                _harmony.PatchAll(typeof(Plugin).Assembly);
+            }
+            catch (Exception exception)
+            {
+                Diagnostics.DisableAdapter(
+                    $"Harmony patching failed: {exception.GetType().Name}: {exception.Message}");
+                UnpatchFailedStartup();
+                Logger.LogInfo($"{Name} v{Version} loaded with Runic manipulation disabled.");
+                return;
+            }
+
+            if (!PlacementAdapter.CompleteRuntimeVerification(Guid, out string verificationError))
+            {
+                Diagnostics.DisableAdapter(verificationError);
+                UnpatchFailedStartup();
+                Logger.LogInfo($"{Name} v{Version} loaded with Runic manipulation disabled.");
+                return;
+            }
+
+            try
+            {
+                PlacementRuntime.Initialize();
+            }
+            catch (Exception exception)
+            {
+                PlacementRuntime.Shutdown();
+                Diagnostics.DisableAdapter(
+                    $"runtime initialization failed: {exception.GetType().Name}: {exception.Message}");
+                UnpatchFailedStartup();
+                Logger.LogInfo($"{Name} v{Version} loaded with Runic manipulation disabled.");
+                return;
+            }
+            Diagnostics.MarkRuntimeAvailable();
+            try
+            {
+                if (Hud.instance != null)
+                    OrientationPresenter.Attach(Hud.instance);
+            }
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("existing selected-piece panel attachment", exception);
+            }
+
+            if (!Diagnostics.RuntimeAvailable)
+            {
+                PlacementRuntime.Shutdown();
+                UnpatchFailedStartup();
+                Logger.LogInfo($"{Name} v{Version} loaded with Runic manipulation disabled.");
+                return;
+            }
+            Logger.LogInfo(
+                $"{Name} v{Version} ready for audited Valheim {Diagnostics.GetValheimVersion()}. " +
+                "Runic wheel and movement actions use explicit configurable chords and fail closed.");
         }
+
+        private void OnApplicationFocus(bool hasFocus) =>
+            PlacementRuntime.OnApplicationFocus(hasFocus);
 
         private void Update()
         {
-            RotationController.PollKeyboard();
-            AxisGuide.Update();
+            try
+            {
+                PlacementRuntime.UpdateUtilities();
+            }
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("bounded utility input", exception);
+            }
         }
 
         private void OnDestroy()
         {
-            AxisGuide.Destroy();
-            NativeBuildHints.Destroy();
+            PluginConfig.Changed -= OnConfigurationChanged;
+            PlacementRuntime.Shutdown();
+            OrientationPresenter.Destroy();
             _harmony?.UnpatchSelf();
         }
-    }
 
-    internal struct PlacementState
-    {
-        internal Quaternion Rotation;
-        internal Vector3 WorldOffset;
-
-        internal static PlacementState Identity => new PlacementState
+        private void OnConfigurationChanged()
         {
-            Rotation = Quaternion.identity,
-            WorldOffset = Vector3.zero
-        };
-    }
-
-    internal static class RotationController
-    {
-        private static string _activePiece;
-        private static PlacementState _state = PlacementState.Identity;
-        private static int _rotationBeforeInput;
-        private static float _scrollBeforeInput;
-        private static bool _advancedInput;
-        private static bool _rollInput;
-        private static bool _guideVisible;
-        private static bool _resetRequested;
-        private static readonly AccessTools.FieldRef<Player, int> PlaceRotation = AccessTools.FieldRefAccess<Player, int>("m_placeRotation");
-        private static readonly AccessTools.FieldRef<Player, GameObject> PlacementGhost = AccessTools.FieldRefAccess<Player, GameObject>("m_placementGhost");
-        private static readonly AccessTools.FieldRef<Player, float> ScrollAmount = AccessTools.FieldRefAccess<Player, float>("m_scrollCurrAmount");
-        private static readonly AccessTools.FieldRef<Player, int> ManualSnapPoint = AccessTools.FieldRefAccess<Player, int>("m_manualSnapPoint");
-        private static readonly MethodInfo SetupPlacementGhost = AccessTools.Method(typeof(Player), "SetupPlacementGhost");
-        private static readonly MethodInfo UpdatePlacementGhost = AccessTools.Method(typeof(Player), "UpdatePlacementGhost");
-
-        internal static void BeforePlacementInput(Player player)
-        {
-            _advancedInput = false;
-            _rollInput = false;
-            if (!CanOperate(player)) return;
-
-            ExecutePendingReset(player);
-            _rotationBeforeInput = PlaceRotation(player);
-            _scrollBeforeInput = ScrollAmount(player);
-            bool pitchInput = IsShortcutHeld(Plugin.PitchModifier.Value);
-            _rollInput = IsShortcutHeld(Plugin.RollModifier.Value);
-            _advancedInput = pitchInput || _rollInput;
+            ReportBindingConflicts();
+            PlacementRuntime.OnConfigurationChanged();
         }
 
-        internal static void AfterPlacementInput(Player player)
+        private void ReportBindingConflicts()
         {
-            if (!CanOperate(player)) return;
-            GameObject ghost = PlacementGhost(player);
-            if (!ghost || !ghost.activeInHierarchy) return;
-            Piece piece = ghost.GetComponent<Piece>();
-            if (!piece || !piece.m_canRotate) return;
-
-            string key = ghost.name;
-            PlacementState state = GetState(key);
-
-            if (_advancedInput)
-            {
-                // Vanilla sees the wheel too. Put yaw back so the modifier never steals or
-                // synthesizes input globally; it only cancels vanilla yaw for this player.
-                PlaceRotation(player) = _rotationBeforeInput;
-                ScrollAmount(player) = _scrollBeforeInput;
-                float wheel = ZInput.GetMouseScrollWheel();
-                if (Mathf.Abs(wheel) > 0.01f)
-                {
-                    float direction = Mathf.Sign(wheel);
-                    float step = IsShortcutHeld(Plugin.FineModifier.Value) ? Plugin.FineStep.Value : Plugin.NormalStep.Value;
-                    // Post-multiplication makes every increment intrinsic: the axis belongs to
-                    // the object in its current orientation, not to the original prefab/world.
-                    Vector3 localAxis = _rollInput ? Vector3.forward : Vector3.right;
-                    state.Rotation = state.Rotation * Quaternion.AngleAxis(direction * step, localAxis);
-                    state.Rotation.Normalize();
-                    SaveState(key, state);
-                }
-            }
-
-        }
-
-        internal static void PollKeyboard()
-        {
-            Player player = Player.m_localPlayer;
-            if (!player || !CanOperate(player)) return;
-            GameObject ghost = PlacementGhost(player);
-            if (!ghost || !ghost.activeInHierarchy) return;
-            GetState(ghost.name); // Also resets manipulation when selection changes.
-
-            if (ZInput.GetKeyDown(KeyCode.G, false))
-            {
-                _guideVisible = !_guideVisible;
+            string conflicts = PluginConfig.FindExactChordConflicts();
+            if (string.IsNullOrEmpty(conflicts) || string.Equals(conflicts, _lastConflictReport, StringComparison.Ordinal))
                 return;
-            }
 
-            if (IsShortcutDown(Plugin.ResetShortcut.Value))
+            _lastConflictReport = conflicts;
+            Logger.LogWarning(
+                $"Exact Runic input chord conflict detected: {conflicts}. " +
+                "Bindings were preserved; the conflicting chord will not be guessed or remapped.");
+        }
+
+        private void UnpatchFailedStartup()
+        {
+            if (_harmony == null) return;
+            try
             {
-                _resetRequested = true;
-                return;
+                _harmony.UnpatchSelf();
             }
-            if (!IsShortcutHeld(Plugin.MoveModifier.Value)) return;
-
-            float step = IsShortcutHeld(Plugin.FineModifier.Value) ? Plugin.FineMoveStep.Value : Plugin.MoveStep.Value;
-            Vector3 movement = ReadWorldMovementStep();
-            if (movement != Vector3.zero) _state.WorldOffset += movement * step;
-        }
-
-        internal static bool GuideVisible => _guideVisible;
-
-        internal static GameObject CurrentGhost
-        {
-            get
+            catch (Exception exception)
             {
-                Player player = Player.m_localPlayer;
-                return player ? PlacementGhost(player) : null;
+                Logger.LogWarning(
+                    $"Runic startup cleanup could not remove every partial patch; all remaining " +
+                    $"hooks stay disabled: {exception.GetType().Name}: {exception.Message}");
             }
-        }
-
-        private static void ExecutePendingReset(Player player)
-        {
-            if (!_resetRequested || player != Player.m_localPlayer) return;
-            _resetRequested = false;
-            _state = PlacementState.Identity;
-            _activePiece = null;
-            PlaceRotation(player) = 0;
-            ScrollAmount(player) = 0f;
-            ManualSnapPoint(player) = -1;
-            SetupPlacementGhost.Invoke(player, null);
-            UpdatePlacementGhost.Invoke(player, new object[] { false });
-        }
-
-        internal static Quaternion ComposePlacementRotation(float x, float y, float z)
-        {
-            Quaternion vanilla = Quaternion.Euler(x, y, z);
-            Player player = Player.m_localPlayer;
-            if (!CanOperate(player)) return vanilla;
-            GameObject ghost = PlacementGhost(player);
-            if (!ghost) return vanilla;
-
-            // This quaternion is returned where vanilla creates its placement rotation. Every
-            // subsequent snap-point transform, overlap check, preview, and placement sees it.
-            return vanilla * GetState(ghost.name).Rotation;
-        }
-
-        internal static void ApplyTranslation(Player player)
-        {
-            if (!CanOperate(player)) return;
-            GameObject ghost = PlacementGhost(player);
-            if (!ghost || !ghost.activeInHierarchy) return;
-            PlacementState state = GetState(ghost.name);
-            if (state.WorldOffset.sqrMagnitude < 0.0000001f) return;
-
-            // Translation is deliberately world-space. Rotation never changes what the movement
-            // keys mean: X remains east/west, Y remains vertical, and Z remains north/south.
-            ghost.transform.position += state.WorldOffset;
-        }
-
-        internal static bool HasPrecisionOffset(Player player)
-        {
-            if (!CanOperate(player)) return false;
-            GameObject ghost = PlacementGhost(player);
-            return ghost && GetState(ghost.name).WorldOffset.sqrMagnitude > 0.0000001f;
-        }
-
-        private static bool CanOperate(Player player)
-        {
-            if (!player || player != Player.m_localPlayer) return false;
-
-            return Plugin.Enabled.Value &&
-                   !Console.IsVisible() && (Chat.instance == null || !Chat.instance.HasFocus()) &&
-                   Hud.instance != null && !Hud.IsPieceSelectionVisible();
-        }
-
-        private static PlacementState GetState(string key)
-        {
-            if (_activePiece != key)
-            {
-                _activePiece = key;
-                _state = PlacementState.Identity;
-            }
-            return _state;
-        }
-
-        private static void SaveState(string key, PlacementState state)
-        {
-            GetState(key);
-            _state = state;
-        }
-
-        private static Vector3 ReadWorldMovementStep()
-        {
-            if (ZInput.GetKeyDown(KeyCode.LeftArrow, false)) return Vector3.left;
-            if (ZInput.GetKeyDown(KeyCode.RightArrow, false)) return Vector3.right;
-            if (ZInput.GetKeyDown(KeyCode.UpArrow, false)) return Vector3.up;
-            if (ZInput.GetKeyDown(KeyCode.DownArrow, false)) return Vector3.down;
-            if (ZInput.GetKeyDown(KeyCode.PageUp, false)) return Vector3.forward;
-            if (ZInput.GetKeyDown(KeyCode.PageDown, false)) return Vector3.back;
-            return Vector3.zero;
-        }
-
-        private static bool IsShortcutHeld(KeyboardShortcut shortcut)
-        {
-            if (shortcut.MainKey == KeyCode.None || !ZInput.GetKey(shortcut.MainKey, false)) return false;
-            foreach (KeyCode modifier in shortcut.Modifiers)
-            {
-                if (!ZInput.GetKey(modifier, false)) return false;
-            }
-            return true;
-        }
-
-        private static bool IsShortcutDown(KeyboardShortcut shortcut)
-        {
-            if (!IsShortcutHeld(shortcut)) return false;
-            if (ZInput.GetKeyDown(shortcut.MainKey, false)) return true;
-            foreach (KeyCode modifier in shortcut.Modifiers)
-            {
-                if (ZInput.GetKeyDown(modifier, false)) return true;
-            }
-            return false;
+            _harmony = null;
         }
     }
 
-    internal static class NativeBuildHints
+    [HarmonyPatch(typeof(Player), "HandleRadialInput")]
+    internal static class PlayerHandleRadialInputPatch
     {
-        private static readonly List<GameObject> Entries = new List<GameObject>();
-
-        internal static void Create(KeyHints hints)
+        private static bool Prefix(Player __instance)
         {
-            Destroy();
-            if (!hints || !hints.m_buildHints) return;
-            UIInputHint inputHint = hints.m_buildHints.GetComponent<UIInputHint>();
-            Transform keyboard = inputHint?.m_mouseKeyboardHint?.transform;
-            GameObject template = keyboard?.Find("Place")?.gameObject;
-            if (!template)
+            try
             {
-                Plugin.Log.LogWarning("Could not find Valheim's native Place key hint; precision hints were not added.");
-                return;
+                return !PlacementRuntime.ShouldSuppressAxisGuideRadial(__instance);
             }
-
-            Add(template, keyboard, "Alt+Wheel", "Pitch");
-            Add(template, keyboard, "Alt+Shift+Wheel", "Roll");
-            Add(template, keyboard, "RightAlt+Arrows", "Move X/Y");
-            Add(template, keyboard, "RightAlt+PgUp/PgDn", "Move Z");
-            Add(template, keyboard, "V", "Fine");
-            Add(template, keyboard, "Alt+R", "Reset");
-            Add(template, keyboard, "G", "Guides");
-        }
-
-        internal static void Refresh()
-        {
-            bool visible = RotationController.GuideVisible;
-            foreach (GameObject entry in Entries)
+            catch (Exception exception)
             {
-                if (entry && entry.activeSelf != visible) entry.SetActive(visible);
-            }
-        }
-
-        internal static void Destroy()
-        {
-            foreach (GameObject entry in Entries)
-            {
-                if (entry) Object.Destroy(entry);
-            }
-            Entries.Clear();
-        }
-
-        private static void Add(GameObject template, Transform parent, string key, string label)
-        {
-            GameObject entry = Object.Instantiate(template, parent, false);
-            entry.name = "RunicPrecision_" + label.Replace(" ", string.Empty);
-            TextMeshProUGUI keyText = entry.transform.Find("key_bkg/Key")?.GetComponent<TextMeshProUGUI>();
-            TextMeshProUGUI labelText = entry.transform.Find("Text")?.GetComponent<TextMeshProUGUI>();
-            if (keyText) keyText.text = key;
-            if (labelText) labelText.text = label;
-            entry.SetActive(false);
-            Entries.Add(entry);
-        }
-    }
-
-    internal static class AxisGuide
-    {
-        private const int Segments = 72;
-        private static readonly Color[] LocalColors =
-        {
-            new Color(1f, 0.15f, 0.12f, 0.95f),
-            new Color(0.2f, 1f, 0.25f, 0.95f),
-            new Color(0.2f, 0.55f, 1f, 0.95f)
-        };
-        private static readonly Color[] WorldColors =
-        {
-            new Color(1f, 0.25f, 0.22f, 0.28f),
-            new Color(0.3f, 1f, 0.35f, 0.28f),
-            new Color(0.3f, 0.65f, 1f, 0.28f)
-        };
-        private static GameObject _root;
-        private static LineRenderer[] _rings;
-        private static Material _material;
-
-        internal static void Update()
-        {
-            GameObject ghost = RotationController.CurrentGhost;
-            bool visible = RotationController.GuideVisible && ghost && ghost.activeInHierarchy;
-            if (!visible)
-            {
-                if (_root) _root.SetActive(false);
-                return;
-            }
-
-            EnsureCreated();
-            _root.SetActive(true);
-            Bounds bounds = CalculateBounds(ghost);
-            Vector3 center = bounds.center;
-            float radius = Mathf.Clamp(bounds.extents.magnitude * 0.72f, 0.45f, 2.75f);
-            float width = Mathf.Clamp(Vector3.Distance(center, Camera.main ? Camera.main.transform.position : center) * 0.0025f, 0.018f, 0.055f);
-            Quaternion local = ghost.transform.rotation;
-
-            for (int axis = 0; axis < 3; axis++)
-            {
-                DrawRing(_rings[axis], center, radius, width, axis, local);
-                DrawRing(_rings[axis + 3], center, radius * 1.08f, width * 0.65f, axis, Quaternion.identity);
-            }
-        }
-
-        internal static void Destroy()
-        {
-            if (_root) Object.Destroy(_root);
-            if (_material) Object.Destroy(_material);
-            _root = null;
-            _rings = null;
-            _material = null;
-        }
-
-        private static void EnsureCreated()
-        {
-            if (_root) return;
-            _root = new GameObject("QuietBuildRotation_AxisGuide") { hideFlags = HideFlags.HideAndDontSave };
-            _material = new Material(Shader.Find("Sprites/Default")) { hideFlags = HideFlags.HideAndDontSave };
-            _rings = new LineRenderer[6];
-            for (int i = 0; i < _rings.Length; i++)
-            {
-                GameObject ring = new GameObject(i < 3 ? $"LocalAxis_{i}" : $"WorldAxis_{i - 3}");
-                ring.hideFlags = HideFlags.HideAndDontSave;
-                ring.transform.SetParent(_root.transform, false);
-                LineRenderer line = ring.AddComponent<LineRenderer>();
-                line.sharedMaterial = _material;
-                line.useWorldSpace = true;
-                line.loop = true;
-                line.positionCount = Segments;
-                line.numCornerVertices = 2;
-                line.numCapVertices = 2;
-                line.startColor = line.endColor = i < 3 ? LocalColors[i] : WorldColors[i - 3];
-                _rings[i] = line;
-            }
-        }
-
-        private static Bounds CalculateBounds(GameObject ghost)
-        {
-            Renderer[] renderers = ghost.GetComponentsInChildren<Renderer>();
-            if (renderers.Length == 0) return new Bounds(ghost.transform.position, Vector3.one);
-            Bounds bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
-            return bounds;
-        }
-
-        private static void DrawRing(LineRenderer line, Vector3 center, float radius, float width, int axis, Quaternion orientation)
-        {
-            line.startWidth = line.endWidth = width;
-            for (int i = 0; i < Segments; i++)
-            {
-                float angle = i * Mathf.PI * 2f / Segments;
-                float a = Mathf.Cos(angle) * radius;
-                float b = Mathf.Sin(angle) * radius;
-                Vector3 point = axis == 0 ? new Vector3(0f, a, b) :
-                                axis == 1 ? new Vector3(a, 0f, b) : new Vector3(a, b, 0f);
-                line.SetPosition(i, center + orientation * point);
+                // Any uncertainty preserves Valheim's original action.
+                RunicHookGuard.Disable("radial input guard", exception);
+                return true;
             }
         }
     }
@@ -441,58 +197,206 @@ namespace QuietBuildRotation
     [HarmonyPatch(typeof(Player), "UpdatePlacement")]
     internal static class PlayerUpdatePlacementPatch
     {
-        private static void Prefix(Player __instance) => RotationController.BeforePlacementInput(__instance);
-        private static void Postfix(Player __instance) => RotationController.AfterPlacementInput(__instance);
+        [HarmonyPriority(Priority.Normal)]
+        [HarmonyAfter("chazman.RunicBuildCamera")]
+        [HarmonyBefore("chazman.RunicCrafting")]
+        private static void Prefix(Player __instance, bool takeInput, float dt)
+        {
+            try
+            {
+                PlacementRuntime.BeforePlacementInput(__instance, takeInput, dt);
+            }
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("UpdatePlacement prefix", exception);
+            }
+        }
+
+        private static void Postfix(Player __instance, bool takeInput, float dt)
+        {
+            try
+            {
+                PlacementRuntime.AfterPlacementInput(__instance, takeInput, dt);
+            }
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("UpdatePlacement postfix", exception);
+            }
+        }
+
+        private static Exception Finalizer(Player __instance, Exception __exception)
+        {
+            if (__exception == null) return null;
+            try
+            {
+                PlacementRuntime.AbortPlacementInput(__instance);
+            }
+            catch (Exception cleanupException)
+            {
+                RunicHookGuard.Disable("UpdatePlacement exception cleanup", cleanupException);
+            }
+            return __exception;
+        }
     }
 
-    [HarmonyPatch(typeof(KeyHints), "Awake")]
-    internal static class KeyHintsAwakePatch
+    [HarmonyPatch(typeof(Player), "SetupPlacementGhost")]
+    internal static class PlayerSetupPlacementGhostPatch
     {
-        private static void Postfix(KeyHints __instance) => NativeBuildHints.Create(__instance);
+        private static void Postfix(Player __instance)
+        {
+            try
+            {
+                PlacementRuntime.OnPlacementGhostSetup(__instance);
+            }
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("SetupPlacementGhost postfix", exception);
+            }
+        }
     }
 
-    [HarmonyPatch(typeof(KeyHints), "UpdateHints")]
-    internal static class KeyHintsUpdatePatch
+    [HarmonyPatch(typeof(Player), "FindClosestSnapPoints")]
+    internal static class PlayerFindClosestSnapPointsPatch
     {
-        private static void Postfix() => NativeBuildHints.Refresh();
+        private static void Postfix(
+            Player __instance,
+            [HarmonyArgument("ghost")] Transform searchRoot,
+            bool __result,
+            [HarmonyArgument("a")] Transform ghostSnapPoint,
+            [HarmonyArgument("b")] Transform targetSnapPoint)
+        {
+            try
+            {
+                PlacementRuntime.ObserveSnapSearch(
+                    __instance,
+                    searchRoot,
+                    __result,
+                    ghostSnapPoint,
+                    targetSnapPoint);
+            }
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("FindClosestSnapPoints postfix", exception);
+            }
+        }
     }
 
     [HarmonyPatch(typeof(Player), "UpdatePlacementGhost")]
     internal static class PlayerUpdatePlacementGhostPatch
     {
-        private static readonly MethodInfo QuaternionEuler = AccessTools.Method(
-            typeof(Quaternion), nameof(Quaternion.Euler), new[] { typeof(float), typeof(float), typeof(float) });
-        private static readonly MethodInfo ComposeRotation = AccessTools.Method(
-            typeof(RotationController), nameof(RotationController.ComposePlacementRotation));
-
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        [HarmonyPriority(Priority.Normal)]
+        [HarmonyAfter("chazman.RunicBuildCamera")]
+        private static void Prefix(Player __instance)
         {
-            bool replaced = false;
-            foreach (CodeInstruction instruction in instructions)
+            try
             {
-                if (!replaced && instruction.opcode == OpCodes.Call && Equals(instruction.operand, QuaternionEuler))
-                {
-                    instruction.operand = ComposeRotation;
-                    replaced = true;
-                }
-                yield return instruction;
+                PlacementRuntime.BeforePlacementGhost(__instance);
             }
-
-            if (!replaced)
-                Plugin.Log.LogError("Could not locate Valheim's placement quaternion. Advanced rotation was not patched.");
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("UpdatePlacementGhost prefix", exception);
+            }
         }
 
-        private static void Postfix(Player __instance) => RotationController.ApplyTranslation(__instance);
+        [HarmonyPriority(Priority.Normal)]
+        [HarmonyBefore("chazman.RunicAgriculture")]
+        private static void Postfix(Player __instance)
+        {
+            try
+            {
+                PlacementRuntime.AfterPlacementGhost(__instance);
+            }
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("UpdatePlacementGhost postfix", exception);
+            }
+        }
+
+        private static Exception Finalizer(Exception __exception)
+        {
+            if (__exception == null) return null;
+            try
+            {
+                PlacementRuntime.AbortPlacementGhost();
+            }
+            catch (Exception cleanupException)
+            {
+                RunicHookGuard.Disable("UpdatePlacementGhost exception cleanup", cleanupException);
+            }
+            return __exception;
+        }
+
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) =>
+            PlacementAdapter.TranspileUpdatePlacementGhost(instructions);
     }
 
-    [HarmonyPatch(typeof(Player), "TestGhostClipping")]
-    internal static class PlayerTestGhostClippingPatch
+    [HarmonyPatch(typeof(Hud), "UpdateBuild", new[] { typeof(Player), typeof(bool) })]
+    internal static class HudUpdateBuildPrecisionInfoPatch
     {
-        private static bool Prefix(Player __instance, ref bool __result)
+        private static void Postfix(Hud __instance, Player player)
         {
-            if (!RotationController.HasPrecisionOffset(__instance)) return true;
-            __result = false;
-            return false;
+            try
+            {
+                PlacementRuntime.AfterHudUpdateBuild(__instance, player);
+            }
+            catch (Exception exception)
+            {
+                // The presenter owns only its child rows. Valheim's build HUD and piece menu
+                // remain active even if augmentation fails.
+                RunicHookGuard.Disable("build information augmentation", exception);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Piece), nameof(Piece.SetCreator), new[] { typeof(long) })]
+    internal static class PieceSetCreatorPlacementObserverPatch
+    {
+        [HarmonyPostfix]
+        private static void Postfix(Piece __instance, long uid)
+        {
+            try
+            {
+                PlacementRuntime.ObservePieceCreator(__instance, uid);
+            }
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("placed-piece history observer", exception);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Hud), "Awake")]
+    internal static class HudAwakePrecisionInfoPatch
+    {
+        private static void Postfix(Hud __instance)
+        {
+            try
+            {
+                OrientationPresenter.Attach(__instance);
+            }
+            catch (Exception exception)
+            {
+                RunicHookGuard.Disable("selected-piece panel attachment", exception);
+            }
+        }
+    }
+
+    internal static class RunicHookGuard
+    {
+        internal static void Disable(string hook, Exception exception)
+        {
+            Diagnostics.DisableAdapter(
+                $"{hook} failed: {exception.GetType().Name}: {exception.Message}");
+            try
+            {
+                AxisGuidePresenter.Hide();
+                OrientationPresenter.Hide();
+            }
+            catch (Exception)
+            {
+                // The adapter is already disabled. Never replace the original hook failure with
+                // a presentation cleanup failure.
+            }
         }
     }
 }

@@ -1,0 +1,156 @@
+using System;
+
+namespace RunicCrafting.Domain
+{
+    public sealed class NearbyCraftingFeatureState
+    {
+        public NearbyCraftingFeatureState(bool isReady, string reasonCode, string displayLabel)
+        {
+            IsReady = isReady;
+            ReasonCode = string.IsNullOrWhiteSpace(reasonCode) ? "unavailable" : reasonCode;
+            DisplayLabel = string.IsNullOrWhiteSpace(displayLabel) ? "N:OFF" : displayLabel;
+        }
+
+        public bool IsReady { get; }
+        public string ReasonCode { get; }
+        public string DisplayLabel { get; }
+    }
+
+    /// <summary>
+    /// Produces one deterministic explanation for the first gate that prevents nearby crafting.
+    /// It is kept free of Valheim types so the status shown to players is regression-testable.
+    /// </summary>
+    public static class NearbyCraftingFeatureStateEvaluator
+    {
+        public static NearbyCraftingFeatureState Evaluate(
+            bool masterEnabled,
+            bool craftFromContainersEnabled,
+            bool runtimeAvailable,
+            bool localPlayerOwner,
+            bool recipeAvailable,
+            bool specialOneIngredientRecipe,
+            bool noCostMode,
+            bool stationPresent,
+            bool stationUseAllowed,
+            string stationDenialReason,
+            bool localMaterialsAllowed,
+            string localMaterialsDenialReason)
+        {
+            if (!masterEnabled)
+                return Blocked("mod-disabled", "N:OFF(mod)");
+            if (!craftFromContainersEnabled)
+                return Blocked("craft-from-containers-disabled", "N:OFF(config)");
+            if (!runtimeAvailable)
+                return Blocked("runtime-unavailable", "N:OFF(startup)");
+            if (!localPlayerOwner)
+                return Blocked("local-player-owner-required", "N:OFF(owner)");
+            if (!recipeAvailable)
+                return Blocked("recipe-unavailable", "N:OFF(recipe)");
+            if (specialOneIngredientRecipe)
+                return Blocked("special-one-ingredient-recipe", "N:OFF(recipe)");
+            if (noCostMode)
+                return Blocked("no-cost-mode", "N:OFF(no-cost)");
+            if (!stationPresent)
+                return Blocked("crafting-station-required", "N:OFF(station)");
+            if (!stationUseAllowed)
+                return Blocked(
+                    "station-use-denied:" + NormalizeReason(stationDenialReason),
+                    "N:OFF(access)");
+            if (!localMaterialsAllowed)
+                return Blocked(
+                    "local-material-use-denied:" + NormalizeReason(localMaterialsDenialReason),
+                    "N:OFF(access)");
+            return new NearbyCraftingFeatureState(true, "ready", "N:ON");
+        }
+
+        private static NearbyCraftingFeatureState Blocked(string reason, string label) =>
+            new NearbyCraftingFeatureState(false, reason, label);
+
+        private static string NormalizeReason(string value) =>
+            string.IsNullOrWhiteSpace(value) ? "denied" : value.Trim();
+    }
+
+    public static class CraftingRequirementDisplay
+    {
+        public static string Format(
+            int required,
+            int carried,
+            int nearby,
+            NearbyCraftingFeatureState state)
+        {
+            if (required < 0) throw new ArgumentOutOfRangeException(nameof(required));
+            if (carried < 0) throw new ArgumentOutOfRangeException(nameof(carried));
+            if (nearby < 0) throw new ArgumentOutOfRangeException(nameof(nearby));
+            if (state == null) throw new ArgumentNullException(nameof(state));
+
+            if (!state.IsReady)
+            {
+                int carriedMissing = Math.Max(0, required - carried);
+                return required + "\nC:" + carried + " " + state.DisplayLabel + " M:" + carriedMissing;
+            }
+
+            int total = carried > int.MaxValue - nearby ? int.MaxValue : carried + nearby;
+            int missing = Math.Max(0, required - total);
+            return required + "\nC:" + carried + " N:" + nearby + " T:" + total + " M:" + missing;
+        }
+
+        /// <summary>
+        /// The vanilla amount label is a compact, single-line numeric field. Display the amount
+        /// currently available over the amount required there; put the full C/N/T/M explanation
+        /// in the row tooltip instead of forcing a long multiline string into the small label.
+        /// </summary>
+        public static string FormatCompactAmount(
+            int required,
+            int carried,
+            int nearby,
+            NearbyCraftingFeatureState state)
+        {
+            Validate(required, carried, nearby, state);
+            int available = state.IsReady ? AddSaturated(carried, nearby) : carried;
+            return available + "/" + required;
+        }
+
+        public static string FormatTooltipBreakdown(
+            int required,
+            int carried,
+            int nearby,
+            NearbyCraftingFeatureState state)
+        {
+            Validate(required, carried, nearby, state);
+            if (!state.IsReady)
+                return "Runic materials — Carried: " + carried + " | " +
+                       state.DisplayLabel + " | Required: " + required + " | Missing: " +
+                       Math.Max(0, required - carried);
+
+            int total = AddSaturated(carried, nearby);
+            return "Runic materials — Carried: " + carried + " | Nearby: " + nearby +
+                   " | Total: " + total + " | Required: " + required + " | Missing: " +
+                   Math.Max(0, required - total);
+        }
+
+        public static bool CombinedTotalSatisfies(
+            int required,
+            int carried,
+            int nearby,
+            NearbyCraftingFeatureState state)
+        {
+            Validate(required, carried, nearby, state);
+            return state.IsReady && AddSaturated(carried, nearby) >= required;
+        }
+
+        private static int AddSaturated(int left, int right) =>
+            left > int.MaxValue - right ? int.MaxValue : left + right;
+
+        private static void Validate(
+            int required,
+            int carried,
+            int nearby,
+            NearbyCraftingFeatureState state)
+        {
+            if (required < 0) throw new ArgumentOutOfRangeException(nameof(required));
+            if (carried < 0) throw new ArgumentOutOfRangeException(nameof(carried));
+            if (nearby < 0) throw new ArgumentOutOfRangeException(nameof(nearby));
+            if (state == null) throw new ArgumentNullException(nameof(state));
+        }
+    }
+}
