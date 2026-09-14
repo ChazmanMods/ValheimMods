@@ -3,6 +3,11 @@
 Each runtime mod has its own C# project. Build only the mods you need; suite
 directories contain dependency manifests rather than runtime assemblies.
 
+Build and modification instructions do not grant permission to modify or reuse
+restricted source. Use them only with written permission or an applicable prior
+or third-party license. See [LICENSE](./LICENSE) and
+[licensing history](./docs/licensing/HISTORY.md).
+
 ## Prerequisites
 
 - A .NET SDK supporting .NET 8 tests and netstandard2.1 runtime projects.
@@ -50,7 +55,8 @@ Use the module's packaging script where provided, such as
 `tools/Package-RunicStorageRelease.ps1` or
 `RunicDisplayStands/Package-Release.ps1`, after a Release build. Pass an explicit
 `-OutputDirectory` to choose the destination. Do not bundle game/runtime reference
-assemblies. Preserve MIT and third-party license notices when redistributing.
+assemblies. Include the license applicable to that release and preserve all
+third-party notices. Redistribution must be authorized by applicable terms.
 
 Some historical deployment tools retain machine-specific paths and are included
 for reference; inspect them before use. Do not run deployment scripts merely to

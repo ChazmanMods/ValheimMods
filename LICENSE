@@ -1,21 +1,57 @@
-MIT License
+Chazman Mods Source-Available License 1.0
+Effective September 14, 2026, from the commit introducing this license.
 
-Copyright (c) 2026 Charles Sammons (Chazman)
+Copyright (c) 2026 Charles Sammons (Chazman). All rights reserved except
+as expressly granted below or under a separate applicable license.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Scope
+This license applies to original Chazman code and accompanying documentation
+published under these terms. This is a source-available license, not an
+open-source license. Third-party material and prior license grants are
+expressly excluded from these restrictions as described below.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. Reading and inspection
+You may access and read the published source for inspection, learning, review,
+and reporting issues. You may retain an unmodified local copy solely for that
+inspection, including copies made by ordinary browser and development tools.
+Keep the copyright and license notices. This permission does not grant reuse
+of the code in another project or distribution of modified versions.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. Using official mods
+You may download, install, and run unmodified official mod distributions for
+playing or hosting Valheim. Ordinary configuration through supported settings
+is permitted. The game and other dependencies remain subject to their own terms.
+This permission does not authorize repackaging, reuploading, or selling copies
+of the mods. Sharing links to official downloads is permitted.
+
+4. Other uses require permission
+Except as permitted above, by applicable law, by the hosting platform's terms,
+or by another license you hold, prior written permission from Charles Sammons
+(Chazman) is required to copy or reuse code, modify or create derivative works,
+redistribute source or binaries, repackage mods, sublicense, or sell copies.
+Request permission through https://discord.gg/7HKHTCdFqY and identify the code
+and proposed use. Silence or public access is not permission.
+
+5. GitHub and other hosting platforms
+Nothing here restricts rights granted under the applicable hosting platform's
+terms, including GitHub's permission to view and fork public repositories.
+A platform fork does not itself grant additional rights to reuse or distribute
+code beyond those terms and any other applicable license.
+
+6. Prior MIT grants and third-party material
+This license does not revoke or restrict permissions already granted under MIT
+or any other license. Previously MIT-licensed code remains usable under MIT,
+including when that code also appears in this repository after this change.
+The historical MIT text and release boundary are documented in
+docs/licensing/HISTORY.md. New original contributions released only under this
+license do not receive an MIT grant merely because they are in the same project.
+Third-party code and assets retain their original licenses and notices; this
+license grants no ownership or additional rights over them. Preserve applicable
+component-specific LICENSE and NOTICE files.
+
+7. Disclaimer
+THE SOFTWARE AND DOCUMENTATION ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NONINFRINGEMENT. TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE
+COPYRIGHT HOLDER IS NOT LIABLE FOR CLAIMS, DAMAGES, OR OTHER LIABILITY ARISING
+FROM THE SOFTWARE OR ITS USE.

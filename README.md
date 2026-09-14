@@ -61,13 +61,19 @@ Current package manifests are the authority for dependencies.
 
 ## License
 
-Original Runic source code and accompanying documentation are licensed under the
-[MIT License](./LICENSE), copyright (c) 2026 Charles Sammons (Chazman).
-You may use, modify and redistribute that code, including commercially, provided
-you retain the copyright and license notices.
+The current policy is [source available, with reuse requiring written permission](./LICENSE).
+You may read the source and use unmodified official mods for playing or hosting
+Valheim. Reusing code, distributing modified versions, or reuploading mods requires
+permission unless another applicable license already permits it.
+Contact [Chazman through Discord](https://discord.gg/7HKHTCdFqY) to request permission.
+This policy is not an open-source license. GitHub's public-repository viewing and
+forking rights remain intact.
 
-Third-party code and assets retain their original licenses and copyright notices.
-Any component-specific LICENSE or NOTICE files must be preserved; the root license
-does not replace them. Valheim, Unity and other third-party game or runtime assets
-are not licensed by this repository. Logos and artwork are not covered by the MIT
-code license unless explicitly stated otherwise.
+**Earlier MIT grants remain valid.** The source published through commit `d6ccdfa`
+and release `runic-2026-09-14` was MIT licensed. This policy cannot withdraw those
+permissions or prevent MIT-permitted reuse of that code. See
+[licensing history](./docs/licensing/HISTORY.md) for the release boundary.
+
+Third-party code and assets retain their licenses and copyright notices. Preserve
+component-specific LICENSE and NOTICE files. Valheim, Unity, logos and other assets
+are not granted additional rights by this source-code license.
