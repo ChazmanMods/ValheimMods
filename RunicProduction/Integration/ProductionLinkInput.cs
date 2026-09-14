@@ -8,7 +8,8 @@ namespace RunicProduction.Integration
     /// Short input leases for mouse actions accepted as Production link-selection gestures. The
     /// local Player.Update and SetControls prefixes sample the raw edge; later vanilla ZInput
     /// readers receive a neutral value for the corresponding combat action until that mouse button
-    /// is released. A processed-frame guard makes the two safe timing hooks idempotent.
+    /// is released and its down edge has cleared. Frame and physical-press guards make the
+    /// two timing hooks idempotent even when an input edge spans multiple rendered frames.
     /// </summary>
     internal static class ProductionLinkInput
     {
@@ -20,10 +21,28 @@ namespace RunicProduction.Integration
         internal static void BeginSample(int frame)
         {
             if (_sampleFrame == frame) return;
+            if (!_captureActive) { _sampleFrame = frame; return; }
+            // A failed input read is not proof of release. Keep the accepted press captured.
+            try
+            {
+                KeyCode key = MouseKey(_consumedButton);
+                BeginSample(frame, ZInput.GetKey(key, false), ZInput.GetKeyDown(key, false));
+            }
+            catch { _sampleFrame = frame; }
+        }
+
+        internal static void BeginSample(int frame, bool capturedButtonHeld, bool capturedButtonDown)
+        {
+            if (_sampleFrame == frame) return;
             _sampleFrame = frame;
-            if (_captureActive && !KeyHeld(MouseKey(_consumedButton)))
+            // Fast clicks can be released while their down edge is still reported. Waiting
+            // for BOTH states to clear prevents that stale edge from cancelling the selection.
+            if (_captureActive && !capturedButtonHeld && !capturedButtonDown)
                 _captureActive = false;
         }
+
+        internal static bool CanReadGesture(int frame) =>
+            !(_captureActive || _processedGestureFrame == frame);
 
         internal static bool TryReadExactGesture(
             int frame,
@@ -32,7 +51,7 @@ namespace RunicProduction.Integration
         {
             button = ProductionLinkMouseButton.Left;
             remove = false;
-            if (_processedGestureFrame == frame ||
+            if (!CanReadGesture(frame) ||
                 !AltHeld || ControlHeld) return false;
 
             bool left = KeyDown(KeyCode.Mouse0);
@@ -116,12 +135,6 @@ namespace RunicProduction.Integration
         private static bool KeyDown(KeyCode key)
         {
             try { return ZInput.GetKeyDown(key, false); }
-            catch { return false; }
-        }
-
-        private static bool KeyHeld(KeyCode key)
-        {
-            try { return ZInput.GetKey(key, false); }
             catch { return false; }
         }
 

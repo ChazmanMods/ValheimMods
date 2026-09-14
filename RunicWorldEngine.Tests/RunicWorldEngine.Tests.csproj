@@ -14,6 +14,10 @@
     <Compile Remove="DedicatedHarness\**\*.cs" />
     <Compile Include="..\RunicWorldEngine\Contracts\WorldEngineContracts.cs" Link="Contracts\WorldEngineContracts.cs" />
     <Compile Include="..\RunicWorldEngine\Core\ObservatoryCounter.cs" Link="Core\ObservatoryCounter.cs" />
+    <Compile Include="..\RunicWorldEngine\Core\HealthCounters.cs" Link="Core\HealthCounters.cs" />
+    <Compile Include="..\RunicWorldEngine\Core\CapacityAudit.cs" Link="Core\CapacityAudit.cs" />
+    <Compile Include="..\RunicWorldEngine\Core\CapacityRewrite.cs" Link="Core\CapacityRewrite.cs" />
+    <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="true" />
     <Reference Include="Mono.Cecil" HintPath="$(BEPINEX_PROFILE)\core\Mono.Cecil.dll" Private="true" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-## Runic World Engine 1.0.0
+## Runic World Engine 1.2.0
 
 [General]
 # When false, no Harmony patches or observatory state are created.
@@ -7,3 +7,30 @@ Enabled = true
 [Diagnostics]
 LogPeriodicSummary = false
 SummaryIntervalSeconds = 30
+LogPeerDetails = false
+
+[Player Capacity]
+# Opt-in; restart required. Dedicated PlayFab host slot is reserved separately.
+# Unknown/competing limit patches block hosting/new admissions when this is enabled.
+Enabled = false
+MaximumPlayers = 10
+
+[Server Health]
+Enabled = true
+Warnings = true
+RttWarningMilliseconds = 500
+BacklogWarningKiB = 256
+QueueWarningMessages = 1000
+StarvationSeconds = 10
+HeartbeatWarningSeconds = 5
+FrameWarningMilliseconds = 50
+OwnershipWarningPerSecond = 100
+WarningHoldSeconds = 5
+WarningCooldownSeconds = 60
+
+[Save Smoothing]
+# Coalesce overlapping asynchronous saves and wait briefly for a stable frame.
+# Synchronous shutdown saves are never deferred.
+Enabled = true
+FrameBudgetMilliseconds = 24
+MaximumDeferralSeconds = 5

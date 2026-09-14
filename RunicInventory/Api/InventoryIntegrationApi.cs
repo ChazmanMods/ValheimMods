@@ -17,20 +17,39 @@ namespace RunicInventory.Api
 
     /// <summary>
     /// Optional reflection seam for independently installed mods. Callers must not retain the
-    /// supplied native item. State is 0 unknown, 1 unlocked, or 2 locked.
+    /// supplied native item. State is 0 unknown, 1 unlocked, or 2 locked. False means the item is
+    /// outside Inventory's active protection domain, including stable vanilla-fallback modes.
     /// </summary>
     public static class InventoryIntegrationApi
     {
         private static readonly object Gate = new object();
-        private static InventoryRuntime _runtime;
+        private static IItemProtectionQuery _runtime;
+        private static bool _hasActivated;
+        private static bool _startupFailed;
+
+        /// <summary>
+        /// Native gameplay-use view (cooking/refueling/processing), not a storage-transfer
+        /// permission. Retains the exact domain and Unknown behavior of TryGetProtection.
+        /// Quest, equipped, rare-item and destination rules remain the caller's responsibility.
+        /// </summary>
+        public static bool TryGetUseProtection(object nativeItem, out int state)
+        {
+            bool governed = TryGetProtection(nativeItem, out state);
+            if (governed && state == (int)ItemProtectionState.Locked)
+                state = (int)ItemProtectionState.Unlocked;
+            return governed;
+        }
 
         public static bool TryGetProtection(object nativeItem, out int state)
         {
             state = (int)ItemProtectionState.Unknown;
-            InventoryRuntime runtime;
-            lock (Gate) runtime = _runtime;
+            IItemProtectionQuery runtime;
+            bool startupFailed;
+            lock (Gate) { runtime = _runtime; startupFailed = _startupFailed; }
             if (!(nativeItem is ItemDrop.ItemData)) return false;
-            if (runtime == null) return true;
+            // A plugin which never activated cannot enforce any locks. Do not advertise an
+            // unavailable protection service forever after a failed compatibility check.
+            if (runtime == null) return !startupFailed;
             try
             {
                 bool governed = runtime.TryGetProtection(
@@ -45,12 +64,25 @@ namespace RunicInventory.Api
             }
         }
 
-        internal static void Attach(InventoryRuntime runtime)
+        internal static void BeginInitialization()
         {
-            lock (Gate) _runtime = runtime;
+            lock (Gate)
+                if (!_hasActivated) _startupFailed = false;
         }
 
-        internal static void Detach(InventoryRuntime runtime)
+        internal static void MarkStartupFailed()
+        {
+            lock (Gate)
+                if (!_hasActivated && _runtime == null) _startupFailed = true;
+        }
+
+        internal static void Attach(IItemProtectionQuery runtime)
+        {
+            if (runtime == null) throw new ArgumentNullException(nameof(runtime));
+            lock (Gate) { _runtime = runtime; _hasActivated = true; _startupFailed = false; }
+        }
+
+        internal static void Detach(IItemProtectionQuery runtime)
         {
             lock (Gate)
                 if (ReferenceEquals(_runtime, runtime)) _runtime = null;

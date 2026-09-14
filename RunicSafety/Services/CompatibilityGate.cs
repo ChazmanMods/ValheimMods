@@ -102,7 +102,7 @@ namespace RunicSafety.Services
                 identity.ModuleId.Length > 96 || identity.TopologyHash.Length > 128 ||
                 identity.SynchronizedRulesHash.Length > 128) return false;
             string stable = identity.SemanticVersion.Split(new[] { '-', '+' }, 2)[0];
-            return Version.TryParse(stable, out _);
+            return System.Version.TryParse(stable, out _);
         }
 
         private static bool Matches(

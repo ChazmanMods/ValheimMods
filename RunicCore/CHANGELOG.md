@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 - 2026-08-31
+
+- Added typed contracts for signed Sentinel administrator roles, server-side automatic enforcement,
+  and runtime-integrity status.
+- Added the canonical `security.roles`, `security.enforcement`, and
+  `security.runtime-integrity` capability IDs.
+
 ## 1.0.0 - 2026-08-25
 
 - Normalized the coordinated Thunderstore release identity and dependency floor to 1.0.0.

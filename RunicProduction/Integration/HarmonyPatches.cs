@@ -5,6 +5,22 @@ using UnityEngine;
 
 namespace RunicProduction.Integration
 {
+    [HarmonyPatch(typeof(Container), "Awake")]
+    internal static class ProductionHandoffContainerPatch
+    {
+        private static void Postfix(Container __instance)
+        {
+            try { ProductionChestHandoff.Register(__instance); }
+            catch (Exception exception) { ProductionRuntime.FailHook("Container handoff registration", exception); }
+        }
+    }
+
+    [HarmonyPatch(typeof(ZNet), "OnDestroy")]
+    internal static class ProductionHandoffWorldExitPatch
+    {
+        private static void Postfix() => ProductionChestHandoff.Clear();
+    }
+
     [HarmonyPatch(typeof(Player), "Update")]
     internal static class ProductionPlayerUpdateInputPatch
     {

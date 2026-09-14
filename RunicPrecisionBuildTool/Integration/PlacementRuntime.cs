@@ -861,7 +861,7 @@ namespace QuietBuildRotation
             if (!_initialized || !Diagnostics.CanRun || !player ||
                 player != Player.m_localPlayer || !PlacementAdapter.IsHammerBuildMode(player) ||
                 !IsPrecisionModeActive ||
-                (hud.m_pieceSelectionWindow && hud.m_pieceSelectionWindow.activeSelf))
+                Hud.IsPieceSelectionVisible())
                 OrientationPresenter.Hide();
         }
 

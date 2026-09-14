@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using RunicInteraction.Core;
+using RunicInteraction.Integration;
 using UnityEngine;
 
 namespace RunicInteraction.Tests
@@ -14,7 +15,7 @@ namespace RunicInteraction.Tests
 
         internal static void Register()
         {
-            TestRunner.Run("installed Valheim version is exactly 0.221.12", InstalledVersionIsExact);
+            TestRunner.Run("installed Valheim version is exactly 1.0.12", InstalledVersionIsExact);
             TestRunner.Run("bounded controller modifiers are installed and distinct from JoyUse in every layout", ControllerModifierPathIsDistinct);
             TestRunner.Run("Player hold interactions retain vanilla 0.2 second cadence", PlayerHoldCadenceIsVanilla);
             TestRunner.Run("Switch retains its own positive-interval validation", SwitchRetainsIntervalGate);
@@ -33,17 +34,22 @@ namespace RunicInteraction.Tests
         private static void InstalledVersionIsExact()
         {
             Type versionType = typeof(Player).Assembly.GetType("Version", true);
-            MethodInfo method = versionType.GetMethod("GetVersionString",
-                BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(bool) }, null);
-            TestAssert.NotNull(method, "Version.GetVersionString(bool) is missing.");
-            TestAssert.Equal("0.221.12", (string)method.Invoke(null, new object[] { false }));
+            PropertyInfo property = versionType.GetProperty("CurrentVersion",
+                BindingFlags.Public | BindingFlags.Static);
+            TestAssert.NotNull(property, "Version.CurrentVersion is missing.");
+            TestAssert.Equal(ValheimAccess.AuditedGameVersion,
+                property.GetValue(null)?.ToString());
+            ValheimAccess.ValidateGameVersion(versionType);
         }
 
         private static void ControllerModifierPathIsDistinct()
         {
-            MethodInfo generic = ExactAny(typeof(ZInput), "ResetGamepadButtonsGeneric");
+            MethodInfo generic = ExactAny(typeof(ZInput), "AddGenericGamepadButtons");
             var usePaths = new Dictionary<string, GamepadInput>(StringComparer.Ordinal);
-            foreach (string layout in new[] { "ResetGamepadToClassic", "ResetGamepadToAlt1", "ResetGamepadToAlt2" })
+            foreach (string layout in new[]
+                     {
+                         "AddGamepadClassicButtons", "AddGamepadAlt1Buttons", "AddGamepadAlt2Buttons"
+                     })
                 usePaths.Add(layout, GamepadActionPath(ExactAny(typeof(ZInput), layout), "JoyUse"));
             foreach (string option in InteractionInputBindings.CreateControllerModifierOptions())
             {

@@ -9,6 +9,38 @@ namespace RunicCrafting.Tests
         {
             var tests = new List<(string Name, Action Run)>
             {
+                (nameof(AreaRepairTests.RadiusAndAccessAreBounded), AreaRepairTests.RadiusAndAccessAreBounded),
+                (nameof(AreaRepairTests.BatchesAreBoundedAndCancelable), AreaRepairTests.BatchesAreBoundedAndCancelable),
+                (nameof(AreaRepairTests.RuntimeUsesNativeRepairAndDisablesCleanly), AreaRepairTests.RuntimeUsesNativeRepairAndDisablesCleanly),
+                (nameof(AreaRepairTests.HammerPreviewRowsAndConsumptionUsePlayerRange), AreaRepairTests.HammerPreviewRowsAndConsumptionUsePlayerRange),
+                (nameof(AreaRepairTests.ForgeCostsCommitOnceAndRollbackExactly), AreaRepairTests.ForgeCostsCommitOnceAndRollbackExactly),
+                (nameof(AreaRepairTests.InstalledRepairContractIsOwnerDirected), AreaRepairTests.InstalledRepairContractIsOwnerDirected),
+                (nameof(PreviewAnswerTests.AnswersExpireAtQuarterSecondWithoutSliding), PreviewAnswerTests.AnswersExpireAtQuarterSecondWithoutSliding),
+                (nameof(PreviewAnswerTests.OnlyWatchedChangesInvalidateAndEpochRejectsRaces), PreviewAnswerTests.OnlyWatchedChangesInvalidateAndEpochRejectsRaces),
+                (nameof(PreviewAnswerTests.AnswerAndDependencyBoundsCannotReturnUntrackedResults), PreviewAnswerTests.AnswerAndDependencyBoundsCannotReturnUntrackedResults),
+                (nameof(PreviewAnswerTests.RequirementKeysAreCanonicalBoundedAndCollisionSafe), PreviewAnswerTests.RequirementKeysAreCanonicalBoundedAndCollisionSafe),
+                (nameof(PreviewAnswerTests.ReleasedIlKeepsCraftClicksOutsideUiMemo), PreviewAnswerTests.ReleasedIlKeepsCraftClicksOutsideUiMemo),
+                (nameof(InstalledValheimContractTests.PreviewRefreshAndInvalidationHooksMatchInstalledValheim), InstalledValheimContractTests.PreviewRefreshAndInvalidationHooksMatchInstalledValheim),
+                (nameof(PreviewCacheTests.UnchangedPayloadIsReusedAcrossThousandsOfQueries), PreviewCacheTests.UnchangedPayloadIsReusedAcrossThousandsOfQueries),
+                (nameof(PreviewCacheTests.PayloadChangesInvalidateOnlyAffectedChest), PreviewCacheTests.PayloadChangesInvalidateOnlyAffectedChest),
+                (nameof(PreviewCacheTests.IdentityDimensionsAndWorldLevelInvalidate), PreviewCacheTests.IdentityDimensionsAndWorldLevelInvalidate),
+                (nameof(PreviewCacheTests.SessionPlayerAndDatabaseChangesClearEvidence), PreviewCacheTests.SessionPlayerAndDatabaseChangesClearEvidence),
+                (nameof(PreviewCacheTests.CacheHasLruEntryAndByteBounds), PreviewCacheTests.CacheHasLruEntryAndByteBounds),
+                (nameof(PreviewCacheTests.EmptyAndFailedSnapshotsCannotReuseOldValues), PreviewCacheTests.EmptyAndFailedSnapshotsCannotReuseOldValues),
+                (nameof(PreviewCacheTests.MaterialCountsAreImmutableFilteredAndSaturating), PreviewCacheTests.MaterialCountsAreImmutableFilteredAndSaturating),
+                (nameof(PreviewCacheTests.PreviewCacheIsOutsideWritableAndPermissionPaths), PreviewCacheTests.PreviewCacheIsOutsideWritableAndPermissionPaths),
+                (nameof(PreviewCacheTests.InstalledLoaderConfirmsReportedAllocationPath), PreviewCacheTests.InstalledLoaderConfirmsReportedAllocationPath),
+                (nameof(ManualInteractionTests.MovesExactlyOneRealItemAndPreservesMetadata), ManualInteractionTests.MovesExactlyOneRealItemAndPreservesMetadata),
+                (nameof(ManualInteractionTests.FullProtectedMissingAndChangedSourcesDoNotMove), ManualInteractionTests.FullProtectedMissingAndChangedSourcesDoNotMove),
+                (nameof(ManualInteractionTests.FailedAndPartiallyAppliedInsertionRestoresBothInventories), ManualInteractionTests.FailedAndPartiallyAppliedInsertionRestoresBothInventories),
+                (nameof(ManualInteractionTests.CookingAndFuelGatesPreserveVanillaActions), ManualInteractionTests.CookingAndFuelGatesPreserveVanillaActions),
+                (nameof(InstalledValheimContractTests.ManualInteractionHooksMatchInstalledValheim), InstalledValheimContractTests.ManualInteractionHooksMatchInstalledValheim),
+                (nameof(RecipeRegressionTests.OrdinaryWorkbenchIgnoresUpgraderIngredient), RecipeRegressionTests.OrdinaryWorkbenchIgnoresUpgraderIngredient),
+                (nameof(RecipeRegressionTests.UpgraderStationStillRequiresItsIngredient), RecipeRegressionTests.UpgraderStationStillRequiresItsIngredient),
+                (nameof(RecipeRegressionTests.UpgradeBatchAndPieceCostsRemainCorrect), RecipeRegressionTests.UpgradeBatchAndPieceCostsRemainCorrect),
+                (nameof(RecipeRegressionTests.WornEquipmentDoesNotBlockConsumptionOrRollback), RecipeRegressionTests.WornEquipmentDoesNotBlockConsumptionOrRollback),
+                (nameof(RecipeRegressionTests.ChestPayloadOnlyAllowsNativeDurabilityConversion), RecipeRegressionTests.ChestPayloadOnlyAllowsNativeDurabilityConversion),
+                (nameof(RecipeRegressionTests.PreviewAndConsumptionUseSameStationFilter), RecipeRegressionTests.PreviewAndConsumptionUseSameStationFilter),
                 (nameof(CraftingTests.InventoryIsAlwaysAllocatedBeforeNearbyContainers), CraftingTests.InventoryIsAlwaysAllocatedBeforeNearbyContainers),
                 (nameof(CraftingTests.LastResourceRaceHasOneWinner), CraftingTests.LastResourceRaceHasOneWinner),
                 (nameof(CraftingTests.StationAndMaterialPermissionsAreIndependent), CraftingTests.StationAndMaterialPermissionsAreIndependent),
@@ -34,7 +66,11 @@ namespace RunicCrafting.Tests
                 (nameof(CraftingTests.UnchangedSpatialMembershipIsNotRebuilt), CraftingTests.UnchangedSpatialMembershipIsNotRebuilt),
                 (nameof(StandaloneArchitectureTests.PackageHasNoFoundationDependencies), StandaloneArchitectureTests.PackageHasNoFoundationDependencies),
                 (nameof(StandaloneArchitectureTests.RuntimeHasNoDurableOrGlobalMutationLayer), StandaloneArchitectureTests.RuntimeHasNoDurableOrGlobalMutationLayer),
-                (nameof(StandaloneArchitectureTests.ContainerMutationRequiresNativeOwnership), StandaloneArchitectureTests.ContainerMutationRequiresNativeOwnership)
+                (nameof(StandaloneArchitectureTests.ContainerMutationRequiresNativeOwnership), StandaloneArchitectureTests.ContainerMutationRequiresNativeOwnership),
+                (nameof(InstalledValheimContractTests.InventoryChangedUsesValheim10Signature), InstalledValheimContractTests.InventoryChangedUsesValheim10Signature),
+                (nameof(InstalledValheimContractTests.CraftOutputAddItemUsesValheim10Signature), InstalledValheimContractTests.CraftOutputAddItemUsesValheim10Signature),
+                (nameof(InstalledValheimContractTests.PlacePieceUsesValheim10Signature), InstalledValheimContractTests.PlacePieceUsesValheim10Signature),
+                (nameof(InstalledValheimContractTests.PrivateReflectionBridgeMatchesValheim10), InstalledValheimContractTests.PrivateReflectionBridgeMatchesValheim10)
             };
 
             int failures = 0;

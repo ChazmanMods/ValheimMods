@@ -41,7 +41,7 @@ namespace RunicInteraction
             TransferGestures = Bind(config, "Features", "TransferGestures", true,
                 "Add Alt-click full-stack transfer while retaining vanilla Ctrl-click and controller transfer.");
             DragTransfer = Bind(config, "Features", "DragTransfer", false,
-                "Reserved fail-closed gate. Valheim 0.221.12 has no authority-safe drag-sweep transaction boundary.");
+                "Reserved fail-closed gate. Valheim 1.0.7 has no authority-safe drag-sweep transaction boundary.");
             AutoCloseDoors = Bind(config, "Features", "AutoCloseDoors", false,
                 "Session-only delayed close for doors opened by the native local player. Off by default.");
             EquipmentRestore = Bind(config, "Features", "EquipmentRestore", true,

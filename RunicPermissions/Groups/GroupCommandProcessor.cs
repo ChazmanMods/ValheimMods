@@ -47,6 +47,9 @@ namespace RunicPermissions.Groups
         }
 
         public GroupCommandExecutionResult Execute(StableIdentity actor, GroupCommand command)
+            => Execute(actor, command, 0);
+
+        public GroupCommandExecutionResult Execute(StableIdentity actor, GroupCommand command, long expectedInvitationRevision)
         {
             if (actor == null || command == null)
                 return Fail(GroupMutationCode.InvalidRequest, "group-command-invalid", null);
@@ -70,6 +73,14 @@ namespace RunicPermissions.Groups
                 : read.Catalog;
             if (current == null)
                 return Fail(GroupMutationCode.RevisionConflict, "group-store-invalid", null);
+
+            if (expectedInvitationRevision != 0 &&
+                (expectedInvitationRevision < 1 ||
+                 command.Kind != GroupCommandKind.Accept && command.Kind != GroupCommandKind.Decline ||
+                 !current.TryGetGroup(command.GroupId, out GroupRecord invitedGroup) ||
+                 !invitedGroup.TryGetInvitation(actor, out GroupInvitation invitation) ||
+                 invitation.IssuedRevision != expectedInvitationRevision))
+                return Fail(GroupMutationCode.RevisionConflict, "group-invitation-changed", current);
 
             GroupCommandExecutionResult replay = TryExactDesiredReplay(current, actor, command);
             if (replay != null) return replay;
@@ -164,6 +175,8 @@ namespace RunicPermissions.Groups
                         catalog.Revision, group.Id, group.Revision, actor, command.Target);
                 case GroupCommandKind.Accept:
                     return catalog.Accept(catalog.Revision, group.Id, group.Revision, actor, now);
+                case GroupCommandKind.Decline:
+                    return catalog.Decline(catalog.Revision, group.Id, group.Revision, actor, now);
                 case GroupCommandKind.Leave:
                     return catalog.Leave(catalog.Revision, group.Id, group.Revision, actor);
                 case GroupCommandKind.Remove:

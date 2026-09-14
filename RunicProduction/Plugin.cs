@@ -11,7 +11,7 @@ namespace RunicProduction
     {
         public const string Guid = "chazman.RunicProduction";
         public const string Name = "Runic Production";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.7";
         public const string ModuleId = "runic.production";
 
         private Harmony _harmony;
@@ -32,7 +32,7 @@ namespace RunicProduction
                 NearbyIngredientContainerIndex.SeedLoadedContainers();
                 ProductionDiagnostics.MarkAvailable();
                 Logger.LogInfo(
-                    $"{Name} v{Version} ready: standalone native-owner production, " +
+                    $"{Name} v{Version} ready: owner-coordinated production, " +
                     "persistent explicit links, and bounded exemplar replenishment.");
             }
             catch (Exception exception)

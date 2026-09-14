@@ -175,7 +175,8 @@ namespace RunicInventory.Integration
                 .Append('|').Append(item.m_variant)
                 .Append('|').Append(item.m_crafterID)
                 .Append('|').Append(item.m_worldLevel)
-                .Append('|').Append(item.m_pickedUp ? 1 : 0);
+                .Append('|').Append(item.m_pickedUp ? 1 : 0)
+                .Append('|').Append(item.m_cheated ? 1 : 0);
             Append(builder, crafterName);
             if (includePosition) builder.Append('|').Append(item.m_gridPos.x).Append('|').Append(item.m_gridPos.y);
 

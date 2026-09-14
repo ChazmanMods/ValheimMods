@@ -35,7 +35,7 @@ namespace RunicWorldEngine.Integration
                 SentField.FieldType != typeof(int) || ReceivedField == null ||
                 ReceivedField.IsStatic || ReceivedField.FieldType != typeof(int))
                 throw new MissingMemberException(
-                    "ZDOMan observatory fields do not match the audited Valheim 0.221.12 contract.");
+                    "ZDOMan observatory fields do not match the audited Valheim 1.0 contract.");
             _verified = true;
         }
 

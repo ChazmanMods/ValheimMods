@@ -13,7 +13,7 @@ namespace RunicBuildCamera
     {
         public const string Guid = "chazman.RunicBuildCamera";
         public const string Name = "Runic Build Camera";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.3";
 
         private Harmony _harmony;
         private bool _runtimeReady;

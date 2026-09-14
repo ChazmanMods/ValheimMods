@@ -479,7 +479,7 @@ namespace RunicAgriculture.Integration
                 ZNetView view = ContainerNetworkView(container);
                 ZDO zdo = view != null && view.IsValid() && view.IsOwner() ? view.GetZDO() : null;
                 if (zdo == null || !zdo.IsValid() || zdo.m_uid != candidate.EndpointId ||
-                    zdo.GetOwner() != ZNet.GetUID()) return false;
+                    zdo.GetOwner() != ZNet.GetUID() || zdo.GetInt(ZDOVars.s_inUse, 0) != 0) return false;
                 LoadMethod.Invoke(container, Array.Empty<object>());
                 inventory = container.GetInventory();
                 if (inventory == null || !InventoryMatchesZdo(container, inventory, candidate.EndpointId))
@@ -532,7 +532,7 @@ namespace RunicAgriculture.Integration
                 ZNetView view = ContainerNetworkView(container);
                 ZDO zdo = view != null && view.IsValid() && view.IsOwner() ? view.GetZDO() : null;
                 return zdo != null && zdo.IsValid() && zdo.m_uid == source.EndpointId &&
-                       zdo.GetOwner() == ZNet.GetUID();
+                       zdo.GetOwner() == ZNet.GetUID() && zdo.GetInt(ZDOVars.s_inUse, 0) == 0;
             }
             catch { return false; }
         }
@@ -545,11 +545,11 @@ namespace RunicAgriculture.Integration
             ZNetView view = ContainerNetworkView(container);
             ZDO zdo = view != null && view.IsValid() && view.IsOwner() ? view.GetZDO() : null;
             if (zdo == null || zdo.m_uid != endpointId || zdo.GetOwner() != ZNet.GetUID()) return false;
-            string persisted = zdo.GetString(ZDOVars.s_items, string.Empty);
-            string current = Save(inventory).GetBase64();
-            return string.IsNullOrEmpty(persisted)
+            byte[] persisted = zdo.GetByteArray(ZDOVars.s_items);
+            byte[] current = Save(inventory).GetArray();
+            return persisted == null || persisted.Length == 0
                 ? inventory.GetAllItems().Count == 0
-                : string.Equals(current, persisted, StringComparison.Ordinal);
+                : AgricultureInventoryPayloadComparison.MatchesLoaded(persisted, current);
         }
 
         private static bool CanMutatePlayer(Player player) =>

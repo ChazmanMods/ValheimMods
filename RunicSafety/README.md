@@ -1,7 +1,24 @@
 # Runic Safety
 
-Runic Safety adds context-bound confirmations, protected-item checks, vanilla tombstone audits,
-bounded diagnostics, and verified migration backups for Valheim 0.221.12.
+Valheim should punish dangerous adventures, not an accidental click that destroys a loaded chest, retags the wrong portal, sacrifices a rare item, or leaves a world transition without a usable backup.
+
+**Runic Safety adds safeguards where mistakes are expensive.** It places contextual confirmations and verification around selected destructive actions while leaving routine play alone.
+
+## Major features
+
+- Confirm removal of occupied containers, ships, and carts.
+- Confirm risky portal retags and configured rare-item sacrifices.
+- Protect equipped, quest, locked, and configured valuable items.
+- Audit tombstone recovery conditions without taking ownership of graves.
+- Create and verify bounded backups before supported migrations or transitions.
+
+## How it feels in-game
+
+Ordinary actions remain immediate. When a click could erase meaningful work, the game asks you to repeat the same decision against the same unchanged target—enough friction to catch a mistake without wrapping every interaction in a dialog.
+
+## Safety and compatibility
+
+Safety allows or declines Valheim's original callbacks; it does not create, destroy, or rewrite world objects. Pending confirmations are context-bound and expire. Optional Runic Inventory protection is discovered without a hard dependency, and the standalone mod requires only BepInEx.
 
 ## Installation and independence
 
@@ -16,6 +33,10 @@ If Runic Inventory is installed, Safety discovers its public item-protection sea
 the exact destructive action. Locked items are denied, unlocked items continue through Safety's
 own rules, and an unavailable or malformed installed adapter fails closed. Without Inventory,
 Safety loads normally and applies its equipped, quest-item, and configured-rare rules.
+With RunicInventory 1.1.2 or newer, slot locks do not prevent normal cooking, refueling, smelting,
+or fermenting. These actions still respect Safety's equipped, quest-item, rare-item, and external
+provider rules. Display and disposal actions retain slot-lock protection. Older Inventory versions
+retain their existing conservative protection behavior.
 
 ## Confirmations
 

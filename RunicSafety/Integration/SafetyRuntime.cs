@@ -274,7 +274,7 @@ namespace RunicSafety.Integration
             if (item == null) return true;
             string correlation = _diagnostics.NewCorrelationId("destination");
             ItemLockState lockState = InventoryProtectionAdapter.Resolve(
-                item, out bool inventoryIntegrationPresent);
+                item, destination, out bool inventoryIntegrationPresent);
             ItemProtectionDecision decision = _protection.Evaluate(new ItemProtectionRequest(
                 Describe(item, lockState),
                 destination,

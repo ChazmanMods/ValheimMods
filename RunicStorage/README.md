@@ -1,15 +1,40 @@
 # Runic Storage
 
-Runic Storage 1.0.0 adds secure chest hover details and player-directed storage actions to Valheim.
-It is an independently installable BepInEx plugin. Runic Core, Persistence, Permissions,
-Transactions, and Inventory are not runtime dependencies.
+**Version 1.2.4**
+
+A large Valheim base eventually contains enough identical chests that storing loot becomes its own memory game. You know the item exists somewhere; finding it, distributing a new haul, and rebuilding your carried supplies are the tedious parts.
+
+**Runic Storage turns a room full of boxes into storage you can actually use.** See what a chest contains, move matching items where they belong, restock what you carry, and search across eligible nearby containers.
+
+## Major features
+
+- Preview useful chest contents before opening the container.
+- Quick-stack carried items into nearby matching storage.
+- Remember chest contents and route Quick Stack using exact items, groups, biome filters and exclusions.
+- Add named, colored labels to chest faces and lids, with optional white or black backgrounds.
+- Store all into the opened chest and restock configured supplies.
+- Search nearby storage and highlight every matching chest.
+- Sort containers and consolidate compatible partial stacks.
+
+## How it feels in-game
+
+Returning from an expedition becomes unload, restock, and go. You spend less time opening every chest, dragging repeated stacks, or trying to remember where the iron ended up, while the containers in your base remain real Valheim storage.
+
+## Safety and compatibility
+
+Storage acts only on loaded, accessible, synchronized containers. For mutations it uses Valheim's
+native ownership claim only after both the local state and synchronized ZDO state prove the chest is
+unused; a chest another player is actively editing is never claimed or changed. Read-only hover and
+Search can still display its synchronized persisted contents. Wards and ordinary chest access remain
+authoritative, protected or locked items are respected when optional integrations are present, and
+ambiguous state aborts the enhanced action. The mod is independently installable with BepInEx.
 
 ## Features
 
 - **Chest contents on hover** adds a deterministic, localized, bounded summary to eligible closed
   containers.
-- **Quick Stack** (`Left Alt + Q`) moves eligible carried items into nearby containers that already
-  contain that item.
+- **Quick Stack** (`Left Alt + Q`) moves eligible carried items into nearby containers using saved
+  chest rules, remembered item types, or ordinary matching contents.
 - **Restock** (`Left Alt + R`) pulls configured items up to their target quantities, whether a chest
   is currently open or the player is standing near closed chests.
 - **Search** (`Left Alt + F`) opens a filterable list of item kinds found in eligible nearby chests.
@@ -38,13 +63,14 @@ Controller shortcuts use Valheim's named `ZInput` actions and remain configurabl
 `JoyAltKeys` and use D-pad Down for Quick Stack, Up for Restock, Right for Search, Left for
 Consolidate, or `JoyRStick` to sort the opened container. Invalid or ambiguous bindings fail closed.
 
-## Standalone multiplayer boundary
+## Multiplayer behavior
 
 Storage uses Valheim's native ownership model. A mutation is allowed only when the active player is
 the local native owner and every container being changed is locally owned, accessible, synchronized,
 not loading, and not otherwise in use. This same rule applies in solo, listen-server, and dedicated-
-server client sessions. Storage never requests or steals container ownership; an unavailable owner
-path produces a specific no-op result.
+server client sessions. Storage claims accessible idle containers through Valheim's native ownership
+mechanism before changing them. An open or unsynchronized chest is skipped; other eligible chests
+can still be used. Native network ownership is not the same as the player who built a chest.
 
 Actions use a small process-local Storage lease so two Storage actions cannot interleave. Each move
 preflights exact shadow inventories, captures exact backups, saves both endpoints, and attempts exact
@@ -52,8 +78,9 @@ rollback on an ordinary synchronous failure. Storage does not provide cross-proc
 transactions, RPC transfer protocols, journals, global suite locks, quarantine records, or recovery
 sagas.
 
-Search and hover do not mutate container contents. They require vanilla access and an exact match between the live
-inventory serialization and the current replicated `s_items` payload before exposing contents.
+Search and hover do not mutate container contents. They require vanilla access and verified inventory
+data. Hover accepts Valheim's single load/save durability rounding, but not changed item quantities
+or unrelated payload differences.
 Hover remains bounded by physical player reach, strict ward access, snapshot size, stack count,
 label length, output length, retry, and cache ceilings. It never opens a container or takes ownership.
 
@@ -83,3 +110,63 @@ The search picker uses native uGUI controls (`Image`, `Button`, `TMP_InputField`
 atlas rectangles and sliced borders, preventing the wrong atlas region from becoming the window
 background. A small raw-pointer observer remains in `OnGUI` only to maintain the proven attack-
 suppression latch; it does not draw the menu.
+
+## Quick Stack Rules and chest labels
+
+Open a placed chest and click **Quick Stack Rules** in the separate footer below its inventory panel. The vanilla **Stack** button remains available in the chest header and retains vanilla behavior; saved chest rules are used by Runic Quick Stack (`Left Alt + Q`). Hover over any editor control for help; keyboard focus also shows help.
+
+While Rules or Search is open, movement, gameplay shortcuts and camera zoom/look are blocked. Typing, UI scrolling, buttons and Escape/controller Cancel continue to work. Controls resume after the closing input is consumed. A biome-only filter also supplies an automatic label: **Only from biome > Meadows**, with the caption blank, displays **Meadows**.
+
+- Turn on **Remember contents** to learn the item types currently in the chest. It also learns newly stored types as the chest saves. You can take or consume the last item; Quick Stack will still recognize the empty chest later. No item is reserved or made unusable.
+- Search **Always accept** for exact types such as Wood or Finewood, or use **Groups** for built-in and reusable custom groups. Multiple selected groups accept any matching member. Positive selection automatically enables the exterior label.
+- Health Foods means health greater than stamina; Stamina Foods means stamina greater than health. Equal values go under Balanced Foods. Eitr Foods accepts food with positive eitr; Food accepts all food. These categories can overlap.
+- The **Accepted** tab lets you remove selected rules. **Remembered** lets you remove individual learned item types. **Clear rules** removes explicit rules; **Clear remembered items** clears learned types. Save applies edits; Cancel discards them. To stop relearning current contents, turn Remember contents off.
+- Explicit rules replace the normal contents/remembered-items match for Quick Stack. **Never accept** rejects an item even if a positive rule or current contents match. **Only from biome** filters group and remembered/current-content matches; **Always accept** is an exact-item exception to that biome filter. Full or inaccessible destinations are skipped, and protected player items remain protected.
+- Choose **Front**, **Back**, **Left**, **Right**, or **Top** for the text on the chest body. Adjust size and horizontal/vertical offsets if needed for a particular chest model. Labels follow the chest's rotation and disappear with it; no separate sign piece or materials are required.
+- Labels automatically show up to three selected or remembered designations. Enter custom text to override that caption. Choose a named text color from **Text**, or type a name in the adjacent field. Supported names are Red, Cyan, Blue, Darkblue, Lightblue, Purple, Yellow, Lime, Fuchsia, White, Silver, Grey, Black, Orange, Brown, Maroon, Green, Olive, Navy, Teal, Aqua, and Magenta. The mod writes the hex color tag automatically. Familiar unsupported names and hex values use the nearest palette RGB; unknown words use the nearest spelling. The preview and status show the selected approximation. New selections are opaque; untouched legacy labels retain their existing color until edited and saved.
+- **Background** selects Transparent, White, or Black behind the text. It is independent of text color. The preview shows both; choose contrasting text and background for readability.
+- **Never accept** prevents Runic Quick Stack delivery to this chest regardless of matching rules or priority. It does not remove existing items or prevent manual placement. **Preferred** only chooses this chest before Normal chests with equally specific matches; distance decides remaining ties. The explanation changes when you toggle priority.
+- Rules and labels are saved with that chest in the world and synchronize through its native network state. Use RunicStorage 1.2.4 on participating installations for the corrected labels and input handling. Install it on all processes that add/remove chest items, including an automation host, for consistent automatic learning.
+
+This feature applies to placed chest-like containers, not carts, ships, graves, or display stands.
+Each chest supports up to 128 explicit item types and 128 remembered types; the item picker is paged.
+Rules affect **Quick Stack**. Manual transfers, Store All, crafting, and production can still put other
+items in the chest or use its final item. They do not interpret these rules as inventory locks.
+Labels use the chest model's bounds; unusual modded shapes may need position adjustment.
+Front is the chest's forward face; Left and Right are from a player facing that front. Top text reads from the front. Body labels use stable body geometry. Top labels attach to the closed lid, with matching open-lid meshes following the same attachment when the chest opens; they are not positioned from a temporary open-state bounding box.
+
+## Rule groups, filters, and priorities
+
+Rules use stable internal IDs, independent of the visible label. Renaming or coloring a chest does not change its sorting rules.
+
+| Picker group | Designations |
+|---|---|
+| Equipment | Weapons, Shields, Armor, Capes, Tools |
+| Ammunition | Arrows, Bolts, All Ammunition |
+| Consumables | Food, Health Foods, Stamina Foods, Balanced Foods, Eitr Foods, Potions |
+| Resources | Wood Materials, Stone Materials, Ores, Metal Bars, Seeds, Crops, Animal Materials |
+| Other | Trophies, Valuables, Crafting Ingredients |
+| Biomes | Meadows, Black Forest, Swamp, Mountains, Plains, Mistlands, Ashlands, Deep North |
+| Custom | Reusable player-selected groups such as Building Supplies or Expedition Food |
+
+Equipment, ammunition, food, potions, and valuables use item properties. Crafting Ingredients uses the installed recipe ingredient lists. Resources and biomes use curated exact prefab lists, including overlapping biome membership. These lists describe an item's associations, not the location where that particular stack was collected. Unknown/modded biome items require explicit item exceptions or a custom group without a biome filter.
+
+Select **Ores** plus **Metal Bars** to accept either. To restrict them to swamp-associated items, select **Swamp** under **Only from biome**. Selecting Swamp under **Groups** instead adds all curated swamp items as another accepted group. **Any biome** clears the filter.
+
+Routing order:
+1. Reject Never accept items, inaccessible chests, and destinations with no capacity.
+2. Prefer Always accept exact-item rules, then narrow groups, then broad groups.
+3. Within the same specificity, Preferred chests precede Normal chests; distance breaks ties.
+4. Fall back to remembered-item and ordinary existing-content matches when no explicit positive rules are set for that chest.
+
+Narrow groups include Wood Materials, Ores, Metal Bars, Shields, Capes, Tools, Arrows, Bolts, specialized food groups, and the other specific resource groups. Weapons, Armor, All Ammunition, Food, Crafting Ingredients, biomes, and custom groups are broad. An exact Finewood chest is tried before Wood Materials, followed by a Building Supplies custom group, even when the broader chest is Preferred.
+
+### Reusable custom groups
+
+Open **Custom groups**, choose **New group**, enter a name, and select its members under **Items**. Click **Save group** to save that reusable template. Then select it under **Groups** and click the chest's **Save** button. Select an existing template under Custom groups to rename it or edit its members; its internal identity stays the same.
+
+The reusable library is stored in this mod profile's configuration. Applying a group copies its definition into the chest's network data, so other players use the same membership without needing your local library. Existing chest definitions are preserved when a library template is changed or deleted. To update another chest, deselect and reselect the group there, then Save. Saving a template is independent of saving or cancelling the chest editor.
+
+Each library/chest supports up to 16 custom groups, with 128 exact members per group, within a total bounded metadata size. Each chest also supports 128 Always accept entries, 128 Never accept entries, and 128 remembered item types. Duplicate/oversized data is rejected without overwriting existing chest rules.
+
+Existing 1.1.0 and 1.2.0 rules, memory, custom groups, and label settings migrate automatically, with Transparent backgrounds. Settings from 1.2.1 and 1.2.2 are retained. Update participating installations to 1.2.4; versions before 1.2.1 do not understand the background-enabled saved format.

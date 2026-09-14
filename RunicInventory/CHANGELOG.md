@@ -1,5 +1,84 @@
 # Changelog
 
+## 1.1.5 - 2026-09-14
+
+This release brings the Better Archery fixes since 1.1.2 into the release package.
+Better Archery could resize the inventory after Runic added its equipment row, leaving items
+outside the resulting grid and triggering automatic drops. The compatibility guards preserve
+the separate quiver and equipment rows, and the compact layout removes the unused visual gap
+without changing saved item positions or capacity.
+
+- Added a compact Better Archery inventory layout that removes unused space above Runic's equipment row.
+- Adjusted the panel height to match, with extra space collapsed when no quiver is equipped.
+- Added the optional UI setting `CompactQuiverLayout`, enabled by default. Inventory capacity, saved item positions, and existing keybindings are unchanged.
+
+## 1.1.4 - 2026-09-12
+
+- Fixed Better Archery resizing the inventory after Runic prepared its equipment row, causing items to be dropped during character loading.
+- Fixed overlapping empty-slot and capacity checks allowing ordinary items into reserved quiver rows.
+- Added an item-retention guard before automatic invalid-position cleanup following an unexpected inventory resize.
+
+## 1.1.3 - 2026-09-12
+
+- Added Better Archery 1.9.99 quiver compatibility, keeping quiver ammunition and Runic equipment/quick slots in separate reserved rows.
+- Coordinated inventory resizing, slot visibility, and grave-recovery cleanup for the combined layout.
+- Kept quiver cells out of ordinary sorting and automatic storage transfers.
+- Prevented overlapping quiver and quick-slot shortcuts from triggering both actions.
+
+## 1.1.2 - 2026-09-12
+
+- Fixed locked slots blocking normal item use, including ammunition selection and quick-slot food, potions, and tools.
+- Allowed matching pickups to replenish locked stacks while keeping their slots protected from sorting and storage transfers.
+- Separated normal cooking, refueling, and processing from slot-retention protection. Update RunicSafety to 1.0.5 when using both mods.
+- Kept transfer, drop, display, and disposal guards in place.
+
+## 1.1.1 - 2026-09-11
+
+- Fixed the Valheim 1.0.12 startup check so equipment slots, quick slots, slot locks, and inventory protection initialize again. Retained Valheim 1.0.7 support.
+
+## 1.1.0 - 2026-09-10
+
+- Added an automatic extra inventory row whenever RunicInventory is enabled, preserving all normal backpack slots.
+- Reserved its five equipment slots for their matching armor or utility type and its three quick slots for consumables, tools, or utility items.
+- Blocked incompatible items entering the dedicated row through dragging, swapping, and direct-position transfers.
+- Migrated equipped armor, existing role items, and slot locks into the added row while keeping native pocket upgrades separate.
+- Grayed out the in-game Enabled control when extra-row items cannot fit in normal inventory; unsafe disable attempts are refused with a clear explanation.
+
+## 1.0.5 - 2026-09-10
+
+- Fixed a failed Inventory startup leaving cooking and other protected actions permanently blocked by an unavailable protection provider.
+- Kept slot locks available when equipment-row contents require vanilla-compatible layout, while preserving existing items and lock metadata.
+- Made Alt-right-click target the exact clicked cell and added clear lock/unlock confirmation.
+- Fixed slot-protection queries rejecting valid negative character IDs.
+
+## 1.0.4 - 2026-09-10
+
+- Fixed Linux startup rejecting Valheim 1.0.7 because its displayed version includes a platform prefix.
+
+## 1.0.3 - 2026-09-09
+
+- Updated native inventory resizing and notification paths for Valheim 1.0, including safe preservation and expansion of the new pocket rows.
+- Updated right-click, RPC, and cheated-state contracts to the installed Valheim 1.0.7 client and dedicated-server assemblies.
+- Updated the BepInEx dependency to 5.4.2350.
+
+## 1.0.2 - 2026-09-08
+
+- Fixed Runic Safety blocking ordinary cooking when an installed Runic Inventory had deliberately
+  fallen back to vanilla behavior, including migration-safe existing characters, remote non-owner
+  contexts, and headless dedicated servers.
+- Made the optional item-lock query report stable inactive modes as NotApplicable, matching Runic
+  Inventory's own guards, while retaining fail-closed Unknown results during live load/rebind,
+  shutdown, malformed evidence, and exceptions that can still affect an owning local inventory.
+  Proven remote non-owner and headless paths remain NotApplicable because they cannot enforce locks.
+- Kept authoritative unlocked, explicitly locked, and special-row results unchanged.
+- Added one bounded, deduplicated warning for each indeterminate protection reason so future player
+  logs identify the actual topology or lifecycle state without exposing item or player data.
+
+## 1.0.1 - 2026-09-05
+
+- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
+- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.0.0.
+
 ## 1.0.0 - standalone runtime architecture
 
 - Removed mandatory Foundation runtime dependencies (Runic Core, Persistence, and Transactions)

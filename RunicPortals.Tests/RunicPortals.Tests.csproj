@@ -14,20 +14,24 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="GroupInvitationTests.cs" />
     <ProjectReference Include="..\RunicPortals\RunicPortals.csproj" />
     <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="true" />
     <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="true" />
     <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="true" />
     <Reference Include="assembly_guiutils" HintPath="$(GAME_MANAGED)\assembly_guiutils.dll" Private="true" />
     <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="true" />
+    <Reference Include="gui_framework" HintPath="$(GAME_MANAGED)\gui_framework.dll" Private="true" />
     <Reference Include="Splatform" HintPath="$(GAME_MANAGED)\Splatform.dll" Private="true" />
     <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="true" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="true" />
+    <Reference Include="UnityEngine.InputLegacyModule" HintPath="$(GAME_MANAGED)\UnityEngine.InputLegacyModule.dll" Private="true" />
     <Reference Include="UnityEngine.ImageConversionModule" HintPath="$(GAME_MANAGED)\UnityEngine.ImageConversionModule.dll" Private="true" />
     <Reference Include="UnityEngine.IMGUIModule" HintPath="$(GAME_MANAGED)\UnityEngine.IMGUIModule.dll" Private="true" />
     <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GAME_MANAGED)\UnityEngine.PhysicsModule.dll" Private="true" />
     <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(GAME_MANAGED)\UnityEngine.TextRenderingModule.dll" Private="true" />
     <Reference Include="UnityEngine.UI" HintPath="$(GAME_MANAGED)\UnityEngine.UI.dll" Private="true" />
     <Reference Include="UnityEngine.UIModule" HintPath="$(GAME_MANAGED)\UnityEngine.UIModule.dll" Private="true" />
+    <Reference Include="Unity.TextMeshPro" HintPath="$(GAME_MANAGED)\Unity.TextMeshPro.dll" Private="true" />
   </ItemGroup>
 </Project>

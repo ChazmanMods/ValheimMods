@@ -59,8 +59,7 @@ namespace RunicBuildCamera.Integration
 
             if (!Session.IsActive) return;
 
-            if (ZInput.GetButtonDown("Hide") || ZInput.GetButtonDown("JoyHide") ||
-                !ValheimAdapter.IsBuildToolEquipped(player))
+            if (!ValheimAdapter.IsBuildToolEquipped(player))
             {
                 Stop();
                 return;
@@ -169,6 +168,18 @@ namespace RunicBuildCamera.Integration
         }
 
         internal static void ForceStop() => Stop();
+
+        internal static bool ExitInputRequested()
+        {
+            if (CameraExitInput.HotbarRequested(ZInput.GetButtonDown)) return true;
+            Player player = Player.m_localPlayer;
+            bool shortRelease = !Hud.InRadial() && ZInput.GetButtonUp("JoyHide") &&
+                                ZInput.GetButtonLastPressedTimer("JoyHide") < 0.33f;
+            return CameraExitInput.HideRequested(
+                ZInput.GetButtonDown("Hide"),
+                (int)ZInput.InputLayout != 0 && ZInput.IsGamepadActive(),
+                shortRelease, player.InPlaceMode(), ZInput.GetButton("JoyAltKeys"));
+        }
 
         private static void TryStart(Player player)
         {

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Valheim10ClientIsolationGuard</AssemblyName>
+    <RootNamespace>RunicSmoke.ClientIsolation</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Deterministic>true</Deterministic>
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+    <GameManagedPath Condition="'$(GameManagedPath)' == ''">E:\SteamLibrary\steamapps\common\Valheim\valheim_Data\Managed</GameManagedPath>
+    <BepInExCorePath Condition="'$(BepInExCorePath)' == ''">E:\Valheim Mods\ChazmanModsRepo\artifacts\Valheim1.0\Migration-20260909\BepInExPack-5.4.2350\BepInExPack_Valheim\BepInEx\core</BepInExCorePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx" HintPath="$(BepInExCorePath)\BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(BepInExCorePath)\0Harmony.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="$(GameManagedPath)\assembly_valheim.dll" Private="false" />
+    <Reference Include="assembly_utils" HintPath="$(GameManagedPath)\assembly_utils.dll" Private="false" />
+    <Reference Include="Splatform" HintPath="$(GameManagedPath)\Splatform.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(GameManagedPath)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GameManagedPath)\UnityEngine.CoreModule.dll" Private="false" />
+  </ItemGroup>
+</Project>

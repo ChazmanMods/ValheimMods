@@ -1,9 +1,9 @@
 {
   "name": "RunicAwareness",
-  "version_number": "1.0.0",
+  "version_number": "1.0.2",
   "website_url": "https://discord.gg/7HKHTCdFqY",
-  "description": "Restrained food, effect, comfort, equipment-comparison, and current-context explanations using only already-known local state.",
+  "description": "Understand food, status effects, comfort, equipment, and your current situation in-game using only information your character already knows.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333"
+    "denikson-BepInExPack_Valheim-5.4.2350"
   ]
 }

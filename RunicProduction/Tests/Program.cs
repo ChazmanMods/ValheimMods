@@ -10,6 +10,9 @@ namespace RunicProduction.Tests
 
         private static void Main()
         {
+            RunAll(NativeCheatChecksTests.Cases());
+            RunAll(ProductionLinkPressTests.Cases());
+            RunAll(ProductionSetupOwnershipTests.Cases());
             RunAll(StandaloneProductionTests.Cases());
             RunAll(NearbyIngredientContainerIndexTests.Cases());
             RunAll(MultiReplenishmentCatalogTests.Cases());

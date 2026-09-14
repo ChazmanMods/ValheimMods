@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.2.0 - 2026-09-12
+
+- Added an optional, configurable 2–64 player cap with coordinated Steam, PlayFab, and admission limits, including the dedicated host's transport slot.
+- Added startup validation and admission integrity checks for the audited Valheim 1.0.12 hosting-limit patches.
+- Added `runicworld_status`, peer counts, Steam/PlayFab RTT and traffic rates, queue diagnostics, ownership-transfer counters, and possible synchronization-starvation indicators.
+- Added configurable, sustained server-health warnings with recovery messages and rate limiting.
+- Preserved existing save smoothing and read-only world diagnostics.
+
+## 1.1.2 - 2026-09-09
+
+- Migrated save timing to Valheim 1.0.7's exact `ZDOMan.SaveChunks` and `LoadChunks` contracts while
+  retaining a separate legacy-world load observation seam.
+- Added the required `assembly_utils` reference for the new file-source parameter and verified all
+  observatory targets against both installed client and dedicated-server assemblies.
+- Updated the release dependency floor to BepInExPack Valheim 5.4.2350.
+
+## 1.1.1 - 2026-09-05
+
+- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
+- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.1.0.
+
+## 1.1.0 - 2026-08-31
+
+- Added bounded main-thread save preparation smoothing for asynchronous periodic saves.
+- Coalesces overlapping requests, never defers synchronous shutdown saves, and never accesses Unity
+  objects from a background worker.
+
 ## 1.0.0
 
 - Kept constant-time aggregate ZDO observability and interval event counters.

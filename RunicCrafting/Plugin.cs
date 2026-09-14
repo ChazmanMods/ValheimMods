@@ -13,7 +13,7 @@ namespace RunicCrafting
     {
         public const string Guid = "chazman.RunicCrafting";
         public const string Name = "Runic Crafting";
-        public const string Version = "1.0.0";
+        public const string Version = "1.1.0";
 
         internal static ManualLogSource Log { get; private set; }
 
@@ -37,7 +37,7 @@ namespace RunicCrafting
                 WorkshopAccessCommands.Initialize();
                 Logger.LogInfo(
                     Name + " v" + Version + " ready. " + Configuration.StateSummary +
-                    ". Nearby crafting and building use locally owned Valheim inventories.");
+                    ". Nearby crafting, building, manual cooking and refueling use guarded native Valheim ownership.");
             }
             catch (Exception exception)
             {
@@ -48,6 +48,10 @@ namespace RunicCrafting
 
         private void Update()
         {
+            ValheimReflection.MaintainPreviewCacheContext();
+            UiPreviewCache.Maintain();
+            CachePerformance.Update();
+            if (_harmony != null) AreaRepairRuntime.Tick();
             string notice = Interlocked.Exchange(ref _pendingHudNotice, null);
             if (notice == null || !Configuration.ShowStatusMessages.Value) return;
             Player player = Player.m_localPlayer;
@@ -93,6 +97,7 @@ namespace RunicCrafting
                 Logger.LogWarning("Could not remove every crafting patch: " + exception.Message);
             }
             _harmony = null;
+            AreaRepairRuntime.Reset();
             CraftingRuntime.Shutdown();
             CraftingDiagnostics.ResetRepeatSuppression();
             Log = null;

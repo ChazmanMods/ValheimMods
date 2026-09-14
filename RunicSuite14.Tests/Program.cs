@@ -27,18 +27,18 @@ namespace RunicSuite14.Tests
             new ModuleSpec("Safety", "RunicSafety", "RunicSafety", "chazman.RunicSafety", "icon.png"),
             new ModuleSpec("Velocity", "RunicVelocity", "RunicVelocity", "chazman.RunicVelocity", "icon.png"),
             new ModuleSpec("Sentinel", "RunicSentinel", "RunicSentinel", "chazman.RunicSentinel", "icon.png"),
-            new ModuleSpec("World Engine", "RunicWorldEngine", "RunicWorldEngine", "chazman.RunicWorldEngine", "icon.png")
+            new ModuleSpec("World Engine", "RunicWorldEngine", "RunicWorldEngine", "chazman.RunicWorldEngine", "icon.png"),
+            new ModuleSpec("Build Camera", "RunicBuildCamera", "RunicBuildCamera", "chazman.RunicBuildCamera", "icon.png"),
+            new ModuleSpec(
+                "Display Stands",
+                @"..\StandaloneItemStands",
+                "RunicDisplayStands",
+                "chazman.RunicDisplayStands",
+                "icon.png",
+                requiresConfigExample: false)
         };
 
-        private static readonly ModuleSpec[] CompatibilityParticipants = Modules.Concat(new[]
-        {
-            new ModuleSpec("Core foundation", "RunicCore", "RunicCore", "chazman.RunicCore", "icon.png"),
-            new ModuleSpec("Permissions foundation", "RunicPermissions", "RunicPermissions", "chazman.RunicPermissions", "icon.png"),
-            new ModuleSpec("Transactions foundation", "RunicTransactions", "RunicTransactions", "chazman.RunicTransactions", "icon.png"),
-            new ModuleSpec("Persistence foundation", "RunicPersistence", "RunicPersistence", "chazman.RunicPersistence", "icon.png"),
-            new ModuleSpec("Build Camera companion", "RunicBuildCamera", "RunicBuildCamera", "chazman.RunicBuildCamera", "icon.png"),
-            new ModuleSpec("Integrity companion", "RunicIntegrity", "RunicIntegrity", "chazman.RunicIntegrity", "icon.png")
-        }).ToArray();
+        private static readonly ModuleSpec[] CompatibilityParticipants = Modules;
 
         private static readonly Dictionary<string, DynamicTargetSpec> ApprovedDynamicTargets =
             new Dictionary<string, DynamicTargetSpec>(StringComparer.Ordinal)
@@ -77,63 +77,45 @@ namespace RunicSuite14.Tests
                 ["Container::Awake"] = "additive event-index registration",
                 ["Container::OnDestroyed"] =
                     "the four gameplay indices clean up only when the original destruction remains eligible",
-                ["Container::RPC_RequestOpen"] =
-                    "Safety denies unresolved grave custody before Transactions evaluates an endpoint claim",
-                ["Container::RPC_RequestTakeAll"] =
-                    "Safety denies unresolved grave custody before Transactions evaluates an endpoint claim",
-                ["Container::RPC_RequestStack"] =
-                    "Safety denies unresolved grave custody before Transactions evaluates an endpoint claim",
                 ["Container::CheckForChanges"] =
-                    "Transactions suppresses claimed maintenance; the four gameplay postfixes only refresh event indices when vanilla remains eligible",
+                    "the four bounded standalone indices observe completed eligible native inventory changes",
                 ["Smelter::Awake"] = "additive station registration",
                 ["CookingStation::Awake"] = "additive station registration",
                 ["CraftingStation::GetHoverText"] = "bounded hover composition/capture",
                 ["CookingStation::GetHoverText"] = "bounded hover composition/capture",
                 ["Fermenter::GetHoverText"] = "bounded hover composition/capture",
+                ["GameCamera::UpdateMouseCapture"] =
+                    "Sentinel alone may suppress native mouse recapture for its admin modal; Sentinel, Storage, and Portals then renew only the cursor lease owned by their currently open panel",
                 ["Plant::GetHoverText"] = "bounded hover composition/capture",
                 ["Beehive::GetHoverText"] = "bounded hover composition/capture",
-                ["Switch::GetHoverText"] = "bounded hover composition/capture",
-                ["Player::UpdatePlacement"] = "Building transform and Crafting commit phases are independently scoped",
+                ["Player::UpdatePlacement"] =
+                    "Sentinel gates its admin modal first, then Build Camera range, Precision transforms, and Crafting scope compose in declared order",
                 ["Player::UpdatePlacementGhost"] = "Agriculture preview and Building final pose are independently gated",
                 ["Player::Interact"] = "Production link selection and Agriculture harvest use exact disjoint targets",
-                ["Player::ConsumeResources"] =
-                    "Inventory reconciliation denial runs first; Crafting consumes its reservation only when the native resource path remains eligible",
-                ["Player::CreateTombStone"] =
-                    "Inventory opens an exception-finalized vanilla death-transfer scope and journals exact grave custody; Safety remains observational",
-                ["Piece::SetCreator"] =
-                    "Agriculture and Precision independently observe the completed native creator write for their bounded placement records",
                 ["Player::SetLocalPlayer"] =
                     "Inventory topology rebinding and Build Camera session/effect cleanup are independent and idempotent",
                 ["Player::SetControls"] =
-                    "Inventory reconciliation and Build Camera keep their existing scoped controls; Production monotonically zeroes only the combat arguments owned by an accepted Alt link or Shift+Alt unlink gesture",
+                    "Build Camera isolates its remote-camera controls while Production zeroes only combat arguments owned by an accepted link gesture",
                 ["Player::Update"] =
                     "Agriculture and Build Camera keep their existing scopes while Production samples only an exact station-targeted Alt link or Shift+Alt unlink gesture and never skips Player.Update",
-                ["Player::TryPlacePiece"] =
-                    "Inventory reconciliation denial runs before Crafting may reserve or start a remote build",
-                ["Fermenter::Interact"] = "Interaction hold normalization precedes/does not bypass Production authority",
-                ["CookingStation::OnUseItem"] = "Safety pre-mutation protection then Production ownership guard",
                 ["CookingStation::OnAddFuelSwitch"] =
-                    "Safety protection, Inventory lock denial, then Production ownership guard",
+                    "Safety protection precedes Inventory's independent locked-item denial",
                 ["Fermenter::AddItem"] =
-                    "Safety protection, Inventory lock denial, then Production ownership guard",
+                    "Safety protection precedes Inventory's independent locked-item denial",
                 ["Humanoid::EquipItem"] =
                     "Inventory lock denial, Interaction temporary-equipment bookkeeping, then Inventory role relocation",
                 ["Humanoid::Pickup"] =
                     "Inventory topology/filter denial precedes Interaction's independent pickup-filter denial",
-                ["Humanoid::UnequipItem"] =
-                    "Inventory reconciliation may deny the native unequip; Interaction's postfix only schedules a bounded no-op restore while the tool remains equipped",
-                ["Humanoid::HideHandItems"] =
-                    "Inventory reconciliation denial runs before Interaction captures native hidden-hand state",
-                ["Humanoid::ShowHandItems"] =
-                    "Inventory reconciliation denial precedes Interaction's post-vanilla hidden-hand restore observation",
                 ["Incinerator::OnIncinerate"] =
                     "Safety confirmation/protection precedes Inventory's independent locked-item denial",
-                ["Inventory::AddItem"] =
-                    "Inventory reconciliation denies the exact native mutation before Crafting's null-safe output observation postfix",
                 ["InventoryGui::DoCrafting"] =
                     "Inventory locked-upgrade denial precedes Crafting's exact material reservation/commit",
+                ["InventoryGui::Hide"] =
+                    "Interaction captures menu memory while Display Stands independently closes only its transient virtual-container bridge",
                 ["InventoryGui::OnSelectedItem"] =
                     "Inventory locked-slot denial precedes Interaction's guarded transfer gesture",
+                ["InventoryGui::RepairOneItem"] =
+                    "Inventory establishes its bounded repair allowance before Crafting may replace one native repair action with repair-all",
                 ["ItemStand::UseItem"] =
                     "Safety protection precedes Inventory's independent locked-item denial",
                 ["Minimap::OnMapLeftClick"] =
@@ -142,38 +124,28 @@ namespace RunicSuite14.Tests
                     "Portals suppresses double-click map mutation only during its modal picker; Exploration independently vetoes input inside its owned panel",
                 ["Minimap::OnMapMiddleClick"] =
                     "Portals suppresses middle-click map mutation only during its modal picker; Exploration independently vetoes input inside its owned panel",
-                ["Minimap::OnMapRightClick"] =
-                    "Portals suppresses right-click map mutation only during its modal picker; Exploration independently vetoes input inside its owned panel",
+                ["Minimap::RemovePinUnderPointer"] =
+                    "Exploration first vetoes its panel region, then Portals suppresses native pin removal only for its active picker",
                 ["Smelter::OnAddFuel"] =
                     "Safety protection precedes Inventory's independent locked-item denial",
                 ["Smelter::OnAddOre"] =
                     "Safety protection precedes Inventory's independent locked-item denial",
-                ["TextInput::Hide"] =
-                    "Interaction and Portals independently clear only their own bounded edit sessions",
+                ["Switch::Interact"] =
+                    "Display Stands makes its managed armor-stand interception decision before Interaction may open a hold-repeat scope; unmanaged switches remain native",
+                ["Player::TakeInput"] =
+                    "Sentinel may deny local gameplay input for its admin modal; Build Camera first captures its scoped native result, then Storage and Portals monotonically force false only for their own open panels",
+                ["ZInput::GetKeyDown"] =
+                    "Storage and Portals suppress Escape only while their own modal owns it, with Portals ordered after Storage for deterministic composition",
                 ["ZInput::GetButton"] =
-                    "Storage, Agriculture, and Inventory retain their audited paths; Production additionally denies only the combat or build action leased by an accepted station-targeted Alt link or Shift+Alt unlink gesture",
+                    "Storage, Production, Portals, Agriculture, and Inventory run in a fixed chain; Portals additionally suppresses only the editor-owned attack or cancel action and its release latch",
                 ["ZInput::GetButtonDown"] =
-                    "Storage, Agriculture, and Inventory retain their audited paths; Production additionally denies only the combat or build action leased by an accepted station-targeted Alt link or Shift+Alt unlink gesture",
+                    "Storage, Production, Portals, Agriculture, and Inventory run in a fixed chain; Portals additionally suppresses only the editor-owned attack or cancel edge and its release latch",
                 ["ZInput::GetButtonUp"] =
-                    "Storage, Agriculture, and Inventory monotonically deny only their audited owned controller paths",
+                    "Storage, Portals, Agriculture, and Inventory run in a fixed chain and monotonically deny only their audited owned controller or modal paths",
                 ["ZInput::GetButtonPressedTimer"] =
                     "Storage, Agriculture, and Inventory monotonically deny only their audited owned controller paths",
                 ["ZInput::GetButtonLastPressedTimer"] =
-                    "Storage, Agriculture, and Inventory monotonically deny only their audited owned controller paths",
-                ["WearNTear::Destroy"] =
-                    "Transactions denies claimed endpoint destruction first; Portals next protects only an exact active picker source; Production then acquires station recovery state only while every earlier guard leaves the original eligible",
-                ["WearNTear::Damage"] =
-                    "Safety denies unresolved durable custody first; Portals may then monotonically deny damage only to its exact leased picker source",
-                ["WearNTear::RPC_Damage"] =
-                    "Safety denies unresolved durable custody first; Portals may then monotonically deny owner-RPC damage only to its exact leased picker source",
-                ["ZDO::Deserialize"] =
-                    "Agriculture Crafting Portals Production Precision and Storage independently advance only their bounded persistent-authority catalogue epochs after exact deserialization",
-                ["ZDO::SetPrefab"] =
-                    "Agriculture Crafting Portals Production Precision and Storage independently advance only their bounded persistent authority catalogues after an exact prefab transition",
-                ["ZDOMan::AddToSector"] =
-                    "Agriculture Crafting Portals Interaction Precision Production and Storage independently mark only their bounded persistent-authority ZDO indexes dirty after vanilla adds the record",
-                ["ZDOMan::RemoveFromSector"] =
-                    "Agriculture Crafting Portals Interaction Precision Production and Storage independently mark only their bounded persistent-authority ZDO indexes dirty before vanilla removes the record"
+                    "Storage, Agriculture, and Inventory monotonically deny only their audited owned controller paths"
             };
 
         // A rationale alone can silently bless a newly arriving participant. Pin the exact
@@ -183,61 +155,45 @@ namespace RunicSuite14.Tests
             {
                 ["Beehive::GetHoverText"] = new[] { "RunicAgriculture", "RunicAwareness" },
                 ["Container::Awake"] = new[] { "RunicAgriculture", "RunicCrafting", "RunicProduction", "RunicStorage" },
-                ["Container::CheckForChanges"] = new[] { "RunicAgriculture", "RunicCrafting", "RunicProduction", "RunicStorage", "RunicTransactions" },
+                ["Container::CheckForChanges"] = new[] { "RunicAgriculture", "RunicCrafting", "RunicProduction", "RunicStorage" },
                 ["Container::OnDestroyed"] = new[] { "RunicAgriculture", "RunicCrafting", "RunicProduction", "RunicStorage" },
-                ["Container::RPC_RequestOpen"] = new[] { "RunicSafety", "RunicTransactions" },
-                ["Container::RPC_RequestStack"] = new[] { "RunicSafety", "RunicTransactions" },
-                ["Container::RPC_RequestTakeAll"] = new[] { "RunicSafety", "RunicTransactions" },
                 ["CookingStation::Awake"] = new[] { "RunicInteraction", "RunicProduction" },
                 ["CookingStation::GetHoverText"] = new[] { "RunicAwareness", "RunicProduction" },
-                ["CookingStation::OnAddFuelSwitch"] = new[] { "RunicInventory", "RunicProduction", "RunicSafety" },
-                ["CookingStation::OnUseItem"] = new[] { "RunicProduction", "RunicSafety" },
+                ["CookingStation::OnAddFuelSwitch"] = new[] { "RunicInventory", "RunicSafety" },
                 ["CraftingStation::GetHoverText"] = new[] { "RunicAwareness", "RunicProduction" },
-                ["Fermenter::AddItem"] = new[] { "RunicInventory", "RunicProduction", "RunicSafety" },
+                ["Fermenter::AddItem"] = new[] { "RunicInventory", "RunicSafety" },
                 ["Fermenter::GetHoverText"] = new[] { "RunicAwareness", "RunicProduction" },
-                ["Fermenter::Interact"] = new[] { "RunicInteraction", "RunicProduction" },
+                ["GameCamera::UpdateMouseCapture"] = new[] { "RunicPortals", "RunicSentinel", "RunicStorage" },
                 ["Humanoid::EquipItem"] = new[] { "RunicInteraction", "RunicInventory" },
-                ["Humanoid::HideHandItems"] = new[] { "RunicInteraction", "RunicInventory" },
                 ["Humanoid::Pickup"] = new[] { "RunicInteraction", "RunicInventory" },
-                ["Humanoid::ShowHandItems"] = new[] { "RunicInteraction", "RunicInventory" },
-                ["Humanoid::UnequipItem"] = new[] { "RunicInteraction", "RunicInventory" },
                 ["Incinerator::OnIncinerate"] = new[] { "RunicInventory", "RunicSafety" },
-                ["Inventory::AddItem"] = new[] { "RunicCrafting", "RunicInventory" },
                 ["InventoryGui::DoCrafting"] = new[] { "RunicCrafting", "RunicInventory" },
+                ["InventoryGui::Hide"] = new[] { "RunicDisplayStands", "RunicInteraction" },
                 ["InventoryGui::OnSelectedItem"] = new[] { "RunicInteraction", "RunicInventory" },
+                ["InventoryGui::RepairOneItem"] = new[] { "RunicCrafting", "RunicInventory" },
                 ["ItemStand::UseItem"] = new[] { "RunicInventory", "RunicSafety" },
                 ["Minimap::OnMapDblClick"] = new[] { "RunicExploration", "RunicPortals" },
                 ["Minimap::OnMapLeftClick"] = new[] { "RunicExploration", "RunicPortals" },
                 ["Minimap::OnMapMiddleClick"] = new[] { "RunicExploration", "RunicPortals" },
-                ["Minimap::OnMapRightClick"] = new[] { "RunicExploration", "RunicPortals" },
+                ["Minimap::RemovePinUnderPointer"] = new[] { "RunicExploration", "RunicPortals" },
                 ["Plant::GetHoverText"] = new[] { "RunicAgriculture", "RunicAwareness" },
                 ["Player::Interact"] = new[] { "RunicAgriculture", "RunicProduction" },
-                ["Player::ConsumeResources"] = new[] { "RunicCrafting", "RunicInventory" },
-                ["Player::CreateTombStone"] = new[] { "RunicInventory", "RunicSafety" },
-                ["Piece::SetCreator"] = new[] { "RunicAgriculture", "RunicPrecisionBuildTool" },
                 ["Player::SetLocalPlayer"] = new[] { "RunicBuildCamera", "RunicInventory" },
-                ["Player::SetControls"] = new[] { "RunicBuildCamera", "RunicInventory", "RunicProduction" },
-                ["Player::TryPlacePiece"] = new[] { "RunicCrafting", "RunicInventory" },
+                ["Player::SetControls"] = new[] { "RunicBuildCamera", "RunicProduction" },
                 ["Player::Update"] = new[] { "RunicAgriculture", "RunicBuildCamera", "RunicProduction" },
-                ["Player::UpdatePlacement"] = new[] { "RunicBuildCamera", "RunicCrafting", "RunicPrecisionBuildTool" },
+                ["Player::UpdatePlacement"] = new[] { "RunicBuildCamera", "RunicCrafting", "RunicPrecisionBuildTool", "RunicSentinel" },
                 ["Player::UpdatePlacementGhost"] = new[] { "RunicAgriculture", "RunicBuildCamera", "RunicPrecisionBuildTool" },
                 ["Smelter::Awake"] = new[] { "RunicInteraction", "RunicProduction" },
                 ["Smelter::OnAddFuel"] = new[] { "RunicInventory", "RunicSafety" },
                 ["Smelter::OnAddOre"] = new[] { "RunicInventory", "RunicSafety" },
-                ["Switch::GetHoverText"] = new[] { "RunicAwareness", "RunicProduction" },
-                ["TextInput::Hide"] = new[] { "RunicInteraction", "RunicPortals" },
-                ["WearNTear::Damage"] = new[] { "RunicPortals", "RunicSafety" },
-                ["WearNTear::Destroy"] = new[] { "RunicPortals", "RunicProduction", "RunicTransactions" },
-                ["WearNTear::RPC_Damage"] = new[] { "RunicPortals", "RunicSafety" },
-                ["ZDO::Deserialize"] = new[] { "RunicAgriculture", "RunicCrafting", "RunicPortals", "RunicPrecisionBuildTool", "RunicProduction", "RunicStorage" },
-                ["ZDO::SetPrefab"] = new[] { "RunicAgriculture", "RunicCrafting", "RunicPortals", "RunicPrecisionBuildTool", "RunicProduction", "RunicStorage" },
-                ["ZInput::GetButton"] = new[] { "RunicAgriculture", "RunicInventory", "RunicProduction", "RunicStorage" },
-                ["ZInput::GetButtonDown"] = new[] { "RunicAgriculture", "RunicInventory", "RunicProduction", "RunicStorage" },
+                ["Switch::Interact"] = new[] { "RunicDisplayStands", "RunicInteraction" },
+                ["Player::TakeInput"] = new[] { "RunicBuildCamera", "RunicPortals", "RunicSentinel", "RunicStorage" },
+                ["ZInput::GetButton"] = new[] { "RunicAgriculture", "RunicInventory", "RunicPortals", "RunicProduction", "RunicStorage" },
+                ["ZInput::GetButtonDown"] = new[] { "RunicAgriculture", "RunicInventory", "RunicPortals", "RunicProduction", "RunicStorage" },
                 ["ZInput::GetButtonLastPressedTimer"] = new[] { "RunicAgriculture", "RunicInventory", "RunicStorage" },
                 ["ZInput::GetButtonPressedTimer"] = new[] { "RunicAgriculture", "RunicInventory", "RunicStorage" },
-                ["ZInput::GetButtonUp"] = new[] { "RunicAgriculture", "RunicInventory", "RunicStorage" },
-                ["ZDOMan::AddToSector"] = new[] { "RunicAgriculture", "RunicCrafting", "RunicInteraction", "RunicPortals", "RunicPrecisionBuildTool", "RunicProduction", "RunicStorage" },
-                ["ZDOMan::RemoveFromSector"] = new[] { "RunicAgriculture", "RunicCrafting", "RunicInteraction", "RunicPortals", "RunicPrecisionBuildTool", "RunicProduction", "RunicStorage" }
+                ["ZInput::GetButtonUp"] = new[] { "RunicAgriculture", "RunicInventory", "RunicPortals", "RunicStorage" },
+                ["ZInput::GetKeyDown"] = new[] { "RunicPortals", "RunicStorage" }
             };
 
         private static readonly Dictionary<string, string> ApprovedInputOverlaps =
@@ -249,7 +205,7 @@ namespace RunicSuite14.Tests
                 "RunicCrafting",
                 "RunicProduction",
                 "RunicPortals",
-                "RunicTransactions"
+                "RunicDisplayStands"
             };
 
         private static readonly Dictionary<string, HashSet<string>> ApprovedPersistentWriteMethods =
@@ -277,20 +233,20 @@ namespace RunicSuite14.Tests
         {
             var tests = new (string Name, Action Run)[]
             {
-                ("the original design's exact fourteen module identities exist", ExactFourteenExist),
+                ("the exact sixteen canonical Runic release identities exist", ExactSixteenExist),
                 ("every module has a test project and complete release surface", ReleaseSurfacesAreComplete),
                 ("client server BepInEx Harmony and Cecil binaries match the audited environment", EnvironmentBinariesArePinned),
                 ("plugin manifest assembly and package versions align", IdentitiesAlign),
-                ("all fourteen GUIDs assemblies and package names are unique", IdentitiesAreUnique),
-                ("gameplay modules have no hard gameplay-module references", NoGameplayHardReferences),
+                ("all sixteen GUIDs assemblies and package names are unique", IdentitiesAreUnique),
+                ("active hard module references are restricted to Sentinel Safety", NoGameplayHardReferences),
                 ("optional peer discovery references only public contract namespaces", PrivatePeerReflectionIsAbsent),
                 ("gameplay manifest hard dependencies are explicit and acyclic", GameplayManifestDependenciesAreExplicit),
-                ("compiled and packaged Foundation dependency floors align", FoundationDependencyFloorsAlign),
-                ("suite capability roots match Runic Core's canonical contract", CanonicalCapabilityRootsAlign),
-                ("dedicated RPC contracts are connection-bound and durable paths are classified", DedicatedRpcContractsAreCanonical),
+                ("compiled and packaged active dependency versions align", ActiveDependencyVersionsAlign),
+                ("retired Foundation package references are absent", RetiredFoundationReferencesAreAbsent),
+                ("standalone integration contracts have exact public owners", StandaloneIntegrationContractsAlign),
+                ("standalone RPC surfaces are sender-bound bounded and unique", StandaloneRpcContractsAreBounded),
                 ("direct persistent ZDO writes stay with declared single-purpose owners", PersistentWritesHaveOwners),
-                ("all fourteen package icons are exact 256x256 PNG", IconsAreExact),
-                ("all four Foundation icons are the selected unique medallions", FoundationIconsAreSelected),
+                ("all sixteen package icons are unique exact 256x256 PNG", IconsAreExact),
                 ("every static Harmony target resolves exactly on installed Valheim", HarmonyTargetsResolveExactly),
                 ("gameplay modules do not manually patch private peer implementations", ManualPeerPatchesAreAbsent),
                 ("cross-module Harmony overlaps are explicitly classified", PatchOverlapsAreClassified),
@@ -306,13 +262,13 @@ namespace RunicSuite14.Tests
                 try { run(); Console.WriteLine("PASS " + name); }
                 catch (Exception exception) { failed++; Console.Error.WriteLine("FAIL " + name + ": " + exception.Message); }
             }
-            Console.WriteLine($"{tests.Length - failed}/{tests.Length} suite-14 audits passed.");
+            Console.WriteLine($"{tests.Length - failed}/{tests.Length} canonical-suite audits passed.");
             return failed == 0 ? 0 : 1;
         }
 
-        private static void ExactFourteenExist()
+        private static void ExactSixteenExist()
         {
-            Equal(14, Modules.Length);
+            Equal(16, Modules.Length);
             foreach (ModuleSpec module in Modules)
             {
                 string directory = PathOf(module.Directory);
@@ -370,13 +326,16 @@ namespace RunicSuite14.Tests
             {
                 string directory = PathOf(module.Directory);
                 string siblingTests = PathOf(module.Assembly + ".Tests", module.Assembly + ".Tests.csproj");
-                string nestedTests = Path.Combine(directory, "Tests", module.Assembly + ".Tests.csproj");
-                True(File.Exists(siblingTests) || File.Exists(nestedTests),
+                string nestedTestsDirectory = Path.Combine(directory, "Tests");
+                bool hasNestedTests = Directory.Exists(nestedTestsDirectory) &&
+                                      Directory.GetFiles(nestedTestsDirectory, "*.csproj", SearchOption.TopDirectoryOnly)
+                                          .Length == 1;
+                True(File.Exists(siblingTests) || hasNestedTests,
                     "Missing focused test project: " + module.Assembly + ".Tests");
                 True(File.Exists(Path.Combine(directory, "CHANGELOG.md")),
                     "Missing changelog: " + module.Assembly);
                 string[] examples = Directory.GetFiles(directory, "*.cfg.example", SearchOption.TopDirectoryOnly);
-                Equal(1, examples.Length);
+                Equal(module.RequiresConfigExample ? 1 : 0, examples.Length);
 
                 using JsonDocument manifest = JsonDocument.Parse(
                     File.ReadAllText(Path.Combine(directory, "manifest.json")));
@@ -387,7 +346,7 @@ namespace RunicSuite14.Tests
                 Equal(dependencies.Length,
                     dependencies.Distinct(StringComparer.OrdinalIgnoreCase).Count());
                 Equal(1, dependencies.Count(value => string.Equals(
-                    value, "denikson-BepInExPack_Valheim-5.4.2333", StringComparison.Ordinal)));
+                    value, "denikson-BepInExPack_Valheim-5.4.2350", StringComparison.Ordinal)));
             }
         }
 
@@ -395,34 +354,35 @@ namespace RunicSuite14.Tests
         {
             string managed = FindManagedDirectory();
             string clientAssembly = Path.Combine(managed, "assembly_valheim.dll");
-            Equal("3B26C8512778F6E0664B5AF2A26F3C30993A00F584C1E76D9123A742B67E2004",
+            Equal("A5130F5A957AB51CB6538F5412CBE57B43F927F4A679918BFF199B5C905D01BC",
                 Sha256Hex(clientAssembly));
             using (AssemblyDefinition game = AssemblyDefinition.ReadAssembly(clientAssembly))
             {
                 TypeDefinition version = game.MainModule.Types.Single(value => value.FullName == "Version");
                 MethodDefinition initializer = version.Methods.Single(value => value.Name == ".cctor");
                 IList<Mono.Cecil.Cil.Instruction> instructions = initializer.Body.Instructions;
-                True(instructions.Count >= 5 &&
-                     ReadInt32Constant(instructions[0]) == 0 &&
-                     ReadInt32Constant(instructions[1]) == 221 &&
-                     ReadInt32Constant(instructions[2]) == 12 &&
-                     instructions[3].OpCode.Code == Mono.Cecil.Cil.Code.Newobj &&
-                     string.Equals(((MethodReference)instructions[3].Operand).DeclaringType.FullName,
-                         "GameVersion", StringComparison.Ordinal) &&
-                     instructions[4].OpCode.Code == Mono.Cecil.Cil.Code.Stsfld &&
-                     string.Equals(((FieldReference)instructions[4].Operand).Name,
-                         "<CurrentVersion>k__BackingField", StringComparison.Ordinal),
-                    "Installed client assembly does not identify audited Valheim 0.221.12.");
+                int currentStore = instructions.ToList().FindIndex(instruction =>
+                    instruction.OpCode.Code == Mono.Cecil.Cil.Code.Stsfld &&
+                    instruction.Operand is FieldReference field &&
+                    string.Equals(field.Name, "<CurrentVersion>k__BackingField", StringComparison.Ordinal));
+                True(currentStore >= 4 &&
+                     ReadInt32Constant(instructions[currentStore - 4]) == 1 &&
+                     ReadInt32Constant(instructions[currentStore - 3]) == 0 &&
+                     ReadInt32Constant(instructions[currentStore - 2]) == 7 &&
+                     instructions[currentStore - 1].OpCode.Code == Mono.Cecil.Cil.Code.Newobj &&
+                     string.Equals(((MethodReference)instructions[currentStore - 1].Operand).DeclaringType.FullName,
+                         "GameVersion", StringComparison.Ordinal),
+                    "Installed client assembly does not identify audited Valheim 1.0.7.");
             }
 
             string core = FindBepInExCoreDirectory();
             string bepInEx = Path.Combine(core, "BepInEx.dll");
             string harmony = Path.Combine(core, "0Harmony.dll");
             string cecil = Path.Combine(core, "Mono.Cecil.dll");
-            Equal("E9AC3A950E91E71B13DF5480B36CE06AF27E981A688F0E62125B674D03A0713A", Sha256Hex(bepInEx));
+            Equal("F09821B2A7B990C6F50C5EF23229635303CE675374B70EDC6F5A9B960CB818E3", Sha256Hex(bepInEx));
             Equal("1A21CC03424FC82C3DD1346905D16494536B9595AE4162228D99FB7C285C1031", Sha256Hex(harmony));
             Equal("7AE470288FFF4A402899C254D0A76CEFEF55877F5C54F96E83C797CC5BB6E2F6", Sha256Hex(cecil));
-            Equal("5.4.23.3", System.Diagnostics.FileVersionInfo.GetVersionInfo(bepInEx).FileVersion);
+            Equal("5.4.23.5", System.Diagnostics.FileVersionInfo.GetVersionInfo(bepInEx).FileVersion);
             Equal("2.9.0.0", System.Diagnostics.FileVersionInfo.GetVersionInfo(harmony).FileVersion);
 
             string dedicatedRoot = Environment.GetEnvironmentVariable("VALHEIM_DEDICATED_INSTALL");
@@ -433,34 +393,44 @@ namespace RunicSuite14.Tests
             string serverExecutable = Path.Combine(dedicatedRoot, "valheim_server.exe");
             True(File.Exists(serverAssembly) && File.Exists(serverExecutable),
                 "Audited dedicated-server install is unavailable.");
-            Equal("84A1B34F95774D36BE328390578D7B07C5CFFBC8CBB15119541900F055D486A3",
+            Equal("9DF99B0011B4CA0A448E6D935C77368B4E3B98EEE7B0AC8D1B43B34E267471B2",
                 Sha256Hex(serverAssembly));
-            Equal("A1E5ACCF766C1177A7E0B82B457CBED74CB3C9EFB5EE8E5C1E0BBBB60BD52839",
+            Equal("E01757027E08D35C5FC926ADFEEC164344B73EADB4D4C61196945642B787E4FD",
                 Sha256Hex(serverExecutable));
         }
 
         private static void IdentitiesAreUnique()
         {
-            Equal(14, Modules.Select(value => value.Guid).Distinct(StringComparer.Ordinal).Count());
-            Equal(14, Modules.Select(value => value.Assembly).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Equal(16, Modules.Select(value => value.Guid).Distinct(StringComparer.Ordinal).Count());
+            Equal(16, Modules.Select(value => value.Assembly).Distinct(StringComparer.OrdinalIgnoreCase).Count());
             var packageNames = Modules.Select(module =>
             {
                 using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(PathOf(module.Directory, "manifest.json")));
                 return manifest.RootElement.GetProperty("name").GetString();
             }).ToArray();
-            Equal(14, packageNames.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Equal(16, packageNames.Distinct(StringComparer.OrdinalIgnoreCase).Count());
         }
 
         private static void NoGameplayHardReferences()
         {
             var gameplay = new HashSet<string>(Modules.Select(value => value.Assembly), StringComparer.OrdinalIgnoreCase);
-            foreach (ModuleSpec module in CompatibilityParticipants)
+            foreach (ModuleSpec module in Modules)
             {
                 using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(AssemblyPath(module));
                 string[] forbidden = assembly.MainModule.AssemblyReferences.Select(value => value.Name)
-                    .Where(value => gameplay.Contains(value)).ToArray();
-                True(forbidden.Length == 0, module.Assembly + " hard references gameplay peer(s): " + string.Join(",", forbidden));
+                    .Where(value => gameplay.Contains(value))
+                    .Where(value => !(string.Equals(module.Assembly, "RunicSentinel", StringComparison.Ordinal) &&
+                                      string.Equals(value, "RunicSafety", StringComparison.Ordinal)))
+                    .ToArray();
+                True(forbidden.Length == 0,
+                    module.Assembly + " has an unapproved hard reference to active peer(s): " +
+                    string.Join(",", forbidden));
             }
+
+            ModuleSpec sentinel = Modules.Single(value => value.Assembly == "RunicSentinel");
+            using AssemblyDefinition sentinelAssembly = AssemblyDefinition.ReadAssembly(AssemblyPath(sentinel));
+            Equal(1, sentinelAssembly.MainModule.AssemblyReferences.Count(value =>
+                string.Equals(value.Name, "RunicSafety", StringComparison.Ordinal)));
         }
 
         private static void PrivatePeerReflectionIsAbsent()
@@ -492,8 +462,8 @@ namespace RunicSuite14.Tests
         private static void GameplayManifestDependenciesAreExplicit()
         {
             var gameplayPackages = new HashSet<string>(Modules.Select(value => "Chazman-" + value.Assembly), StringComparer.OrdinalIgnoreCase);
-            const string storageInventory = "Chazman-RunicInventory-1.0.0";
-            int storageInventoryCount = 0;
+            const string sentinelSafety = "Chazman-RunicSafety-1.0.2";
+            int sentinelSafetyCount = 0;
             foreach (ModuleSpec module in Modules)
             {
                 using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(PathOf(module.Directory, "manifest.json")));
@@ -502,14 +472,14 @@ namespace RunicSuite14.Tests
                     string value = dependency.GetString() ?? string.Empty;
                     if (!gameplayPackages.Any(package => value.StartsWith(package + "-", StringComparison.OrdinalIgnoreCase)))
                         continue;
-                    bool exactStorageInventory = string.Equals(module.Assembly, "RunicStorage", StringComparison.Ordinal) &&
-                                                 string.Equals(value, storageInventory, StringComparison.Ordinal);
-                    True(exactStorageInventory,
+                    bool exactSentinelSafety = string.Equals(module.Assembly, "RunicSentinel", StringComparison.Ordinal) &&
+                                               string.Equals(value, sentinelSafety, StringComparison.Ordinal);
+                    True(exactSentinelSafety,
                         module.Assembly + " has an undeclared gameplay dependency " + value + ".");
-                    storageInventoryCount++;
+                    sentinelSafetyCount++;
                 }
             }
-            Equal(1, storageInventoryCount);
+            Equal(1, sentinelSafetyCount);
 
             using JsonDocument inventoryManifest = JsonDocument.Parse(
                 File.ReadAllText(PathOf("RunicInventory", "manifest.json")));
@@ -519,353 +489,277 @@ namespace RunicSuite14.Tests
                 "Storage -> Inventory must remain acyclic; Inventory may not depend on Storage.");
         }
 
-        private static void FoundationDependencyFloorsAlign()
+        private static void ActiveDependencyVersionsAlign()
         {
-            var foundations = new Dictionary<string, FoundationSpec>(StringComparer.Ordinal)
-            {
-                ["chazman.RunicCore"] = new FoundationSpec("RunicCore", "Chazman-RunicCore-"),
-                ["chazman.RunicPermissions"] = new FoundationSpec("RunicPermissions", "Chazman-RunicPermissions-"),
-                ["chazman.RunicTransactions"] = new FoundationSpec("RunicTransactions", "Chazman-RunicTransactions-"),
-                ["chazman.RunicPersistence"] = new FoundationSpec("RunicPersistence", "Chazman-RunicPersistence-")
-            };
-            foreach (FoundationSpec foundation in foundations.Values)
-            {
-                using JsonDocument foundationManifest = JsonDocument.Parse(
-                    File.ReadAllText(PathOf(foundation.Directory, "manifest.json")));
-                foundation.CurrentVersion = foundationManifest.RootElement
-                    .GetProperty("version_number").GetString() ?? string.Empty;
-                True(Version.TryParse(foundation.CurrentVersion, out _),
-                    foundation.Directory + " has an invalid current release version.");
-            }
+            var byAssembly = Modules.ToDictionary(value => value.Assembly, StringComparer.OrdinalIgnoreCase);
+            var byGuid = Modules.ToDictionary(value => value.Guid, StringComparer.Ordinal);
+            var versions = Modules.ToDictionary(
+                value => value.Assembly,
+                value =>
+                {
+                    using JsonDocument manifest = JsonDocument.Parse(
+                        File.ReadAllText(PathOf(value.Directory, "manifest.json")));
+                    return manifest.RootElement.GetProperty("version_number").GetString() ?? string.Empty;
+                },
+                StringComparer.OrdinalIgnoreCase);
             using var resolver = new DefaultAssemblyResolver();
             resolver.AddSearchDirectory(FindBepInExCoreDirectory());
             resolver.AddSearchDirectory(FindManagedDirectory());
             foreach (ModuleSpec module in Modules)
-            {
                 resolver.AddSearchDirectory(Path.GetDirectoryName(AssemblyPath(module)) ?? string.Empty);
+
+            foreach (ModuleSpec module in Modules)
+            {
                 using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(
                     AssemblyPath(module),
                     new ReaderParameters { AssemblyResolver = resolver });
                 TypeDefinition plugin = assembly.MainModule.Types.Single(type =>
                     type.CustomAttributes.Any(attribute =>
                         attribute.AttributeType.FullName == "BepInEx.BepInPlugin"));
-                var compiled = new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (CustomAttribute dependency in plugin.CustomAttributes.Where(attribute =>
-                             attribute.AttributeType.FullName == "BepInEx.BepInDependency"))
-                {
-                    if (dependency.ConstructorArguments.Count < 2 ||
-                        !(dependency.ConstructorArguments[0].Value is string guid) ||
-                        !(dependency.ConstructorArguments[1].Value is string version) ||
-                        !foundations.ContainsKey(guid)) continue;
-                    compiled.Add(guid, version);
-                }
-
+                string[] referencedPeers = assembly.MainModule.AssemblyReferences
+                    .Select(value => value.Name)
+                    .Where(byAssembly.ContainsKey)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
                 using JsonDocument manifest = JsonDocument.Parse(
                     File.ReadAllText(PathOf(module.Directory, "manifest.json")));
                 string[] packaged = manifest.RootElement.GetProperty("dependencies")
                     .EnumerateArray().Select(value => value.GetString() ?? string.Empty).ToArray();
-                foreach (KeyValuePair<string, FoundationSpec> foundation in foundations)
+                foreach (string peerAssembly in referencedPeers)
                 {
-                    string[] entries = packaged.Where(value =>
-                        value.StartsWith(foundation.Value.PackagePrefix, StringComparison.Ordinal)).ToArray();
-                    if (!compiled.TryGetValue(foundation.Key, out string floor))
-                    {
-                        True(entries.Length == 0,
-                            module.Assembly + " manifest declares " + foundation.Key +
-                            " but the compiled plugin has no matching hard dependency: " +
-                            string.Join(",", entries));
-                        continue;
-                    }
-                    True(entries.Length == 1,
-                        module.Assembly + " compiled dependency " + foundation.Key +
-                        " must have exactly one manifest entry; found " + string.Join(",", entries));
-                    True(string.Equals(foundation.Value.CurrentVersion, floor, StringComparison.Ordinal),
-                        module.Assembly + " compiled floor for " + foundation.Key + " is " + floor +
-                        " but the current Foundation release is " + foundation.Value.CurrentVersion + ".");
-                    True(string.Equals(foundation.Value.PackagePrefix + floor, entries[0], StringComparison.Ordinal),
-                        module.Assembly + " manifest floor for " + foundation.Key + " is " + entries[0] +
-                        " but the compiled floor requires " + foundation.Value.PackagePrefix + floor + ".");
+                    ModuleSpec peer = byAssembly[peerAssembly];
+                    string exactPackage = "Chazman-" + peer.Assembly + "-" + versions[peer.Assembly];
+                    Equal(1, packaged.Count(value =>
+                        string.Equals(value, exactPackage, StringComparison.Ordinal)));
+                    Equal(1, plugin.CustomAttributes.Count(attribute =>
+                        attribute.AttributeType.FullName == "BepInEx.BepInDependency" &&
+                        attribute.ConstructorArguments.Count >= 1 &&
+                        string.Equals(
+                            attribute.ConstructorArguments[0].Value as string,
+                            peer.Guid,
+                            StringComparison.Ordinal)));
+                }
+
+                foreach (CustomAttribute dependency in plugin.CustomAttributes.Where(attribute =>
+                             attribute.AttributeType.FullName == "BepInEx.BepInDependency" &&
+                             attribute.ConstructorArguments.Count >= 1 &&
+                             attribute.ConstructorArguments[0].Value is string guid &&
+                             byGuid.ContainsKey(guid)))
+                {
+                    ModuleSpec peer = byGuid[(string)dependency.ConstructorArguments[0].Value];
+                    True(referencedPeers.Contains(peer.Assembly, StringComparer.OrdinalIgnoreCase),
+                        module.Assembly + " declares an active BepInDependency without a matching " +
+                        "compiled reference: " + peer.Guid);
                 }
             }
         }
 
-        private static void CanonicalCapabilityRootsAlign()
+        private static void RetiredFoundationReferencesAreAbsent()
         {
-            string corePath = PathOf("RunicCore", "bin", "Release", "netstandard2.1", "RunicCore.dll");
-            using AssemblyDefinition core = AssemblyDefinition.ReadAssembly(corePath);
-            using AssemblyDefinition sentinel = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicSentinel", "bin", "Release", "netstandard2.1", "RunicSentinel.dll"));
-            using AssemblyDefinition world = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicWorldEngine", "bin", "Release", "netstandard2.1", "RunicWorldEngine.dll"));
-            using AssemblyDefinition inventory = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicInventory", "bin", "Release", "netstandard2.1", "RunicInventory.dll"));
-            using AssemblyDefinition safety = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicSafety", "bin", "Release", "netstandard2.1", "RunicSafety.dll"));
-            using AssemblyDefinition portals = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicPortals", "bin", "Release", "netstandard2.1", "RunicPortals.dll"));
-            using AssemblyDefinition storage = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicStorage", "bin", "Release", "netstandard2.1", "RunicStorage.dll"));
-            using AssemblyDefinition interaction = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicInteraction", "bin", "Release", "netstandard2.1", "RunicInteraction.dll"));
-
-            string securityAttest = Constant(
-                core, "Runic.Foundation.Core.RunicCapabilityIds", "SecurityAttest");
-            string securityEvidence = Constant(
-                core, "Runic.Foundation.Core.RunicCapabilityIds", "SecurityEvidence");
-            string securityAdmission = Constant(
-                core, "Runic.Foundation.Core.RunicCapabilityIds", "SecurityAdmission");
-            string zdoOwnership = Constant(
-                core, "Runic.Foundation.Core.RunicCapabilityIds", "ZdoOwnership");
-            string zdoObserve = Constant(
-                core, "Runic.Foundation.Core.RunicCapabilityIds", "ZdoObserve");
-            string itemLocks = Constant(
-                core, "Runic.Foundation.Core.RunicCapabilityIds", "InventoryItemLocks");
-            string durableInventory = Constant(
-                core, "Runic.Foundation.Core.RunicCapabilityIds", "InventoryDurableOperations");
-            string safetyConfirmation = Constant(
-                core, "Runic.Foundation.Core.RunicCapabilityIds", "SafetyConfirmation");
-
-            Equal(securityAttest,
-                Constant(sentinel, "RunicSentinel.Contracts.SentinelCapabilityIds", "Attestation"));
-            Equal(securityEvidence,
-                Constant(sentinel, "RunicSentinel.Contracts.SentinelCapabilityIds", "Evidence"));
-            Equal(securityAdmission,
-                Constant(sentinel, "RunicSentinel.Contracts.SentinelCapabilityIds", "Admission"));
-            Equal(itemLocks,
-                Constant(inventory, "RunicInventory.Capabilities.InventoryCapabilityIds", "ItemLocks"));
-            Equal(itemLocks,
-                Constant(safety, "RunicSafety.Api.SafetyCapabilityIds", "InventoryProtection"));
-            Equal(safetyConfirmation,
-                Constant(safety, "RunicSafety.Api.SafetyCapabilityIds", "Confirmation"));
-
-            True(HasStringLiteral(world, zdoOwnership),
-                "World Engine does not publish Core's canonical ownership capability.");
-            True(HasStringLiteral(world, zdoObserve),
-                "World Engine does not publish Core's canonical observation capability.");
-            True(!HasStringLiteral(world, "world.zdo.ownership-registry"),
-                "World Engine still embeds its superseded ownership capability.");
-            True(!HasStringLiteral(sentinel, "security.attestation"),
-                "Sentinel still embeds its superseded attestation capability.");
-
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.IItemProtectionQuery");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.IInventoryDurableOperationService");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableOperationIntent");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableOperationSnapshot");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableCustodySnapshot");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableCustodyEvidenceSource");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableCustodyResolution");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableCustodyResolutionOutcome");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableServerCustodyBinding");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableOutstandingOutcome");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableOutstandingObservation");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableOutstandingOperation");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableOutstandingSnapshot");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableFreshSessionProof");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableProfileSource");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.InventoryDurableOperationPhase");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.IHighImpactConfirmation");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.ConfirmationContext");
-            RequirePublicCoreContract(core, "Runic.Foundation.Core.ModuleRegistration");
-            True(ReferencesType(inventory, "Runic.Foundation.Core.IItemProtectionQuery"),
-                "Inventory does not implement Core's canonical item-lock query.");
-            True(ReferencesType(inventory, "Runic.Foundation.Core.IInventoryDurableOperationService"),
-                "Inventory does not implement Core's canonical durable-operation service.");
-            True(HasStringLiteral(inventory, durableInventory),
-                "Inventory does not publish Core's canonical durable-operation capability ID.");
-            foreach (string duplicate in new[]
-                     {
-                         "InventoryDurableMutationKind",
-                         "InventoryDurableOperationPhase",
-                         "InventoryProfileReadbackState",
-                         "InventoryDurableProfileSource",
-                         "InventoryDurableCustodyKind",
-                         "InventoryDurableCustodyEvidenceSource",
-                         "InventoryDurableCustodySnapshot",
-                         "InventoryDurableCustodyResolution",
-                         "InventoryDurableCustodyResolutionOutcome",
-                         "InventoryDurableServerCustodyBinding",
-                         "InventoryDurableOutstandingOutcome",
-                         "InventoryDurableOutstandingObservation",
-                         "InventoryDurableOutstandingOperation",
-                         "InventoryDurableOutstandingSnapshot",
-                         "InventoryDurableFreshSessionProof",
-                         "InventoryDurableOperationIntent",
-                         "InventoryDurableOperationSnapshot",
-                         "IInventoryDurableOperationService"
-                     })
-                True(!inventory.MainModule.Types.Any(type =>
-                        string.Equals(type.Name, duplicate, StringComparison.Ordinal)),
-                    "Inventory duplicates Core durable contract type " + duplicate + ".");
-            string inventoryCapabilitiesSource = File.ReadAllText(PathOf(
-                "RunicInventory", "Capabilities", "InventoryCapabilityIds.cs"));
-            True(!inventoryCapabilitiesSource.Contains(
-                    "\"inventory.durable-operations\"", StringComparison.Ordinal),
-                "Inventory duplicates Core's durable-operation capability literal.");
-            True(ReferencesType(safety, "Runic.Foundation.Core.IItemProtectionQuery"),
-                "Safety does not consume Core's canonical item-lock query.");
-            True(ReferencesType(storage, "Runic.Foundation.Core.IItemProtectionQuery"),
-                "Storage does not consume Core's canonical item-lock query.");
-            True(ReferencesType(interaction, "Runic.Foundation.Core.IItemProtectionQuery"),
-                "Interaction does not consume Core's canonical item-lock query.");
-            True(ReferencesType(safety, "Runic.Foundation.Core.IHighImpactConfirmation"),
-                "Safety does not provide Core's canonical confirmation contract.");
-            True(ReferencesType(portals, "Runic.Foundation.Core.IHighImpactConfirmation"),
-                "Portals does not consume Core's canonical confirmation contract.");
-            foreach (AssemblyDefinition consumer in new[]
-                     { inventory, storage, interaction, safety, portals, sentinel, world })
+            string[] retiredAssemblies =
             {
-                True(!AllTypes(consumer.MainModule.Types).Any(type =>
-                        string.Equals(type.FullName, "Runic.Foundation.Core.IItemProtectionQuery", StringComparison.Ordinal) ||
-                        string.Equals(type.FullName, "Runic.Foundation.Core.IHighImpactConfirmation", StringComparison.Ordinal) ||
-                        string.Equals(type.FullName, "Runic.Foundation.Core.ConfirmationContext", StringComparison.Ordinal)),
-                    consumer.Name.Name + " duplicates a Core-owned shared contract.");
+                "RunicCore", "RunicPermissions", "RunicPersistence", "RunicTransactions", "RunicIntegrity"
+            };
+            string[] retiredPackages = retiredAssemblies.Select(value => "Chazman-" + value + "-").ToArray();
+            foreach (ModuleSpec module in Modules)
+            {
+                using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(AssemblyPath(module));
+                string[] references = assembly.MainModule.AssemblyReferences.Select(value => value.Name)
+                    .Where(value => retiredAssemblies.Contains(value, StringComparer.OrdinalIgnoreCase))
+                    .ToArray();
+                True(references.Length == 0,
+                    module.Assembly + " still references retired assembly package(s): " +
+                    string.Join(",", references));
+                using JsonDocument manifest = JsonDocument.Parse(
+                    File.ReadAllText(PathOf(module.Directory, "manifest.json")));
+                string[] packaged = manifest.RootElement.GetProperty("dependencies")
+                    .EnumerateArray().Select(value => value.GetString() ?? string.Empty)
+                    .Where(value => retiredPackages.Any(prefix =>
+                        value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+                    .ToArray();
+                True(packaged.Length == 0,
+                    module.Assembly + " still packages retired dependency entry/entries: " +
+                    string.Join(",", packaged));
             }
         }
 
-        private static void DedicatedRpcContractsAreCanonical()
+        private static void StandaloneIntegrationContractsAlign()
         {
-            using AssemblyDefinition core = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicCore", "bin", "Release", "netstandard2.1", "RunicCore.dll"));
-            using AssemblyDefinition persistence = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicPersistence", "bin", "Release", "netstandard2.1", "RunicPersistence.dll"));
-            using AssemblyDefinition transactions = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicTransactions", "bin", "Release", "netstandard2.1", "RunicTransactions.dll"));
-            using AssemblyDefinition production = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicProduction", "bin", "Release", "netstandard2.1", "RunicProduction.dll"));
-            using AssemblyDefinition portals = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicPortals", "bin", "Release", "netstandard2.1", "RunicPortals.dll"));
+            using AssemblyDefinition inventory = AssemblyDefinition.ReadAssembly(
+                AssemblyPath(Modules.Single(value => value.Assembly == "RunicInventory")));
             using AssemblyDefinition safety = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicSafety", "bin", "Release", "netstandard2.1", "RunicSafety.dll"));
+                AssemblyPath(Modules.Single(value => value.Assembly == "RunicSafety")));
+            using AssemblyDefinition storage = AssemblyDefinition.ReadAssembly(
+                AssemblyPath(Modules.Single(value => value.Assembly == "RunicStorage")));
+            using AssemblyDefinition interaction = AssemblyDefinition.ReadAssembly(
+                AssemblyPath(Modules.Single(value => value.Assembly == "RunicInteraction")));
             using AssemblyDefinition sentinel = AssemblyDefinition.ReadAssembly(
-                PathOf("RunicSentinel", "bin", "Release", "netstandard2.1", "RunicSentinel.dll"));
+                AssemblyPath(Modules.Single(value => value.Assembly == "RunicSentinel")));
+            using AssemblyDefinition portals = AssemblyDefinition.ReadAssembly(
+                AssemblyPath(Modules.Single(value => value.Assembly == "RunicPortals")));
 
-            string networkRpc = Constant(
-                core, "Runic.Foundation.Core.RunicCapabilityIds", "NetworkRpc");
-            Equal("network.rpc", networkRpc);
-            True(HasStringLiteral(persistence, networkRpc),
-                "Persistence does not publish Core's canonical direct-RPC capability.");
+            Equal("inventory.topology", Constant(
+                inventory, "RunicInventory.Capabilities.InventoryCapabilityIds", "Topology"));
+            Equal("inventory.item-locks", Constant(
+                inventory, "RunicInventory.Capabilities.InventoryCapabilityIds", "ItemLocks"));
+            RequirePublicStaticMethod(
+                inventory,
+                "RunicInventory.Api.InventoryIntegrationApi",
+                "TryGetProtection",
+                "System.Boolean",
+                "System.Object",
+                "System.Int32&");
 
-            string[] sharedContracts =
-            {
-                "Runic.Foundation.Persistence.IRunicRpcService",
-                "Runic.Foundation.Persistence.RpcEndpointDescriptor",
-                "Runic.Foundation.Persistence.RpcPeerSnapshot",
-                "Runic.Foundation.Persistence.RpcRequestContext",
-                "Runic.Foundation.Persistence.RpcPeerRequirement",
-                "Runic.Foundation.Persistence.RpcReplayDurability",
-                "Runic.Foundation.Persistence.IRpcPlayerBindingResolver"
-            };
-            foreach (string contract in sharedContracts)
-                RequirePublicCoreContract(persistence, contract);
-
-            TypeDefinition service = AllTypes(persistence.MainModule.Types).Single(type =>
-                string.Equals(type.FullName,
-                    "Runic.Foundation.Persistence.IRunicRpcService", StringComparison.Ordinal));
-            foreach (string method in new[]
+            foreach (string contract in new[]
                      {
-                         "RegisterEndpoint", "RegisterPeerRequirement",
-                         "RegisterPlayerBindingResolver", "RegisterHandshakeClaimProvider",
-                         "RegisterHandshakeClaimEvaluator", "SendToServer", "SendToPeer",
-                         "TryGetPeer", "TryResolveActor", "GetPeers", "TryDisconnectPeer"
+                         "RunicSafety.Api.IProtectedItemPolicy",
+                         "RunicSafety.Api.IMigrationBackupService",
+                         "RunicSafety.Api.IContextualConfirmationService",
+                         "RunicSafety.Api.ISafetyStatusService"
                      })
-                True(service.Methods.Any(value => string.Equals(value.Name, method, StringComparison.Ordinal)),
-                    "The direct-RPC contract is missing " + method + ".");
+                RequirePublicContract(safety, contract);
+            foreach (string getter in new[]
+                     { "get_Protection", "get_Backups", "get_Confirmations", "get_Status" })
+                RequirePublicStaticMethod(
+                    safety,
+                    "RunicSafety.Api.SafetyIntegrationApi",
+                    getter,
+                    null);
 
-            TypeDefinition durability = AllTypes(persistence.MainModule.Types).Single(type =>
-                string.Equals(type.FullName,
-                    "Runic.Foundation.Persistence.RpcReplayDurability", StringComparison.Ordinal));
-            FieldDefinition handlerDurable = durability.Fields.Single(field =>
-                string.Equals(field.Name, "HandlerDurable", StringComparison.Ordinal));
-            Equal(1, Convert.ToInt32(handlerDurable.Constant));
-
-            RequirePublicCoreContract(
-                transactions,
-                "Runic.Foundation.Transactions.IDurableCompositeTokenDispositionSource");
-            RequirePublicCoreContract(
-                transactions,
-                "Runic.Foundation.Transactions.DurableCompositeTokenDispositionState");
-            RequirePublicCoreContract(
-                transactions,
-                "Runic.Foundation.Transactions.DurableCompositeTokenDispositionResult");
-            TypeDefinition disposition = AllTypes(transactions.MainModule.Types).Single(type =>
-                string.Equals(type.FullName,
-                    "Runic.Foundation.Transactions.IDurableCompositeTokenDispositionSource",
-                    StringComparison.Ordinal));
-            True(disposition.Methods.Any(method =>
-                    string.Equals(method.Name, "QueryTokenDisposition", StringComparison.Ordinal)),
-                "Transactions does not expose the authenticated retired-marker disposition query.");
-            TypeDefinition compositeFactory = AllTypes(transactions.MainModule.Types).Single(type =>
-                string.Equals(type.FullName,
-                    "Runic.Foundation.Transactions.IDurableCompositeOperationCoordinatorFactory",
-                    StringComparison.Ordinal));
-            True(compositeFactory.Interfaces.Any(contract => string.Equals(
-                    contract.InterfaceType.FullName,
-                    "Runic.Foundation.Transactions.IDurableCompositeTokenDispositionSource",
-                    StringComparison.Ordinal)),
-                "The shared composite factory does not own the authoritative token disposition query.");
-
+            const string inventoryApi = "RunicInventory.Api.InventoryIntegrationApi";
             foreach ((AssemblyDefinition Assembly, string Name) consumer in new[]
+                     { (safety, "Safety"), (storage, "Storage"), (interaction, "Interaction") })
+            {
+                True(HasStringLiteral(consumer.Assembly, inventoryApi),
+                    consumer.Name + " does not resolve the exact standalone Inventory API type.");
+                True(HasStringLiteral(consumer.Assembly, "TryGetProtection"),
+                    consumer.Name + " does not resolve the exact standalone protection method.");
+                True(!consumer.Assembly.MainModule.AssemblyReferences.Any(reference =>
+                        string.Equals(reference.Name, "RunicInventory", StringComparison.Ordinal)),
+                    consumer.Name + " must keep Inventory integration optional.");
+            }
+
+            Equal("3.0", Constant(
+                sentinel, "RunicSentinel.Contracts.SentinelCapabilityIds", "ProtocolVersion"));
+            Equal("security.admission", Constant(
+                sentinel, "RunicSentinel.Contracts.SentinelCapabilityIds", "Admission"));
+            Equal("security.attest", Constant(
+                sentinel, "RunicSentinel.Contracts.SentinelCapabilityIds", "Attestation"));
+            RequirePublicStaticMethod(
+                sentinel,
+                "RunicSentinel.Api.SentinelIntegrationApi",
+                "ReportRejectedServerRequest",
+                "System.Boolean",
+                "System.String",
+                "System.Int64",
+                "System.String",
+                "System.String",
+                "System.String",
+                "System.Int32",
+                "System.String");
+            RequirePublicStaticMethod(
+                portals,
+                "RunicPortals.Api.GroupIntegrationApi",
+                "TryIsMember",
+                "System.Boolean",
+                "System.String",
+                "System.Int64",
+                "System.Boolean&");
+
+            foreach (ModuleSpec module in Modules)
+            {
+                using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(AssemblyPath(module));
+                if (module.Assembly != "RunicInventory")
+                    True(!AllTypes(assembly.MainModule.Types).Any(type =>
+                            type.FullName == inventoryApi),
+                        module.Assembly + " duplicates Inventory's integration API.");
+                if (module.Assembly != "RunicSafety")
+                    True(!AllTypes(assembly.MainModule.Types).Any(type =>
+                            type.FullName == "RunicSafety.Api.SafetyIntegrationApi"),
+                        module.Assembly + " duplicates Safety's integration API.");
+            }
+        }
+
+        private static void StandaloneRpcContractsAreBounded()
+        {
+            var routedRegistrars = new List<string>();
+            var directRegistrars = new List<string>();
+            foreach (ModuleSpec module in Modules)
+            {
+                using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(AssemblyPath(module));
+                if (ReferencesMethod(assembly, "ZRoutedRpc", "Register"))
+                    routedRegistrars.Add(module.Assembly);
+                if (ReferencesMethod(assembly, "ZRpc", "Register"))
+                    directRegistrars.Add(module.Assembly);
+            }
+            Equal(
+                "RunicDisplayStands,RunicPortals",
+                string.Join(",", routedRegistrars.OrderBy(value => value, StringComparer.Ordinal)));
+            Equal("RunicSentinel", string.Join(",", directRegistrars));
+
+            using AssemblyDefinition portals = AssemblyDefinition.ReadAssembly(
+                AssemblyPath(Modules.Single(value => value.Assembly == "RunicPortals")));
+            using AssemblyDefinition sentinel = AssemblyDefinition.ReadAssembly(
+                AssemblyPath(Modules.Single(value => value.Assembly == "RunicSentinel")));
+            using AssemblyDefinition stands = AssemblyDefinition.ReadAssembly(
+                AssemblyPath(Modules.Single(value => value.Assembly == "RunicDisplayStands")));
+            var rpcNames = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (string name in new[]
                      {
-                         (transactions, "Transactions"),
-                         (production, "Production"),
-                         (portals, "Portals")
+                         Constant(portals, "RunicPortals.Integration.PortalRuntime", "DirectoryRequestRpc"),
+                         Constant(portals, "RunicPortals.Integration.PortalRuntime", "DirectoryResponseRpc"),
+                         Constant(portals, "RunicPortals.Integration.PortalRuntime", "MapDirectoryRequestRpc"),
+                         Constant(portals, "RunicPortals.Integration.PortalRuntime", "MapDirectoryResponseRpc"),
+                         Constant(portals, "RunicPortals.Integration.PortalGroupRuntime", "RequestRpc"),
+                         Constant(portals, "RunicPortals.Integration.PortalGroupRuntime", "ResponseRpc"),
+                         Constant(sentinel, "RunicSentinel.Admission.AdmissionProtocolV2", "DirectRpcName"),
+                         Constant(sentinel, "RunicSentinel.Runtime.SentinelAdminControl", "RequestRpc"),
+                         Constant(sentinel, "RunicSentinel.Runtime.SentinelAdminControl", "ResponseRpc"),
+                         Constant(stands, "RunicDisplayStands.ConfigSync", "RpcName")
                      })
             {
-                True(ReferencesType(consumer.Assembly,
-                        "Runic.Foundation.Persistence.IRunicRpcService"),
-                    consumer.Name + " does not consume the canonical direct-RPC service.");
-                True(ReferencesType(consumer.Assembly,
-                        "Runic.Foundation.Persistence.RpcPeerSnapshot"),
-                    consumer.Name + " does not bind work to an exact peer session snapshot.");
-                True(ReferencesMethod(consumer.Assembly,
-                        "Runic.Foundation.Persistence.IRunicRpcService", "RegisterEndpoint"),
-                    consumer.Name + " does not register a typed direct-RPC endpoint.");
-                foreach (string contract in sharedContracts)
-                    True(!AllTypes(consumer.Assembly.MainModule.Types).Any(type =>
-                            string.Equals(type.FullName, contract, StringComparison.Ordinal)),
-                        consumer.Name + " duplicates Persistence-owned RPC contract " + contract + ".");
+                True(!string.IsNullOrWhiteSpace(name), "An RPC contract name is empty.");
+                True(rpcNames.Add(name), "Duplicate active RPC contract name: " + name);
             }
 
-            True(ReferencesMethod(transactions,
-                    "Runic.Foundation.Persistence.IRunicRpcService", "SendToPeer"),
-                "Transactions ownership return is not sent to an exact direct peer session.");
-            foreach ((AssemblyDefinition Assembly, string Name) durableConsumer in new[]
-                     { (production, "Production"), (portals, "Portals") })
-            {
-                True(ReferencesType(durableConsumer.Assembly,
-                        "Runic.Foundation.Persistence.RpcReplayDurability"),
-                    durableConsumer.Name + " does not classify persistent mutations separately from session replay.");
-                True(ReferencesType(durableConsumer.Assembly,
-                        "Runic.Foundation.Persistence.RpcActorAssurance"),
-                    durableConsumer.Name + " does not request an explicit server actor-assurance level.");
-                True(ReferencesMethod(durableConsumer.Assembly,
-                        "Runic.Foundation.Persistence.IRunicRpcService", "TryResolveActor"),
-                    durableConsumer.Name + " does not resolve its actor through the exact direct session.");
-            }
+            Equal(2048, IntConstant(
+                portals, "RunicPortals.Integration.PortalRuntime", "MaximumDirectoryEnvelopeBytes"));
+            Equal(512, IntConstant(
+                portals, "RunicPortals.Integration.PortalRuntime", "MaximumDirectoryEndpointsSent"));
+            Equal(32768, IntConstant(
+                portals, "RunicPortals.Integration.PortalGroupRuntime", "MaximumEnvelopeBytes"));
+            Equal(32, IntConstant(
+                portals, "RunicPortals.Integration.PortalGroupRuntime", "MaximumPending"));
+            Equal(512, IntConstant(
+                sentinel, "RunicSentinel.Admission.AdmissionProtocolV2", "MaximumPlugins"));
+            Equal(256 * 1024, IntConstant(
+                sentinel, "RunicSentinel.Admission.AdmissionProtocolV2", "MaximumFrameBytes"));
+            Equal(64, IntConstant(
+                sentinel, "RunicSentinel.Core.SentinelNetworkCompatibility", "MaximumTrackedConnections"));
+            Equal(180 * 1024, IntConstant(
+                sentinel, "RunicSentinel.Runtime.SentinelAdminControl", "MaximumEnvelopeBytes"));
+            True(ReferencesMethod(portals, "ZNet", "GetServerPeer") &&
+                 ReferencesMethod(portals, "ZNet", "GetPeer") &&
+                 ReferencesMethod(portals, "ZPackage", "Size"),
+                "Portals RPC transport no longer proves current peers and bounded envelopes.");
 
-            foreach ((AssemblyDefinition Assembly, string Name) admissionConsumer in new[]
-                     { (safety, "Safety"), (sentinel, "Sentinel") })
-            {
-                True(ReferencesType(admissionConsumer.Assembly,
-                        "Runic.Foundation.Persistence.IRunicRpcService"),
-                    admissionConsumer.Name + " does not consume the canonical direct-RPC service.");
-                True(ReferencesType(admissionConsumer.Assembly,
-                        "Runic.Foundation.Persistence.RpcPeerRequirement"),
-                    admissionConsumer.Name + " does not declare a typed pre-entry peer requirement.");
-                foreach (string method in new[]
-                         {
-                             "RegisterHandshakeClaimProvider",
-                             "RegisterHandshakeClaimEvaluator",
-                             "RegisterPeerRequirement"
-                         })
-                    True(ReferencesMethod(admissionConsumer.Assembly,
-                            "Runic.Foundation.Persistence.IRunicRpcService", method),
-                        admissionConsumer.Name + " does not use canonical admission method " + method + ".");
-                foreach (string contract in sharedContracts)
-                    True(!AllTypes(admissionConsumer.Assembly.MainModule.Types).Any(type =>
-                            string.Equals(type.FullName, contract, StringComparison.Ordinal)),
-                        admissionConsumer.Name + " duplicates Persistence-owned RPC contract " + contract + ".");
-            }
+            int standPayloadBytes = IntConstant(
+                stands, "RunicDisplayStands.ConfigSync", "MaximumPayloadBytes");
+            int standEntries = IntConstant(
+                stands, "RunicDisplayStands.ConfigSync", "MaximumEntries");
+            int standKeyBytes = IntConstant(
+                stands, "RunicDisplayStands.ConfigSync", "MaximumKeyBytes");
+            int standValueBytes = IntConstant(
+                stands, "RunicDisplayStands.ConfigSync", "MaximumValueBytes");
+            True(standPayloadBytes > 0 && standPayloadBytes <= 16 * 1024 &&
+                 standEntries > 0 && standEntries <= 64 &&
+                 standKeyBytes > 0 && standKeyBytes <= 256 &&
+                 standValueBytes > 0 && standValueBytes <= 8 * 1024,
+                "Display Stands config RPC limits are missing or unreasonably broad.");
+            True(ReferencesMethod(stands, "ZNet", "GetServerPeer") &&
+                 ReferencesMethod(stands, "System.Text.Encoding", "GetByteCount"),
+                "Display Stands config RPC is not exact-server-bound and UTF-8 bounded.");
         }
 
         private static void IconsAreExact()
@@ -882,36 +776,6 @@ namespace RunicSuite14.Tests
                 hashes.Add(Convert.ToHexString(SHA256.HashData(bytes)));
             }
             Equal(Modules.Length, hashes.Count);
-        }
-
-        private static void FoundationIconsAreSelected()
-        {
-            var expected = new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["RunicCore"] = "63C37D84B730A81572CF19E362260EEFB8853B4EAB3A3B545F3B6D71ABAD0E4E",
-                ["RunicPermissions"] = "EACDD55557A662CB4A3F98B74A0CA0125F10CAB88C1336F79FD0A4B8BD73B3CC",
-                ["RunicTransactions"] = "391E0570BC071FA15DE7B0867296F8710D76CFA44BA3FACA441B11F0E2A7768C",
-                ["RunicPersistence"] = "AE0040E7584DC2340CA94C5370B0112E2013F83100A666003B683A111CAC32D9"
-            };
-            const string retiredSharedIcon =
-                "DB67FE011B15F35C088913BD02A2B07C5AE011C5F391E540059F551FE6FA94F9";
-            var actual = new HashSet<string>(StringComparer.Ordinal);
-            foreach (KeyValuePair<string, string> icon in expected)
-            {
-                string path = PathOf(icon.Key, "icon.png");
-                byte[] bytes = File.ReadAllBytes(path);
-                True(bytes.Length >= 24 && bytes[0] == 0x89 && bytes[1] == 0x50 &&
-                     bytes[2] == 0x4e && bytes[3] == 0x47,
-                    icon.Key + " icon is not PNG");
-                Equal(256, ReadBigEndianInt32(bytes, 16));
-                Equal(256, ReadBigEndianInt32(bytes, 20));
-                string hash = Convert.ToHexString(SHA256.HashData(bytes));
-                Equal(icon.Value, hash);
-                True(!string.Equals(hash, retiredSharedIcon, StringComparison.Ordinal),
-                    icon.Key + " still uses the retired shared Foundation icon");
-                actual.Add(hash);
-            }
-            Equal(expected.Count, actual.Count);
         }
 
         private static void PersistentWritesHaveOwners()
@@ -1054,77 +918,12 @@ namespace RunicSuite14.Tests
                 }
                 if (target == "Container::CheckForChanges")
                 {
-                    PatchRecord transactions = overlap.Single(value =>
-                        value.Module == "RunicTransactions");
-                    bool orderedGuards = transactions.HasSkippingPrefix &&
-                                         transactions.Priority == 800 &&
-                                         !transactions.HasPostfix && !transactions.HasTranspiler;
-                    bool observationalPostfixes = overlap.Where(value =>
-                            value.Module != "RunicTransactions")
-                        .All(value => value.HasPostfix && !value.HasPrefix && !value.HasTranspiler);
-                    if (!orderedGuards || !observationalPostfixes)
+                    bool observationalPostfixes = overlap.All(value =>
+                        value.HasPostfix && !value.HasPrefix && !value.HasTranspiler);
+                    if (!observationalPostfixes)
                     {
                         failures.Add(overlap.Key +
-                                     " no longer has the Transactions guard plus observational gameplay postfixes");
-                        continue;
-                    }
-                }
-                if (target == "WearNTear::Destroy")
-                {
-                    PatchRecord transactions = overlap.Single(value =>
-                        value.Module == "RunicTransactions" && value.HasPrefix);
-                    PatchRecord portals = overlap.Single(value =>
-                        value.Module == "RunicPortals" && value.HasPrefix);
-                    PatchRecord production = overlap.Single(value =>
-                        value.Module == "RunicProduction" && value.HasPrefix);
-                    bool exactOrder = transactions.HasSkippingPrefix && transactions.Priority == 800 &&
-                                      portals.HasSkippingPrefix && portals.Priority == 800 &&
-                                      portals.After.Contains("chazman.RunicTransactions", StringComparer.Ordinal) &&
-                                      portals.Before.Contains("chazman.RunicProduction", StringComparer.Ordinal) &&
-                                      production.HasSkippingPrefix && production.Priority == 0 &&
-                                      production.After.Contains("chazman.RunicTransactions", StringComparer.Ordinal) &&
-                                      !transactions.HasTranspiler && !portals.HasTranspiler &&
-                                      !production.HasTranspiler;
-                    if (!exactOrder)
-                    {
-                        failures.Add(overlap.Key +
-                                     " must run Transactions first, Portals second, and Production last");
-                        continue;
-                    }
-                }
-                if (target == "WearNTear::Damage" || target == "WearNTear::RPC_Damage")
-                {
-                    PatchRecord safety = overlap.Single(value =>
-                        value.Module == "RunicSafety" && value.HasPrefix);
-                    PatchRecord portals = overlap.Single(value =>
-                        value.Module == "RunicPortals" && value.HasPrefix);
-                    bool exactOrder = safety.HasSkippingPrefix && safety.Priority == 800 &&
-                                      portals.HasSkippingPrefix && portals.Priority == 800 &&
-                                      portals.After.Contains("chazman.RunicSafety", StringComparer.Ordinal) &&
-                                      !safety.HasPostfix && !portals.HasPostfix &&
-                                      !safety.HasTranspiler && !portals.HasTranspiler;
-                    if (!exactOrder)
-                    {
-                        failures.Add(overlap.Key +
-                                     " must run the Safety custody veto before the Portals picker veto");
-                        continue;
-                    }
-                }
-                if (target == "Container::RPC_RequestOpen" ||
-                    target == "Container::RPC_RequestStack" ||
-                    target == "Container::RPC_RequestTakeAll")
-                {
-                    PatchRecord safety = overlap.Single(value => value.Module == "RunicSafety");
-                    PatchRecord transactions = overlap.Single(value => value.Module == "RunicTransactions");
-                    bool exactOrder = safety.HasSkippingPrefix && safety.Priority == 800 &&
-                                      safety.Before.Contains("chazman.RunicTransactions", StringComparer.Ordinal) &&
-                                      transactions.HasSkippingPrefix &&
-                                      !safety.HasPostfix && !safety.HasTranspiler &&
-                                      !transactions.HasPostfix && !transactions.HasTranspiler;
-                    if (!exactOrder)
-                    {
-                        failures.Add(overlap.Key +
-                                     " must run the Safety custody denial before the Transactions claim guard");
+                                     " must remain postfix-only standalone index observation");
                         continue;
                     }
                 }
@@ -1140,14 +939,41 @@ namespace RunicSuite14.Tests
                         continue;
                     }
                 }
-                if (target == "Piece::SetCreator")
+                if (target == "Player::UpdatePlacement")
                 {
-                    bool observational = overlap.All(value => value.HasPostfix && !value.HasPrefix &&
-                        !value.HasTranspiler);
-                    if (!observational)
+                    PatchRecord sentinel = overlap.Single(value =>
+                        value.Module == "RunicSentinel" && value.HasPrefix);
+                    PatchRecord camera = overlap.Single(value =>
+                        value.Module == "RunicBuildCamera" && value.HasPrefix);
+                    PatchRecord precision = overlap.Single(value =>
+                        value.Module == "RunicPrecisionBuildTool" && value.HasPrefix);
+                    bool exactOrder = sentinel.HasSkippingPrefix && sentinel.Priority == 800 &&
+                                      sentinel.Before.Contains("chazman.RunicBuildCamera", StringComparer.Ordinal) &&
+                                      camera.Priority == 800 &&
+                                      camera.Before.Contains("chazman.RunicPrecisionBuildTool", StringComparer.Ordinal) &&
+                                      precision.Priority == 400 &&
+                                      precision.Before.Contains("chazman.RunicCrafting", StringComparer.Ordinal);
+                    if (!exactOrder)
                     {
                         failures.Add(overlap.Key +
-                                     " must remain two non-skipping post-write placement observers");
+                                     " must order Sentinel, Build Camera, Precision, then Crafting");
+                        continue;
+                    }
+                }
+                if (target == "Switch::Interact")
+                {
+                    PatchRecord stands = overlap.Single(value =>
+                        value.Module == "RunicDisplayStands" && value.HasPrefix);
+                    PatchRecord interaction = overlap.Single(value =>
+                        value.Module == "RunicInteraction" && value.HasPrefix);
+                    bool exactOrder = stands.HasSkippingPrefix &&
+                                      stands.Before.Contains("chazman.RunicInteraction", StringComparer.Ordinal) &&
+                                      !interaction.HasSkippingPrefix &&
+                                      !stands.HasTranspiler && !interaction.HasTranspiler;
+                    if (!exactOrder)
+                    {
+                        failures.Add(overlap.Key +
+                                     " must let Display Stands decide its managed switch before Interaction");
                         continue;
                     }
                 }
@@ -1155,20 +981,6 @@ namespace RunicSuite14.Tests
                                   string.Join(", ", overlap.Select(value =>
                                       value.Module + ":" + value.Owner)) + "]");
             }
-            PatchRecord[] portalEnvironmentalGuard = patches.Where(value =>
-                    value.Target == "WearNTear::ApplyDamage")
-                .ToArray();
-            if (portalEnvironmentalGuard.Length != 1 ||
-                portalEnvironmentalGuard[0].Module != "RunicPortals" ||
-                !portalEnvironmentalGuard[0].HasSkippingPrefix ||
-                portalEnvironmentalGuard[0].Priority != 800 ||
-                !portalEnvironmentalGuard[0].After.Contains(
-                    "chazman.RunicSafety", StringComparer.Ordinal) ||
-                portalEnvironmentalGuard[0].HasPostfix ||
-                portalEnvironmentalGuard[0].HasTranspiler)
-                failures.Add(
-                    "WearNTear::ApplyDamage must remain one first-priority Portals-only " +
-                    "environmental picker veto ordered after any Safety custody veto");
             var actualTargets = new HashSet<string>(
                 targets.Select(value => value.First().Target), StringComparer.Ordinal);
             foreach (string stale in ApprovedOverlaps.Keys.Where(value => !actualTargets.Contains(value)))
@@ -1310,11 +1122,15 @@ namespace RunicSuite14.Tests
                     RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.CultureInvariant);
                 bool authorityHeading = Regex.IsMatch(
                     readme,
-                    @"^##[^\r\n]*(?:authority|multiplayer|security boundary|safety and honest boundaries)",
+                    @"^##[^\r\n]*(?:authority|multiplayer|ownership|compatibility|boundary)",
                     RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.CultureInvariant);
+                bool authorityStatement = Regex.IsMatch(
+                    readme,
+                    @"\b(?:authority|multiplayer|server|client|host|owner|single-player|dedicated)\b",
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
                 True(boundedHeading,
                     module.Assembly + " README has no explicit bounded-work/performance heading.");
-                True(authorityHeading,
+                True(authorityHeading && authorityStatement,
                     module.Assembly + " README has no explicit authority/multiplayer heading.");
             }
         }
@@ -1921,11 +1737,45 @@ namespace RunicSuite14.Tests
             assembly.MainModule.GetMemberReferences().OfType<MethodReference>().Any(reference =>
                 string.Equals(reference.DeclaringType.FullName, declaringType, StringComparison.Ordinal) &&
                 string.Equals(reference.Name, methodName, StringComparison.Ordinal));
-        private static void RequirePublicCoreContract(AssemblyDefinition core, string typeName)
+        private static TypeDefinition RequirePublicContract(AssemblyDefinition assembly, string typeName)
         {
-            TypeDefinition type = AllTypes(core.MainModule.Types).SingleOrDefault(candidate =>
+            TypeDefinition type = AllTypes(assembly.MainModule.Types).SingleOrDefault(candidate =>
                 string.Equals(candidate.FullName, typeName, StringComparison.Ordinal));
-            True(type != null && type.IsPublic, "Shared contract is missing or non-public: " + typeName);
+            True(type != null && type.IsPublic,
+                assembly.Name.Name + " public contract is missing or non-public: " + typeName);
+            return type;
+        }
+        private static MethodDefinition RequirePublicStaticMethod(
+            AssemblyDefinition assembly,
+            string typeName,
+            string methodName,
+            string returnType,
+            params string[] parameterTypes)
+        {
+            TypeDefinition type = RequirePublicContract(assembly, typeName);
+            MethodDefinition[] methods = type.Methods.Where(method =>
+                    string.Equals(method.Name, methodName, StringComparison.Ordinal) &&
+                    method.IsPublic && method.IsStatic &&
+                    (returnType == null || string.Equals(
+                        NormalizeTypeName(method.ReturnType.FullName),
+                        NormalizeTypeName(returnType),
+                        StringComparison.Ordinal)) &&
+                    method.Parameters.Select(parameter => NormalizeTypeName(parameter.ParameterType.FullName))
+                        .SequenceEqual(parameterTypes.Select(NormalizeTypeName), StringComparer.Ordinal))
+                .ToArray();
+            True(methods.Length == 1,
+                assembly.Name.Name + " exact public API method resolved " + methods.Length +
+                " candidates: " + typeName + "::" + methodName + "(" +
+                string.Join(",", parameterTypes) + ")");
+            return methods[0];
+        }
+        private static int IntConstant(AssemblyDefinition assembly, string typeName, string fieldName)
+        {
+            TypeDefinition type = AllTypes(assembly.MainModule.Types).Single(value =>
+                string.Equals(value.FullName, typeName, StringComparison.Ordinal));
+            FieldDefinition field = type.Fields.Single(value =>
+                string.Equals(value.Name, fieldName, StringComparison.Ordinal) && value.HasConstant);
+            return Convert.ToInt32(field.Constant);
         }
         private static string AssemblyAttribute(AssemblyDefinition assembly, string attributeType)
         {
@@ -1978,10 +1828,24 @@ namespace RunicSuite14.Tests
 
         private sealed class ModuleSpec
         {
-            internal ModuleSpec(string display, string directory, string assembly, string guid, string iconPath)
-            { Display = display; Directory = directory; Assembly = assembly; Guid = guid; IconPath = iconPath; }
+            internal ModuleSpec(
+                string display,
+                string directory,
+                string assembly,
+                string guid,
+                string iconPath,
+                bool requiresConfigExample = true)
+            {
+                Display = display;
+                Directory = directory;
+                Assembly = assembly;
+                Guid = guid;
+                IconPath = iconPath;
+                RequiresConfigExample = requiresConfigExample;
+            }
             internal string Display { get; } internal string Directory { get; } internal string Assembly { get; }
             internal string Guid { get; } internal string IconPath { get; }
+            internal bool RequiresConfigExample { get; }
         }
 
         private sealed class DynamicTargetSpec
@@ -2002,19 +1866,6 @@ namespace RunicSuite14.Tests
             internal string TargetAssembly { get; }
             internal string TargetMethod { get; }
             internal IReadOnlyList<string> ArgumentTypes { get; }
-        }
-        private sealed class FoundationSpec
-        {
-            internal FoundationSpec(string directory, string packagePrefix)
-            {
-                Directory = directory;
-                PackagePrefix = packagePrefix;
-                CurrentVersion = string.Empty;
-            }
-
-            internal string Directory { get; }
-            internal string PackagePrefix { get; }
-            internal string CurrentVersion { get; set; }
         }
         private sealed class PatchRecord
         {

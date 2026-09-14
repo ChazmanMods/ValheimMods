@@ -9,10 +9,16 @@ namespace RunicInventory.Integration
 {
     internal static class ValheimContracts
     {
-        internal const string AuditedGameVersion = "0.221.12";
+        internal const string AuditedGameVersion = "1.0.12";
+        internal static bool IsSupportedVersion(string version) =>
+            string.Equals(version, AuditedGameVersion, StringComparison.Ordinal) ||
+            string.Equals(version, "1.0.7", StringComparison.Ordinal);
         private const BindingFlags InstanceAll = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
-        internal delegate void InventoryChangedDelegate(Inventory instance);
+        internal delegate void InventoryChangedDelegate(
+            Inventory instance,
+            bool success,
+            bool cheatedStateChanged);
         internal delegate Vector2i GridButtonPositionDelegate(InventoryGrid instance, GameObject button);
         internal delegate bool PlayerTakeInputDelegate(Player instance);
 
@@ -22,21 +28,34 @@ namespace RunicInventory.Integration
         private static FieldInfo _gridSelected;
         private static MethodInfo _hoveredElement;
         private static MethodInfo _getElement;
-        private static FieldInfo _elementGameObject;
         private static FieldInfo _craftUpgradeItem;
         private static bool _ready;
+
+        internal static void ValidateGameVersion(Type versionType)
+        {
+            // GetVersionString is a display label and can include an OS prefix (e.g. l-).
+            // CurrentVersion identifies the game build without weakening the audited-version gate.
+            PropertyInfo property = versionType?.GetProperty(
+                "CurrentVersion", BindingFlags.Public | BindingFlags.Static);
+            if (property == null || property.GetGetMethod() == null ||
+                property.GetIndexParameters().Length != 0)
+                throw new MissingMemberException("Version.CurrentVersion");
+            string installed = property.GetValue(null, null)?.ToString() ?? string.Empty;
+            if (!IsSupportedVersion(installed))
+                throw new MissingMethodException(
+                    "Runic Inventory " + Plugin.Version + " is audited for Valheim " +
+                    "1.0.7 or " + AuditedGameVersion + "; installed " + (installed.Length == 0 ? "unknown" : installed) + ".");
+        }
 
         internal static bool Initialize(out string problem)
         {
             try
             {
-                Type versionType = typeof(Player).Assembly.GetType("Version", true);
-                MethodInfo version = Exact(versionType, "GetVersionString", BindingFlags.Public | BindingFlags.Static, typeof(bool));
-                string installed = (string)version.Invoke(null, new object[] { false });
-                if (!string.Equals(installed, AuditedGameVersion, StringComparison.Ordinal))
-                    throw new MissingMethodException("Runic Inventory 1.0.0 is audited for Valheim " + AuditedGameVersion + "; installed " + installed + ".");
+                ValidateGameVersion(typeof(Player).Assembly.GetType("Version", true));
 
-                _changed = AccessTools.MethodDelegate<InventoryChangedDelegate>(Exact(typeof(Inventory), "Changed", InstanceAll));
+                _changed = AccessTools.MethodDelegate<InventoryChangedDelegate>(Exact(
+                    typeof(Inventory), "Changed", InstanceAll,
+                    typeof(bool), typeof(bool)));
                 _buttonPosition = AccessTools.MethodDelegate<GridButtonPositionDelegate>(
                     Exact(typeof(InventoryGrid), "GetButtonPos", InstanceAll, typeof(GameObject)));
                 _takeInput = AccessTools.MethodDelegate<PlayerTakeInputDelegate>(Exact(typeof(Player), "TakeInput", InstanceAll));
@@ -45,11 +64,10 @@ namespace RunicInventory.Integration
                 _getElement = Exact(
                     typeof(InventoryGrid), "GetElement", InstanceAll,
                     typeof(int), typeof(int), typeof(int));
-                Type elementType = typeof(InventoryGrid).GetNestedType("Element", BindingFlags.NonPublic);
-                if (elementType == null || _hoveredElement.ReturnType != elementType ||
+                Type elementType = typeof(InventoryElement);
+                if (_hoveredElement.ReturnType != elementType ||
                     _getElement.ReturnType != elementType)
-                    throw new MissingMemberException("InventoryGrid.Element/GetHoveredElement");
-                _elementGameObject = ExactField(elementType, "m_go", typeof(GameObject));
+                    throw new MissingMemberException("InventoryElement/GetHoveredElement");
                 _craftUpgradeItem = ExactField(typeof(InventoryGui), "m_craftUpgradeItem", typeof(ItemDrop.ItemData));
 
                 Exact(typeof(Inventory), nameof(Inventory.GetWidth), InstanceAll);
@@ -62,10 +80,17 @@ namespace RunicInventory.Integration
                     typeof(string), typeof(int), typeof(float));
                 Exact(typeof(Inventory), nameof(Inventory.CanAddItem), InstanceAll,
                     typeof(ItemDrop.ItemData), typeof(int));
+                Exact(typeof(Inventory), nameof(Inventory.SetHeight), InstanceAll, typeof(int));
+                Exact(typeof(Player), nameof(Player.SetInventorySize), InstanceAll, typeof(int));
+                Exact(typeof(InventoryGui), nameof(InventoryGui.SetInventorySize), InstanceAll, typeof(int));
+                Exact(typeof(Inventory), "AddItem", InstanceAll,
+                    typeof(ItemDrop.ItemData), typeof(int), typeof(int), typeof(int), typeof(bool));
+                Exact(typeof(Inventory), nameof(Inventory.AddItem), InstanceAll,
+                    typeof(ItemDrop.ItemData), typeof(Vector2i));
                 Exact(typeof(InventoryGrid), nameof(InventoryGrid.DropItem), InstanceAll,
                     typeof(Inventory), typeof(ItemDrop.ItemData), typeof(int), typeof(Vector2i));
                 Exact(typeof(InventoryGrid), "OnLeftClick", InstanceAll, typeof(UIInputHandler));
-                Exact(typeof(InventoryGrid), "OnRightClick", InstanceAll, typeof(UIInputHandler));
+                Exact(typeof(InventoryGrid), "OnRightDown", InstanceAll, typeof(UIInputHandler));
                 Exact(typeof(InventoryGui), "OnSelectedItem", InstanceAll,
                     typeof(InventoryGrid), typeof(ItemDrop.ItemData), typeof(Vector2i), typeof(InventoryGrid.Modifier));
                 Exact(typeof(Humanoid), nameof(Humanoid.DropItem), InstanceAll,
@@ -130,7 +155,7 @@ namespace RunicInventory.Integration
                     typeof(Switch), typeof(Humanoid), typeof(ItemDrop.ItemData));
                 Exact(typeof(Container), "RPC_StackResponse", InstanceAll,
                     typeof(long), typeof(bool));
-                Exact(typeof(Container), "RPC_TakeAllRespons", InstanceAll,
+                Exact(typeof(Container), "RPC_TakeAllResponse", InstanceAll,
                     typeof(long), typeof(bool));
                 Exact(typeof(Fireplace), nameof(Fireplace.Interact), InstanceAll,
                     typeof(Humanoid), typeof(bool), typeof(bool));
@@ -164,7 +189,7 @@ namespace RunicInventory.Integration
                 foreach (string field in new[]
                          {
                              "m_gridPos", "m_stack", "m_durability", "m_equipped", "m_quality", "m_variant",
-                             "m_crafterID", "m_crafterName", "m_customData", "m_worldLevel", "m_pickedUp",
+                             "m_crafterID", "m_crafterName", "m_customData", "m_worldLevel", "m_pickedUp", "m_cheated",
                              "m_shared", "m_dropPrefab"
                          })
                     if (typeof(ItemDrop.ItemData).GetField(field, InstanceAll) == null)
@@ -185,10 +210,19 @@ namespace RunicInventory.Integration
         internal static void NotifyChanged(Inventory inventory)
         {
             if (!_ready || inventory == null) throw new InvalidOperationException("Installed Inventory.Changed contract is unavailable.");
-            _changed(inventory);
+            _changed(inventory, false, false);
         }
 
         internal static bool PlayerMayTakeInput(Player player) => _ready && player && _takeInput(player);
+
+        internal static bool TryClickedSlot(InventoryGrid grid, UIInputHandler clicked, out Vector2i coordinate)
+        {
+            coordinate = new Vector2i(-1, -1);
+            if (!_ready || !grid || !clicked) return false;
+            // Use the exact cell delivered by the native mouse callback, not gamepad focus.
+            coordinate = _buttonPosition(grid, clicked.gameObject);
+            return coordinate.x >= 0 && coordinate.y >= 0;
+        }
 
         internal static bool TryFocusedSlot(InventoryGrid grid, out Vector2i coordinate)
         {
@@ -202,7 +236,7 @@ namespace RunicInventory.Integration
                     return coordinate.x >= 0 && coordinate.y >= 0;
                 }
                 object hovered = _hoveredElement.Invoke(grid, null);
-                GameObject hoveredObject = hovered == null ? null : _elementGameObject.GetValue(hovered) as GameObject;
+                GameObject hoveredObject = (hovered as Component)?.gameObject;
                 if (hoveredObject)
                 {
                     coordinate = _buttonPosition(grid, hoveredObject);
@@ -258,6 +292,7 @@ namespace RunicInventory.Integration
                 case ItemDrop.ItemData.ItemType.Shoulder: return InventoryItemCategory.Cape;
                 case ItemDrop.ItemData.ItemType.Utility: return InventoryItemCategory.Utility;
                 case ItemDrop.ItemData.ItemType.Tool: return InventoryItemCategory.Tool;
+                case ItemDrop.ItemData.ItemType.Ammo: return InventoryItemCategory.Ammunition;
                 default: return InventoryItemCategory.Other;
             }
         }
@@ -278,9 +313,7 @@ namespace RunicInventory.Integration
                 object element = _getElement.Invoke(
                     grid,
                     new object[] { column, row, inventory.GetWidth() });
-                GameObject elementObject = element == null
-                    ? null
-                    : _elementGameObject.GetValue(element) as GameObject;
+                GameObject elementObject = (element as Component)?.gameObject;
                 RectTransform rect = elementObject != null
                     ? elementObject.GetComponent<RectTransform>()
                     : null;
@@ -308,7 +341,7 @@ namespace RunicInventory.Integration
         {
             InventoryGui gui = InventoryGui.instance;
             if (gui == null) return false;
-            return Active(gui.m_splitPanel) ||
+            return gui.m_splitDialog != null && gui.m_splitDialog.IsActive ||
                    Active(gui.m_variantDialog) ||
                    Active(gui.m_skillsDialog) ||
                    Active(gui.m_textsDialog);

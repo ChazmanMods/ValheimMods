@@ -6,6 +6,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using QuietBuildRotation.Integration;
 using QuietBuildRotation.UI;
+using Splatform;
 using UnityEngine;
 
 namespace QuietBuildRotation
@@ -18,7 +19,7 @@ namespace QuietBuildRotation
     {
         public const string Guid = "chazman.RunicPrecisionBuildTool";
         public const string Name = "Runic Precision Build Tool";
-        public const string Version = "2.0.1";
+        public const string Version = "2.0.4";
 
         internal static ManualLogSource Log { get; private set; }
 
@@ -114,7 +115,7 @@ namespace QuietBuildRotation
                 return;
             }
             Logger.LogInfo(
-                $"{Name} v{Version} ready for audited Valheim {Diagnostics.GetValheimVersion()}. " +
+                $"{Name} v{Version} ready on Valheim {Diagnostics.GetValheimVersion()}. " +
                 "Runic wheel and movement actions use explicit configurable chords and fail closed.");
         }
 
@@ -348,7 +349,10 @@ namespace QuietBuildRotation
         }
     }
 
-    [HarmonyPatch(typeof(Piece), nameof(Piece.SetCreator), new[] { typeof(long) })]
+    [HarmonyPatch(
+        typeof(Piece),
+        nameof(Piece.SetCreator),
+        new[] { typeof(long), typeof(PlatformUserID) })]
     internal static class PieceSetCreatorPlacementObserverPatch
     {
         [HarmonyPostfix]

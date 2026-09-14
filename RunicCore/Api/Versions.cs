@@ -281,7 +281,7 @@ namespace Runic.Foundation.Core
 
     public static class RunicCoreMetadata
     {
-        public const string SemanticVersionText = "1.0.0";
+        public const string SemanticVersionText = "1.1.0";
         public const string ProtocolVersionText = "1.0";
         public static readonly SemanticVersion SemanticVersion = SemanticVersion.Parse(SemanticVersionText);
         public static readonly ProtocolVersion ProtocolVersion = ProtocolVersion.Parse(ProtocolVersionText);

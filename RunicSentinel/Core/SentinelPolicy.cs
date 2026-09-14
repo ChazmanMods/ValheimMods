@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using Runic.Foundation.Core;
 using RunicSentinel.Contracts;
 
 namespace RunicSentinel.Core
@@ -28,6 +27,49 @@ namespace RunicSentinel.Core
         internal string Sha256 { get; }
     }
 
+    internal enum SentinelModuleScope
+    {
+        Both = 0,
+        Client = 1,
+        Server = 2
+    }
+
+    internal sealed class SentinelModuleRule
+    {
+        internal SentinelModuleRule(
+            SentinelModuleScope scope,
+            string id,
+            string version,
+            int protocol,
+            IReadOnlyList<string> capabilities)
+        {
+            Scope = scope;
+            Id = id;
+            Version = version;
+            Protocol = protocol;
+            Capabilities = capabilities;
+        }
+
+        internal SentinelModuleScope Scope { get; }
+        internal string Id { get; }
+        internal string Version { get; }
+        internal int Protocol { get; }
+        internal IReadOnlyList<string> Capabilities { get; }
+    }
+
+    internal sealed class SentinelAdministratorRole
+    {
+        internal SentinelAdministratorRole(string authority, string subject)
+        {
+            Authority = authority;
+            Subject = subject;
+        }
+
+        internal string Authority { get; }
+        internal string Subject { get; }
+        internal string CanonicalKey => Authority + ":" + Uri.EscapeDataString(Subject);
+    }
+
     internal sealed class SentinelPolicy
     {
         internal const int MaximumBytes = 1024 * 1024;
@@ -36,29 +78,41 @@ namespace RunicSentinel.Core
         internal const int MaximumSignatureFileBytes = 1024;
 
         internal SentinelPolicy(
+            int formatVersion,
             string profile,
             long sequence,
             long issuedUnixSeconds,
             long expiresUnixSeconds,
             PluginClassification unknown,
             IReadOnlyList<SentinelPolicyRule> rules,
+            IReadOnlyList<SentinelModuleRule> modules,
+            IReadOnlyList<SentinelAdministratorRole> administrators,
+            IReadOnlyList<SentinelAdministratorRole> bannedUsers,
             string payloadDigest)
         {
+            FormatVersion = formatVersion;
             Profile = profile;
             Sequence = sequence;
             IssuedUnixSeconds = issuedUnixSeconds;
             ExpiresUnixSeconds = expiresUnixSeconds;
             Unknown = unknown;
             Rules = rules;
+            Modules = modules;
+            Administrators = administrators;
+            BannedUsers = bannedUsers;
             PayloadDigest = payloadDigest;
         }
 
+        internal int FormatVersion { get; }
         internal string Profile { get; }
         internal long Sequence { get; }
         internal long IssuedUnixSeconds { get; }
         internal long ExpiresUnixSeconds { get; }
         internal PluginClassification Unknown { get; }
         internal IReadOnlyList<SentinelPolicyRule> Rules { get; }
+        internal IReadOnlyList<SentinelModuleRule> Modules { get; }
+        internal IReadOnlyList<SentinelAdministratorRole> Administrators { get; }
+        internal IReadOnlyList<SentinelAdministratorRole> BannedUsers { get; }
         internal string PayloadDigest { get; }
 
         internal static bool TryDecodeSignatureFile(
@@ -122,7 +176,9 @@ namespace RunicSentinel.Core
                 !text.EndsWith("\n", StringComparison.Ordinal))
             { failure = "PolicyCanonical"; return false; }
             string[] lines = text.Split('\n');
-            if (lines.Length < 7 || lines[0] != "RUNIC-SENTINEL/2" ||
+            bool version2 = lines.Length >= 7 && lines[0] == "RUNIC-SENTINEL/2";
+            bool version3 = lines.Length >= 8 && lines[0] == "RUNIC-SENTINEL/3";
+            if ((!version2 && !version3) ||
                 lines[lines.Length - 1].Length != 0)
             { failure = "PolicyHeader"; return false; }
             if (!TryRequired(lines[1], "profile=", 64, out string profile) ||
@@ -133,36 +189,112 @@ namespace RunicSentinel.Core
                 !TryUnknown(lines[5], out PluginClassification unknown))
             { failure = "PolicyPreamble"; return false; }
 
+            int firstEntry = 6;
+            if (version3)
+            {
+                if (lines[6] != "unknown-capability=Forbidden")
+                { failure = "CapabilityDefault"; return false; }
+                firstEntry = 7;
+            }
+
             var rules = new List<SentinelPolicyRule>();
-            string previous = null;
-            for (int index = 6; index < lines.Length - 1; index++)
+            var modules = new List<SentinelModuleRule>();
+            var administrators = new List<SentinelAdministratorRole>();
+            var bannedUsers = new List<SentinelAdministratorRole>();
+            string previousRule = null;
+            string previousModule = null;
+            string previousRole = null;
+            string previousBan = null;
+            int phase = 0;
+            for (int index = firstEntry; index < lines.Length - 1; index++)
             {
                 string line = lines[index];
-                if (!line.StartsWith("rule=", StringComparison.Ordinal) ||
-                    rules.Count >= MaximumRules)
-                { failure = "PolicyRule"; return false; }
-                string[] fields = line.Substring(5).Split('|');
-                if (fields.Length != 4 ||
-                    !TryClassification(fields[0], out PluginClassification kind) ||
-                    !CanonicalPluginId(fields[1]) ||
-                    !CanonicalVersionOrWildcard(fields[2]) ||
-                    !CanonicalHashOrWildcard(fields[3]))
-                { failure = "PolicyRule"; return false; }
-                if (previous != null && string.CompareOrdinal(previous, fields[1]) >= 0)
-                { failure = "RuleOrder"; return false; }
-                previous = fields[1];
-                rules.Add(new SentinelPolicyRule(kind, fields[1], fields[2], fields[3]));
+                if (line.StartsWith("rule=", StringComparison.Ordinal) && phase <= 0)
+                {
+                    if (rules.Count >= MaximumRules)
+                    { failure = "PolicyRule"; return false; }
+                    string[] fields = line.Substring(5).Split('|');
+                    if (fields.Length != 4 ||
+                        !TryClassification(fields[0], out PluginClassification kind) ||
+                        !CanonicalPluginId(fields[1]) ||
+                        !CanonicalVersionOrWildcard(fields[2]) ||
+                        !CanonicalHashOrWildcard(fields[3]))
+                    { failure = "PolicyRule"; return false; }
+                    if (previousRule != null && string.CompareOrdinal(previousRule, fields[1]) >= 0)
+                    { failure = "RuleOrder"; return false; }
+                    previousRule = fields[1];
+                    rules.Add(new SentinelPolicyRule(kind, fields[1], fields[2], fields[3]));
+                    continue;
+                }
+                if (version3 && line.StartsWith("module=", StringComparison.Ordinal) && phase <= 1)
+                {
+                    phase = 1;
+                    if (modules.Count >= 128)
+                    { failure = "ModuleCap"; return false; }
+                    string[] fields = line.Substring(7).Split('|');
+                    if (fields.Length != 5 ||
+                        !TryModuleScope(fields[0], out SentinelModuleScope scope) ||
+                        !CanonicalPluginId(fields[1]) ||
+                        !CanonicalVersionOrWildcard(fields[2]) ||
+                        !TryCanonicalInt(fields[3], out int protocol) ||
+                        !TryCapabilities(fields[4], out IReadOnlyList<string> capabilities))
+                    { failure = "ModuleRule"; return false; }
+                    if (previousModule != null && string.CompareOrdinal(previousModule, fields[1]) >= 0)
+                    { failure = "ModuleOrder"; return false; }
+                    previousModule = fields[1];
+                    modules.Add(new SentinelModuleRule(
+                        scope, fields[1], fields[2], protocol, capabilities));
+                    continue;
+                }
+                if (version3 && line.StartsWith("role=", StringComparison.Ordinal) && phase <= 2)
+                {
+                    phase = 2;
+                    if (administrators.Count >= 256)
+                    { failure = "RoleCap"; return false; }
+                    string[] fields = line.Substring(5).Split('|');
+                    if (fields.Length != 2 || !CanonicalAuthority(fields[0]) ||
+                        !TryCanonicalSubject(fields[1], out string subject))
+                    { failure = "RoleRule"; return false; }
+                    string key = fields[0] + ":" + fields[1];
+                    if (previousRole != null && string.CompareOrdinal(previousRole, key) >= 0)
+                    { failure = "RoleOrder"; return false; }
+                    previousRole = key;
+                    administrators.Add(new SentinelAdministratorRole(fields[0], subject));
+                    continue;
+                }
+                if (version3 && line.StartsWith("ban=", StringComparison.Ordinal) && phase <= 3)
+                {
+                    phase = 3;
+                    if (bannedUsers.Count >= 4096)
+                    { failure = "BanCap"; return false; }
+                    string[] fields = line.Substring(4).Split('|');
+                    if (fields.Length != 2 || !CanonicalAuthority(fields[0]) ||
+                        !TryCanonicalSubject(fields[1], out string subject))
+                    { failure = "BanRule"; return false; }
+                    string key = fields[0] + ":" + fields[1];
+                    if (previousBan != null && string.CompareOrdinal(previousBan, key) >= 0)
+                    { failure = "BanOrder"; return false; }
+                    previousBan = key;
+                    bannedUsers.Add(new SentinelAdministratorRole(fields[0], subject));
+                    continue;
+                }
+                failure = version3 ? "PolicyEntry" : "PolicyRule";
+                return false;
             }
 
             string payloadDigest;
             using (SHA256 sha = SHA256.Create()) payloadDigest = Hex(sha.ComputeHash(payload));
             policy = new SentinelPolicy(
+                version3 ? 3 : 2,
                 profile,
                 sequence,
                 issued,
                 expires,
                 unknown,
                 rules.AsReadOnly(),
+                modules.AsReadOnly(),
+                administrators.AsReadOnly(),
+                bannedUsers.AsReadOnly(),
                 payloadDigest);
             return true;
         }
@@ -267,6 +399,66 @@ namespace RunicSentinel.Core
                 case "Quarantined": value = PluginClassification.Quarantined; return true;
                 default: return false;
             }
+        }
+
+        private static bool TryModuleScope(string text, out SentinelModuleScope scope)
+        {
+            scope = SentinelModuleScope.Both;
+            if (text == "Both") return true;
+            if (text == "Client") { scope = SentinelModuleScope.Client; return true; }
+            if (text == "Server") { scope = SentinelModuleScope.Server; return true; }
+            return false;
+        }
+
+        private static bool TryCanonicalInt(string text, out int value)
+        {
+            value = 0;
+            return text != null && text.Length > 0 && text.Length <= 10 &&
+                   (text.Length == 1 || text[0] != '0') &&
+                   int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out value) &&
+                   value > 0;
+        }
+
+        private static bool TryCapabilities(string text, out IReadOnlyList<string> capabilities)
+        {
+            capabilities = Array.Empty<string>();
+            if (string.IsNullOrEmpty(text)) return true;
+            string[] values = text.Split(',');
+            if (values.Length > 64) return false;
+            string previous = null;
+            for (int index = 0; index < values.Length; index++)
+            {
+                if (!CanonicalAtom(values[index], 1, 128) ||
+                    previous != null && string.CompareOrdinal(previous, values[index]) >= 0)
+                    return false;
+                previous = values[index];
+            }
+            capabilities = Array.AsReadOnly(values);
+            return true;
+        }
+
+        private static bool CanonicalAuthority(string value)
+        {
+            if (!CanonicalAtom(value, 1, 64)) return false;
+            for (int index = 0; index < value.Length; index++)
+                if (value[index] >= 'A' && value[index] <= 'Z') return false;
+            return true;
+        }
+
+        private static bool TryCanonicalSubject(string encoded, out string subject)
+        {
+            subject = string.Empty;
+            if (string.IsNullOrEmpty(encoded) || encoded.Length > 768) return false;
+            try
+            {
+                subject = Uri.UnescapeDataString(encoded);
+                if (string.IsNullOrEmpty(subject) || subject.Length > 256 ||
+                    Uri.EscapeDataString(subject) != encoded) return false;
+                for (int index = 0; index < subject.Length; index++)
+                    if (char.IsControl(subject[index])) return false;
+                return true;
+            }
+            catch { subject = string.Empty; return false; }
         }
     }
 }

@@ -27,13 +27,15 @@ namespace RunicInventory.Core
         internal string PlayerDataSha256 { get; }
     }
 
-    // Pure verifier for the exact character-file format written by Valheim 0.221.12.
+    // Pure verifier for the exact character-file format written by Valheim 1.0.7.
     // Reading the current file source and proving a clean storage-provider commit remain the
     // caller's responsibility; this type never treats PlayerProfile.Save() as acknowledgement.
     internal static class CharacterProfileReadback
     {
-        internal const int CurrentProfileVersion = 43;
-        internal const int CurrentStatCount = 105;
+        internal const int CurrentProfileVersion = 46;
+        internal const int CurrentStatCount = 205;
+        internal const int CurrentProfileSetCount = 10;
+        internal const int CurrentEnemyStatSetCount = 5;
         internal const int OuterHashBytes = 64;
         internal const int MaximumFileBytes = 256 * 1024 * 1024;
         internal const int MaximumPlayerDataBytes = 64 * 1024 * 1024;
@@ -42,7 +44,7 @@ namespace RunicInventory.Core
         internal const int MaximumTotalDictionaryEntries = 262144;
         internal const int MaximumStringBytes = 65536;
 
-        internal static bool TryVerifyCurrentV43(
+        internal static bool TryVerifyCurrentV46(
             byte[] fileBytes,
             byte[] expectedPlayerData,
             out CharacterProfileReadbackEvidence evidence,
@@ -106,8 +108,45 @@ namespace RunicInventory.Core
                 return false;
             }
             if (!outer.TryReadInt32(out int statCount) || statCount != CurrentStatCount ||
-                !outer.TrySkip(CurrentStatCount * sizeof(float)) ||
-                !outer.TryReadStrictBoolean(out _))
+                !outer.TryReadInt32(out int profileSetCount) ||
+                profileSetCount != CurrentProfileSetCount)
+            {
+                reasonCode = "readback.profile-header-invalid";
+                return false;
+            }
+
+            int totalDictionaryEntries = 0;
+            for (int profileSet = 0; profileSet < CurrentProfileSetCount; profileSet++)
+            {
+                if (!outer.TrySkip(CurrentStatCount * sizeof(float)))
+                {
+                    reasonCode = "readback.profile-header-invalid";
+                    return false;
+                }
+                for (int dictionary = 0; dictionary < 3; dictionary++)
+                {
+                    if (!TrySkipDictionary(outer, ref totalDictionaryEntries))
+                    {
+                        reasonCode = "readback.dictionary-count-invalid";
+                        return false;
+                    }
+                }
+                if (!outer.TryReadInt32(out int enemyStatSetCount) ||
+                    enemyStatSetCount != CurrentEnemyStatSetCount)
+                {
+                    reasonCode = "readback.profile-header-invalid";
+                    return false;
+                }
+                for (int dictionary = 0; dictionary < CurrentEnemyStatSetCount + 5; dictionary++)
+                {
+                    if (!TrySkipDictionary(outer, ref totalDictionaryEntries))
+                    {
+                        reasonCode = "readback.dictionary-count-invalid";
+                        return false;
+                    }
+                }
+            }
+            if (!outer.TryReadStrictBoolean(out _))
             {
                 reasonCode = "readback.profile-header-invalid";
                 return false;
@@ -142,27 +181,6 @@ namespace RunicInventory.Core
                 return false;
             }
 
-            int totalDictionaryEntries = 0;
-            for (int dictionary = 0; dictionary < 6; dictionary++)
-            {
-                if (!outer.TryReadInt32(out int count) || count < 0 ||
-                    count > MaximumDictionaryEntries ||
-                    totalDictionaryEntries > MaximumTotalDictionaryEntries - count)
-                {
-                    reasonCode = "readback.dictionary-count-invalid";
-                    return false;
-                }
-                totalDictionaryEntries += count;
-                for (int entry = 0; entry < count; entry++)
-                {
-                    if (!outer.TrySkipString(MaximumStringBytes) || !outer.TrySkip(sizeof(float)))
-                    {
-                        reasonCode = "readback.dictionary-entry-invalid";
-                        return false;
-                    }
-                }
-            }
-
             if (!outer.TryReadStrictBoolean(out bool hasPlayerData) || !hasPlayerData)
             {
                 reasonCode = "readback.player-data-missing";
@@ -193,6 +211,19 @@ namespace RunicInventory.Core
                 ToHex(computedOuterHash),
                 ToHex(playerHash));
             reasonCode = "ok";
+            return true;
+        }
+
+        private static bool TrySkipDictionary(ByteCursor cursor, ref int totalEntries)
+        {
+            if (!cursor.TryReadInt32(out int count) || count < 0 ||
+                count > MaximumDictionaryEntries ||
+                totalEntries > MaximumTotalDictionaryEntries - count)
+                return false;
+            totalEntries += count;
+            for (int entry = 0; entry < count; entry++)
+                if (!cursor.TrySkipString(MaximumStringBytes) || !cursor.TrySkip(sizeof(float)))
+                    return false;
             return true;
         }
 

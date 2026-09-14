@@ -6,6 +6,7 @@ namespace RunicInteraction.Tests
     {
         private static int Main()
         {
+            PlatformVersionTests.Register();
             CorePolicyTests.Register();
             PluginContractTests.Register();
             HarmonyContractTests.Register();

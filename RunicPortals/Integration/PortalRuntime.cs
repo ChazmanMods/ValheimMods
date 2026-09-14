@@ -21,6 +21,9 @@ namespace RunicPortals.Integration
             internal int Mode;
             internal int Revision;
             internal PortalEditEvidence Evidence;
+            internal string RawVanillaTag;
+            internal ZDOID VanillaConnection;
+            internal string PendingVanillaTag;
             internal long Token;
         }
 
@@ -73,6 +76,7 @@ namespace RunicPortals.Integration
             new Dictionary<int, string>();
         private readonly Dictionary<int, string> _hoverCache =
             new Dictionary<int, string>();
+        private PortalEditorPanel _portalEditor;
         private EditSession _edit;
         private bool _ready;
         private string _disabledReason = string.Empty;
@@ -114,12 +118,20 @@ namespace RunicPortals.Integration
             _index.MarkDirty();
             InitializeMapOverlay();
             InitializeHoverPanel();
+            if (!Application.isBatchMode)
+                _portalEditor = new PortalEditorPanel(
+                    _groups,
+                    SubmitEditorDraft,
+                    CancelCurrentEdit);
             _diagnostics.Record(PortalDiagnosticCode.RuntimeReady);
         }
 
         internal void Shutdown()
         {
             CancelCurrentEdit();
+            _portalEditor?.Dispose();
+            _portalEditor = null;
+            PortalEditorInputGuard.Reset();
             ShutdownMapPicker();
             ShutdownDirectorySyncTransport();
             ShutdownMapOverlay();
@@ -178,6 +190,7 @@ namespace RunicPortals.Integration
             }
             TickDirectorySyncTransport();
             TickMapPicker();
+            _portalEditor?.Tick();
             float interval = PortalConfig.IndexRefreshSeconds?.Value ?? 2f;
             float realtime = Time.realtimeSinceStartup;
             if (_index.Tick(realtime, interval)) _hoverCache.Clear();
@@ -285,25 +298,49 @@ namespace RunicPortals.Integration
         internal bool TryConsumeSetText(TeleportWorld portal, string text)
         {
             if (_edit == null || portal == null || _edit.InstanceId != portal.GetInstanceID()) return false;
+            PortalEditorSubmitResult result = TryCommitEditorCommand(
+                portal,
+                PortalEditCommand.Parse(text));
+            if (result.Message.Length != 0) Message(Player.m_localPlayer, result.Message);
+            return true;
+        }
+
+        internal PortalEditorSubmitResult SubmitEditorDraft(PortalEditorDraft draft)
+        {
+            if (_edit == null || draft == null)
+                return PortalEditorSubmitResult.Reject("The portal editor is no longer active.");
+            PortalEditCommand command = draft.BuildCommand();
+            return TryCommitEditorCommand(_edit.Portal, command);
+        }
+
+        internal void DrawPortalEditor() => _portalEditor?.Draw();
+
+        private PortalEditorSubmitResult TryCommitEditorCommand(
+            TeleportWorld portal,
+            PortalEditCommand command)
+        {
             EditSession session = _edit;
-            _edit = null;
+            if (session == null || portal == null ||
+                session.InstanceId != portal.GetInstanceID())
+                return PortalEditorSubmitResult.Reject(
+                    "The portal changed. Close this window and try again.");
             string confirmationTarget = PortalEditEvidence.OpaqueTarget(session.PortalId.ToString());
             Player actor = Player.m_localPlayer;
             if (actor == null || actor.GetPlayerID() != session.ActorId)
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Runic portal edit cancelled: actor identity changed.");
                 RejectEdit(portal, AuthorityStopCode.SenderIdentityUnbound);
-                return true;
+                CancelCurrentEdit();
+                return PortalEditorSubmitResult.Reject(
+                    "Your player identity changed, so the editor closed safely.");
             }
-            PortalEditCommand command = PortalEditCommand.Parse(text);
-            if (command.Kind == PortalEditKind.Invalid)
+            if (command == null || command.Kind == PortalEditKind.Invalid)
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Runic portal edit cancelled: " + command.Error);
                 _diagnostics.Record(PortalDiagnosticCode.EditRejected, RouteStopCode.StaleSelection,
                     session.PortalId.ToString());
-                return true;
+                return PortalEditorSubmitResult.Reject(
+                    command?.Error ?? "The portal settings are invalid.");
             }
             if (!TryBindAndAuthorizeGroupEdit(
                     actor,
@@ -312,9 +349,9 @@ namespace RunicPortals.Integration
                     out string groupFailure))
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Runic portal edit cancelled: " + groupFailure + ".");
                 RejectEdit(portal, AuthorityStopCode.OwnerPermissionDenied);
-                return true;
+                return PortalEditorSubmitResult.Reject(
+                    Sentence("Runic portal edit cancelled: " + groupFailure));
             }
             if (!TryRevalidateEdit(
                     session,
@@ -327,23 +364,61 @@ namespace RunicPortals.Integration
                     out string reason))
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Runic portal edit cancelled: " + reason + ".");
                 RejectEdit(portal, stop);
-                return true;
+                CancelCurrentEdit();
+                return PortalEditorSubmitResult.Reject(
+                    Sentence("The editor closed safely because " + reason));
             }
             if (command.Kind == PortalEditKind.PublicNetwork &&
                 zdo.GetConnectionZDOID(ZDOExtraData.ConnectionType.Portal) != ZDOID.None)
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Unlink this Standard Pair with a unique vanilla tag before opting into a network.");
                 RejectEdit(portal, AuthorityStopCode.CurrentStateChanged);
-                return true;
+                return PortalEditorSubmitResult.Reject(
+                    "This Standard Pair is still connected. Select Standard Pair, give it a unique tag, save, then open the editor again to convert it.");
             }
-            if (observed.Matches(command, creator))
+
+            bool metadataMatches = observed.Matches(command, creator);
+            bool vanillaTagMatches = command.Kind != PortalEditKind.StandardPair ||
+                                     !command.HasVanillaTag ||
+                                     string.Equals(
+                                         RawVanillaTag(zdo),
+                                         command.VanillaTag,
+                                         StringComparison.Ordinal);
+            if (metadataMatches && vanillaTagMatches)
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Portal metadata already matches; no world state was changed.");
-                return true;
+                CancelCurrentEdit();
+                return PortalEditorSubmitResult.Saved(
+                    "These portal settings are already saved.");
+            }
+
+            // Set a Standard Pair tag through Valheim's native method before clearing Runic
+            // metadata. Runic Safety can intentionally stop the first overwrite; observing the
+            // exact raw tag keeps the dialog open for the player's second click without ever
+            // bypassing that confirmation.
+            if (command.Kind == PortalEditKind.StandardPair && command.HasVanillaTag &&
+                !vanillaTagMatches)
+            {
+                session.PendingVanillaTag = command.VanillaTag;
+                portal.SetText(command.VanillaTag);
+                if (!string.Equals(
+                        RawVanillaTag(zdo),
+                        command.VanillaTag,
+                        StringComparison.Ordinal))
+                    return PortalEditorSubmitResult.Confirm(
+                        "Confirm the vanilla tag overwrite by clicking Save again.");
+                session.RawVanillaTag = command.VanillaTag;
+                session.VanillaConnection = zdo.GetConnectionZDOID(
+                    ZDOExtraData.ConnectionType.Portal);
+                session.PendingVanillaTag = null;
+                vanillaTagMatches = true;
+                if (metadataMatches)
+                {
+                    FinishSuccessfulEdit(portal, zdo, command);
+                    return PortalEditorSubmitResult.Saved(
+                        "Standard Pair tag saved. Valheim will link it to one portal with the same tag.");
+                }
             }
 
             string confirmationFingerprint = observed.Fingerprint(command, creator);
@@ -353,18 +428,18 @@ namespace RunicPortals.Integration
                 confirmationFingerprint);
             if (confirmation == PortalConfirmationAdmission.Pending)
             {
-                Message(actor, "Repeat the identical portal overwrite to confirm it.");
-                return true;
+                return PortalEditorSubmitResult.Confirm(
+                    "This replaces existing Runic portal settings. Click Save again to confirm.");
             }
             if (confirmation == PortalConfirmationAdmission.Denied ||
                 confirmation == PortalConfirmationAdmission.Unavailable)
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, confirmation == PortalConfirmationAdmission.Unavailable
-                    ? "Runic portal edit denied: configured Safety confirmation is unavailable or incompatible."
-                    : "Runic portal edit denied by the current Safety confirmation policy.");
                 RejectEdit(portal, AuthorityStopCode.CurrentStateChanged);
-                return true;
+                return PortalEditorSubmitResult.Reject(
+                    confirmation == PortalConfirmationAdmission.Unavailable
+                        ? "Configured Safety confirmation is unavailable or incompatible."
+                        : "The current Safety confirmation policy denied this change.");
             }
 
             // A synchronous provider is still third-party code. Rebuild all authority, ward,
@@ -388,33 +463,47 @@ namespace RunicPortals.Integration
                 !_confirmations.RequesterIsActive())
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Runic portal edit cancelled: authority or metadata changed after confirmation.");
                 RejectEdit(portal, stop);
-                return true;
+                CancelCurrentEdit();
+                return PortalEditorSubmitResult.Reject(
+                    "The portal changed during confirmation, so the editor closed safely.");
             }
             if (command.Kind == PortalEditKind.PublicNetwork &&
                 zdo.GetConnectionZDOID(ZDOExtraData.ConnectionType.Portal) != ZDOID.None)
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Runic portal edit cancelled: the Standard Pair connection changed.");
                 RejectEdit(portal, AuthorityStopCode.CurrentStateChanged);
-                return true;
+                return PortalEditorSubmitResult.Reject(
+                    "The Standard Pair connection changed. Give it a unique tag before converting it.");
             }
             if (!TryAuthorizeBoundGroupEdit(actor, command, out groupFailure))
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Runic portal edit cancelled: " + groupFailure + ".");
                 RejectEdit(portal, AuthorityStopCode.OwnerPermissionDenied);
-                return true;
+                return PortalEditorSubmitResult.Reject(
+                    Sentence("Runic portal edit cancelled: " + groupFailure));
             }
             if (!PortalZdoCodec.TryWrite(zdo, command, creator, out _, out string writeFailure))
             {
                 _confirmations.Cancel(confirmationTarget);
-                Message(actor, "Runic portal edit failed closed: " + writeFailure + ".");
                 RejectEdit(portal, AuthorityStopCode.CurrentStateChanged);
-                return true;
+                return PortalEditorSubmitResult.Reject(
+                    Sentence("The portal could not be saved: " + writeFailure));
             }
             _confirmations.Cancel(confirmationTarget);
+            FinishSuccessfulEdit(portal, zdo, command);
+            return PortalEditorSubmitResult.Saved(
+                command.Kind == PortalEditKind.PublicNetwork
+                    ? PolicyLabel(command.NetworkKind) +
+                      " network portal saved. Walk into it and choose a destination on the map."
+                    : "Standard Pair saved. Valheim will link it to one portal with the same tag.");
+        }
+
+        private void FinishSuccessfulEdit(
+            TeleportWorld portal,
+            ZDO zdo,
+            PortalEditCommand command)
+        {
             _index.MarkDirty();
             _index.Rebuild(Time.realtimeSinceStartup, PortalConfig.IndexRefreshSeconds?.Value ?? 2f);
             _hoverCache.Remove(portal.GetInstanceID());
@@ -424,11 +513,7 @@ namespace RunicPortals.Integration
                 zdo.m_uid.ToString());
             if (command.Kind == PortalEditKind.PublicNetwork)
                 NoteMapNetworkUsed(command.NetworkId);
-            Message(actor, command.Kind == PortalEditKind.PublicNetwork
-                ? PolicyLabel(command.NetworkKind) +
-                  " network portal saved. Walk into it, then click an authorized destination on the map."
-                : "Portal restored to Standard Pair mode; set its vanilla tag normally.");
-            return true;
+            CancelCurrentEdit();
         }
 
         private bool TryBindAndAuthorizeGroupEdit(
@@ -442,7 +527,7 @@ namespace RunicPortals.Integration
             if (command == null || command.NetworkKind != PortalNetworkKind.Group)
                 return command != null;
             long playerId = actor == null ? 0L : actor.GetPlayerID();
-            if (playerId <= 0L)
+            if (playerId == 0L)
             {
                 failure = "your stable player identity is unavailable";
                 return false;
@@ -472,20 +557,14 @@ namespace RunicPortals.Integration
             failure = string.Empty;
             if (command == null || command.NetworkKind != PortalNetworkKind.Group) return true;
             long playerId = actor == null ? 0L : actor.GetPlayerID();
-            if (playerId <= 0L)
+            if (playerId == 0L)
             {
                 failure = "your stable player identity is unavailable";
                 return false;
             }
-            if (!_groups.TryGetActive(playerId, out string activeGroup, out _) ||
-                !string.Equals(activeGroup, command.GroupId, StringComparison.Ordinal))
-            {
-                failure = "the portal Group is not your current active Group";
-                return false;
-            }
             if (_groups.TryIsMember(command.GroupId, playerId, out bool member) && member)
                 return true;
-            failure = "the selected Group is unavailable or you are no longer a member";
+            failure = "the selected Group is unavailable or you are no longer a current member";
             return false;
         }
 
@@ -848,15 +927,9 @@ namespace RunicPortals.Integration
                 RejectEdit(portal, decision.StopCode);
                 return true;
             }
-            if (PortalZdoCodec.GetMode(zdo) != (int)PortalMode.Network &&
-                zdo.GetConnectionZDOID(ZDOExtraData.ConnectionType.Portal) != ZDOID.None)
+            if (_portalEditor == null)
             {
-                Message(actor, "Unlink this Standard Pair with a unique vanilla tag before opting into a network.");
-                return true;
-            }
-            if (TextInput.instance == null)
-            {
-                Message(actor, "Runic portal editor unavailable: text input is not ready.");
+                Message(actor, "Runic portal editor unavailable: the interface is not ready.");
                 return true;
             }
             long token = unchecked(++_editSequence);
@@ -866,6 +939,25 @@ namespace RunicPortals.Integration
                 Message(actor, "Runic portal editor unavailable: current metadata evidence is invalid.");
                 return true;
             }
+            int mode = PortalZdoCodec.GetMode(zdo);
+            string rawVanillaTag = RawVanillaTag(zdo);
+            ZDOID vanillaConnection = zdo.GetConnectionZDOID(
+                ZDOExtraData.ConnectionType.Portal);
+            PortalEditorDraft draft;
+            if (mode == (int)PortalMode.Network)
+            {
+                if (!PortalZdoCodec.TryRead(zdo, out PortalEndpoint endpoint, out _))
+                {
+                    Message(actor,
+                        "Runic portal editor unavailable: current portal settings are invalid.");
+                    return true;
+                }
+                draft = PortalEditorDraft.ForNetwork(rawVanillaTag, endpoint);
+            }
+            else
+            {
+                draft = PortalEditorDraft.ForStandard(rawVanillaTag);
+            }
             CancelCurrentEdit();
             _edit = new EditSession
             {
@@ -874,13 +966,16 @@ namespace RunicPortals.Integration
                 ActorId = actor.GetPlayerID(),
                 PortalId = zdo.m_uid,
                 Schema = PortalZdoCodec.GetSchema(zdo),
-                Mode = PortalZdoCodec.GetMode(zdo),
+                Mode = mode,
                 Revision = PortalZdoCodec.GetRevision(zdo),
                 Evidence = editEvidence,
+                RawVanillaTag = rawVanillaTag,
+                VanillaConnection = vanillaConnection,
+                PendingVanillaTag = null,
                 Token = token
             };
-            TextInput.instance.RequestText(new PortalEditReceiver(this, token),
-                "network|public/private/group|... (or standard)", 256);
+            _groups.RequestLocalGroupChoiceRefresh();
+            _portalEditor.Open(draft, vanillaConnection != ZDOID.None);
             return true;
         }
 
@@ -938,6 +1033,30 @@ namespace RunicPortals.Integration
             {
                 reason = "portal metadata changed while the editor was open";
                 return false;
+            }
+            string rawTag = RawVanillaTag(zdo);
+            ZDOID connection = zdo.GetConnectionZDOID(ZDOExtraData.ConnectionType.Portal);
+            bool completedPendingTag = session.PendingVanillaTag != null &&
+                                       string.Equals(
+                                           rawTag,
+                                           session.PendingVanillaTag,
+                                           StringComparison.Ordinal);
+            if (!string.Equals(rawTag, session.RawVanillaTag, StringComparison.Ordinal) &&
+                !completedPendingTag)
+            {
+                reason = "the vanilla portal tag changed while the editor was open";
+                return false;
+            }
+            if (connection != session.VanillaConnection && !completedPendingTag)
+            {
+                reason = "the vanilla portal connection changed while the editor was open";
+                return false;
+            }
+            if (completedPendingTag)
+            {
+                session.RawVanillaTag = rawTag;
+                session.VanillaConnection = connection;
+                session.PendingVanillaTag = null;
             }
             reason = string.Empty;
             return true;
@@ -1086,6 +1205,7 @@ namespace RunicPortals.Integration
         {
             EditSession session = _edit;
             _edit = null;
+            _portalEditor?.Close();
             if (session != null)
                 _confirmations.Cancel(PortalEditEvidence.OpaqueTarget(session.PortalId.ToString()));
         }
@@ -1115,7 +1235,7 @@ namespace RunicPortals.Integration
                  ZoneSystem.instance.GetGlobalKey(GlobalKeys.activeBosses, out float activeBosses) &&
                  activeBosses > 0f))
                 return TravelPolicyState.BossTravelBlocked;
-            if (!portal.m_allowAllItems && !player.IsTeleportable())
+            if (!player.IsTeleportable(portal.m_allowAllItems))
                 return TravelPolicyState.RestrictedItems;
             return TravelPolicyState.Allowed;
         }
@@ -1136,6 +1256,17 @@ namespace RunicPortals.Integration
 
         private static float CurrentEditRange() => PortalConfig.EditRangeMeters?.Value ?? 5f;
         private static int CurrentMaximumEndpoints() => PortalConfig.MaximumEndpoints?.Value ?? 1024;
+
+        private static string RawVanillaTag(ZDO zdo) =>
+            zdo?.GetString(ZDOVars.s_tag, string.Empty) ?? string.Empty;
+
+        private static string Sentence(string text)
+        {
+            string value = (text ?? string.Empty).Trim();
+            return value.Length == 0 || value.EndsWith(".", StringComparison.Ordinal)
+                ? value
+                : value + ".";
+        }
 
         private static void Message(Player player, string text)
         {

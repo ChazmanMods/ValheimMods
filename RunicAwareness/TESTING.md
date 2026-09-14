@@ -1,4 +1,4 @@
-# Runic Awareness 1.0.0 maintainer verification record
+# Runic Awareness 1.0.2 maintainer verification record
 
 This is an internal release record, not a player installation checklist.
 
@@ -8,7 +8,7 @@ The focused suite verifies:
 
 - identity/version/manifest alignment and a standalone BepInEx-only runtime dependency;
 - no Runic assembly or project references and no Production service/capability discovery;
-- Valheim 0.221.12 plus every exact installed method/field used by food, effects, timers, comfort,
+- Valheim 1.0.7 plus every exact installed method/field used by food, effects, timers, comfort,
   inventory selection, hover contexts, building state, and the private translation dictionary;
 - postfix-only, installed-verified `Priority.Last` Harmony hooks that observe normal-priority composed
   hover results and cannot rewrite original tooltip/hover results;

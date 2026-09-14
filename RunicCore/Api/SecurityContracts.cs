@@ -334,6 +334,105 @@ namespace Runic.Foundation.Core
         EvidenceReadSnapshot ReadAfter(long sequence, int maximum);
     }
 
+    /// <summary>
+    /// Signed role lookup. Implementations must bind roles to a transport authority and subject;
+    /// callers must never supply a player-selected display name as either value.
+    /// </summary>
+    public interface ISentinelRoleService
+    {
+        bool PolicyReady { get; }
+        bool IsAdministrator(string authority, string subjectId);
+    }
+
+    public enum SentinelIntegrityState
+    {
+        Unavailable = 0,
+        MonitorOnly = 1,
+        Ready = 2,
+        Compromised = 3
+    }
+
+    public sealed class SentinelIntegritySnapshot
+    {
+        public SentinelIntegritySnapshot(
+            SentinelIntegrityState state,
+            long checkedUnixSeconds,
+            string reasonCode,
+            string policyDigest)
+        {
+            if (!Enum.IsDefined(typeof(SentinelIntegrityState), state))
+                throw new ArgumentOutOfRangeException(nameof(state));
+            if (checkedUnixSeconds < 0L)
+                throw new ArgumentOutOfRangeException(nameof(checkedUnixSeconds));
+            State = state;
+            CheckedUnixSeconds = checkedUnixSeconds;
+            ReasonCode = SecurityContractValidation.RequireAtom(
+                string.IsNullOrEmpty(reasonCode) ? "unavailable" : reasonCode,
+                1,
+                128,
+                nameof(reasonCode));
+            PolicyDigest = string.IsNullOrEmpty(policyDigest)
+                ? string.Empty
+                : SecurityContractValidation.RequireLowerHex(
+                    policyDigest,
+                    64,
+                    nameof(policyDigest));
+        }
+
+        public SentinelIntegrityState State { get; }
+        public long CheckedUnixSeconds { get; }
+        public string ReasonCode { get; }
+        public string PolicyDigest { get; }
+    }
+
+    public interface ISentinelRuntimeIntegrityService
+    {
+        SentinelIntegritySnapshot GetCurrent();
+    }
+
+    public sealed class SentinelEnforcementDecision
+    {
+        public SentinelEnforcementDecision(
+            EnforcementAction action,
+            bool requestAllowed,
+            bool peerDisconnected,
+            string reasonCode)
+        {
+            if (!SecurityContractValidation.IsAction(action))
+                throw new ArgumentOutOfRangeException(nameof(action));
+            Action = action;
+            RequestAllowed = requestAllowed;
+            PeerDisconnected = peerDisconnected;
+            ReasonCode = SecurityContractValidation.RequireAtom(
+                reasonCode,
+                1,
+                128,
+                nameof(reasonCode));
+        }
+
+        public EnforcementAction Action { get; }
+        public bool RequestAllowed { get; }
+        public bool PeerDisconnected { get; }
+        public string ReasonCode { get; }
+    }
+
+    /// <summary>
+    /// Server enforcement entry point used after a module has independently validated its normal
+    /// ownership, permission, bounds, replay, and transaction rules. Sentinel records the finding
+    /// and applies only the configured escalation; it does not grant an otherwise-denied request.
+    /// </summary>
+    public interface ISentinelEnforcementService
+    {
+        SentinelEnforcementDecision ReportViolation(
+            ModuleRegistration provider,
+            long peerId,
+            string actor,
+            string rule,
+            string correlationId,
+            FindingConfidence confidence,
+            string detail);
+    }
+
     internal static class SecurityContractValidation
     {
         internal static string RequireAtom(string value, int minimum, int maximum, string name)

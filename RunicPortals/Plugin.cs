@@ -13,7 +13,7 @@ namespace RunicPortals
     {
         public const string Guid = "chazman.RunicPortals";
         public const string Name = "Runic Portals";
-        public const string Version = "1.0.0";
+        public const string Version = "1.2.4";
 
         private Harmony _harmony;
         private CorrelatedDiagnosticBuffer _diagnostics;
@@ -101,6 +101,14 @@ namespace RunicPortals
             catch (Exception exception) { CurrentRuntime.DisableHoverPanel(exception); }
             try { CurrentRuntime.DrawMapPickerOverlay(); }
             catch (Exception exception) { CurrentRuntime.FailMapPickerUi(exception); }
+            try { CurrentRuntime.DrawPortalEditor(); }
+            catch (Exception exception)
+            {
+                Logger.LogError(
+                    "Portal editor drawing failed and the runtime was disabled safely: " +
+                    exception.GetType().Name + ": " + exception.Message);
+                DisableAfterPatchFault(exception, "editor-draw");
+            }
         }
 
         private void OnConfigurationChanged()

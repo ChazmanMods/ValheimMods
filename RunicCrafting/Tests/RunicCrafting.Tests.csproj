@@ -14,7 +14,18 @@
 
   <ItemGroup>
     <Compile Remove="DedicatedHarness\**\*.cs" />
+    <Compile Remove="RefreshHarness\**\*.cs" />
+    <Compile Remove="AreaRepairHarness\**\*.cs" />
     <Compile Include="..\Domain\*.cs" Link="Domain\%(Filename)%(Extension)" />
+    <Compile Include="..\Integration\RecipeMaterialRequirements.cs" Link="Runtime\RecipeMaterialRequirements.cs" />
+    <Compile Include="..\Integration\CraftingInventorySnapshot.cs" Link="Runtime\CraftingInventorySnapshot.cs" />
+    <Compile Include="..\Integration\CraftingInventoryPayloadComparison.cs" Link="Runtime\CraftingInventoryPayloadComparison.cs" />
+    <Compile Include="..\Integration\ValheimMaterialSource.cs" Link="Runtime\ValheimMaterialSource.cs" />
+    <Compile Include="..\Integration\ManualItemTransfer.cs" Link="Runtime\ManualItemTransfer.cs" />
+    <Compile Include="..\Integration\ReadOnlyMaterialSource.cs" Link="Runtime\ReadOnlyMaterialSource.cs" />
+    <Compile Include="..\Integration\PreviewMaterialCounts.cs" Link="Runtime\PreviewMaterialCounts.cs" />
+    <Compile Include="..\..\RunicProduction\Integration\ProductionInventoryPayloadComparison.cs" Link="Runtime\ProductionInventoryPayloadComparison.cs" />
+    <Compile Include="..\..\RunicAgriculture\Integration\AgricultureInventoryPayloadComparison.cs" Link="Runtime\AgricultureInventoryPayloadComparison.cs" />
     <Reference Include="Mono.Cecil" HintPath="$(BEPINEX_PROFILE)\core\Mono.Cecil.dll" Private="true" />
   </ItemGroup>
 </Project>

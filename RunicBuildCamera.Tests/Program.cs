@@ -7,6 +7,7 @@ namespace RunicBuildCamera.Tests
         private static int Main()
         {
             CoreBehaviorTests.Register();
+            ExitInputTests.Register();
             PluginContractTests.Register();
             HarmonyContractTests.Register();
             PickupRuntimeContractTests.Register();

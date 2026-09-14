@@ -56,7 +56,7 @@ namespace Runic.Foundation.Core.Tests
 
         private static void ProtocolCompatibility()
         {
-            TestAssert.Equal("1.0.0", RunicCoreMetadata.SemanticVersionText);
+            TestAssert.Equal("1.1.0", RunicCoreMetadata.SemanticVersionText);
             ProtocolVersion one = ProtocolVersion.Parse("1.0");
             TestAssert.True(one.IsCompatibleWith(ProtocolVersion.Parse("1.9")));
             TestAssert.False(one.IsCompatibleWith(ProtocolVersion.Parse("2.0")));
@@ -102,6 +102,9 @@ namespace Runic.Foundation.Core.Tests
                 RunicCapabilityIds.SecurityAttest,
                 RunicCapabilityIds.SecurityEvidence,
                 RunicCapabilityIds.SecurityAdmission,
+                RunicCapabilityIds.SecurityRoles,
+                RunicCapabilityIds.SecurityEnforcement,
+                RunicCapabilityIds.SecurityRuntimeIntegrity,
                 RunicCapabilityIds.InventoryItemLocks,
                 RunicCapabilityIds.InventoryDurableOperations,
                 RunicCapabilityIds.SafetyConfirmation,

@@ -1,0 +1,7 @@
+{
+  "name": "RunicDeathPenalty",
+  "version_number": "0.1.0",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Group biome progression, configurable death penalties, recovery protections, and optional resource harvesting and item-use restrictions. Server and clients required.",
+  "dependencies": ["denikson-BepInExPack_Valheim-5.4.2350"]
+}

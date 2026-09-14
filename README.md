@@ -1,49 +1,63 @@
-# Chazman Mods
+# Chazman Mods for Valheim
 
-Official source, media, and releases for Valheim mods created by **Chazman**.
+Public source for the Runic mods, maintained by Charles Sammons (Chazman).
 
-## Runic Valheim Vanilla Plus suite
+## Downloads and source
 
-The Runic gameplay mods are independently installable and independently versioned. BepInExPack
-Valheim 5.4.2333 is their only shared runtime requirement; there is no Runic Core, Persistence,
-Permissions, Transactions, or replacement shared-library package to install.
+Download the current packaged mods from [GitHub Releases](https://github.com/ChazmanMods/ValheimMods/releases).
+The table below records the latest local release packages synchronized on September 14, 2026.
+Thunderstore availability and moderation status are independent of GitHub downloads.
+Each mod is independently versioned. Suite ZIPs install dependencies through Thunderstore;
+manual installations also need the dependencies listed in each manifest.
 
-| Design module | Release | Purpose |
-|---|---:|---|
-| [Storage](./RunicStorage/) | 1.0.0 | Bounded chest actions, authorized queries, and chest-content hover |
-| [Crafting](./RunicCrafting/) | 1.0.0 | Nearby material plans and vanilla-preserving craft/build/repair integration |
-| [Agriculture](./RunicAgriculture/) | 1.0.0 | Bounded planting, harvest, and replant tools |
-| [Production](./RunicProduction/) | 1.0.0 | Loaded-station replenishment and truthful station hover detail |
-| [Building](./RunicPrecisionBuildTool/) | 2.0.1 | Precision transforms, snap matching, repeat history, catalog tools, repair, and conservative undo |
-| [Inventory](./RunicInventory/) | 1.0.0 | Lossless native-row equipment/quick roles, item protection, sorting, and pickup planning |
-| [Portals](./RunicPortals/) | 1.0.0 | Public/private/group exact-network routing, temporary authorized pins, and session Return |
-| [Exploration](./RunicExploration/) | 1.0.0 | Privacy-preserving search and navigation over already-known map pins |
-| [Awareness](./RunicAwareness/) | 1.0.0 | Bounded display-only food, effect, comfort, item, and context explanations |
-| [Interaction](./RunicInteraction/) | 1.0.0 | Guarded interaction conveniences, session-only door close, text validation, and pickup filtering |
-| [Safety](./RunicSafety/) | 1.0.0 | Loss prevention and feature-owned compatibility/admission checks |
-| [Velocity](./RunicVelocity/) | 1.0.0 | Bounded startup measurement and validated assembly-manifest caching |
-| [Sentinel](./RunicSentinel/) | 1.0.0 | Signed-policy verification and direct admission evidence |
-| [World Engine](./RunicWorldEngine/) | 1.0.0 | Rate-limited, read-only aggregate ZDO observation |
+The source column describes this checkout. Where it is newer than the package column,
+that code is development work and is not the code shipped in that listed package.
+A source sync does not constitute in-game acceptance of development versions.
 
-The suite does not use durable composite gameplay journals, suite-wide inventory locks, account
-quarantine, join-time recovery enforcement, or a global capability registry. Networked features own
-their small bounded request state and use authenticated Valheim peers and native ownership paths.
-Failed feature requests release only their own short-lived state.
+| Mod | Packaged version | Source version |
+| --- | --- | --- |
+| [RunicAgriculture](./RunicAgriculture/) | 1.0.3 | 1.0.3 |
+| [RunicAwareness](./RunicAwareness/) | 1.0.2 | 1.0.2 |
+| [RunicBuildCamera](./RunicBuildCamera/) | 1.0.3 | 1.0.3 |
+| [RunicCharacterVault](./RunicCharacterVault/) | 1.0.2 | 1.0.2 |
+| [RunicClock](./RunicClock/) | 1.0.1 | 1.0.1 |
+| [RunicCrafting](./RunicCrafting/) | 1.1.0 | 1.1.0 |
+| [RunicDisplayStands](./RunicDisplayStands/) | 1.3.8 | 1.3.8 |
+| [RunicExploration](./RunicExploration/) | 1.0.2 | 1.0.2 |
+| [RunicInteraction](./RunicInteraction/) | 1.0.4 | 1.0.4 |
+| [RunicInventory](./RunicInventory/) | 1.1.5 | 1.1.5 |
+| [RunicModClientSuite](./RunicModClientSuite/) | 1.0.24 | 1.0.24 |
+| [RunicModServerSuite](./RunicModServerSuite/) | 1.0.16 | 1.0.16 |
+| [RunicModSuite](./RunicModSuite/) | 1.2.34 | 1.2.34 |
+| [RunicPortals](./RunicPortals/) | 1.2.4 | 1.2.4 |
+| [RunicPrecisionBuildTool](./RunicPrecisionBuildTool/) | 2.0.4 | 2.0.4 |
+| [RunicProduction](./RunicProduction/) | 1.0.6 | 1.0.7 |
+| [RunicSafety](./RunicSafety/) | 1.0.5 | 1.0.5 |
+| [RunicSentinel](./RunicSentinel/) | 1.4.0 | 1.4.2 |
+| [RunicSentinelClient](./RunicSentinelClient/) | 1.0.1 | 1.0.1 |
+| [RunicSentinelServer](./RunicSentinelServer/) | 1.1.0 | 1.1.2 |
+| [RunicSigns](./RunicSigns/) | 1.0.3 | 1.0.3 |
+| [RunicStorage](./RunicStorage/) | 1.2.4 | 1.2.4 |
+| [RunicVelocity](./RunicVelocity/) | 1.0.2 | 1.0.2 |
+| [RunicWorldEngine](./RunicWorldEngine/) | 1.2.0 | 1.2.0 |
 
-Runic Portals retains its feature-owned portal and group world-data formats. Runic Crafting and
-Runic Storage can use Runic Inventory when present, but Inventory is optional and its absence never
-prevents either mod from loading.
+Package filenames and SHA-256 hashes are recorded in [the release catalog](./docs/RELEASE-CATALOG.json).
+RunicStorage 1.2.4 includes the in-game-confirmed Quick Stack fix. Its changelog explains the cause.
 
-[Runic Build Camera](./RunicBuildCamera/) and [Runic Integrity](./RunicIntegrity/) remain independent
-companions and are unchanged by the Foundation removal. The retired Foundation packages are
-documented in [RUNIC_FOUNDATION.md](./RUNIC_FOUNDATION.md), and the Wave 1 behavior/install guide is
-in [RUNIC_GAMEPLAY_WAVE1.md](./RUNIC_GAMEPLAY_WAVE1.md).
+## Building and contributing
+
+See [BUILDING.md](./BUILDING.md) for prerequisites, build commands, and testing guidance.
+Per-mod READMEs and changelogs describe configuration and behavior. Preserve third-party notices
+when modifying or distributing code. Report bugs through [GitHub Issues](https://github.com/ChazmanMods/ValheimMods/issues)
+with the mod version, game version, reproduction steps, and a log with private information removed.
+
+Other source directories include independent experiments and historical Foundation components.
+Their presence here does not mean they are required by current Runic mods or recommended for installation.
+Current package manifests are the authority for dependencies.
 
 ## Community and support
 
-Join the **Chazman Mods Discord** for support, bug reports, screenshots, and mod discussion:
-
-https://discord.gg/7HKHTCdFqY
+[Chazman Mods Discord](https://discord.gg/7HKHTCdFqY)
 
 ## License
 

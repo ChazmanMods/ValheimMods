@@ -9,11 +9,23 @@ namespace RunicCrafting.Integration
 {
     internal static class ValheimReflection
     {
+        private static readonly PreviewSnapshotCache<ZDOID, PreviewMaterialCounts> PreviewCache =
+            new PreviewSnapshotCache<ZDOID, PreviewMaterialCounts>();
+
+        internal static void MaintainPreviewCacheContext() =>
+            PreviewCache.SetContext(ZNet.instance, Player.m_localPlayer, ObjectDB.instance);
+
+        internal static void ClearPreviewCache() => PreviewCache.Clear();
+
         private static readonly FieldInfo ContainerViewField = AccessTools.Field(typeof(Container), "m_nview");
         private static readonly FieldInfo StationViewField = AccessTools.Field(typeof(CraftingStation), "m_nview");
         private static readonly FieldInfo WardAreasField = AccessTools.Field(typeof(PrivateArea), "m_allAreas");
-        private static readonly MethodInfo InventoryChangedMethod = AccessTools.Method(typeof(Inventory), "Changed");
+        private static readonly MethodInfo InventoryChangedMethod = AccessTools.Method(
+            typeof(Inventory),
+            "Changed",
+            new[] { typeof(bool), typeof(bool) });
         private static readonly MethodInfo ContainerCheckAccessMethod = AccessTools.Method(typeof(Container), "CheckAccess");
+        private static readonly MethodInfo ContainerLoadMethod = AccessTools.Method(typeof(Container), "Load");
         private static readonly MethodInfo WardIsEnabledMethod = AccessTools.Method(typeof(PrivateArea), "IsEnabled");
         private static readonly MethodInfo WardIsInsideMethod = AccessTools.Method(typeof(PrivateArea), "IsInside");
         private static readonly FieldInfo SelectedRecipePairField =
@@ -82,7 +94,7 @@ namespace RunicCrafting.Integration
         }
 
         internal static void NotifyInventoryChanged(Inventory inventory) =>
-            InventoryChangedMethod?.Invoke(inventory, Array.Empty<object>());
+            InventoryChangedMethod?.Invoke(inventory, new object[] { false, false });
 
         internal static ZPackage SaveInventory(Inventory inventory)
         {
@@ -92,107 +104,16 @@ namespace RunicCrafting.Integration
             return package;
         }
 
-        internal static void RestoreInventory(Inventory inventory, ZPackage package)
+        internal static void RestoreInventory(Inventory inventory, CraftingInventorySnapshot snapshot)
         {
             if (inventory == null) throw new ArgumentNullException(nameof(inventory));
-            if (package == null) throw new ArgumentNullException(nameof(package));
-            byte[] targetPayload = package.GetArray();
-            string target = Convert.ToBase64String(targetPayload);
-            LoadExactInventoryShadow(inventory, targetPayload, target);
-
-            ZPackage rollback = SaveInventory(inventory);
-            byte[] rollbackPayload = rollback.GetArray();
-            string rollbackFingerprint = Convert.ToBase64String(rollbackPayload);
-            LoadExactInventoryShadow(inventory, rollbackPayload, rollbackFingerprint);
-
+            if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             Action changed = inventory.m_onChanged;
             inventory.m_onChanged = null;
-            try
-            {
-                try
-                {
-                    inventory.Load(new ZPackage(targetPayload));
-                    if (!string.Equals(
-                            SaveInventory(inventory).GetBase64(), target,
-                            StringComparison.Ordinal))
-                        throw new InvalidOperationException(
-                            "The exact crafting inventory snapshot did not round-trip.");
-                }
-                catch (Exception applyFailure)
-                {
-                    try
-                    {
-                        inventory.Load(new ZPackage(rollbackPayload));
-                        if (!string.Equals(
-                                SaveInventory(inventory).GetBase64(), rollbackFingerprint,
-                                StringComparison.Ordinal))
-                            throw new InvalidOperationException(
-                                "The original crafting inventory did not restore.");
-                    }
-                    catch (Exception rollbackFailure)
-                    {
-                        throw new InvalidOperationException(
-                            "Crafting snapshot restoration failed and its original inventory could not be recovered.",
-                            new AggregateException(applyFailure, rollbackFailure));
-                    }
-                    throw new InvalidOperationException(
-                        "Crafting snapshot restoration was rejected; its original inventory was restored.",
-                        applyFailure);
-                }
-            }
-            finally
-            {
-                inventory.m_onChanged = changed;
-            }
-            try { NotifyInventoryChanged(inventory); }
-            catch (Exception exception)
-            {
-                Plugin.Log?.LogWarning(
-                    "Inventory state was restored exactly, but a Changed subscriber threw: " +
-                    exception.GetType().Name + ".");
-                throw;
-            }
-            if (!string.Equals(
-                    SaveInventory(inventory).GetBase64(), target,
-                    StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    "The restored crafting inventory changed during publication.");
-        }
-
-        internal static bool CanRoundTripInventory(Inventory inventory)
-        {
-            if (inventory == null) return false;
-            try
-            {
-                ZPackage package = SaveInventory(inventory);
-                byte[] payload = package.GetArray();
-                LoadExactInventoryShadow(
-                    inventory, payload, Convert.ToBase64String(payload));
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        internal static Inventory LoadExactInventoryShadow(
-            Inventory shape,
-            byte[] payload,
-            string expected)
-        {
-            if (shape == null || payload == null || payload.Length == 0 ||
-                string.IsNullOrEmpty(expected))
-                throw new InvalidOperationException("An exact crafting inventory snapshot is unavailable.");
-            var shadow = new Inventory(
-                shape.GetName(), null, shape.GetWidth(), shape.GetHeight());
-            shadow.Load(new ZPackage(payload));
-            if (!string.Equals(
-                    SaveInventory(shadow).GetBase64(), expected,
-                    StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    "A crafting inventory snapshot is not an exact round trip under current item definitions.");
-            return shadow;
+            try { snapshot.Restore(inventory); }
+            finally { inventory.m_onChanged = changed; }
+            NotifyInventoryChanged(inventory);
+            snapshot.Verify(inventory);
         }
 
         internal static bool DlcAllows(string dlcId)
@@ -208,6 +129,84 @@ namespace RunicCrafting.Integration
         internal static bool ContainerAllows(Container container, long playerId) =>
             container != null && ContainerCheckAccessMethod != null &&
             (bool)ContainerCheckAccessMethod.Invoke(container, new object[] { playerId });
+
+        internal static void ObservePreviewWards()
+        {
+            var areas = WardAreasField?.GetValue(null) as List<PrivateArea>;
+            if (areas == null) return;
+            foreach (PrivateArea area in areas)
+                if (area != null)
+                    UiPreviewCache.Watch(area.GetComponent<ZNetView>()?.GetZDO());
+        }
+
+        internal static bool TryReadContainerInventory(Container container, out PreviewMaterialCounts snapshot)
+        {
+            snapshot = null;
+            MaintainPreviewCacheContext();
+            ZNetView view = GetView(container);
+            ZDO zdo = view != null && view.IsValid() ? view.GetZDO() : null;
+            Inventory live = container != null ? container.GetInventory() : null;
+            if (zdo == null || !zdo.IsValid() || live == null) return false;
+            try
+            {
+                byte[] persisted = zdo.GetByteArray(ZDOVars.s_items);
+                int width = live.GetWidth(), height = live.GetHeight(), worldLevel = Game.m_worldLevel;
+                string name = live.GetName();
+                bool empty = persisted == null || persisted.Length == 0;
+                if (empty && live.GetAllItems().Count != 0) return false;
+                if (persisted != null && persisted.Length > PreviewSnapshotCache<ZDOID, PreviewMaterialCounts>.MaximumPayloadBytes)
+                    return false;
+                if (PreviewCache.TryGet(zdo.m_uid, zdo, persisted, width, height, name, worldLevel, out snapshot))
+                {
+                    CachePerformance.PayloadHits++;
+                    return true;
+                }
+
+                CachePerformance.PayloadLoads++;
+                byte[] before = empty ? Array.Empty<byte>() : (byte[])persisted.Clone();
+                var preview = new Inventory(name, null, width, height);
+                if (!empty)
+                {
+                    Inventory previousPreview = PreviewRefreshRuntime.LoadingPreview;
+                    PreviewRefreshRuntime.LoadingPreview = preview;
+                    try { preview.Load(new ZPackage(before)); }
+                    finally { PreviewRefreshRuntime.LoadingPreview = previousPreview; }
+                    if (!CraftingInventoryPayloadComparison.MatchesLoaded(before, SaveInventory(preview).GetArray()))
+                        return false;
+                }
+                byte[] after = zdo.GetByteArray(ZDOVars.s_items);
+                if (!view.IsValid() || !ReferenceEquals(view.GetZDO(), zdo) || !zdo.IsValid() ||
+                    !PreviewSnapshotCache<ZDOID, PreviewMaterialCounts>.SamePayload(before, after)) return false;
+                snapshot = new PreviewMaterialCounts(preview, worldLevel);
+                PreviewCache.Store(zdo.m_uid, zdo, before, width, height, name, worldLevel, snapshot);
+                return true;
+            }
+            catch { return false; }
+        }
+
+        internal static bool RefreshOwnedContainer(Container container, ZDO expectedZdo)
+        {
+            if (container == null || expectedZdo == null || ContainerLoadMethod == null) return false;
+            ZNetView view = GetView(container);
+            if (view == null || !view.IsValid() || !view.IsOwner() ||
+                !ReferenceEquals(view.GetZDO(), expectedZdo) ||
+                expectedZdo.GetOwner() != ZNet.GetUID()) return false;
+            try
+            {
+                ContainerLoadMethod.Invoke(container, Array.Empty<object>());
+                Inventory inventory = container.GetInventory();
+                if (inventory == null) return false;
+                byte[] persisted = expectedZdo.GetByteArray(ZDOVars.s_items);
+                string persistedBase64 = persisted == null || persisted.Length == 0
+                    ? string.Empty
+                    : Convert.ToBase64String(persisted);
+                return persistedBase64.Length == 0
+                    ? inventory.GetAllItems().Count == 0
+                    : CraftingInventoryPayloadComparison.MatchesLoaded(
+                        persisted, SaveInventory(inventory).GetArray());
+            }
+            catch { return false; }
+        }
 
         internal static string ResourceId(ItemDrop drop)
         {

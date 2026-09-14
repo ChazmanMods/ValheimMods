@@ -1,7 +1,24 @@
 # Runic Agriculture
 
-Runic Agriculture adds bounded cultivator planting patterns, exact-Pickable area harvest,
-confirmed replant previews, keyboard/controller controls, and contextual native build hints.
+Farming should feel like building a thriving homestead, not clicking the same patch of ground hundreds of times. Planting straight rows, checking spacing, harvesting every crop, and starting over can turn a useful system into a repetitive chore.
+
+**Runic Agriculture turns field work into an organized operation.** Preview clean planting patterns before committing them, harvest mature crops across an area, and quickly replant what you gathered.
+
+## Major features
+
+- Plant rows, grids, circles, stars, triangles, half-circles, and trapezoids.
+- See live placement, spacing, terrain, biome, access, and resource feedback.
+- Harvest matching mature crops across a configurable area.
+- Confirm a replant layout using the crop positions you just harvested.
+- Use configurable keyboard, mouse, and controller controls.
+
+## How it feels in-game
+
+You spend your time laying out the field you intended instead of walking backward while clicking every individual seed. Harvests become a satisfying sweep, and the next crop can go into the ground while the layout is still fresh.
+
+## Safety and compatibility
+
+Seeds, stamina, cultivator durability, crop spacing, biome rules, cultivated ground, wards, and ordinary placement checks still matter. Agriculture uses Valheim's normal local planting and interaction paths, does not create free resources, and is independently installable with BepInEx.
 
 ## Installation
 
@@ -122,7 +139,5 @@ preview closes; Agriculture does not draw a separate black menu.
 
 Disabling the mod clears its previews and leaves vanilla agriculture unchanged. It does not own
 crop growth time, yield, biome rules, seed generation, inventory topology, crafting material
-sourcing, or unattended automation. Runtime member checks target Valheim 0.221.12 and fail closed
+sourcing, or unattended automation. Runtime member checks target Valheim 1.0.7 and fail closed
 if required signatures are unavailable.
-
-See `TESTING.md` for the focused verification command and multiplayer acceptance expectations.

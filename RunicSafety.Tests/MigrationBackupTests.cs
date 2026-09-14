@@ -23,6 +23,11 @@ namespace RunicSafety.Tests
             TestRunner.Run("migration backup manifest does not expose raw source path", ManifestEncodesPath);
             TestRunner.Run("migration backup missing source aborts", MissingSourceAborts);
             TestRunner.Run("migration backup duplicate source aborts", DuplicateSourceAborts);
+            TestRunner.Run("migration backup expands a chunked world directory recursively", DirectorySourceBacksUpTree);
+            TestRunner.Run("migration backup applies the file cap to expanded directory members", DirectorySourceHonorsFileLimit);
+            TestRunner.Run("migration backup rejects a chunk directory that changes during copy", DirectorySourceChangeAborts);
+            TestRunner.Run("migration backup rejects an earlier chunk changed while later chunks copy", DirectoryMemberChangesAfterOwnCopyAborts);
+            TestRunner.Run("migration backup refuses reparse chunk directories", DirectorySourceReparseAborts);
             TestRunner.Run("migration backup file limit aborts", FileLimitAborts);
             TestRunner.Run("migration backup size limit aborts", SizeLimitAborts);
             TestRunner.Run("migration backup cancellation aborts", CancellationAborts);
@@ -161,6 +166,111 @@ namespace RunicSafety.Tests
             };
             TestAssert.Equal(MigrationBackupOutcome.InvalidRequest,
                 Service().CreateBackup(Request(temp, sources), CancellationToken.None).Outcome);
+        }
+
+        private static void DirectorySourceBacksUpTree()
+        {
+            using var temp = new TempScope();
+            string world = Path.Combine(temp.Root, "worlds_local", "RunicWorld");
+            string chunks = Path.Combine(world, "chunks");
+            Directory.CreateDirectory(chunks);
+            string metadata = Path.Combine(world, "meta.fwl");
+            string chunk = Path.Combine(chunks, "0_0.chunk");
+            File.WriteAllBytes(metadata, new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(chunk, new byte[] { 4, 5, 6, 7 });
+
+            MigrationBackupResult result = Service().CreateBackup(
+                Request(temp, new[] { new MigrationBackupSource(world, "world") }, maxFiles: 8),
+                CancellationToken.None);
+
+            TestAssert.True(result.Succeeded, result.FailureCode);
+            TestAssert.Equal(2, result.Files.Count);
+            MigrationBackupFile metadataBackup = result.Files.Single(file =>
+                string.Equals(file.OriginalPath, Path.GetFullPath(metadata), StringComparison.OrdinalIgnoreCase));
+            MigrationBackupFile chunkBackup = result.Files.Single(file =>
+                string.Equals(file.OriginalPath, Path.GetFullPath(chunk), StringComparison.OrdinalIgnoreCase));
+            TestAssert.True(metadataBackup.LogicalName.StartsWith("world/", StringComparison.Ordinal));
+            TestAssert.True(chunkBackup.LogicalName.StartsWith("world/", StringComparison.Ordinal));
+            TestAssert.SequenceEqual(File.ReadAllBytes(metadata),
+                File.ReadAllBytes(Path.Combine(result.BackupDirectory, metadataBackup.BackupFileName)));
+            TestAssert.SequenceEqual(File.ReadAllBytes(chunk),
+                File.ReadAllBytes(Path.Combine(result.BackupDirectory, chunkBackup.BackupFileName)));
+        }
+
+        private static void DirectorySourceHonorsFileLimit()
+        {
+            using var temp = new TempScope();
+            string world = Path.Combine(temp.Root, "world");
+            Directory.CreateDirectory(world);
+            File.WriteAllText(Path.Combine(world, "one.chunk"), "one");
+            File.WriteAllText(Path.Combine(world, "two.chunk"), "two");
+            MigrationBackupResult result = Service().CreateBackup(
+                Request(temp, new[] { new MigrationBackupSource(world, "world") }, maxFiles: 1),
+                CancellationToken.None);
+            TestAssert.Equal(MigrationBackupOutcome.FileLimitExceeded, result.Outcome);
+            TestAssert.Equal("configured-file-limit", result.FailureCode);
+        }
+
+        private static void DirectorySourceChangeAborts()
+        {
+            using var temp = new TempScope();
+            string world = Path.Combine(temp.Root, "world");
+            Directory.CreateDirectory(world);
+            string first = Path.Combine(world, "one.chunk");
+            File.WriteAllText(first, "one");
+            var storage = new FaultStorage(first);
+            bool changed = false;
+            storage.OnTrackedSourceOpen = () =>
+            {
+                if (changed) return;
+                changed = true;
+                File.WriteAllText(Path.Combine(world, "two.chunk"), "two");
+            };
+            MigrationBackupResult result = Service(storage: storage).CreateBackup(
+                Request(temp, new[] { new MigrationBackupSource(world, "world") }, maxFiles: 8),
+                CancellationToken.None);
+            TestAssert.Equal(MigrationBackupOutcome.SourceChangedDuringCopy, result.Outcome);
+            TestAssert.Equal("source-directory-changed-during-copy", result.FailureCode);
+        }
+
+        private static void DirectorySourceReparseAborts()
+        {
+            using var temp = new TempScope();
+            string world = Path.Combine(temp.Root, "world");
+            Directory.CreateDirectory(world);
+            File.WriteAllText(Path.Combine(world, "one.chunk"), "one");
+            var storage = new FaultStorage(temp.Source) { PretendBackupRootIsReparse = world };
+            MigrationBackupResult result = Service(storage: storage).CreateBackup(
+                Request(temp, new[] { new MigrationBackupSource(world, "world") }),
+                CancellationToken.None);
+            TestAssert.Equal(MigrationBackupOutcome.InvalidRequest, result.Outcome);
+            TestAssert.Equal("reparse-source-directory-refused", result.FailureCode);
+        }
+
+        private static void DirectoryMemberChangesAfterOwnCopyAborts()
+        {
+            using var temp = new TempScope();
+            string world = Path.Combine(temp.Root, "world");
+            Directory.CreateDirectory(world);
+            string first = Path.Combine(world, "one.chunk");
+            string second = Path.Combine(world, "two.chunk");
+            File.WriteAllText(first, "one");
+            File.WriteAllText(second, "two");
+            var storage = new FaultStorage(second);
+            bool changed = false;
+            storage.OnTrackedSourceOpen = () =>
+            {
+                if (changed) return;
+                changed = true;
+                File.AppendAllText(first, "-changed-after-copy");
+            };
+
+            MigrationBackupResult result = Service(storage: storage).CreateBackup(
+                Request(temp, new[] { new MigrationBackupSource(world, "world") }, maxFiles: 8),
+                CancellationToken.None);
+
+            TestAssert.Equal(MigrationBackupOutcome.SourceChangedDuringCopy, result.Outcome);
+            TestAssert.Equal("source-changed-during-copy", result.FailureCode);
         }
 
         private static void FileLimitAborts()
@@ -534,6 +644,7 @@ namespace RunicSafety.Tests
             internal int ThrowOnManifestReadNumber { get; set; }
             internal Action OnMarkerProtectionOpen { get; set; }
             internal Action<int, string> OnManifestOpen { get; set; }
+            internal Action OnTrackedSourceOpen { get; set; }
             internal string PretendBackupRootIsReparse { get; set; }
             public string GetFullPath(string path) => _inner.GetFullPath(path);
             public string Combine(string left, string right) => _inner.Combine(left, right);
@@ -551,6 +662,8 @@ namespace RunicSafety.Tests
             }
             public Stream OpenRead(string path)
             {
+                if (string.Equals(Path.GetFullPath(path), _trackedSource, StringComparison.OrdinalIgnoreCase))
+                    OnTrackedSourceOpen?.Invoke();
                 if (string.Equals(Path.GetFileName(path), MigrationBackupService.MarkerFileName,
                         StringComparison.Ordinal))
                     OnMarkerProtectionOpen?.Invoke();
@@ -577,6 +690,7 @@ namespace RunicSafety.Tests
             }
             public void DeleteDirectory(string path, bool recursive) => _inner.DeleteDirectory(path, recursive);
             public string[] GetDirectories(string path, string pattern) => _inner.GetDirectories(path, pattern);
+            public string[] GetFiles(string path, string pattern) => _inner.GetFiles(path, pattern);
             public DateTime GetDirectoryCreationUtc(string path) => _inner.GetDirectoryCreationUtc(path);
             public bool IsDirectoryReparsePoint(string path) =>
                 !string.IsNullOrEmpty(PretendBackupRootIsReparse) &&

@@ -58,8 +58,9 @@ namespace RunicPortals.Core
             if (canonical == null || !canonical.StartsWith(prefix, StringComparison.Ordinal))
                 return false;
             string value = canonical.Substring(prefix.Length);
-            return long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out playerId) &&
-                   playerId > 0L && string.Equals(
+            // Valheim generates signed character IDs. Zero alone means uninitialized.
+            return long.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out playerId) &&
+                   playerId != 0L && string.Equals(
                        value, playerId.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
         }
 

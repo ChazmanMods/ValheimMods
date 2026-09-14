@@ -1,5 +1,82 @@
 # Changelog
 
+## 1.2.4 - 2026-09-11
+
+- Added group-invitation popups showing the inviter and group, with Accept and Decline buttons.
+- Accept joins the group and selects it as your active group; Decline removes only your invitation.
+- Added `/group decline <group name>` as a chat alternative.
+- Invitations wait while other menus are open and are checked again by the server when answered.
+- Cancelled, expired, and replaced invitations cannot be accepted through an old popup.
+
+## 1.2.3 - 2026-09-11
+
+- Fixed portals and group features being disabled by the Valheim 1.0.12 version check. Retained Valheim 1.0.7 support.
+
+## 1.2.2 - 2026-09-10
+
+- Fixed group invitations and `/group whoami` failing for characters with valid negative Valheim IDs.
+- Fixed those characters being excluded from group membership, the group dropdown, and portal access/map checks.
+- Added explicit character-readiness errors instead of silently dropping group requests.
+- Clarified when an invited player is connected but their character identity is not yet available.
+
+## 1.2.1 - 2026-09-09
+
+- Updated dialog, statistics, map-coordinate, pin-removal, and portal-registry integration for Valheim 1.0.
+- Re-audited the installed Valheim 1.0.7 client and dedicated-server assemblies and updated the BepInEx dependency to 5.4.2350.
+
+## 1.2.0 - 2026-09-08
+
+- Added a native in-game portal editor with a Standard Pair checkbox, separate Network and Portal
+  Name fields, Public/Private/Group access controls, and arrival/departure direction choices.
+- Added an authenticated Group dropdown populated from the player's chat-managed groups, removing
+  the need to enter internal group identifiers.
+- Standard Pair editing now uses the same form while preserving Valheim's 10-character portal-tag
+  limit and vanilla pairing behavior.
+- Kept destructive mode or metadata changes behind a visible second-save confirmation window so an
+  established route is not replaced by a stray click.
+
+## 1.1.4 - 2026-09-05
+
+- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
+- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.1.3.
+
+## 1.1.3 - 2026-09-01
+
+- Fixed first-use network portals incorrectly reporting `source-ward-denied` while the dedicated
+  server was still loading the source zone's native ward objects.
+- Kept source ward checks fail-closed: an ambiguous source requests the exact nearby server zone
+  and receives up to eight bounded retries over eight seconds, while a known hostile ward is still
+  rejected immediately as `source-ward-denied`.
+- Transient missing ward evidence is now reported accurately as `source-ward-unavailable` instead
+  of being mislabeled as a permission denial.
+
+## 1.1.2 - 2026-09-01
+
+- A valid 1.1.0 directory request received by a 1.1.2 server is now rejected with the explicit
+  `client-update-required` compatibility reason instead of being counted as malformed cheat
+  evidence. The older protocol still cannot authorize or enumerate portals.
+- Identity-unbound requests during the short connection/character handoff remain denied and
+  recorded, but no longer contribute high-confidence automatic-disconnection strikes. Truly
+  malformed envelopes, malformed authenticated commands, and replay conflicts retain escalation.
+
+## 1.1.1 - 2026-09-01
+
+- Fixed first-use Runic portal entry on a dedicated server by binding the request to the exact
+  nearby source ZDO and using the server record as authority. Client revision/network values are
+  now freshness hints, so normal replication lag no longer becomes `source-unavailable`.
+- Fixed the normal large-map P directory so it warms authorized world-wide portal records from the
+  authoritative server instead of showing only zones that this client had previously visited.
+- Added bounded, authenticated, read-only map-directory transport and precise server rejection
+  diagnostics without adding any portal mutation or ownership-transfer RPC.
+
+## 1.1.0 - 2026-08-31
+
+- Added an optional, reflection-only Runic Sentinel security bridge without making Sentinel a
+  required dependency. Rejected malformed, identity-unbound, or replay-conflicting portal requests
+  can now contribute trusted evidence to Sentinel's bounded automatic-enforcement policy.
+- Kept ordinary portal permission denials out of cheat escalation: being outside a ward, group, or
+  network permission is a normal authorization failure and is never treated as proof of cheating.
+
 ## 1.0.0 - 2026-08-29
 
 - Fixed the first network-portal entry on a dedicated client reporting that no destinations were

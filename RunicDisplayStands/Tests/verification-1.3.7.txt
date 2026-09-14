@@ -1,0 +1,45 @@
+PASS  current integer identity wins without legacy access
+PASS  empty legacy identity stays empty
+PASS  non-owner can read legacy identity without mutating ZDO
+PASS  owner migrates legacy identity exactly once
+PASS  zero legacy hash is never persisted
+PASS  successful transfer commits exactly once
+PASS  failed or partially applied inventory action rolls back
+PASS  changed ownership rejects commit and restores inventories
+PASS  serialization exception restores inventories
+PASS  commit false restores inventories
+PASS  commit exception restores inventories
+PASS  snapshot rollback preserves original references and all item metadata
+PASS  partial insertion restores both inventories without losing or duplicating items
+PASS  conservation permits moves and stack splits but detects loss and duplication
+PASS  conservation detects altered quality durability and custom data
+PASS  stand write uses native item data version and exact serialized item
+PASS  stand serialization failure makes zero writes
+PASS  non-owner or destroyed stand makes zero writes
+PASS  stand write exceptions at every setter restore previous fields
+PASS  failed readback rejects the persistent commit
+PASS  clearing a stand clears native and custom item payloads
+PASS  nine named roles fit in two five-column rows
+PASS  full inventory swaps protected armor utility weapon and shield but leaves display hands
+PASS  failed equip restores both inventories and equipment flags
+PASS  partial incoming insertion with no space restores both inventories
+PASS  each armor equip frees temporary ordinary space
+PASS  all weapon and shield presence combinations obey bilateral-only swaps
+PASS  equipped then sheathed then carried weapons are preferred
+PASS  utility presence and equipped-state combinations always keep an available utility worn
+PASS  empty protected utility role is usable with full ordinary inventory
+PASS  native save mapping round-trips all nine distinct roles including three weapons
+PASS  legacy attachments map by category rather than physical index
+PASS  duplicate armor or insufficient native attachments reject without discarding items
+PASS  plugin and package release identity is 1.3.7
+PASS  client Valheim 1.0 API contract
+PASS  server Valheim 1.0 API contract
+PASS  plugin references resolve on client
+PASS  plugin references resolve on dedicated server
+PASS  stable-hash migration source invariants
+PASS  Harmony target and UI safety invariants
+
+Client assembly SHA256: 27A766A8D23A7BD8B6A54FB9AD0452A96C305FB3629B39C40527C09A1C393A84
+Server assembly SHA256: F4EC6D8FC07054058F5E98040B3C1C65BDF0B061FD2ED27087EF48F29586B737
+RunicDisplayStands SHA256: 97FD6F4B435CD458D9CC9B8610532A75328A7EB30A04D3305347E542DC1424B4
+Result: 40/40 passed

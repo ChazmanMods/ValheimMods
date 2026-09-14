@@ -1,0 +1,5 @@
+## Runic Sentinel Client 1.0.1
+
+[General]
+# False creates no profile worker or direct admission RPC handler.
+Enabled = true

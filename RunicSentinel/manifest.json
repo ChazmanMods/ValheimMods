@@ -1,9 +1,10 @@
 {
   "name": "RunicSentinel",
-  "version_number": "1.0.0",
-  "website_url": "",
-  "description": "Pinned-RSA policy verification with a private bounded post-connect compatibility exchange.",
+  "version_number": "1.4.2",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicSentinel",
+  "description": "Secure a modded server with approved mod profiles, admission enforcement, authenticated admins, bans, backups, reports, and an in-game F3 panel.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333"
+    "denikson-BepInExPack_Valheim-5.4.2350",
+    "Chazman-RunicSafety-1.0.2"
   ]
 }

@@ -56,7 +56,7 @@ namespace RunicInventory.Integration
         }
     }
 
-    internal sealed class InventoryRuntime : IInventoryTopologyService, IInventoryProtectionService,
+    internal sealed partial class InventoryRuntime : IInventoryTopologyService, IInventoryProtectionService,
         IInventoryStatusService, IItemProtectionQuery, IDisposable
     {
         private const int MaximumProtectionDiagnostics = 32;
@@ -105,7 +105,7 @@ namespace RunicInventory.Integration
         }
 
         public string ProviderId => Plugin.ModuleId;
-        internal bool TopologyActive => _topologyActive && !_disposed &&
+        internal bool TopologyActive => _topologyActive && !_disposed && !_playerLoadInProgress &&
                                         _mode == InventoryAuthorityMode.AuthoritativeLocal &&
                                         IsAuthoritativeLocal(_player) && LiveDimensionsMatch();
         internal InventoryAuthorityMode Mode => _mode;
@@ -176,8 +176,8 @@ namespace RunicInventory.Integration
             if (TopologyActive)
             {
                 if (InventoryConfig.ShowRoleLabels?.Value ?? true) DrawRoleOverlay();
-                DrawLockedSlotOverlay();
             }
+            if (CanEnforceLocks()) DrawLockedSlotOverlay();
             if (InventoryConfig.ShowInventoryStatus?.Value ?? false)
             {
                 float width = Math.Min(500f, Math.Max(300f, Screen.width - 20f));
@@ -272,7 +272,12 @@ namespace RunicInventory.Integration
 
         internal void OnConfigurationChanged()
         {
-            if (_disposed) return;
+            if (_disposed || _restoringEnabled) return;
+            if (!(InventoryConfig.Enabled?.Value ?? false) && !CanDisable(out string disableReason))
+            {
+                RestoreEnabled(disableReason);
+                return;
+            }
             PickupFilterSet next = PickupFilterSet.Parse(InventoryConfig.FilteredPickupItems.Value);
             _filters = next;
             if (next.Truncated) Diagnostics.Warn("Pickup filter exceeded 128 safe unique rules; additional entries were ignored.");
@@ -289,6 +294,11 @@ namespace RunicInventory.Integration
             if (_disposed || player != _player || player != Player.m_localPlayer) return;
             _playerLoadInProgress = true;
             _loadMetadataRefreshed = false;
+            // Player.Load merges custom data rather than clearing it. Do not let freshly
+            // bootstrapped or previously loaded row markers leak into the incoming character.
+            player.m_customData?.Remove(DedicatedRowPlan.MetadataKey);
+            player.m_customData?.Remove(DedicatedRowPlan.QuiverMetadataKey);
+            player.m_customData?.Remove(TopologyPersistenceCodec.MetadataKey);
         }
 
         internal void OnPlayerLoadCompleted(Player player)
@@ -305,6 +315,177 @@ namespace RunicInventory.Integration
             _playerLoadInProgress = false;
             _loadMetadataRefreshed = false;
             FailClosed("player.load-faulted");
+        }
+
+        internal void OnNativeInventorySizeChanged(Player player, int previousHeight)
+        {
+            if (_disposed || _batch || !player || player != Player.m_localPlayer) return;
+            Inventory inventory = player.GetInventory();
+            if (inventory == null || !ReferenceEquals(inventory, _inventory))
+            {
+                Rebind(player, "native-inventory-resize-rebind");
+                return;
+            }
+
+            int currentWidth = inventory.GetWidth();
+            int currentHeight = inventory.GetHeight();
+            if (currentHeight == previousHeight)
+            {
+                if (_layout != null && !_layout.MatchesNativeDimensions(currentWidth, currentHeight))
+                    Rebind(player, "native-inventory-resize-noop");
+                return;
+            }
+            if (!IsAuthoritativeLocal(player) || _layout == null || _persisted == null ||
+                _layout.Width != currentWidth || _layout.Height != previousHeight ||
+                _persisted.Width != _layout.Width || _persisted.Height != _layout.Height ||
+                currentHeight <= previousHeight)
+            {
+                Rebind(player, "native-inventory-resize-unsupported");
+                FailClosed(currentHeight < previousHeight
+                    ? "topology.native-shrink-unsupported"
+                    : "topology.native-resize-unsupported");
+                return;
+            }
+            if (!TopologyLayout.TryCreate(currentWidth, currentHeight,
+                    out TopologyLayout resizedLayout, out string layoutReason))
+            {
+                Rebind(player, "native-inventory-resize-invalid");
+                FailClosed(layoutReason);
+                return;
+            }
+            if (!NativeInventoryResizePlan.TryCreate(
+                    _layout,
+                    resizedLayout,
+                    _persisted.LockedSlots(),
+                    out IReadOnlyList<InventorySlotCoordinate> resizedLocks,
+                    out string planReason))
+            {
+                FailClosed(planReason);
+                return;
+            }
+            if (!TopologyPersistenceCodec.TryEncode(
+                    resizedLayout, resizedLocks, out string resizedPayload, out string encodeReason))
+            {
+                FailClosed(encodeReason);
+                return;
+            }
+            if (!TopologyPersistenceCodec.TryDecode(
+                    resizedPayload, out PersistedTopologyState resizedState, out string decodeReason))
+            {
+                FailClosed(decodeReason);
+                return;
+            }
+            if (player.m_customData == null ||
+                !player.m_customData.TryGetValue(
+                    TopologyPersistenceCodec.MetadataKey, out string previousPayload) ||
+                !TopologyPersistenceCodec.TryDecode(
+                    previousPayload, out PersistedTopologyState previousState, out _) ||
+                previousState.Width != _layout.Width || previousState.Height != _layout.Height)
+            {
+                FailClosed("persistence.resize-source-unavailable");
+                return;
+            }
+            if (!InventoryEvidence.TryCaptureMutation(
+                    inventory, out IReadOnlyList<ItemMutationEvidence> before, out string evidenceReason))
+            {
+                FailClosed(evidenceReason);
+                return;
+            }
+
+            var changes = new List<PositionChange<ItemDrop.ItemData, Vector2i>>(before.Count);
+            foreach (ItemMutationEvidence record in before)
+            {
+                int destinationRow = NativeInventoryResizePlan.MapRow(
+                    record.Coordinate.y, _layout.SpecialRow, resizedLayout.SpecialRow);
+                if (destinationRow == record.Coordinate.y) continue;
+                changes.Add(new PositionChange<ItemDrop.ItemData, Vector2i>(
+                    record.Item,
+                    record.Coordinate,
+                    new Vector2i(record.Coordinate.x, destinationRow)));
+            }
+            if (!TryEnterMutation("runic.inventory/native-pocket-resize", out IDisposable lease))
+            {
+                FailClosed("topology.native-resize-transaction-busy");
+                return;
+            }
+
+            bool eventDetached = false;
+            bool committed = false;
+            Exception failure = null;
+            Exception rollbackFailure = null;
+            using (lease)
+            {
+                try
+                {
+                    inventory.m_onChanged -= OnInventoryChanged;
+                    eventDetached = true;
+                    if (changes.Count == 0)
+                    {
+                        committed = TryWritePersistedMetadata(resizedPayload, out string writeReason);
+                        if (!committed) failure = new InvalidOperationException(writeReason);
+                    }
+                    else
+                    {
+                        bool publishResizedMetadata = false;
+                        string verifyReason = "evidence.verification-not-run";
+                        committed = AtomicPositionTransaction.TryCommit(
+                            changes,
+                            (item, coordinate) => item.m_gridPos = coordinate,
+                            () =>
+                            {
+                                bool valid = InventoryEvidence.VerifyUnchangedExceptPosition(
+                                                 inventory, before, out verifyReason) &&
+                                             ResizeDestinationsMatch(
+                                                 before, _layout.SpecialRow, resizedLayout.SpecialRow);
+                                publishResizedMetadata = valid;
+                                return valid;
+                            },
+                            () =>
+                            {
+                                if (publishResizedMetadata)
+                                {
+                                    publishResizedMetadata = false;
+                                    if (!TryWritePersistedMetadata(resizedPayload, out string writeReason))
+                                        throw new InvalidOperationException(writeReason);
+                                }
+                                else
+                                {
+                                    RestorePersistedMetadata(previousPayload);
+                                }
+                            },
+                            out failure,
+                            out rollbackFailure);
+                    }
+                    if (committed)
+                    {
+                        _layout = resizedLayout;
+                        _persisted = resizedState;
+                        _mode = InventoryAuthorityMode.AuthoritativeLocal;
+                        _reasonCode = "ok";
+                        _topologyActive = true;
+                    }
+                }
+                finally
+                {
+                    if (eventDetached) inventory.m_onChanged += OnInventoryChanged;
+                }
+            }
+            if (!committed)
+            {
+                if (rollbackFailure != null)
+                    Diagnostics.Error(rollbackFailure,
+                        "Native pocket resize restored item positions but metadata rollback faulted.");
+                Diagnostics.Error(failure ?? new InvalidOperationException("Native resize did not commit."),
+                    "Native pocket resize migration rolled back.");
+                FailClosed("topology.native-resize-migration-failed");
+                return;
+            }
+
+            ValheimContracts.NotifyChanged(inventory);
+            RebuildCache("native-pocket-resize", verifySerialization: true);
+            Diagnostics.Trace(
+                "Native pocket inventory expanded from " + previousHeight + " to " + currentHeight +
+                " rows; Runic's role row and lock metadata migrated atomically.");
         }
 
         internal void FailClosed(string reasonCode)
@@ -330,7 +511,7 @@ namespace RunicInventory.Integration
                 failureCode = "thread.main-required";
                 return false;
             }
-            if (!_player || playerId <= 0L || playerId != _player.GetPlayerID())
+            if (!_player || playerId == 0L || playerId != _player.GetPlayerID())
             {
                 failureCode = "player.not-local";
                 return false;
@@ -374,7 +555,7 @@ namespace RunicInventory.Integration
                 failureCode = _disposed ? "provider.disposed" : "thread.main-required";
                 return false;
             }
-            if (!_player || playerId <= 0L || playerId != _player.GetPlayerID())
+            if (!_player || playerId == 0L || playerId != _player.GetPlayerID())
             {
                 failureCode = "player.not-local";
                 return false;
@@ -403,22 +584,35 @@ namespace RunicInventory.Integration
                 TraceProtectionDecision("not-applicable.not-native-item");
                 return false;
             }
-            // Explicit feature-off is the only native-item state that may yield before a domain
-            // proof. A null config entry is startup uncertainty, not an explicit disable.
-            if ((InventoryConfig.Enabled != null && !InventoryConfig.Enabled.Value) ||
-                _mode == InventoryAuthorityMode.Disabled)
+            // A null config entry is startup uncertainty, not an explicit disable. Stable modes in
+            // which Inventory itself yields to vanilla are also outside the active lock domain;
+            // optional consumers must not turn those compatibility states into a global gameplay
+            // denial merely because this plugin is installed.
+            ItemProtectionAvailability availability = ItemProtectionAvailabilityPolicy.Classify(
+                InventoryConfig.Enabled?.Value ?? true,
+                _mode,
+                _reasonCode,
+                _disposed,
+                _playerLoadInProgress);
+            if (availability == ItemProtectionAvailability.NotApplicable)
             {
-                TraceProtectionDecision("not-applicable.feature-disabled");
+                TraceProtectionDecision("not-applicable.provider-inactive-" + (int)_mode);
                 return false;
             }
-            // For an enabled native item, provider/lifecycle unavailability cannot prove that the
-            // reference belongs to an external inventory. Keep the query in-domain Unknown so a
-            // consumer cannot mutate through a load, rebind, shutdown, or authority transition.
-            if (_disposed)
+            if (availability == ItemProtectionAvailability.Unknown)
             {
-                TraceProtectionDecision("unknown.provider-disposed");
+                TraceProtectionDecision(
+                    _disposed
+                        ? "unknown.provider-disposed"
+                        : _playerLoadInProgress
+                            ? "unknown.player-load-in-progress"
+                            : "unknown.provider-state");
                 return true;
             }
+
+            // In an enabled authoritative mode, provider/lifecycle unavailability cannot prove
+            // that the reference belongs to an external inventory. Keep the query in-domain
+            // Unknown so a consumer cannot mutate through a rebind or authority transition.
             if (_inventory == null)
             {
                 TraceProtectionDecision("unknown.inventory-unavailable");
@@ -561,7 +755,7 @@ namespace RunicInventory.Integration
                 state = _repairAllowanceDepth > 0
                     ? ItemProtectionState.Unlocked
                     : ItemProtectionDomain.ClassifyExactMember(
-                        itemY == _layout.SpecialRow,
+                        TopologyActive && itemY == _layout.SpecialRow || IsQuiverReservedRow(itemY),
                         _persisted.IsLocked(itemX, itemY));
                 return true;
             }
@@ -592,11 +786,12 @@ namespace RunicInventory.Integration
         internal bool TryFindEmptySlot(Inventory inventory, bool topFirst, out Vector2i result)
         {
             result = new Vector2i(-1, -1);
-            if (!TopologyActive || !ReferenceEquals(inventory, _inventory) || _layout == null) return false;
+            if ((!TopologyActive && !HasDedicatedRow(inventory)) || !ReferenceEquals(inventory, _inventory)) return false;
+            int generalRows = inventory.GetHeight() - (HasQuiverLayout ? 3 : 1);
             if (topFirst)
             {
-                for (int y = 0; y < _layout.SpecialRow; y++)
-                    for (int x = 0; x < _layout.Width; x++)
+                for (int y = 0; y < generalRows; y++)
+                    for (int x = 0; x < inventory.GetWidth(); x++)
                         if (inventory.GetItemAt(x, y) == null)
                         {
                             result = new Vector2i(x, y);
@@ -605,8 +800,8 @@ namespace RunicInventory.Integration
             }
             else
             {
-                for (int y = _layout.SpecialRow - 1; y >= 0; y--)
-                    for (int x = 0; x < _layout.Width; x++)
+                for (int y = generalRows - 1; y >= 0; y--)
+                    for (int x = 0; x < inventory.GetWidth(); x++)
                         if (inventory.GetItemAt(x, y) == null)
                         {
                             result = new Vector2i(x, y);
@@ -624,6 +819,15 @@ namespace RunicInventory.Integration
             Vector2i destinationPosition)
         {
             if (_disposed || item == null) return true;
+            if (!AllowPositionedAddition(destination, item, destinationPosition.x, destinationPosition.y, false))
+            {
+                Notify("Runic Inventory: that slot accepts only its labeled equipment or quick-use item type.");
+                return false;
+            }
+            // A swap must validate the item moving back into the source role as well.
+            ItemDrop.ItemData displaced = destination?.GetItemAt(destinationPosition.x, destinationPosition.y);
+            if (displaced != null && !AllowPositionedAddition(source, displaced, item.m_gridPos.x, item.m_gridPos.y, false))
+                return false;
             if (ReferenceEquals(source, _inventory) && IsLocked(item))
             {
                 Notify("Runic Inventory: that slot is locked.");
@@ -636,7 +840,7 @@ namespace RunicInventory.Integration
                 Notify("Runic Inventory: the destination slot is locked.");
                 return false;
             }
-            if (!TopologyActive || !ReferenceEquals(destination, _inventory) || _layout == null) return true;
+            if ((!TopologyActive && !HasDedicatedRow(destination)) || !ReferenceEquals(destination, _inventory) || _layout == null) return true;
             if (destinationPosition.x < 0 || destinationPosition.x >= _layout.Width ||
                 destinationPosition.y < 0 || destinationPosition.y >= _layout.Height) return true;
             if (_layout.TryRoleAt(destinationPosition.x, destinationPosition.y, out InventoryRoleKind targetRole) &&
@@ -654,33 +858,6 @@ namespace RunicInventory.Integration
                 return false;
             }
             return amount > 0;
-        }
-
-        internal void ReplaceLockedFreeStack(
-            Inventory inventory,
-            string sharedName,
-            int quality,
-            float worldLevel,
-            ref ItemDrop.ItemData result)
-        {
-            if (!ReferenceEquals(inventory, _inventory) || result == null || !IsLocked(result)) return;
-            result = null;
-            List<ItemDrop.ItemData> items = inventory.GetAllItems();
-            if (items == null || items.Count > InventoryTopologySnapshot.MaximumNativeSlots)
-            {
-                FailClosed("locks.stack-evidence-bound");
-                return;
-            }
-            foreach (ItemDrop.ItemData candidate in items)
-            {
-                if (candidate?.m_shared == null || IsLocked(candidate)) continue;
-                if (candidate.m_shared.m_name == sharedName && candidate.m_quality == quality &&
-                    candidate.m_stack < candidate.m_shared.m_maxStackSize && candidate.m_worldLevel == worldLevel)
-                {
-                    result = candidate;
-                    return;
-                }
-            }
         }
 
         internal void AdjustCanAddItem(
@@ -724,6 +901,7 @@ namespace RunicInventory.Integration
 
         internal bool AllowItemAction(Humanoid actor, Inventory inventory, ItemDrop.ItemData item, string action)
         {
+            if (SlotLockUsePolicy.AllowsUse(action)) return true;
             if (_disposed || actor != _player || !ReferenceEquals(inventory, _inventory) || item == null || !IsLocked(item))
                 return true;
             Notify("Runic Inventory: unlock that slot before " + action + ".");
@@ -912,6 +1090,13 @@ namespace RunicInventory.Integration
                 Notify("Runic Inventory: sort rows were rejected (" + rowReason + ").");
                 return;
             }
+            if (HasQuiverLayout)
+            {
+                var ordinaryRows = new List<int>();
+                foreach (int row in rows) if (!IsQuiverReservedRow(row)) ordinaryRows.Add(row);
+                rows = ordinaryRows;
+            }
+            if (rows.Count == 0) return;
             if (!TryEnterMutation("runic.inventory/sort", out IDisposable lease))
             {
                 Notify("Runic Inventory: another inventory transaction is active; sort was skipped.");
@@ -997,7 +1182,7 @@ namespace RunicInventory.Integration
 
         internal void ToggleFocusedLock(string source)
         {
-            if (!RequireAuthoritativeTopology("lock")) return;
+            if (!RequireLockState()) return;
             InventoryGrid grid = InventoryGui.instance?.m_playerGrid;
             if (!grid || !ReferenceEquals(grid.GetInventory(), _inventory) ||
                 !ValheimContracts.TryFocusedSlot(grid, out Vector2i focused) ||
@@ -1009,7 +1194,7 @@ namespace RunicInventory.Integration
             ToggleLockAt(focused);
         }
 
-        internal bool TryTogglePointerLock(InventoryGrid grid)
+        internal bool TryTogglePointerLock(InventoryGrid grid, UIInputHandler clicked)
         {
             if (_disposed || !ZInput.GetKey(KeyCode.LeftAlt, false) ||
                 InventoryGui.instance == null || !InventoryGui.IsVisible() ||
@@ -1017,8 +1202,8 @@ namespace RunicInventory.Integration
                 !ReferenceEquals(grid.GetInventory(), _inventory))
                 return false;
 
-            if (!RequireAuthoritativeTopology("lock")) return true;
-            if (!ValheimContracts.TryFocusedSlot(grid, out Vector2i focused) ||
+            if (!RequireLockState()) return true;
+            if (!ValheimContracts.TryClickedSlot(grid, clicked, out Vector2i focused) ||
                 focused.x < 0 || focused.x >= _layout.Width ||
                 focused.y < 0 || focused.y >= _layout.Height)
             {
@@ -1057,6 +1242,8 @@ namespace RunicInventory.Integration
                 }
                 _persisted = next;
                 RebuildCache("lock-changed");
+                Notify("Runic Inventory: slot " + (focused.x + 1) + "," + (focused.y + 1) +
+                       (wasLocked ? " unlocked." : " locked; protected from Quick Stack and Store All."));
             }
         }
 
@@ -1076,6 +1263,11 @@ namespace RunicInventory.Integration
         internal void UseQuick(InventoryRoleKind role, string source)
         {
             if (!RequireAuthoritativeTopology("quick-slot")) return;
+            if (source == "keyboard" && BetterArcheryCompatibility.QuiverShortcutDown())
+            {
+                Notify("Runic Inventory: this shortcut selects quiver ammunition. Choose different Quick 1-3 keys to use both features.");
+                return;
+            }
             InventorySlotCoordinate coordinate = _layout.Coordinate(role);
             ItemDrop.ItemData item = _inventory.GetItemAt(coordinate.X, coordinate.Y);
             if (item == null)
@@ -1083,11 +1275,8 @@ namespace RunicInventory.Integration
                 Notify("Runic Inventory: " + RoleLabel(role) + " is empty.");
                 return;
             }
-            if (_persisted.IsLocked(coordinate.X, coordinate.Y))
-            {
-                Notify("Runic Inventory: " + RoleLabel(role) + " is locked.");
-                return;
-            }
+            // A retained quick-slot item remains usable; locking protects its position
+            // and storage transfers, not the native UseItem action below.
             if (!TopologyLayout.Accepts(role, ValheimContracts.Category(item)))
             {
                 FailClosed("topology.quick-role-invalid");
@@ -1126,7 +1315,7 @@ namespace RunicInventory.Integration
             _topologyActive = false;
         }
 
-        private void Rebind(Player player, string reason)
+        private void Rebind(Player player, string reason, int? requestedNativeRows = null)
         {
             if (_disposed) return;
             _repairAllowanceDepth = 0;
@@ -1156,6 +1345,25 @@ namespace RunicInventory.Integration
             }
             _inventory.m_onChanged += OnInventoryChanged;
             bool authoritative = IsAuthoritativeLocal(player);
+            if (authoritative && !_playerLoadInProgress && !EnsureDedicatedRow(requestedNativeRows, out string rowReason))
+            {
+                // Also reject unsafe disabling from config files or while no character was loaded.
+                if (!(InventoryConfig.Enabled?.Value ?? false) &&
+                    player.m_customData?.ContainsKey(DedicatedRowPlan.MetadataKey) == true)
+                {
+                    RestoreEnabled(rowReason == "extra-row.clear-space-before-shrinking"
+                        ? "Cannot disable RunicInventory: there is no room to move the items in the extra row. Free normal inventory slots first."
+                        : "Cannot disable RunicInventory: the extra-row items could not be safely relocated.");
+                    Rebind(player, "unsafe-disable-rejected");
+                    return;
+                }
+                _disableCleanupPending = false;
+                FailClosed(rowReason);
+                Notify("Runic Inventory: " + (rowReason == "extra-row.clear-space-before-shrinking"
+                    ? "there is no room to move the extra-row items. Free normal inventory slots first."
+                    : "equipment row could not be prepared (" + rowReason + "). No items were removed."));
+                return;
+            }
             if (!(InventoryConfig.Enabled?.Value ?? false))
             {
                 // Disabling the feature is also an authoritative metadata-removal request. Discover
@@ -1320,7 +1528,6 @@ namespace RunicInventory.Integration
                     _mode == InventoryAuthorityMode.MigrationSafeCompatibility &&
                     IsRoleContentCompatibilityReason(_reasonCode) && _layout != null && _persisted != null &&
                     IsAuthoritativeLocal(_player);
-                bool enforceLocks = CanEnforceLocks() || roleRecoveryCandidate;
                 foreach (ItemDrop.ItemData item in items)
                 {
                     if (item == null || item.m_shared == null || item.m_stack <= 0 ||
@@ -1336,7 +1543,7 @@ namespace RunicInventory.Integration
                     }
                     int maximum = Math.Max(1, item.m_shared.m_maxStackSize);
                     int capacity = Math.Max(0, maximum - item.m_stack);
-                    if (capacity > 0 && !(enforceLocks && _persisted.IsLocked(item.m_gridPos.x, item.m_gridPos.y)))
+                    if (capacity > 0)
                     {
                         var key = new StackCapacityKey(item.m_shared.m_name, item.m_quality, item.m_worldLevel);
                         _stackCapacity.TryGetValue(key, out int existing);
@@ -1349,7 +1556,7 @@ namespace RunicInventory.Integration
                     for (int x = 0; x < _inventory.GetWidth(); x++)
                     {
                         if (_inventory.GetItemAt(x, y) != null) continue;
-                        if (reserveSpecialRow && _layout != null && y == _layout.SpecialRow) continue;
+                        if (reserveSpecialRow && _layout != null && y == _layout.SpecialRow || IsQuiverReservedRow(y)) continue;
                         _freePickupSlots++;
                     }
                 }
@@ -1656,7 +1863,17 @@ namespace RunicInventory.Integration
             _persisted.Width == _layout.Width && _persisted.Height == _layout.Height && _persisted.IsLocked(x, y);
 
         private bool CanEnforceLocks() =>
-            TopologyActive && _mode == InventoryAuthorityMode.AuthoritativeLocal && IsAuthoritativeLocal(_player);
+            !_disposed && !_playerLoadInProgress && (InventoryConfig.Enabled?.Value ?? false) &&
+            IsAuthoritativeLocal(_player) && LiveDimensionsMatch() && _persisted != null &&
+            _persisted.Width == _layout.Width && _persisted.Height == _layout.Height &&
+            (TopologyActive || ItemProtectionAvailabilityPolicy.SupportsIndependentLocks(_mode, _reasonCode));
+
+        private bool RequireLockState()
+        {
+            if (CanEnforceLocks()) return true;
+            Notify("Runic Inventory: slot locks are unavailable (" + _reasonCode + ").");
+            return false;
+        }
 
         private bool LiveDimensionsMatch() =>
             _inventory != null && _layout != null &&
@@ -1689,6 +1906,35 @@ namespace RunicInventory.Integration
                 catch (Exception) { }
                 return false;
             }
+        }
+
+        private void RestorePersistedMetadata(string payload)
+        {
+            if (_player?.m_customData == null || string.IsNullOrEmpty(payload))
+                throw new InvalidOperationException("Previous topology metadata is unavailable.");
+            _player.m_customData[TopologyPersistenceCodec.MetadataKey] = payload;
+            if (!_player.m_customData.TryGetValue(
+                    TopologyPersistenceCodec.MetadataKey, out string restored) ||
+                !string.Equals(restored, payload, StringComparison.Ordinal))
+                throw new InvalidOperationException("Previous topology metadata did not restore.");
+        }
+
+        private static bool ResizeDestinationsMatch(
+            IReadOnlyList<ItemMutationEvidence> before,
+            int previousSpecialRow,
+            int currentSpecialRow)
+        {
+            if (before == null) return false;
+            foreach (ItemMutationEvidence record in before)
+            {
+                if (record?.Item == null) return false;
+                int expectedRow = NativeInventoryResizePlan.MapRow(
+                    record.Coordinate.y, previousSpecialRow, currentSpecialRow);
+                if (record.Item.m_gridPos.x != record.Coordinate.x ||
+                    record.Item.m_gridPos.y != expectedRow)
+                    return false;
+            }
+            return true;
         }
 
         private bool TryRefreshLoadMetadata()
@@ -1730,6 +1976,11 @@ namespace RunicInventory.Integration
             if (!IsAuthoritativeLocal(_player))
             {
                 FailClosed("config.disable-owner-pending");
+                return false;
+            }
+            if (!EnsureDedicatedRow(null, out string rowReason))
+            {
+                FailClosed(rowReason);
                 return false;
             }
             if (!TryEnterMutation(
@@ -1815,8 +2066,9 @@ namespace RunicInventory.Integration
 
         private void TraceProtectionDecision(string decisionCode, Exception exception = null)
         {
-            if (!(InventoryConfig.VerboseDiagnostics?.Value ?? false)) return;
             string decision = BoundReason(decisionCode, "protection.unknown");
+            bool unknown = decision.StartsWith("unknown.", StringComparison.Ordinal);
+            if (!unknown && !(InventoryConfig.VerboseDiagnostics?.Value ?? false)) return;
             string topology = BoundReason(_reasonCode, "runtime.unknown");
             string exceptionType = exception == null ? string.Empty : SafeWord(exception.GetType().Name);
             string signature = decision + "|" + (int)_mode + "|" + topology + "|" + exceptionType;
@@ -1825,10 +2077,11 @@ namespace RunicInventory.Integration
                 if (_protectionDiagnostics.Count >= MaximumProtectionDiagnostics ||
                     !_protectionDiagnostics.Add(signature)) return;
             }
-            Diagnostics.Trace(
-                "Item protection decision=" + decision + " mode=" + _mode +
-                " topology=" + topology +
-                (exceptionType.Length == 0 ? "." : " exception=" + exceptionType + "."));
+            string message = "Item protection decision=" + decision + " mode=" + _mode +
+                             " topology=" + topology +
+                             (exceptionType.Length == 0 ? "." : " exception=" + exceptionType + ".");
+            if (unknown) Diagnostics.Warn(message);
+            else Diagnostics.Trace(message);
         }
 
         private void Notify(string text)

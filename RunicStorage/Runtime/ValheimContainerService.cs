@@ -6,16 +6,21 @@ using ItemData = ItemDrop.ItemData;
 
 namespace RunicStorage.Runtime
 {
+    internal enum StorageMoveFailure { None, InvalidInput, OwnershipChanged, NoCapacity, SnapshotInvalid }
+
     internal static class ValheimContainerService
     {
         private static readonly MethodInfo CheckAccessMethod =
             AccessTools.Method(typeof(Container), "CheckAccess");
         private static readonly MethodInfo InventoryChangedMethod =
-            AccessTools.Method(typeof(Inventory), "Changed");
+            AccessTools.Method(
+                typeof(Inventory),
+                "Changed",
+                new[] { typeof(bool), typeof(bool) });
         private static readonly MethodInfo InventoryAddAtMethod = AccessTools.Method(
             typeof(Inventory),
             "AddItem",
-            new[] { typeof(ItemData), typeof(int), typeof(int), typeof(int) });
+            new[] { typeof(ItemData), typeof(int), typeof(int), typeof(int), typeof(bool) });
 
         internal static bool CanDiscover(
             Container container,
@@ -30,17 +35,23 @@ namespace RunicStorage.Runtime
             if (container.m_checkGuardStone && !PrivateArea.CheckAccess(
                     container.transform.position, 0f, flash: false, wardCheck: false))
                 return false;
-            if (requireWritable && !container.IsOwner()) return false;
-            if (requireWritable && !allowCurrentUse &&
-                (container.IsInUse() || container.m_wagon != null && container.m_wagon.InUse()))
-                return false;
             try
             {
-                return CheckAccessMethod != null &&
-                       (bool)CheckAccessMethod.Invoke(container, new object[] { playerId });
+                if (CheckAccessMethod == null ||
+                    !(bool)CheckAccessMethod.Invoke(container, new object[] { playerId }))
+                    return false;
+                return !requireWritable ||
+                       StorageContainerAuthority.TryClaimWritableInventory(
+                           container,
+                           allowCurrentUse);
             }
             catch { return false; }
         }
+
+        // Native RemoveItem leaves the detached object's count unchanged after a full move.
+        internal static bool HasSourceStack(Inventory source, ItemData item)
+            => source != null && item != null && item.m_stack > 0 &&
+               source.GetAllItems().Contains(item);
 
         internal static int MoveUpTo(
             Inventory source,
@@ -51,10 +62,19 @@ namespace RunicStorage.Runtime
             StorageMutationLease playerMutationLease = null,
             Container sourceContainer = null,
             Container destinationContainer = null)
+            => MoveUpTo(source, destination, sourceItem, maximumQuantity, out _,
+                playerInventoryOwner, playerMutationLease, sourceContainer, destinationContainer);
+
+        internal static int MoveUpTo(
+            Inventory source, Inventory destination, ItemData sourceItem, int maximumQuantity,
+            out StorageMoveFailure failure,
+            Player playerInventoryOwner = null, StorageMutationLease playerMutationLease = null,
+            Container sourceContainer = null, Container destinationContainer = null)
         {
+            failure = StorageMoveFailure.InvalidInput;
             if (source == null || destination == null || sourceItem == null ||
                 ReferenceEquals(source, destination) || maximumQuantity <= 0 ||
-                sourceItem.m_stack <= 0) return 0;
+                !HasSourceStack(source, sourceItem)) return 0;
 
             Inventory playerInventory = playerInventoryOwner?.GetInventory();
             bool touchesPlayer = ReferenceEquals(source, playerInventory) ||
@@ -67,6 +87,7 @@ namespace RunicStorage.Runtime
                  !playerMutationLease.Covers(playerInventoryOwner, playerInventory)))
                 throw new InvalidOperationException(
                     "A player inventory move requires its exact local owner lease.");
+            failure = StorageMoveFailure.OwnershipChanged;
             if (!StillOwned(sourceContainer) || !StillOwned(destinationContainer)) return 0;
 
             int requested = Math.Min(maximumQuantity, sourceItem.m_stack);
@@ -81,13 +102,24 @@ namespace RunicStorage.Runtime
                     capacity = AddSaturated(capacity, maximumStack);
 
             int quantity = Math.Min(requested, capacity);
-            if (quantity <= 0 || !CanRoundTrip(source) || !CanRoundTrip(destination)) return 0;
-            ZPackage sourceBefore = SaveInventory(source);
-            ZPackage destinationBefore = SaveInventory(destination);
+            failure = StorageMoveFailure.NoCapacity;
+            if (quantity <= 0) return 0;
+            StorageInventorySnapshot sourceBefore;
+            StorageInventorySnapshot destinationBefore;
             try
             {
-                Inventory sourceShadow = CloneInventory(source);
-                Inventory destinationShadow = CloneInventory(destination);
+                sourceBefore = new StorageInventorySnapshot(source);
+                destinationBefore = new StorageInventorySnapshot(destination);
+            }
+            catch
+            {
+                failure = StorageMoveFailure.SnapshotInvalid;
+                return 0;
+            }
+            try
+            {
+                Inventory sourceShadow = sourceBefore.CreateShadow();
+                Inventory destinationShadow = destinationBefore.CreateShadow();
                 ItemData shadowItem = sourceShadow.GetItemAt(
                     sourceItem.m_gridPos.x, sourceItem.m_gridPos.y);
                 if (shadowItem == null)
@@ -101,11 +133,12 @@ namespace RunicStorage.Runtime
                     !string.Equals(SaveInventory(source).GetBase64(), expectedSource, StringComparison.Ordinal) ||
                     !string.Equals(SaveInventory(destination).GetBase64(), expectedDestination, StringComparison.Ordinal))
                     throw new InvalidOperationException("An endpoint changed during Storage publication.");
+                failure = StorageMoveFailure.None;
                 return quantity;
             }
-            catch (Exception failure)
+            catch (Exception publicationFailure)
             {
-                var restoreFailures = new List<Exception> { failure };
+                var restoreFailures = new List<Exception> { publicationFailure };
                 try { RestoreInventory(source, sourceBefore, playerInventoryOwner, playerMutationLease); }
                 catch (Exception exception) { restoreFailures.Add(exception); }
                 try { RestoreInventory(destination, destinationBefore, playerInventoryOwner, playerMutationLease); }
@@ -120,78 +153,26 @@ namespace RunicStorage.Runtime
 
         internal static void RestoreInventory(
             Inventory inventory,
-            ZPackage backup,
+            StorageInventorySnapshot backup,
             Player inventoryOwner = null,
             StorageMutationLease playerMutationLease = null)
         {
             if (inventory == null) throw new ArgumentNullException(nameof(inventory));
             if (backup == null) throw new ArgumentNullException(nameof(backup));
-            if (inventoryOwner != null &&
-                (playerMutationLease == null ||
-                 !playerMutationLease.Covers(inventoryOwner, inventory)))
+            // A player lease must cover only its own inventory, not the paired chest.
+            if (inventoryOwner != null && ReferenceEquals(inventoryOwner.GetInventory(), inventory) &&
+                (playerMutationLease == null || !playerMutationLease.Covers(inventoryOwner, inventory)))
                 throw new InvalidOperationException("The player restore lease is unavailable.");
-
-            byte[] targetBytes = backup.GetArray();
-            string target = Convert.ToBase64String(targetBytes);
-            LoadExactShadow(inventory, targetBytes, target);
-            byte[] originalBytes = SaveInventory(inventory).GetArray();
-            string original = Convert.ToBase64String(originalBytes);
-            LoadExactShadow(inventory, originalBytes, original);
             Action changed = inventory.m_onChanged;
             inventory.m_onChanged = null;
-            try
-            {
-                inventory.Load(new ZPackage(targetBytes));
-                if (!string.Equals(SaveInventory(inventory).GetBase64(), target, StringComparison.Ordinal))
-                    throw new InvalidOperationException("The Storage snapshot did not round-trip.");
-            }
-            catch (Exception applyFailure)
-            {
-                try
-                {
-                    inventory.Load(new ZPackage(originalBytes));
-                    if (!string.Equals(SaveInventory(inventory).GetBase64(), original, StringComparison.Ordinal))
-                        throw new InvalidOperationException("The original Storage inventory did not restore.");
-                }
-                catch (Exception restoreFailure)
-                {
-                    throw new InvalidOperationException(
-                        "Storage snapshot application and rollback both failed.",
-                        new AggregateException(applyFailure, restoreFailure));
-                }
-                throw new InvalidOperationException(
-                    "Storage snapshot application was rejected and restored.", applyFailure);
-            }
-            finally
-            {
-                inventory.m_onChanged = changed;
-            }
-            InventoryChangedMethod?.Invoke(inventory, Array.Empty<object>());
-            if (!string.Equals(SaveInventory(inventory).GetBase64(), target, StringComparison.Ordinal))
-                throw new InvalidOperationException("The restored Storage inventory changed during publication.");
+            try { backup.Restore(inventory); }
+            finally { inventory.m_onChanged = changed; }
+            InventoryChangedMethod?.Invoke(inventory, new object[] { false, false });
+            backup.Verify(inventory);
         }
 
-        internal static Inventory CloneInventory(Inventory source)
-        {
-            byte[] bytes = SaveInventory(source).GetArray();
-            return LoadExactShadow(source, bytes, Convert.ToBase64String(bytes));
-        }
-
-        internal static Inventory LoadExactShadow(
-            Inventory shape,
-            byte[] payload,
-            string expected)
-        {
-            if (shape == null || payload == null || payload.Length == 0 ||
-                string.IsNullOrEmpty(expected))
-                throw new InvalidOperationException("An exact Storage snapshot is unavailable.");
-            var shadow = new Inventory(
-                shape.GetName(), null, shape.GetWidth(), shape.GetHeight());
-            shadow.Load(new ZPackage(payload));
-            if (!string.Equals(SaveInventory(shadow).GetBase64(), expected, StringComparison.Ordinal))
-                throw new InvalidOperationException("A Storage snapshot is not an exact round trip.");
-            return shadow;
-        }
+        internal static Inventory CloneInventory(Inventory source) =>
+            new StorageInventorySnapshot(source).CreateShadow();
 
         internal static ZPackage SaveInventory(Inventory source)
         {
@@ -200,7 +181,7 @@ namespace RunicStorage.Runtime
             return package;
         }
 
-        internal static bool CanRoundTrip(Inventory inventory)
+        internal static bool CanSnapshotExactly(Inventory inventory)
         {
             try { CloneInventory(inventory); return true; }
             catch { return false; }
@@ -253,7 +234,7 @@ namespace RunicStorage.Runtime
             if (InventoryAddAtMethod == null ||
                 !(bool)InventoryAddAtMethod.Invoke(
                     destination,
-                    new object[] { clone, quantity, slot.x, slot.y }) ||
+                    new object[] { clone, quantity, slot.x, slot.y, false }) ||
                 clone.m_stack != 0)
                 throw new InvalidOperationException("The destination changed during an exact move.");
         }
@@ -269,6 +250,7 @@ namespace RunicStorage.Runtime
             string.Equals(left.m_crafterName ?? string.Empty,
                 right.m_crafterName ?? string.Empty, StringComparison.Ordinal) &&
             left.m_pickedUp == right.m_pickedUp && left.m_equipped == right.m_equipped &&
+            left.m_cheated == right.m_cheated &&
             left.m_durability.Equals(right.m_durability) &&
             DictionaryEquals(left.m_customData, right.m_customData);
 

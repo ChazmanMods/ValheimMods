@@ -14,7 +14,7 @@ namespace RunicSafety.Tests
         internal static void Register()
         {
             TestRunner.Run("installed Valheim contract audit succeeds", FullAuditSucceeds);
-            TestRunner.Run("installed Valheim version is exactly 0.221.12", VersionExact);
+            TestRunner.Run("installed Valheim version is exactly 1.0.12", VersionExact);
             TestRunner.Run("vanilla tombstone calls MoveInventoryToGrave", TombstoneUsesVanillaMove);
             TestRunner.Run("vanilla grave adopts original topology dimensions", GraveAdoptsDimensions);
             TestRunner.Run("vanilla grave preserves quest and equipped source items", GravePreservesExcludedItems);
@@ -35,7 +35,11 @@ namespace RunicSafety.Tests
 
         private static void VersionExact()
         {
-            TestAssert.Equal("0.221.12", ValheimContracts.ReadGameVersion());
+            TestAssert.True(ValheimContracts.IsSupportedVersion("1.0.7"));
+            TestAssert.True(ValheimContracts.IsSupportedVersion("1.0.12"));
+            foreach (string unsupported in new[] { "1.0.8", "1.0.13", "l-1.0.12", "1.0.120", "", null })
+                TestAssert.True(!ValheimContracts.IsSupportedVersion(unsupported));
+            TestAssert.Equal("1.0.12", ValheimContracts.ReadGameVersion());
             TestAssert.Equal(ValheimContracts.AuditedGameVersion, ValheimContracts.ReadGameVersion());
         }
 
@@ -126,10 +130,11 @@ namespace RunicSafety.Tests
         private static void ProtocolConstantsExact()
         {
             Type version = typeof(Player).Assembly.GetType("Version", true);
-            TestAssert.Equal(36u, (uint)version.GetField("m_networkVersion").GetRawConstantValue());
-            TestAssert.Equal(106, (int)version.GetField("m_itemDataVersion").GetRawConstantValue());
-            TestAssert.Equal(43, (int)version.GetField("m_playerVersion").GetRawConstantValue());
-            TestAssert.Equal(37, (int)version.GetField("m_worldVersion").GetRawConstantValue());
+            TestAssert.Equal(40u, (uint)version.GetField("c_networkVersion").GetRawConstantValue());
+            TestAssert.Equal(109, Convert.ToInt32(version.GetField("c_ItemDataVersion").GetRawConstantValue()));
+            TestAssert.Equal(46, Convert.ToInt32(version.GetField("c_PlayerVersion").GetRawConstantValue()));
+            TestAssert.Equal(41, Convert.ToInt32(version.GetField("c_WorldVersion").GetRawConstantValue()));
+            TestAssert.Equal(33, Convert.ToInt32(version.GetField("c_PlayerDataVersion").GetRawConstantValue()));
         }
 
         private static void AdminLookupExact()

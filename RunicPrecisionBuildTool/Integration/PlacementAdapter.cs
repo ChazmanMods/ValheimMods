@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using Splatform;
 using UnityEngine;
 
 namespace QuietBuildRotation
@@ -96,7 +97,9 @@ namespace QuietBuildRotation
                     typeof(Transform).MakeByRefType(),
                     typeof(List<Piece>));
                 PieceSetCreatorMethod = AccessTools.Method(
-                    typeof(Piece), nameof(Piece.SetCreator), new[] { typeof(long) });
+                    typeof(Piece),
+                    nameof(Piece.SetCreator),
+                    new[] { typeof(long), typeof(PlatformUserID) });
                 if (PieceSetCreatorMethod == null || PieceSetCreatorMethod.ReturnType != typeof(void))
                     throw new MissingMethodException(typeof(Piece).FullName, nameof(Piece.SetCreator));
 

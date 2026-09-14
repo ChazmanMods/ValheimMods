@@ -37,6 +37,8 @@ namespace RunicAgriculture.Tests
             Run("area harvest is independent while replant stays contextual", AreaHarvestAndReplantAreSeparated);
             Run("harvest matches exact prefabs and prioritizes the aimed object", HarvestPolicyIsExact);
             Run("planting uses native owner-local placement", PlantingUsesNativePlacement);
+            Run("Valheim 1.0 placement and inventory notification signatures are exact",
+                ValheimMutationSignaturesAreExact);
             Run("free-build and no-cost modes do not charge seeds", FreeBuildDoesNotChargeSeeds);
             Run("nearby seed chests are bounded, authorized, and owner-local", NearbySeedChestsAreSafe);
             Run("red preview is reserved for resource shortage", PreviewColorsAreUnambiguous);
@@ -45,7 +47,7 @@ namespace RunicAgriculture.Tests
             Run("gameplay assembly has no Foundation references", AssemblyHasNoFoundationReferences);
             Run("project and manifest have no Foundation dependencies", PackagingIsIndependent);
             Run("durable and authority runtimes were removed", DurableArchitectureIsAbsent);
-            Run("version remains 1.0.0", VersionIsUnchanged);
+            Run("candidate version is 1.0.3", VersionIsUnchanged);
 
             System.Console.WriteLine(
                 $"RunicAgriculture focused tests: {_passed} passed, {_failed} failed.");
@@ -516,6 +518,31 @@ namespace RunicAgriculture.Tests
                 "Planting still uses the suite-wide mutation gate.");
         }
 
+        private static void ValheimMutationSignaturesAreExact()
+        {
+            const BindingFlags all = BindingFlags.Instance | BindingFlags.Public |
+                                     BindingFlags.NonPublic;
+            MethodInfo place = typeof(Player).GetMethod(
+                nameof(Player.PlacePiece),
+                all,
+                null,
+                new[]
+                {
+                    typeof(Piece), typeof(UnityEngine.Vector3), typeof(UnityEngine.Quaternion),
+                    typeof(bool), typeof(bool)
+                },
+                null);
+            TestAssert.NotNull(place, "Valheim 1.0 Player.PlacePiece signature is unavailable.");
+
+            MethodInfo changed = typeof(Inventory).GetMethod(
+                "Changed",
+                all,
+                null,
+                new[] { typeof(bool), typeof(bool) },
+                null);
+            TestAssert.NotNull(changed, "Valheim 1.0 Inventory.Changed signature is unavailable.");
+        }
+
         private static void FreeBuildDoesNotChargeSeeds()
         {
             TestAssert.True(PlantingGridPolicy.ConsumesSeedResources(false, false),
@@ -545,6 +572,8 @@ namespace RunicAgriculture.Tests
                 "container.m_rootObjectOverride",
                 "m_nview",
                 "InventoryMatchesZdo",
+                "GetByteArray(ZDOVars.s_items)",
+                "AgricultureInventoryPayloadComparison.MatchesLoaded",
                 "ValidateSnapshotRoundTrip"
             })
                 TestAssert.True(source.Contains(required, StringComparison.Ordinal),
@@ -652,8 +681,8 @@ namespace RunicAgriculture.Tests
 
         private static void VersionIsUnchanged()
         {
-            TestAssert.Equal("1.0.0", Plugin.Version, "Plugin version changed.");
-            TestAssert.Equal(new Version(1, 0, 0, 0), typeof(Plugin).Assembly.GetName().Version,
+            TestAssert.Equal("1.0.3", Plugin.Version, "Plugin version changed.");
+            TestAssert.Equal(new System.Version(1, 0, 3, 0), typeof(Plugin).Assembly.GetName().Version,
                 "Assembly version changed.");
         }
 

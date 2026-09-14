@@ -514,6 +514,18 @@ namespace Runic.Foundation.Persistence
         public string ReasonCode { get; }
     }
 
+    public sealed class RpcAdmissionRejectedEventArgs : EventArgs
+    {
+        internal RpcAdmissionRejectedEventArgs(string reasonCode)
+        {
+            ReasonCode = string.IsNullOrEmpty(reasonCode)
+                ? "admission-rejected"
+                : RunicIdentifier.Require(reasonCode, nameof(reasonCode));
+        }
+
+        public string ReasonCode { get; }
+    }
+
     public sealed class RpcSendResult
     {
         internal RpcSendResult(bool accepted, string reasonCode, RpcRequestHandle handle)
@@ -534,6 +546,7 @@ namespace Runic.Foundation.Persistence
         bool IsServerConnectionReady { get; }
         event EventHandler<RpcPeerEventArgs> PeerReady;
         event EventHandler<RpcPeerEventArgs> PeerDisconnected;
+        event EventHandler<RpcAdmissionRejectedEventArgs> AdmissionRejected;
 
         IDisposable RegisterEndpoint(
             ModuleRegistration module,

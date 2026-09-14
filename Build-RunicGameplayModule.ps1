@@ -15,6 +15,8 @@ param(
         'RunicSafety',
         'RunicVelocity',
         'RunicSentinel',
+        'RunicSentinelServer',
+        'RunicSentinelClient',
         'RunicWorldEngine')]
     [string]$Module,
 
@@ -232,6 +234,32 @@ $liveEvidence = Get-Content -LiteralPath $resolvedLiveEvidence -Raw | ConvertFro
 if ([string]$liveEvidence.status -cne 'PASS') {
     throw "$Module live evidence is not PASS."
 }
+$liveCompletedUtc = if ($liveEvidence.PSObject.Properties.Name -contains 'completed_utc') {
+    $value = $liveEvidence.completed_utc
+    if ($value -is [DateTime]) {
+        ([DateTime]$value).ToUniversalTime().ToString(
+            'o',
+            [Globalization.CultureInfo]::InvariantCulture)
+    }
+    else {
+        $parsed = [DateTimeOffset]::MinValue
+        if (-not [DateTimeOffset]::TryParse(
+            [string]$value,
+            [Globalization.CultureInfo]::InvariantCulture,
+            [Globalization.DateTimeStyles]::RoundtripKind,
+            [ref]$parsed)) {
+            throw "$Module live evidence completed_utc is not an ISO-8601 timestamp."
+        }
+        $parsed.ToUniversalTime().ToString(
+            'o',
+            [Globalization.CultureInfo]::InvariantCulture)
+    }
+}
+else {
+    (Get-Item -LiteralPath $resolvedLiveEvidence).LastWriteTimeUtc.ToString(
+        'o',
+        [Globalization.CultureInfo]::InvariantCulture)
+}
 $dllHash = Get-FileSha256Hex -Path $dllPath
 $liveDllHash = Get-FileSha256Hex -Path $resolvedLiveDll
 if ($dllHash -cne $liveDllHash) {
@@ -317,14 +345,7 @@ try {
         live_dll = $resolvedLiveDll
         live_dll_sha256 = $liveDllHash
         live_status = 'PASS'
-        live_completed_utc = if ($liveEvidence.PSObject.Properties.Name -contains 'completed_utc') {
-            [string]$liveEvidence.completed_utc
-        }
-        else {
-            (Get-Item -LiteralPath $resolvedLiveEvidence).LastWriteTimeUtc.ToString(
-                'o',
-                [Globalization.CultureInfo]::InvariantCulture)
-        }
+        live_completed_utc = $liveCompletedUtc
     }
     $evidencePath = Join-Path $releaseRoot 'RELEASE-EVIDENCE.json'
     $evidenceJson = $releaseEvidence | ConvertTo-Json -Depth 8

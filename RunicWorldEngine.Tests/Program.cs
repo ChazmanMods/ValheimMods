@@ -10,12 +10,27 @@ using RunicWorldEngine.Core;
 
 namespace RunicWorldEngine.Tests
 {
-    internal static class Program
+    internal static partial class Program
     {
         private static int Main()
         {
             var tests = new (string Name, Action Run)[]
             {
+                ("byte rates seed, wrap and reject resets", ByteRatesAreSafe),
+                ("independent payload meters count both directions without resetting game statistics", PayloadMetersAreIndependent),
+                ("send-window pressure respects transport estimates and unavailable data", SendWindowEstimatesAreSafe),
+                ("health warnings sustain, cool down and recover", WarningsAreBounded),
+                ("ownership observation is bounded and distinguishes transitions", TransfersAreBounded),
+                ("client and dedicated player-cap consumers are fully audited", CapacityTargetsAreAudited),
+                ("changed cap methods are rejected", ChangedCapacityIsRejected),
+                ("missing cap methods are rejected", MissingCapacityIsRejected),
+                ("unexpected nested limit is rejected", ExtraCapacityIsRejected),
+                ("transport host slots and cap bounds are consistent", CapacityBoundsAreCorrect),
+                ("capacity rewrites preserve unrelated constants and control-flow metadata", CapacityRewritesAreExact),
+                ("capacity rewrites reject ambiguous or missing matches without partial mutation", CapacityRewritesRejectAmbiguity),
+                ("client, Windows server and Linux diagnostic contracts match", HealthContractsAreExact),
+                ("audited raw method IL matches the independent PE reader", RawMethodCodeIsExact),
+                ("health runtime does not reset statistics or scan world objects", HealthIsReadOnly),
                 ("observatory captures and resets interval rates", ObservatoryRatesAreIntervals),
                 ("observatory clamps invalid aggregate inputs", ObservatoryInputsAreClamped),
                 ("observatory sequence saturates instead of wrapping", SequenceNeverWraps),
@@ -24,10 +39,11 @@ namespace RunicWorldEngine.Tests
                 ("runtime uses constant-time aggregate reads", RuntimeUsesAggregateReads),
                 ("load completion cannot bypass the sampling ceiling", SamplingCeilingCannotBeForced),
                 ("timing finalizers preserve installed exceptions", TimingFinalizersPreserveExceptions),
-                ("world engine has no destructive world path", RuntimeIsReadOnly),
+                ("world engine has no destructive world path", RuntimeHasNoDestructiveWorldPath),
+                ("save smoothing stays on the Unity thread and is time bounded", SaveSmoothingIsSafe),
                 ("disabled mode is startup inert", DisabledModeIsInert),
                 ("release identity and standalone surface align", ReleaseSurfaceIsAligned),
-                ("documentation and configuration describe observatory-only scope", DocumentationIsAligned),
+                ("documentation and configuration describe observability and save smoothing", DocumentationIsAligned),
                 ("icon is an exact 256 by 256 PNG", IconIsExact)
             };
             int failed = 0;
@@ -108,8 +124,9 @@ namespace RunicWorldEngine.Tests
             Method(manager, "CreateNewZDO", "ZDOID", "UnityEngine.Vector3", "System.Int32");
             Method(manager, "HandleDestroyedZDO", "ZDOID");
             Method(manager, "UpdateStats", "System.Single");
-            Method(manager, "SaveAsync", "System.IO.BinaryWriter");
-            Method(manager, "Load", "System.IO.BinaryReader", "System.Int32");
+            Method(manager, "SaveChunks", "System.String", "FileHelpers/FileSource");
+            Method(manager, "LoadChunks", "System.String", "FileHelpers/FileSource", "Version/World");
+            Method(manager, "Load", "System.IO.BinaryReader", "Version/World");
         }
 
         private static void RuntimeUsesAggregateReads()
@@ -137,11 +154,11 @@ namespace RunicWorldEngine.Tests
         private static void TimingFinalizersPreserveExceptions()
         {
             string source = Read("RunicWorldEngine", "Integration", "HarmonyPatches.cs");
-            Equal(2, Count(source, "return __exception;"));
-            Equal(2, Count(source, "private static Exception Finalizer"));
+            Equal(3, Count(source, "return __exception;"));
+            Equal(3, Count(source, "private static Exception Finalizer"));
         }
 
-        private static void RuntimeIsReadOnly()
+        private static void RuntimeHasNoDestructiveWorldPath()
         {
             string all = string.Join("\n", Directory.GetFiles(
                     PathOf("RunicWorldEngine"), "*.cs", SearchOption.AllDirectories)
@@ -157,6 +174,23 @@ namespace RunicWorldEngine.Tests
             Contains(all, "Unknown data is preserved");
         }
 
+        private static void SaveSmoothingIsSafe()
+        {
+            string source = Read("RunicWorldEngine", "Integration", "SaveSmoothingRuntime.cs");
+            foreach (string token in new[]
+                     {
+                         "if (!(WorldEngineConfig.SmoothWorldSaves?.Value ?? true) || sync) return true;",
+                         "MaximumSaveDeferralSeconds", "SaveWorldMethod.Invoke", "thread.IsAlive",
+                         "Time.unscaledDeltaTime", "_pending = false"
+                     })
+                Contains(source, token);
+            foreach (string forbidden in new[]
+                     {
+                         "Task.Run", "new Thread", "ThreadPool", "GetSaveClone", "ZDOExtraData"
+                     })
+                False(source.Contains(forbidden, StringComparison.Ordinal));
+        }
+
         private static void DisabledModeIsInert()
         {
             string plugin = Read("RunicWorldEngine", "Plugin.cs");
@@ -170,7 +204,7 @@ namespace RunicWorldEngine.Tests
         private static void ReleaseSurfaceIsAligned()
         {
             string plugin = Read("RunicWorldEngine", "Plugin.cs");
-            Contains(plugin, "public const string Version = \"1.0.0\"");
+            Contains(plugin, "public const string Version = \"1.2.0\"");
             string project = Read("RunicWorldEngine", "RunicWorldEngine.csproj");
             False(project.Contains("ProjectReference", StringComparison.Ordinal));
             False(project.Contains("BoundedOwnershipRegistry", StringComparison.Ordinal));
@@ -178,13 +212,13 @@ namespace RunicWorldEngine.Tests
 
             using JsonDocument manifest = JsonDocument.Parse(Read("RunicWorldEngine", "manifest.json"));
             Equal("RunicWorldEngine", manifest.RootElement.GetProperty("name").GetString());
-            Equal("1.0.0", manifest.RootElement.GetProperty("version_number").GetString());
+            Equal("1.2.0", manifest.RootElement.GetProperty("version_number").GetString());
             string[] dependencies = manifest.RootElement.GetProperty("dependencies")
                 .EnumerateArray().Select(value => value.GetString()).ToArray();
-            Sequence(new[] { "denikson-BepInExPack_Valheim-5.4.2333" }, dependencies);
+            Sequence(new[] { "denikson-BepInExPack_Valheim-5.4.2350" }, dependencies);
 
             using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(BuiltPlugin());
-            Equal(new Version(1, 0, 0, 0), assembly.Name.Version);
+            Equal(new Version(1, 2, 0, 0), assembly.Name.Version);
             False(assembly.MainModule.AssemblyReferences.Any(reference =>
                 reference.Name.StartsWith("Runic", StringComparison.OrdinalIgnoreCase)));
             False(assembly.MainModule.Types.Any(type =>
@@ -199,15 +233,20 @@ namespace RunicWorldEngine.Tests
             string readme = Read("RunicWorldEngine", "README.md");
             foreach (string token in new[]
                      {
-                         "Valheim 0.221.12", "only runtime requirement is BepInExPack",
-                         "observe-only", "unknown third-party data is always preserved",
-                         "one-second ceiling", "failed sample is discarded"
+                         "unknown third-party data is always preserved", "one-second ceiling",
+                         "failed sample is discarded", "Save smoothing", "Synchronous shutdown saves",
+                         "never touches Unity objects", "worker thread"
                      })
+                Contains(readme, token);
+            foreach (string token in new[] { "runicworld_status", "five sites", "six on a dedicated server", "PlayFab", "Send-window pressure", "Authentication and character-vault checks remain in effect" })
                 Contains(readme, token);
             string config = Read("RunicWorldEngine", "RunicWorldEngine.cfg.example");
             Contains(config, "Enabled = true");
             Contains(config, "LogPeriodicSummary = false");
             Contains(config, "SummaryIntervalSeconds = 30");
+            Contains(config, "[Save Smoothing]");
+            Contains(config, "FrameBudgetMilliseconds = 24");
+            Contains(config, "MaximumDeferralSeconds = 5");
             False(config.Contains("Core module", StringComparison.Ordinal));
         }
 

@@ -18,6 +18,7 @@
     <Reference Include="assembly_guiutils" HintPath="$(GAME_MANAGED)\assembly_guiutils.dll" Private="false" />
     <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="false" />
     <Reference Include="SoftReferenceableAssets" HintPath="$(GAME_MANAGED)\SoftReferenceableAssets.dll" Private="false" />
+    <Reference Include="Splatform" HintPath="$(GAME_MANAGED)\Splatform.dll" Private="false" />
     <Reference Include="System.Net.Http" HintPath="$(GAME_MANAGED)\System.Net.Http.dll" Private="false" />
     <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />

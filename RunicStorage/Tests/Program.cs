@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Mono.Cecil;
 using RunicStorage.Engine;
 
 namespace RunicStorage.Tests
@@ -12,7 +13,33 @@ namespace RunicStorage.Tests
         {
             var tests = new (string Name, Action Run)[]
             {
+                ("PaletteAndApproximation", ChestLabelTests.PaletteAndApproximation),
+                ("BiomeAutomaticLabel", ChestLabelTests.BiomeAutomaticLabel),
+                ("LabelFacesReadFromChestFront", ChestLabelTests.LabelFacesReadFromChestFront),
+                ("WoodenChestLabelSurfacePositions", ChestLabelTests.WoodenChestLabelSurfacePositions),
+                ("InstalledModalInputContractsMatch", InstalledModalInputContractsMatch),
+                ("MarkupCannotInjectTags", ChestLabelTests.MarkupCannotInjectTags),
+                ("BackgroundMigrationAndValidation", ChestLabelTests.BackgroundMigrationAndValidation),
+                ("ExceptionsBiomeAndOrdering", ChestGroupTests.ExceptionsBiomeAndOrdering),
+                ("ModdedTypeGroups", ChestGroupTests.ModdedTypeGroups),
+                ("CustomGroupsAreReusableSnapshots", ChestGroupTests.CustomGroupsAreReusableSnapshots),
+                ("LegacyFoodRulesMigrateLosslessly", ChestGroupTests.LegacyFoodRulesMigrateLosslessly),
+                ("CuratedIdsExistInInstalledGame", ChestGroupTests.CuratedIdsExistInInstalledGame),
+                ("MemorySurvivesEmptyAndReload", ChestRulesTests.MemorySurvivesEmptyAndReload),
+                ("ExplicitRulesOverrideContents", ChestRulesTests.ExplicitRulesOverrideContents),
+                ("FoodBoundariesAndPriority", ChestRulesTests.FoodBoundariesAndPriority),
+                ("LabelAndRulesRoundTrip", ChestRulesTests.LabelAndRulesRoundTrip),
+                ("RejectMalformedAndBoundMemory", ChestRulesTests.RejectMalformedAndBoundMemory),
+                ("EmptyChestRuleUsesGuardedTransfer", ChestRulesTests.EmptyChestRuleUsesGuardedTransfer),
+                ("DetachedStacksCannotMoveAgain", TransferRegressionTests.DetachedStacksCannotMoveAgain),
+                ("WornToolDoesNotBlockTransfer", TransferRegressionTests.WornToolDoesNotBlockTransfer),
+                ("RollbackPreservesReferencesAndMetadata", TransferRegressionTests.RollbackPreservesReferencesAndMetadata),
+                ("FullAndOwnershipFailuresAreDistinct", TransferRegressionTests.FullAndOwnershipFailuresAreDistinct),
+                ("PermissionAndLeaseChecksRemain", TransferRegressionTests.PermissionAndLeaseChecksRemain),
+                ("ChestPayloadAllowsOnlyNativeRounding", TransferRegressionTests.ChestPayloadAllowsOnlyNativeRounding),
+                ("PartialStacksAndDifferentMetadataArePreserved", TransferRegressionTests.PartialStacksAndDifferentMetadataArePreserved),
                 ("PlannerUsesNearestEligibleContainers", PlannerUsesNearestEligibleContainers),
+                ("InstalledValheim10StorageContractsMatch", InstalledValheim10StorageContractsMatch),
                 ("PlannerSkipsProtectedSources", PlannerSkipsProtectedSources),
                 ("PlannerReportsRemainder", PlannerReportsRemainder),
                 ("CoverageReportsRadiusAndCandidateTruncation", CoverageReportsRadiusAndCandidateTruncation),
@@ -21,6 +48,7 @@ namespace RunicStorage.Tests
                 ("ActionSelectionKeepsSortPriority", ActionSelectionKeepsSortPriority),
                 ("MutationRoutesRequireLocalOwnership", MutationRoutesRequireLocalOwnership),
                 ("SearchRemainsReadOnly", SearchRemainsReadOnly),
+                ("SearchDoesNotDescribeUnsynchronizedContainersAsEmpty", SearchDoesNotDescribeUnsynchronizedContainersAsEmpty),
                 ("SearchAndRestockWorkWithInventoryOpen", SearchAndRestockWorkWithInventoryOpen),
                 ("SearchPanelKeepsCursorAndKeyboardFocus", SearchPanelKeepsCursorAndKeyboardFocus),
                 ("SearchPanelOwnsPrimaryAttackUntilClickRelease", SearchPanelOwnsPrimaryAttackUntilClickRelease),
@@ -31,7 +59,9 @@ namespace RunicStorage.Tests
                 ("ControllerSessionConsumesOnlyOwnedSequence", ControllerSessionConsumesOnlyOwnedSequence),
                 ("QuickStackDiagnosticsAreSpecific", QuickStackDiagnosticsAreSpecific),
 				("FirstUseReconcilesLoadedContainers", FirstUseReconcilesLoadedContainers),
+				("FirstUseQuickStackRetryIsBounded", FirstUseQuickStackRetryIsBounded),
                 ("HoverRequiresExactDisclosureEvidence", HoverRequiresExactDisclosureEvidence),
+                ("HoverReadsValheimOneRawInventoryPayload", HoverReadsValheimOneRawInventoryPayload),
                 ("HoverRangeIsPhysicallyBounded", HoverRangeIsPhysicallyBounded),
                 ("MissingInventoryIsOptional", MissingInventoryIsOptional),
                 ("PackageHasNoRuntimeFoundationDependency", PackageHasNoRuntimeFoundationDependency),
@@ -51,6 +81,95 @@ namespace RunicStorage.Tests
             Console.WriteLine((tests.Length - failures) + "/" + tests.Length + " tests passed.");
             return failures == 0 ? 0 : 1;
         }
+
+        private static void InstalledModalInputContractsMatch()
+        {
+            string managed = Path.Combine(Environment.GetEnvironmentVariable("VALHEIM_INSTALL") ?? @"E:\SteamLibrary\steamapps\common\Valheim", "valheim_Data", "Managed");
+            using var game = AssemblyDefinition.ReadAssembly(Path.Combine(managed, "assembly_valheim.dll"));
+            using var input = AssemblyDefinition.ReadAssembly(Path.Combine(managed, "assembly_utils.dll"));
+            var controller = Type(game, "PlayerController");
+            Field(Type(game, "Container"), "m_open", "UnityEngine.GameObject");
+            Field(Type(game, "Container"), "m_closed", "UnityEngine.GameObject");
+            var gate = controller.Methods.Single(m => m.Name == "TakeInput" && m.Parameters.Count == 1);
+            True(!gate.IsStatic && gate.ReturnType.FullName == "System.Boolean" && gate.Parameters[0].ParameterType.FullName == "System.Boolean");
+            True(controller.Methods.Single(m => m.Name == "FixedUpdate").Body.Instructions.Any(i => i.Operand is MethodReference r && r.FullName == gate.FullName));
+            var controls = Type(game, "Player").Methods.Single(m => m.Name == "SetControls");
+            Equal(12, controls.Parameters.Count);
+            Equal("movedir", controls.Parameters[0].Name);
+            True(controls.Parameters.Skip(1).All(p => p.ParameterType.FullName == "System.Boolean"));
+            True(new[] { "attack", "attackHold", "secondaryAttack", "secondaryAttackHold", "block", "blockHold", "jump", "crouch", "run", "autoRun", "dodge" }
+                .SequenceEqual(controls.Parameters.Skip(1).Select(p => p.Name)));
+            var camera = Type(game, "GameCamera");
+            Method(camera, "UpdateCamera", "System.Single"); Method(camera, "UpdateFreeFly", "System.Single");
+            True(camera.Methods.Single(m => m.Name == "UpdateCamera").Body.Instructions.Any(i => i.Operand is MethodReference r && r.Name == "GetMouseScrollWheel"));
+            var zinput = Type(input, "ZInput");
+            Equal("System.Single", zinput.Methods.Single(m => m.Name == "GetMouseScrollWheel").ReturnType.FullName);
+            Equal("UnityEngine.Vector2", zinput.Methods.Single(m => m.Name == "GetMouseDelta").ReturnType.FullName);
+        }
+
+        private static void InstalledValheim10StorageContractsMatch()
+        {
+            string install = Environment.GetEnvironmentVariable("VALHEIM_INSTALL") ??
+                             @"E:\SteamLibrary\steamapps\common\Valheim";
+            string managed = Path.Combine(install, "valheim_Data", "Managed");
+            using AssemblyDefinition game = AssemblyDefinition.ReadAssembly(
+                Path.Combine(managed, "assembly_valheim.dll"));
+            using AssemblyDefinition input = AssemblyDefinition.ReadAssembly(
+                Path.Combine(managed, "assembly_utils.dll"));
+
+            TypeDefinition container = Type(game, "Container");
+            Method(container, "Awake");
+            Method(container, "OnDestroyed");
+            Method(container, "CheckForChanges");
+            Method(container, "GetHoverText");
+            Method(container, "CheckAccess", "System.Int64");
+            Method(container, "Load");
+            Method(container, "Save");
+            Field(container, "m_loading", "System.Boolean");
+
+            TypeDefinition gui = Type(game, "InventoryGui");
+            Field(gui, "m_currentContainer", "Container");
+            Field(gui, "m_dragItem", "ItemDrop/ItemData");
+            Field(gui, "m_splitDialog", "SplitDialog");
+
+            TypeDefinition inventory = Type(game, "Inventory");
+            Method(inventory, "Changed", "System.Boolean", "System.Boolean");
+            Method(inventory, "AddItem", "ItemDrop/ItemData", "System.Int32",
+                "System.Int32", "System.Int32", "System.Boolean");
+            Method(inventory, "Load", "ZPackage");
+            Method(inventory, "Save", "ZPackage");
+
+            TypeDefinition zinput = Type(input, "ZInput");
+            Method(zinput, "GetButton", "System.String");
+            Method(zinput, "GetButtonDown", "System.String");
+            Method(zinput, "GetButtonUp", "System.String");
+            Method(zinput, "GetButtonPressedTimer", "System.String");
+            Method(zinput, "GetButtonLastPressedTimer", "System.String");
+            Method(zinput, "GetKeyDown", "UnityEngine.KeyCode", "System.Boolean");
+        }
+
+        private static TypeDefinition Type(AssemblyDefinition assembly, string fullName) =>
+            assembly.MainModule.Types.FirstOrDefault(value => value.FullName == fullName) ??
+            throw new InvalidOperationException("Installed type is missing: " + fullName);
+
+        private static MethodDefinition Method(
+            TypeDefinition type,
+            string name,
+            params string[] parameters) =>
+            type.Methods.FirstOrDefault(method =>
+                method.Name == name && method.Parameters.Select(parameter =>
+                    parameter.ParameterType.FullName).SequenceEqual(parameters)) ??
+            throw new InvalidOperationException(
+                "Installed method is missing: " + type.FullName + "." + name);
+
+        private static FieldDefinition Field(
+            TypeDefinition type,
+            string name,
+            string fieldType) =>
+            type.Fields.FirstOrDefault(field => field.Name == name &&
+                                                field.FieldType.FullName == fieldType) ??
+            throw new InvalidOperationException(
+                "Installed field is missing: " + type.FullName + "." + name);
 
         private static void PlannerUsesNearestEligibleContainers()
         {
@@ -141,6 +260,15 @@ namespace RunicStorage.Tests
                 new StorageActionRequest(StorageActionKind.Search, StorageInputOrigin.Keyboard),
                 Context(mutationOwner: false));
             Equal(StorageRouteOutcome.Execute, decision.Outcome);
+        }
+
+        private static void SearchDoesNotDescribeUnsynchronizedContainersAsEmpty()
+        {
+            string actions = File.ReadAllText(Path.Combine(
+                Root(), "Runtime", "StorageActions.cs"));
+            True(actions.Contains("inventory.synchronization-unavailable", StringComparison.Ordinal));
+            True(actions.Contains("could not be synchronized", StringComparison.Ordinal));
+            True(actions.Contains("else\n\t\t\t{\n\t\t\t\tMessage(player, \"Runic Storage: the nearby synchronized containers are empty.\")", StringComparison.Ordinal));
         }
 
         private static void SearchAndRestockWorkWithInventoryOpen()
@@ -317,7 +445,7 @@ namespace RunicStorage.Tests
 
             foreach (string vanillaContract in new[]
                      {
-                         "InventoryGui.instance", "inventory.m_splitPanel", "m_takeAllButton",
+                         "InventoryGui.instance", "inventory.m_splitDialog", "m_takeAllButton",
                          "m_playerName", "TMP_FontAsset", "FindBestPanelImage",
                          "PanelSprite = panel.sprite", "ButtonSprite = source.image.sprite",
                          "ButtonSprites = source.spriteState", "ButtonColors = source.colors"
@@ -407,10 +535,28 @@ namespace RunicStorage.Tests
 			True(index.Contains("RefreshLoadedContainers()", StringComparison.Ordinal));
 			True(index.Contains("FindObjectsByType<Container>", StringComparison.Ordinal));
 			True(actions.Contains(
-				"_index.RefreshLoadedContainers()", StringComparison.Ordinal));
-			True(actions.IndexOf("_index.RefreshLoadedContainers()", StringComparison.Ordinal) <
+				"_index.RefreshLoadedContainers(origin, num, out int loadedInRange)", StringComparison.Ordinal));
+			True(actions.IndexOf("_index.RefreshLoadedContainers(origin, num, out int loadedInRange)", StringComparison.Ordinal) <
 				actions.IndexOf("_index.Nearest(", StringComparison.Ordinal),
 				"Loaded containers must be reconciled before the first spatial query.");
+		}
+
+		private static void FirstUseQuickStackRetryIsBounded()
+		{
+			True(FirstUseDiscoveryRetryPolicy.ShouldRetry(0, 0, 0, 0));
+			True(FirstUseDiscoveryRetryPolicy.ShouldRetry(0, 12, 3, 0));
+			False(FirstUseDiscoveryRetryPolicy.ShouldRetry(0, 12, 0, 0));
+			False(FirstUseDiscoveryRetryPolicy.ShouldRetry(0, 12, 3, 1));
+			False(FirstUseDiscoveryRetryPolicy.ShouldRetry(
+				FirstUseDiscoveryRetryPolicy.MaximumRetries, 0, 0, 0));
+
+			string root = Root();
+			string actions = File.ReadAllText(Path.Combine(
+				root, "Runtime", "StorageActions.cs"));
+			string plugin = File.ReadAllText(Path.Combine(root, "Plugin.cs"));
+			True(actions.Contains("discovery.pending", StringComparison.Ordinal));
+			True(actions.Contains("TickDeferredActions", StringComparison.Ordinal));
+			True(plugin.Contains("_actions.TickDeferredActions(context)", StringComparison.Ordinal));
 		}
 
         private static void HoverRequiresExactDisclosureEvidence()
@@ -419,6 +565,26 @@ namespace RunicStorage.Tests
                 true, true, true, true, true, true, true, true, true, true, true, false);
             True(HoverDisclosurePolicy.AllowsBeforeSynchronization(facts));
             False(HoverDisclosurePolicy.Allows(facts));
+        }
+
+        private static void HoverReadsValheimOneRawInventoryPayload()
+        {
+            string root = Root();
+            string hover = File.ReadAllText(Path.Combine(
+                root,
+                "Runtime",
+                "ContainerHoverContents.cs"));
+            string authority = File.ReadAllText(Path.Combine(
+                root,
+                "Runtime",
+                "StorageContainerAuthority.cs"));
+            True(hover.Contains("GetByteArray(ZDOVars.s_items)", StringComparison.Ordinal));
+            False(hover.Contains("GetString(ZDOVars.s_items", StringComparison.Ordinal));
+            True(authority.Contains("GetByteArray(ZDOVars.s_items)", StringComparison.Ordinal));
+            False(authority.Contains("GetString(ZDOVars.s_items", StringComparison.Ordinal));
+            False(authority.Contains("GetBool(ZDOVars.s_inUse", StringComparison.Ordinal));
+            False(hover.Contains("GetBool(ZDOVars.s_inUse", StringComparison.Ordinal));
+            True(hover.Contains("StorageInventoryPayloadComparison.MatchesLoaded", StringComparison.Ordinal));
         }
 
         private static void HoverRangeIsPhysicallyBounded()
@@ -465,9 +631,15 @@ namespace RunicStorage.Tests
                 root, "Runtime", "StorageContainerAuthority.cs"));
             string service = File.ReadAllText(Path.Combine(
                 root, "Runtime", "ValheimContainerService.cs"));
-            True(authority.Contains("container.IsOwner()", StringComparison.Ordinal));
-            True(service.Contains("requireWritable && !container.IsOwner()", StringComparison.Ordinal));
+            True(authority.Contains("view.ClaimOwnership()", StringComparison.Ordinal));
+            True(authority.Contains("zdo.GetInt(ZDOVars.s_inUse, 0)", StringComparison.Ordinal));
+            True(service.Contains("TryClaimWritableInventory", StringComparison.Ordinal));
             True(service.Contains("StorageMutationLease", StringComparison.Ordinal));
+            string actions = File.ReadAllText(Path.Combine(root, "Runtime", "StorageActions.cs"));
+            True(actions.Contains("if ((int)item.m_privacy == 0)", StringComparison.Ordinal),
+                "Personal chests must remain excluded.");
+            True(actions.Contains("discovery.UnavailableContainers", StringComparison.Ordinal),
+                "Busy chests must not be described as unauthorized.");
         }
 
         private static QuickStackDestination Destination(string id, float distance, int capacity) =>

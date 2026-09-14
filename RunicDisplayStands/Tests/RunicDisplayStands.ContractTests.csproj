@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">E:\Valheim Mods\ChazmanModsRepo\artifacts\Valheim1.0\Migration-20260909\BepInExPack-5.4.2350\BepInExPack_Valheim\BepInEx</BEPINEX_PROFILE>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Patches\AttachedItemIdentity.cs" Link="AttachedItemIdentity.cs" />
+    <Compile Include="..\Transfers\*.cs" Link="Transfers\%(Filename)%(Extension)" />
+    <Reference Include="Mono.Cecil">
+      <HintPath>$(BEPINEX_PROFILE)\core\Mono.Cecil.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

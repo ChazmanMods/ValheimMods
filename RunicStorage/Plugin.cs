@@ -13,14 +13,14 @@ using ItemData = ItemDrop.ItemData;
 
 namespace RunicStorage;
 
-[BepInPlugin("chazman.RunicStorage", "Runic Storage", "1.0.0")]
+[BepInPlugin("chazman.RunicStorage", "Runic Storage", "1.2.4")]
 public sealed class Plugin : BaseUnityPlugin
 {
 	public const string Guid = "chazman.RunicStorage";
 
 	public const string Name = "Runic Storage";
 
-	public const string Version = "1.0.0";
+	public const string Version = "1.2.4";
 
 	private readonly List<KeybindingRegistration> _keybindingRegistrations = new List<KeybindingRegistration>();
 
@@ -36,6 +36,8 @@ public sealed class Plugin : BaseUnityPlugin
 
 	private StorageActions _actions;
 	private StorageSearchPanel _searchPanel;
+	private ChestRulesPanel _rulesPanel;
+	private static ChestRulesPanel ActiveRulesPanel;
 
 	private bool _readyMessageShown;
 
@@ -45,12 +47,14 @@ public sealed class Plugin : BaseUnityPlugin
 
 	private static StorageSearchPanel ActiveSearchPanel { get; set; }
 
-	internal static bool SearchPanelOpen => ActiveSearchPanel?.IsOpen ?? false;
+	internal static bool SearchPanelOpen => (ActiveSearchPanel?.IsOpen ?? false) || (ActiveRulesPanel?.IsOpen ?? false);
+	internal static bool RulesPanelOpen => ActiveRulesPanel?.IsOpen ?? false;
 
 	private void Awake()
 	{
 		Log = Logger;
 		PluginConfig.Bind(Config);
+		ChestGroupRuntime.Bind(Config);
 		try
 		{
 			Config.SettingChanged += OnSettingChanged;
@@ -58,12 +62,15 @@ public sealed class Plugin : BaseUnityPlugin
 			Localization.OnLanguageChange = (Action)Delegate.Combine(Localization.OnLanguageChange, new Action(ContainerHoverContents.InvalidateConfiguration));
 			Index = new ContainerIndex();
 			_searchPanel = new StorageSearchPanel();
+			_rulesPanel = new ChestRulesPanel();
+			ActiveRulesPanel = _rulesPanel;
 			ActiveSearchPanel = _searchPanel;
+			Runic.Shared.ModalGameplayInput.IsOpen = () => SearchPanelOpen;
 			_actions = new StorageActions(Index, _searchPanel);
 			RegisterKeybindings();
 			_harmony.PatchAll(typeof(Plugin).Assembly);
 			Index.RefreshLoadedContainers();
-			Logger.LogInfo((object)"Runic Storage v1.0.0 ready: chest hover, Quick Stack, Restock, Search, Sort, Store All, and Consolidate use native local ownership.");
+			Logger.LogInfo((object)"Runic Storage v1.2.4 ready: chest hover, Quick Stack, Restock, Search, Sort, Store All, and Consolidate use guarded native ownership.");
 			if (!ContainerHoverContents.IsSupported)
 			{
 				Logger.LogWarning((object)"Chest-content hover is unavailable because its installed Container/PrivateArea adapter signatures did not match. Other Storage features remain enabled.");
@@ -87,8 +94,10 @@ public sealed class Plugin : BaseUnityPlugin
 		{
 			ShowReadyMessage();
 			_searchPanel?.Tick();
-			if (_searchPanel?.IsOpen ?? false) return;
+			_rulesPanel?.Tick();
+			if (SearchPanelOpen) return;
 			StorageRouteContext context = CaptureRouteContext();
+			_actions.TickDeferredActions(context);
 			StorageActionEdges num = _inputReader.ReadKeyboardEdges();
 			StorageActionEdges storageActionEdges = _inputReader.ReadControllerEdges(context);
 			StorageActionEdges edges = num | storageActionEdges;
@@ -150,11 +159,12 @@ public sealed class Plugin : BaseUnityPlugin
 
 	private void OnGUI()
 	{
-		try { _searchPanel?.Draw(); }
+		try { _searchPanel?.Draw(); _rulesPanel?.Draw(); }
 		catch (Exception ex)
 		{
 			Logger.LogWarning((object)("Storage search list closed after a UI error: " + ex.Message));
 			_searchPanel?.Close();
+			_rulesPanel?.Close();
 		}
 	}
 
@@ -380,9 +390,14 @@ public sealed class Plugin : BaseUnityPlugin
 		}
 		DisposeKeybindings();
 		_actions = null;
+		_rulesPanel?.Dispose();
+		_rulesPanel = null;
+		ActiveRulesPanel = null;
+		foreach (var label in UnityEngine.Object.FindObjectsByType<ChestExteriorLabel>(FindObjectsSortMode.None)) UnityEngine.Object.Destroy(label);
 		_searchPanel?.Dispose();
 		_searchPanel = null;
 		ActiveSearchPanel = null;
+		Runic.Shared.ModalGameplayInput.Reset();
 		Index = null;
 		Log = null;
 	}

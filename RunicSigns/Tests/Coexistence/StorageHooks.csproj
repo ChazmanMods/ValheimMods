@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
+  <ProjectReference Include="Game.csproj" />
+  <Compile Include="../../../Shared/ModalGameplayInput.cs" />
+</ItemGroup></Project>

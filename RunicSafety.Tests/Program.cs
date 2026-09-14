@@ -6,6 +6,7 @@ namespace RunicSafety.Tests
     {
         private static int Main()
         {
+            InventoryAdapterTests.Register();
             ConfirmationPolicyTests.Register();
             ProtectedPolicyTests.Register();
             DiagnosticTests.Register();

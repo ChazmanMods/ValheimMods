@@ -1,0 +1,36 @@
+## Runic Sentinel Server 1.1.2
+
+[General]
+# False creates no worker, admission gate, services, transition patch, or operator command.
+Enabled = true
+
+[Administrator Access]
+# Server-side adminlist.txt members and local listen hosts may administer Sentinel.
+# False limits access to independently signed Sentinel roles.
+UseServerAdminList = true
+
+[Policy]
+# Exact canonical RUNIC-SENTINEL/3 bytes. Relative paths resolve under BepInEx/config.
+ManifestFile = RunicSentinel.policy
+# One canonical Base64 RSA-3072 signature followed by exactly one LF.
+SignatureFile = RunicSentinel.policy.sig
+# Exact canonical RUNIC-RSA-PUBLIC/1 verification-only key file.
+PublicKeyFile = RunicSentinel.policy.pub
+# Required lowercase SHA-256 of exact public-key bytes. Empty means monitor-only.
+TrustedPublicKeySha256 =
+
+[Remote Admission]
+# Optional records incompatibility without delaying admission. Required gates the native server
+# handshake and PeerInfo until Runic Sentinel Client returns an accepted bounded report.
+Policy = Optional
+
+[Runtime Integrity]
+CheckIntervalSeconds = 15
+
+[Transition Safety]
+BackupWorldBeforeProfileChange = true
+
+[Automatic Enforcement]
+VeryHighFindingsBeforeDisconnect = 2
+HighFindingsBeforeDisconnect = 3
+FindingWindowSeconds = 60

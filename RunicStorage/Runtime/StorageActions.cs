@@ -13,10 +13,17 @@ internal sealed class StorageActions
 {
 	private static readonly FieldInfo CurrentContainerField = AccessTools.Field(typeof(InventoryGui), "m_currentContainer");
 
-	private static readonly MethodInfo InventoryChangedMethod = AccessTools.Method(typeof(Inventory), "Changed", (Type[])null, (Type[])null);
+	private static readonly MethodInfo InventoryChangedMethod = AccessTools.Method(
+		typeof(Inventory),
+		"Changed",
+		new[] { typeof(bool), typeof(bool) },
+		(Type[])null);
 
 	private readonly ContainerIndex _index;
 	private readonly StorageSearchPanel _searchPanel;
+	private bool _quickStackRetryPending;
+	private int _quickStackDiscoveryRetries;
+	private float _nextQuickStackRetryAt;
 
 	internal StorageActions(ContainerIndex index, StorageSearchPanel searchPanel)
 	{
@@ -26,14 +33,57 @@ internal sealed class StorageActions
 
 	internal void QuickStack()
 	{
+		CancelQuickStackRetry();
+		ExecuteQuickStack();
+	}
+
+	internal void TickDeferredActions(StorageRouteContext context)
+	{
+		if (!_quickStackRetryPending || Time.realtimeSinceStartup < _nextQuickStackRetryAt)
+			return;
+
+		StorageRouteDecision decision = StorageActionRouter.Route(
+			new StorageActionRequest(StorageActionKind.QuickStack, StorageInputOrigin.Keyboard),
+			context);
+		if (decision.Outcome != StorageRouteOutcome.Execute)
+		{
+			CancelQuickStackRetry();
+			return;
+		}
+
+		_quickStackRetryPending = false;
+		ExecuteQuickStack();
+	}
+
+	private void ExecuteQuickStack()
+	{
         if (!TryBeginMutation("Quick Stack", out var player, out var mutationLease))
 		{
+			CancelQuickStackRetry();
 			return;
 		}
 		using (mutationLease)
 		{
 			Inventory inventory = ((Humanoid)player).GetInventory();
-			IReadOnlyList<Container> readOnlyList = Nearby(player, requireWritable: true, "quick-stack");
+			IReadOnlyList<Container> readOnlyList = Nearby(
+				player, requireWritable: true, "quick-stack", out NearbyDiscoveryObservation discovery);
+			if (readOnlyList.Count == 0 && FirstUseDiscoveryRetryPolicy.ShouldRetry(
+					_quickStackDiscoveryRetries,
+					discovery.LoadedContainers,
+					discovery.LoadedContainersInRange,
+					discovery.IndexedContainers) || readOnlyList.Count == 0 &&
+                discovery.UnavailableContainers > 0 && _quickStackDiscoveryRetries < FirstUseDiscoveryRetryPolicy.MaximumRetries)
+			{
+				_quickStackDiscoveryRetries++;
+				_quickStackRetryPending = true;
+				_nextQuickStackRetryAt = Time.realtimeSinceStartup +
+					FirstUseDiscoveryRetryPolicy.RetryDelaySeconds;
+				LogAction("quick-stack", "discovery.pending",
+					$"retry={_quickStackDiscoveryRetries}/{FirstUseDiscoveryRetryPolicy.MaximumRetries} " +
+					$"loaded={discovery.LoadedContainers} inRange={discovery.LoadedContainersInRange} indexed=0");
+				return;
+			}
+			CancelQuickStackRetry();
 			int num = 0;
 			int num2 = 0;
 			int num3 = 0;
@@ -42,7 +92,9 @@ internal sealed class StorageActions
 			int num6 = 0;
 			int num7 = 0;
 			int num8 = 0;
+            StorageMoveFailure moveFailure = StorageMoveFailure.None;
 			Dictionary<Container, Inventory> dictionary = new Dictionary<Container, Inventory>();
+			var chestRules = new Dictionary<Container, ChestRules>();
 			HashSet<Container> hashSet = new HashSet<Container>();
 			List<ItemData> list = new List<ItemData>(inventory.GetAllItems());
 			list.Sort(CompareGridPosition);
@@ -82,9 +134,11 @@ internal sealed class StorageActions
 				num3++;
 				int stack = val.m_stack;
 				bool flag = false;
+				var facts = ChestGroupRuntime.Facts(val);
+				for (int priority = 0; priority <= 9 && ValheimContainerService.HasSourceStack(inventory, val); priority++)
 				foreach (Container item in readOnlyList)
 				{
-					if (val.m_stack <= 0)
+					if (!ValheimContainerService.HasSourceStack(inventory, val))
 					{
 						break;
 					}
@@ -102,8 +156,19 @@ internal sealed class StorageActions
 							continue;
 						}
 						dictionary[item] = value;
+						if (ChestRuleStore.Eligible(item))
+						{
+							// Refresh learned contents before the chest can become empty.
+							ChestRuleStore.Learn(item);
+							if (!ChestRuleStore.Read(item, out var rules)) { hashSet.Add(item); dictionary.Remove(item); continue; }
+							chestRules[item] = rules;
+						}
 					}
-					if (ContainsResource(value, text))
+					bool present = ContainsResource(value, text);
+					int score = chestRules.TryGetValue(item, out var policy)
+						? policy.RoutingScore(facts, present)
+						: present ? 9 : int.MaxValue;
+					if (score == priority)
 					{
 						if (!flag)
 						{
@@ -112,9 +177,10 @@ internal sealed class StorageActions
 							flag = true;
 						}
 						int stack2 = val.m_stack;
-						int num10 = ValheimContainerService.MoveUpTo(inventory, value, val, stack2, player, mutationLease, null, item);
+						int num10 = ValheimContainerService.MoveUpTo(inventory, value, val, stack2, out var legFailure, player, mutationLease, null, item);
+                        if (num10 == 0 && (int)legFailure > (int)moveFailure) moveFailure = legFailure;
 						num = AddSaturated(num, num10);
-                        LogTransfer(PlayerEndpointId(player), ValheimContainerIdentity.EndpointId(item), text, num10, (num10 > 0) ? "ok" : "destination.full");
+                        LogTransfer(PlayerEndpointId(player), ValheimContainerIdentity.EndpointId(item), text, num10, (num10 > 0) ? "ok" : legFailure.ToString());
 						if (num10 >= stack2)
 						{
 							break;
@@ -124,10 +190,19 @@ internal sealed class StorageActions
 			}
 			QuickStackNoOpReason reason = QuickStackDiagnostics.Classify(new QuickStackObservation(list.Count, num3, num4, readOnlyList.Count, num7, num));
 			int num11 = Math.Max(0, num2 - num);
-			string text2 = ((num > 0) ? $"Runic Storage: moved {num} item(s); {num11} matching item(s) remained." : QuickStackNoOpFeedback(reason, num5, num6, num9));
+			string text2 = ((num > 0) ? $"Runic Storage: moved {num} item(s); {num11} matching item(s) remained." : QuickStackNoOpFeedback(reason, num5, num6, num9, moveFailure, num8 + discovery.UnavailableContainers));
 			Message(player, text2);
+            if (num == 0 && reason == QuickStackNoOpReason.DestinationsUnavailable)
+                Plugin.Log?.LogWarning($"Quick Stack moved=0 reason={moveFailure} unavailableContainers={num8} matchedStacks={num7}.");
 			LogAction("quick-stack", (num > 0) ? "ok" : QuickStackDiagnostics.ReasonCode(reason), $"carriedStacks={list.Count} eligibleStacks={num3} protectedStacks={num4} " + $"hotbarProtected={num5} equippedProtected={num6} itemLockProtected={num9} " + $"authorizedContainers={readOnlyList.Count} matchedStacks={num7} " + $"ownershipDenied={num8} moved={num} remainder={num11}");
 		}
+	}
+
+	private void CancelQuickStackRetry()
+	{
+		_quickStackRetryPending = false;
+		_quickStackDiscoveryRetries = 0;
+		_nextQuickStackRetryAt = 0f;
 	}
 
 	internal void StoreAllOpenedContainer()
@@ -416,8 +491,18 @@ internal sealed class StorageActions
 		});
 		if (entries.Count == 0)
 		{
-			Message(player, "Runic Storage: the nearby synchronized containers are empty.");
-			LogAction("search", "inventory.empty", $"containers={containers.Count} unsynchronized={unsynchronized}");
+			if (unsynchronized > 0)
+			{
+				Message(player,
+					$"Runic Storage: no readable items were found; {unsynchronized} of {containers.Count} nearby container(s) could not be synchronized.");
+				LogAction("search", "inventory.synchronization-unavailable",
+					$"containers={containers.Count} unsynchronized={unsynchronized}");
+			}
+			else
+			{
+				Message(player, "Runic Storage: the nearby synchronized containers are empty.");
+				LogAction("search", "inventory.empty", $"containers={containers.Count} unsynchronized=0");
+			}
 			return;
 		}
 		_searchPanel.Open(entries);
@@ -458,13 +543,13 @@ internal sealed class StorageActions
 				LogAction("sort-opened-container", "ownership.denied", "owner=false");
 				return;
 			}
-			if (!ValheimContainerService.CanRoundTrip(inventory))
+			if (!ValheimContainerService.CanSnapshotExactly(inventory))
 			{
-				Message(player, "Runic Storage: this container contains an item that cannot be restored exactly under the current item definitions; sort was safely skipped.");
-				LogAction("sort-opened-container", "inventory.not-roundtrippable", "changed=false");
+				Message(player, "Runic Storage: this container could not be snapshotted exactly; sort was safely skipped.");
+				LogAction("sort-opened-container", "inventory.snapshot-invalid", "changed=false");
 				return;
 			}
-			ZPackage val2 = ValheimContainerService.SaveInventory(inventory);
+			StorageInventorySnapshot val2 = new StorageInventorySnapshot(inventory);
 			HashSet<string> hashSet = ParseLockedSlots(PluginConfig.LockedContainerSlots.Value, inventory.GetWidth(), inventory.GetHeight());
 			List<ItemData> list = new List<ItemData>();
 			List<Vector2i> list2 = new List<Vector2i>();
@@ -515,7 +600,7 @@ internal sealed class StorageActions
 				}
 				if (flag)
 				{
-					InventoryChangedMethod.Invoke(inventory, null);
+					InventoryChangedMethod.Invoke(inventory, new object[] { false, false });
 				}
 				if (!string.Equals(ValheimContainerService.SaveInventory(inventory).GetBase64(), @base, StringComparison.Ordinal))
 				{
@@ -557,13 +642,13 @@ internal sealed class StorageActions
 				LogAction("consolidate", failureCode, $"stacks={list.Count} changed=false");
 				return;
 			}
-			if (!ValheimContainerService.CanRoundTrip(inventory))
+			if (!ValheimContainerService.CanSnapshotExactly(inventory))
 			{
-				Message(player, "Runic Storage: your inventory contains an item that cannot be restored exactly under the current item definitions; consolidation was safely skipped.");
-				LogAction("consolidate", "inventory.not-roundtrippable", "changed=false");
+				Message(player, "Runic Storage: your inventory could not be snapshotted exactly; consolidation was safely skipped.");
+				LogAction("consolidate", "inventory.snapshot-invalid", "changed=false");
 				return;
 			}
-			ZPackage backup = ValheimContainerService.SaveInventory(inventory);
+			StorageInventorySnapshot backup = new StorageInventorySnapshot(inventory);
 			if (list.Count == 0)
 			{
 				Message(player, "Runic Storage: your carried inventory is empty.");
@@ -597,7 +682,7 @@ internal sealed class StorageActions
 				}
 				if (num2 > 0)
 				{
-					InventoryChangedMethod.Invoke(inventory, null);
+					InventoryChangedMethod.Invoke(inventory, new object[] { false, false });
 				}
 				if (!string.Equals(ValheimContainerService.SaveInventory(inventory).GetBase64(), @base, StringComparison.Ordinal))
 				{
@@ -689,6 +774,16 @@ internal sealed class StorageActions
 		string action,
 		bool allowCurrentUse = false)
 	{
+		return Nearby(player, requireWritable, action, out _, allowCurrentUse);
+	}
+
+	private IReadOnlyList<Container> Nearby(
+		Player player,
+		bool requireWritable,
+		string action,
+		out NearbyDiscoveryObservation observation,
+		bool allowCurrentUse = false)
+	{
 		//IL_003c: Unknown result type (might be due to invalid IL or missing references)
 		//IL_006d: Unknown result type (might be due to invalid IL or missing references)
 		float num = Mathf.Clamp(PluginConfig.RangeMeters.Value, 1f, 50f);
@@ -697,12 +792,14 @@ internal sealed class StorageActions
 		// containers at the action boundary so the very first Quick Stack/Restock/Search
 		// sees chests that Valheim has finished creating without requiring the player to
 		// open a chest first.
-		int refreshed = _index.RefreshLoadedContainers();
+		Vector3 origin = ((Component)player).transform.position;
+		int refreshed = _index.RefreshLoadedContainers(origin, num, out int loadedInRange);
 		bool truncated;
-		IReadOnlyList<Container> readOnlyList = _index.Nearest(((Component)player).transform.position, num, num2, out truncated);
+		IReadOnlyList<Container> readOnlyList = _index.Nearest(origin, num, num2, out truncated);
 		List<Container> list = new List<Container>();
 		int num3 = 0;
 		int num4 = 0;
+        int unavailable = 0;
 		foreach (Container item in readOnlyList)
 		{
 			if ((int)item.m_privacy == 0)
@@ -712,14 +809,19 @@ internal sealed class StorageActions
 			else if (!ValheimContainerService.CanDiscover(
 				item,
 				player.GetPlayerID(),
-				requireWritable,
-				allowCurrentUse))
+                requireWritable: false,
+                allowCurrentUse))
 			{
-				num4++;
-			}
-			else
-			{
-				list.Add(item);
+                num4++;
+            }
+            else if (requireWritable && !ValheimContainerService.CanDiscover(
+                         item, player.GetPlayerID(), requireWritable: true, allowCurrentUse))
+            {
+                unavailable++;
+            }
+            else
+            {
+                list.Add(item);
 			}
 		}
 		if (PluginConfig.DebugTransfers.Value)
@@ -727,7 +829,7 @@ internal sealed class StorageActions
 			ManualLogSource log = Plugin.Log;
 			if (log != null)
 			{
-				log.LogInfo((object)($"action={action} phase=discovery rangeMeters={num:0.##} maximumCandidates={num2} " + $"loadedRefresh={refreshed} indexed={readOnlyList.Count} authorized={list.Count} personalExcluded={num3} " + $"deniedOrBusy={num4} truncated={truncated}"));
+				log.LogInfo((object)($"action={action} phase=discovery rangeMeters={num:0.##} maximumCandidates={num2} " + $"loadedRefresh={refreshed} indexed={readOnlyList.Count} authorized={list.Count} personalExcluded={num3} " + $"accessDenied={num4} busyOrPending={unavailable} truncated={truncated}"));
 			}
 			if (truncated)
 			{
@@ -738,7 +840,31 @@ internal sealed class StorageActions
 				}
 			}
 		}
+		observation = new NearbyDiscoveryObservation(
+			refreshed, loadedInRange, readOnlyList.Count, list.Count, unavailable);
 		return list.AsReadOnly();
+	}
+
+	private readonly struct NearbyDiscoveryObservation
+	{
+		internal NearbyDiscoveryObservation(
+			int loadedContainers,
+			int loadedContainersInRange,
+			int indexedContainers,
+			int authorizedContainers, int unavailableContainers)
+		{
+			LoadedContainers = Math.Max(0, loadedContainers);
+			LoadedContainersInRange = Math.Max(0, loadedContainersInRange);
+			IndexedContainers = Math.Max(0, indexedContainers);
+			AuthorizedContainers = Math.Max(0, authorizedContainers);
+            UnavailableContainers = Math.Max(0, unavailableContainers);
+		}
+
+		internal int LoadedContainers { get; }
+		internal int LoadedContainersInRange { get; }
+		internal int IndexedContainers { get; }
+		internal int AuthorizedContainers { get; }
+        internal int UnavailableContainers { get; }
 	}
 
 	private static bool TryGetWritableInventory(
@@ -927,7 +1053,7 @@ internal sealed class StorageActions
 
 	private static bool CanMerge(ItemData left, ItemData right)
 	{
-		if (left.m_shared != right.m_shared || !string.Equals(ValheimContainerIdentity.ResourceId(left), ValheimContainerIdentity.ResourceId(right), StringComparison.Ordinal) || left.m_quality != right.m_quality || left.m_variant != right.m_variant || left.m_worldLevel != right.m_worldLevel || left.m_crafterID != right.m_crafterID || !string.Equals(left.m_crafterName ?? string.Empty, right.m_crafterName ?? string.Empty, StringComparison.Ordinal) || left.m_pickedUp != right.m_pickedUp || left.m_equipped != right.m_equipped || !left.m_durability.Equals(right.m_durability))
+		if (left.m_shared != right.m_shared || !string.Equals(ValheimContainerIdentity.ResourceId(left), ValheimContainerIdentity.ResourceId(right), StringComparison.Ordinal) || left.m_quality != right.m_quality || left.m_variant != right.m_variant || left.m_worldLevel != right.m_worldLevel || left.m_crafterID != right.m_crafterID || !string.Equals(left.m_crafterName ?? string.Empty, right.m_crafterName ?? string.Empty, StringComparison.Ordinal) || left.m_pickedUp != right.m_pickedUp || left.m_equipped != right.m_equipped || left.m_cheated != right.m_cheated || !left.m_durability.Equals(right.m_durability))
 		{
 			return false;
 		}
@@ -1078,15 +1204,20 @@ internal sealed class StorageActions
 		}
 	}
 
-	private static string QuickStackNoOpFeedback(QuickStackNoOpReason reason, int hotbarProtected, int equippedProtected, int itemLockProtected)
+	private static string QuickStackNoOpFeedback(QuickStackNoOpReason reason, int hotbarProtected, int equippedProtected, int itemLockProtected, StorageMoveFailure failure, int unavailableContainers)
 	{
 		return reason switch
 		{
 			QuickStackNoOpReason.InventoryEmpty => "Runic Storage: your carried inventory is empty.",
 			QuickStackNoOpReason.AllStacksProtected => $"Runic Storage: no backpack stack is eligible; {hotbarProtected} hotbar, {equippedProtected} equipped, and {itemLockProtected} typed-lock stack(s) are protected.",
-			QuickStackNoOpReason.NoAuthorizedContainers => $"Runic Storage: no authorized public container is available within {Mathf.Clamp(PluginConfig.RangeMeters.Value, 1f, 50f):0.#} m.",
-			QuickStackNoOpReason.NoMatchingResources => "Runic Storage: no eligible backpack item matches an item already stored in an authorized nearby container.",
-			_ => "Runic Storage: matching containers were full or ownership changed; nothing moved.",
+			QuickStackNoOpReason.NoAuthorizedContainers when unavailableContainers > 0 => "Runic Storage: nearby public chests are busy or still synchronizing; retry when they are available.",
+            QuickStackNoOpReason.NoAuthorizedContainers => $"Runic Storage: no authorized public container is available within {Mathf.Clamp(PluginConfig.RangeMeters.Value, 1f, 50f):0.#} m.",
+			QuickStackNoOpReason.NoMatchingResources when unavailableContainers > 0 => "Runic Storage: a nearby chest is busy or its contents are not synchronized yet; nothing moved.",
+            QuickStackNoOpReason.NoMatchingResources => "Runic Storage: no eligible backpack item matches an item already stored in an authorized nearby container.",
+			_ when failure == StorageMoveFailure.SnapshotInvalid => "Runic Storage: inventory snapshot validation failed; nothing moved. See the client log.",
+            _ when failure == StorageMoveFailure.OwnershipChanged || unavailableContainers > 0 => "Runic Storage: a container became unavailable or ownership changed; nothing moved.",
+            _ when failure == StorageMoveFailure.NoCapacity => "Runic Storage: matching containers have no room for these item stacks; nothing moved.",
+            _ => "Runic Storage: the transfer could not proceed; nothing moved.",
 		};
 	}
 

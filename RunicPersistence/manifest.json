@@ -1,10 +1,10 @@
 {
   "name": "RunicPersistence",
-  "version_number": "1.0.0",
+  "version_number": "1.1.0",
   "website_url": "https://discord.gg/7HKHTCdFqY",
   "description": "Atomic migrations, direct bounded peer RPC, compatibility admission, and world-scoped actor identity bindings for Runic mods.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2333",
-    "Chazman-RunicCore-1.0.0"
+    "Chazman-RunicCore-1.1.0"
   ]
 }

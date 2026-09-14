@@ -1,9 +1,9 @@
 {
   "name": "RunicAgriculture",
-  "version_number": "1.0.0",
+  "version_number": "1.0.3",
   "website_url": "https://discord.gg/7HKHTCdFqY",
-  "description": "Bounded planting patterns, a live keyboard/controller control bar, exact-Pickable area harvest, per-position validation, and confirmed replant offers.",
+  "description": "Plant organized crop fields with configurable patterns and live spacing previews, harvest whole areas, and quickly replant without changing Valheim's crop rules.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333"
+    "denikson-BepInExPack_Valheim-5.4.2350"
   ]
 }

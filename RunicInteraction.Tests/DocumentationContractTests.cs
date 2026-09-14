@@ -51,12 +51,12 @@ namespace RunicInteraction.Tests
             using JsonDocument document = JsonDocument.Parse(File.ReadAllText(TestPaths.PluginFile("manifest.json")));
             JsonElement root = document.RootElement;
             TestAssert.Equal("RunicInteraction", root.GetProperty("name").GetString());
-            TestAssert.Equal(Plugin.Version, root.GetProperty("version_number").GetString());
+            TestAssert.Equal("1.0.4", root.GetProperty("version_number").GetString());
             string[] dependencies = root.GetProperty("dependencies").EnumerateArray()
                 .Select(item => item.GetString()).ToArray();
             TestAssert.SequenceEqual(new[]
             {
-                "denikson-BepInExPack_Valheim-5.4.2333"
+                "denikson-BepInExPack_Valheim-5.4.2350"
             }, dependencies);
         }
 
@@ -114,9 +114,9 @@ namespace RunicInteraction.Tests
             string text = File.ReadAllText(TestPaths.PluginFile("README.md"));
             foreach (string phrase in new[]
                      {
-                         "Valheim 0.221.12",
-                         "only runtime requirement is BepInExPack",
-                         "every feature is independently toggleable",
+                         "Valheim 1.0.7",
+                         "Install BepInExPack Valheim 5.4.2350",
+                         "Every feature can be disabled",
                          "no world migration",
                          "no custom network RPC",
                          "native Valheim ownership",

@@ -8,6 +8,11 @@ namespace RunicInteraction.Integration
 {
     internal static class ValheimAccess
     {
+        internal const string AuditedGameVersion = "1.0.12";
+        internal static bool IsSupportedVersion(string version) =>
+            string.Equals(version, AuditedGameVersion, StringComparison.Ordinal) ||
+            string.Equals(version, "1.0.7", StringComparison.Ordinal);
+
         private const BindingFlags InstanceAll =
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
@@ -35,18 +40,28 @@ namespace RunicInteraction.Integration
         private static PropertyInfo _pairItem;
         private static bool _ready;
 
+        internal static void ValidateGameVersion(Type versionType)
+        {
+            // GetVersionString is a display label and can include an OS prefix (e.g. l-).
+            // CurrentVersion identifies the game build without weakening the audited-version gate.
+            PropertyInfo property = versionType?.GetProperty(
+                "CurrentVersion", BindingFlags.Public | BindingFlags.Static);
+            if (property == null || property.GetGetMethod() == null ||
+                property.GetIndexParameters().Length != 0)
+                throw new MissingMemberException("Version.CurrentVersion");
+            string installed = property.GetValue(null, null)?.ToString() ?? string.Empty;
+            if (!IsSupportedVersion(installed))
+                throw new MissingMethodException(
+                    "Runic Interaction " + Plugin.Version + " is audited for Valheim " +
+                    "1.0.7 or " + AuditedGameVersion + "; installed " + (installed.Length == 0 ? "unknown" : installed) + ".");
+        }
+
         internal static bool Initialize(out string problem)
         {
             problem = string.Empty;
             try
             {
-                Type versionType = typeof(Player).Assembly.GetType("Version", throwOnError: true);
-                MethodInfo version = Exact(versionType, "GetVersionString",
-                    BindingFlags.Public | BindingFlags.Static, typeof(bool));
-                string installed = (string)version.Invoke(null, new object[] { false });
-                if (!string.Equals(installed, "0.221.12", StringComparison.Ordinal))
-                    throw new MissingMethodException(
-                        "Runic Interaction 1.0.0 is audited for Valheim 0.221.12; installed " + installed + ".");
+                ValidateGameVersion(typeof(Player).Assembly.GetType("Version", true));
 
                 _doorRpc = DelegateFor<DoorRpcDelegate>(typeof(Door), "RPC_UseDoor", typeof(long), typeof(bool));
                 _doorCanInteract = DelegateFor<DoorCanInteractDelegate>(typeof(Door), "CanInteract");

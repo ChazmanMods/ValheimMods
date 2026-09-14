@@ -1,0 +1,28 @@
+## Copy values into the SERVER's generated chazman.RunicDeathPenalty.cfg.
+[General]
+Enabled = true
+EntryWarnings = true
+
+[Progression]
+Mode = Automatic
+ManualTier = 0
+MaximumTier = 7
+AllowedBiomeLead = 0
+OceanRequiredTier = -1
+
+[Death]
+SkillLossMultiplier = 2
+
+[Recovery]
+CapExtraLoss = false
+WindowMinutes = 10
+ExtraDeathBudget = 1
+
+[Restrictions]
+BlockHarvesting = true
+BlockItemUse = true
+BlockUnmappedItems = false
+
+[Catalog]
+ItemTierOverrides =
+BiomeTierOverrides =

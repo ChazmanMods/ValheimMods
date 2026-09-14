@@ -1,11 +1,11 @@
-# Runic Exploration 1.0.0 maintainer verification record
+# Runic Exploration 1.0.2 maintainer verification record
 
 This is an internal release record, not a player installation checklist.
 
 ## Automated contract
 
 The focused suite verifies identity/version/manifest alignment, a standalone BepInEx-only runtime
-dependency, exact Valheim 0.221.12 Minimap/pin/player/ship/wind/gamepad signatures, the installed
+dependency, exact Valheim 1.0.7 Minimap/pin/player/ship/wind/gamepad signatures, the installed
 world-to-pixel/explored-map formulas, and that `ShowPointOnMap` changes only existing map view state.
 It verifies unknown pins are rejected before name/type/owner reads, no-map mode gates all Minimap and
 optional-peer access, dedicated processes patch nothing, selected pins are revalidated, and no

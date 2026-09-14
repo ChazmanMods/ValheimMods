@@ -22,6 +22,7 @@ namespace RunicSafety.Services
         private const long MaximumRestoreBytes = 1024L * 1024L;
         private const long MaximumMarkerBytes = 128L;
         private const int MaximumConcurrentBackupRoots = 128;
+        private const int AbsoluteMaximumSourceDirectories = 4096;
 
         private static readonly object RootGateSync = new object();
         private static readonly StringComparer RootPathComparer =
@@ -118,8 +119,9 @@ namespace RunicSafety.Services
 
                 cancellationToken.ThrowIfCancellationRequested();
                 var sources = new List<SourceState>(request.Sources.Count);
+                var directorySources = new List<DirectorySourceState>();
                 long totalBytes = 0;
-                var sourcePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var sourcePaths = new HashSet<string>(RootPathComparer);
                 for (int index = 0; index < request.Sources.Count; index++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -131,29 +133,65 @@ namespace RunicSafety.Services
                     if (fullSource.Length > 4096)
                         return Failure(MigrationBackupOutcome.InvalidRequest, correlation,
                             "source-path-too-long", files);
-                    if (!_storage.FileExists(fullSource))
+                    string logicalName = BoundLogicalName(source.LogicalName, index);
+                    if (_storage.FileExists(fullSource))
+                    {
+                        if (!TryAddSourceFile(
+                                fullSource,
+                                logicalName,
+                                request,
+                                sourcePaths,
+                                sources,
+                                ref totalBytes,
+                                out MigrationBackupOutcome sourceOutcome,
+                                out string sourceFailure))
+                            return Failure(sourceOutcome, correlation, sourceFailure, files);
+                    }
+                    else if (_storage.DirectoryExists(fullSource))
+                    {
+                        if (_storage.IsDirectoryReparsePoint(fullSource))
+                            return Failure(MigrationBackupOutcome.InvalidRequest, correlation,
+                                "reparse-source-directory-refused", files);
+                        if (PathsOverlap(root, fullSource))
+                            return Failure(MigrationBackupOutcome.InvalidRequest, correlation,
+                                "source-directory-overlaps-backup-root", files);
+                        if (!TryEnumerateDirectory(
+                                fullSource,
+                                request.MaximumFiles,
+                                cancellationToken,
+                                out IReadOnlyList<string> members,
+                                out MigrationBackupOutcome directoryOutcome,
+                                out string directoryFailure))
+                            return Failure(directoryOutcome, correlation, directoryFailure, files);
+                        if (members.Count == 0)
+                            return Failure(MigrationBackupOutcome.InvalidRequest, correlation,
+                                "source-directory-empty", files);
+                        for (int memberIndex = 0; memberIndex < members.Count; memberIndex++)
+                        {
+                            string member = members[memberIndex];
+                            string relative = Path.GetRelativePath(fullSource, member)
+                                .Replace(Path.DirectorySeparatorChar, '/');
+                            string memberLogicalName = BoundLogicalName(
+                                logicalName + "/" + relative,
+                                index);
+                            if (!TryAddSourceFile(
+                                    member,
+                                    memberLogicalName,
+                                    request,
+                                    sourcePaths,
+                                    sources,
+                                    ref totalBytes,
+                                    out MigrationBackupOutcome sourceOutcome,
+                                    out string sourceFailure))
+                                return Failure(sourceOutcome, correlation, sourceFailure, files);
+                        }
+                        directorySources.Add(new DirectorySourceState(fullSource, members));
+                    }
+                    else
+                    {
                         return Failure(MigrationBackupOutcome.SourceMissing, correlation,
                             "source-missing", files);
-                    if (!sourcePaths.Add(fullSource))
-                        return Failure(MigrationBackupOutcome.InvalidRequest, correlation,
-                            "duplicate-source", files);
-                    BackupFileMetadata metadata = _storage.GetFileMetadata(fullSource);
-                    if (metadata.IsReparsePoint)
-                        return Failure(MigrationBackupOutcome.InvalidRequest, correlation,
-                            "reparse-source-refused", files);
-                    try { totalBytes = checked(totalBytes + metadata.Length); }
-                    catch (OverflowException)
-                    {
-                        return Failure(MigrationBackupOutcome.SizeLimitExceeded, correlation,
-                            "source-size-overflow", files);
                     }
-                    if (totalBytes > request.MaximumTotalBytes)
-                        return Failure(MigrationBackupOutcome.SizeLimitExceeded, correlation,
-                            "configured-size-limit", files);
-                    sources.Add(new SourceState(
-                        fullSource,
-                        BoundLogicalName(source.LogicalName, index),
-                        metadata));
                 }
 
                 _storage.CreateDirectory(root);
@@ -210,6 +248,45 @@ namespace RunicSafety.Services
                         backupName,
                         source.Metadata.Length,
                         sha));
+                }
+
+                for (int index = 0; index < directorySources.Count; index++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    DirectorySourceState directory = directorySources[index];
+                    if (!TryEnumerateDirectory(
+                            directory.Path,
+                            request.MaximumFiles,
+                            cancellationToken,
+                            out IReadOnlyList<string> currentMembers,
+                            out _,
+                            out _) ||
+                        !SamePaths(directory.Members, currentMembers))
+                        return FailureWithCleanup(
+                            MigrationBackupOutcome.SourceChangedDuringCopy,
+                            correlation,
+                            "source-directory-changed-during-copy",
+                            files,
+                            root,
+                            partial);
+                }
+
+                // A directory-backed save can update an earlier chunk while a later
+                // chunk is still being copied. Recheck every member as one snapshot
+                // after the membership check so that such cross-file churn cannot
+                // produce a successfully committed mixed-generation backup.
+                for (int index = 0; index < sources.Count; index++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    SourceState source = sources[index];
+                    if (!source.Metadata.StableEquals(_storage.GetFileMetadata(source.Path)))
+                        return FailureWithCleanup(
+                            MigrationBackupOutcome.SourceChangedDuringCopy,
+                            correlation,
+                            "source-changed-during-copy",
+                            files,
+                            root,
+                            partial);
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -601,6 +678,176 @@ namespace RunicSafety.Services
             root = _storage.GetFullPath(request.DestinationRoot);
             if (string.IsNullOrWhiteSpace(root)) return false;
             return true;
+        }
+
+        private bool TryAddSourceFile(
+            string path,
+            string logicalName,
+            MigrationBackupRequest request,
+            HashSet<string> sourcePaths,
+            List<SourceState> sources,
+            ref long totalBytes,
+            out MigrationBackupOutcome outcome,
+            out string failureCode)
+        {
+            outcome = MigrationBackupOutcome.InvalidRequest;
+            failureCode = "invalid-source";
+            string fullPath = _storage.GetFullPath(path);
+            if (fullPath.Length > 4096)
+            {
+                failureCode = "source-path-too-long";
+                return false;
+            }
+            if (!_storage.FileExists(fullPath))
+            {
+                outcome = MigrationBackupOutcome.SourceMissing;
+                failureCode = "source-missing";
+                return false;
+            }
+            if (!sourcePaths.Add(fullPath))
+            {
+                failureCode = "duplicate-source";
+                return false;
+            }
+            if (sources.Count >= request.MaximumFiles)
+            {
+                outcome = MigrationBackupOutcome.FileLimitExceeded;
+                failureCode = "configured-file-limit";
+                return false;
+            }
+            BackupFileMetadata metadata = _storage.GetFileMetadata(fullPath);
+            if (metadata.IsReparsePoint)
+            {
+                failureCode = "reparse-source-refused";
+                return false;
+            }
+            try { totalBytes = checked(totalBytes + metadata.Length); }
+            catch (OverflowException)
+            {
+                outcome = MigrationBackupOutcome.SizeLimitExceeded;
+                failureCode = "source-size-overflow";
+                return false;
+            }
+            if (totalBytes > request.MaximumTotalBytes)
+            {
+                outcome = MigrationBackupOutcome.SizeLimitExceeded;
+                failureCode = "configured-size-limit";
+                return false;
+            }
+            sources.Add(new SourceState(fullPath, logicalName, metadata));
+            failureCode = string.Empty;
+            return true;
+        }
+
+        private bool TryEnumerateDirectory(
+            string sourceRoot,
+            int maximumFiles,
+            CancellationToken cancellationToken,
+            out IReadOnlyList<string> members,
+            out MigrationBackupOutcome outcome,
+            out string failureCode)
+        {
+            members = Array.Empty<string>();
+            outcome = MigrationBackupOutcome.InvalidRequest;
+            failureCode = "source-directory-invalid";
+            string root = _storage.GetFullPath(sourceRoot);
+            if (!_storage.DirectoryExists(root))
+            {
+                outcome = MigrationBackupOutcome.SourceMissing;
+                failureCode = "source-directory-missing";
+                return false;
+            }
+            if (_storage.IsDirectoryReparsePoint(root))
+            {
+                failureCode = "reparse-source-directory-refused";
+                return false;
+            }
+
+            var pending = new List<string> { root };
+            var seenDirectories = new HashSet<string>(RootPathComparer) { root };
+            var result = new List<string>();
+            for (int directoryIndex = 0; directoryIndex < pending.Count; directoryIndex++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                string directory = pending[directoryIndex];
+                if (!_storage.DirectoryExists(directory) ||
+                    _storage.IsDirectoryReparsePoint(directory) ||
+                    !IsSameOrNested(root, directory))
+                {
+                    failureCode = "source-directory-tree-invalid";
+                    return false;
+                }
+
+                string[] files = _storage.GetFiles(directory, "*") ?? Array.Empty<string>();
+                Array.Sort(files, RootPathComparer);
+                for (int fileIndex = 0; fileIndex < files.Length; fileIndex++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string file = _storage.GetFullPath(files[fileIndex]);
+                    if (file.Length > 4096 || !IsNested(root, file) || !_storage.FileExists(file))
+                    {
+                        failureCode = "source-directory-member-invalid";
+                        return false;
+                    }
+                    if (result.Count >= maximumFiles || result.Count >= AbsoluteMaximumFiles)
+                    {
+                        outcome = MigrationBackupOutcome.FileLimitExceeded;
+                        failureCode = "configured-file-limit";
+                        return false;
+                    }
+                    result.Add(file);
+                }
+
+                string[] directories = _storage.GetDirectories(directory, "*") ?? Array.Empty<string>();
+                Array.Sort(directories, RootPathComparer);
+                for (int childIndex = 0; childIndex < directories.Length; childIndex++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string child = _storage.GetFullPath(directories[childIndex]);
+                    if (child.Length > 4096 || !IsNested(root, child) ||
+                        !_storage.DirectoryExists(child) ||
+                        _storage.IsDirectoryReparsePoint(child) ||
+                        !seenDirectories.Add(child))
+                    {
+                        failureCode = "source-directory-tree-invalid";
+                        return false;
+                    }
+                    if (pending.Count >= AbsoluteMaximumSourceDirectories)
+                    {
+                        outcome = MigrationBackupOutcome.FileLimitExceeded;
+                        failureCode = "source-directory-count-limit";
+                        return false;
+                    }
+                    pending.Add(child);
+                }
+            }
+            result.Sort(RootPathComparer);
+            members = result.AsReadOnly();
+            failureCode = string.Empty;
+            return true;
+        }
+
+        private static bool SamePaths(
+            IReadOnlyList<string> expected,
+            IReadOnlyList<string> actual)
+        {
+            if (expected == null || actual == null || expected.Count != actual.Count) return false;
+            for (int index = 0; index < expected.Count; index++)
+                if (!RootPathComparer.Equals(expected[index], actual[index])) return false;
+            return true;
+        }
+
+        private static bool PathsOverlap(string left, string right) =>
+            SameRoot(left, right) || IsNested(left, right) || IsNested(right, left);
+
+        private static bool IsSameOrNested(string parent, string candidate) =>
+            SameRoot(parent, candidate) || IsNested(parent, candidate);
+
+        private static bool IsNested(string parent, string candidate)
+        {
+            string prefix = EnsureTrailingSeparator(Path.GetFullPath(parent));
+            string fullCandidate = Path.GetFullPath(candidate);
+            return fullCandidate.StartsWith(prefix, RootPathComparison);
         }
 
         private bool TryAcquireRootLease(
@@ -1009,6 +1256,17 @@ namespace RunicSafety.Services
             internal BackupFileMetadata Metadata { get; }
         }
 
+        private readonly struct DirectorySourceState
+        {
+            internal DirectorySourceState(string path, IReadOnlyList<string> members)
+            {
+                Path = path;
+                Members = members;
+            }
+            internal string Path { get; }
+            internal IReadOnlyList<string> Members { get; }
+        }
+
         private sealed class BackupSourceChangedException : IOException
         {
         }
@@ -1090,6 +1348,7 @@ namespace RunicSafety.Services
         void MoveDirectory(string source, string destination);
         void DeleteDirectory(string path, bool recursive);
         string[] GetDirectories(string path, string pattern);
+        string[] GetFiles(string path, string pattern);
         DateTime GetDirectoryCreationUtc(string path);
         bool IsDirectoryReparsePoint(string path);
         void WriteAllTextNew(string path, string contents);
@@ -1120,6 +1379,7 @@ namespace RunicSafety.Services
         public void MoveDirectory(string source, string destination) => Directory.Move(source, destination);
         public void DeleteDirectory(string path, bool recursive) => Directory.Delete(path, recursive);
         public string[] GetDirectories(string path, string pattern) => Directory.GetDirectories(path, pattern);
+        public string[] GetFiles(string path, string pattern) => Directory.GetFiles(path, pattern);
         public DateTime GetDirectoryCreationUtc(string path) => Directory.GetCreationTimeUtc(path);
         public bool IsDirectoryReparsePoint(string path) =>
             (new DirectoryInfo(path).Attributes & FileAttributes.ReparsePoint) != 0;

@@ -30,12 +30,12 @@ namespace RunicInteraction.Tests
                 "BepInPlugin attribute is missing.");
             TestAssert.Equal("chazman.RunicInteraction", Plugin.Guid);
             TestAssert.Equal("Runic Interaction", Plugin.Name);
-            TestAssert.Equal("1.0.0", Plugin.Version);
+            TestAssert.Equal("1.0.4", Plugin.Version);
             TestAssert.Equal("runic.interaction", Plugin.ModuleId);
             TestAssert.Equal(Plugin.Guid, identity.GUID);
             TestAssert.Equal(Plugin.Name, identity.Name);
             TestAssert.Equal(Plugin.Version, identity.Version.ToString());
-            TestAssert.Equal(new Version(1, 0, 0, 0),
+            TestAssert.Equal(new System.Version(1, 0, 4, 0),
                 typeof(Plugin).Assembly.GetName().Version);
             TestAssert.Equal(
                 Plugin.Version,

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.2 - 2026-09-09
+
+- Re-audited all startup milestones and plugin-cache contracts against Valheim 1.0.7.
+- Updated the BepInEx dependency to 5.4.2350 and aligned the package, plugin, and assembly versions.
+
+## 1.0.1 - 2026-09-05
+
+- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
+- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.0.0.
+
 ## 1.0.0
 
 - Made `Enabled = false` startup-inert: no timeline or scan worker is created.

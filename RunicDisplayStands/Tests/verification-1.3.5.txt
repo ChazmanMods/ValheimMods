@@ -1,0 +1,38 @@
+PASS  current integer identity wins without legacy access
+PASS  empty legacy identity stays empty
+PASS  non-owner can read legacy identity without mutating ZDO
+PASS  owner migrates legacy identity exactly once
+PASS  zero legacy hash is never persisted
+PASS  successful transfer commits exactly once
+PASS  failed or partially applied inventory action rolls back
+PASS  changed ownership rejects commit and restores inventories
+PASS  serialization exception restores inventories
+PASS  commit false restores inventories
+PASS  commit exception restores inventories
+PASS  snapshot rollback preserves original references and all item metadata
+PASS  partial insertion restores both inventories without losing or duplicating items
+PASS  conservation permits moves and stack splits but detects loss and duplication
+PASS  conservation detects altered quality durability and custom data
+PASS  stand write uses native item data version and exact serialized item
+PASS  stand serialization failure makes zero writes
+PASS  non-owner or destroyed stand makes zero writes
+PASS  stand write exceptions at every setter restore previous fields
+PASS  failed readback rejects the persistent commit
+PASS  clearing a stand clears native and custom item payloads
+PASS  14 native attachment slots all fit inside an eight-column panel
+PASS  full ordinary inventory swaps protected armor and selected weapons
+PASS  equip rejection rolls both inventories and equipment flags back
+PASS  partial incoming insertion with no space rolls back
+PASS  equipping each armor piece frees temporary space for the next
+PASS  plugin and package release identity is 1.3.5
+PASS  client Valheim 1.0 API contract
+PASS  server Valheim 1.0 API contract
+PASS  plugin references resolve on client
+PASS  plugin references resolve on dedicated server
+PASS  stable-hash migration source invariants
+PASS  Harmony target and UI safety invariants
+
+Client assembly SHA256: 27A766A8D23A7BD8B6A54FB9AD0452A96C305FB3629B39C40527C09A1C393A84
+Server assembly SHA256: F4EC6D8FC07054058F5E98040B3C1C65BDF0B061FD2ED27087EF48F29586B737
+RunicDisplayStands SHA256: 50429375DAF195B269E283F4CA5CE483A484BEEB34F37C7A0798197DE5478217
+Result: 33/33 passed

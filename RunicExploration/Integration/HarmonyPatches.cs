@@ -91,8 +91,8 @@ namespace RunicExploration.Integration
         }
     }
 
-    [HarmonyPatch(typeof(Minimap), "OnMapRightClick", typeof(UIInputHandler))]
-    internal static class MinimapRightClickPatch
+    [HarmonyPatch(typeof(Minimap), "RemovePinUnderPointer", new System.Type[] { })]
+    internal static class MinimapRemovePinUnderPointerPatch
     {
         [HarmonyPrefix]
         [HarmonyPriority(Priority.First)]

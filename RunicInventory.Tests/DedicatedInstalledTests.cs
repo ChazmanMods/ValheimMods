@@ -20,7 +20,7 @@ namespace RunicInventory.Tests
         {
             using SHA256 sha = SHA256.Create();
             string hash = Convert.ToHexString(sha.ComputeHash(File.ReadAllBytes(TestPaths.InstalledDedicatedValheim)));
-            TestAssert.Equal("84A1B34F95774D36BE328390578D7B07C5CFFBC8CBB15119541900F055D486A3", hash);
+            TestAssert.Equal("F4EC6D8FC07054058F5E98040B3C1C65BDF0B061FD2ED27087EF48F29586B737", hash);
         }
 
         private static void ServerContractsAreExact()

@@ -1,0 +1,18 @@
+{
+  "profile": "runic-suite",
+  "sequence": 1,
+  "issued": 0,
+  "expires": 0,
+  "unknownMods": "Forbidden",
+  "requiredMods": [],
+  "optionalMods": [],
+  "grayListMods": [],
+  "forbiddenMods": [],
+  "modules": [],
+  "administrators": [
+    { "authority": "steam", "subject": "76561198000000000" }
+  ],
+  "bannedUsers": [
+    { "authority": "steam", "subject": "76561198999999999" }
+  ]
+}

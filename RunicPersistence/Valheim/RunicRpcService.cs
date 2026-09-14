@@ -96,6 +96,7 @@ namespace Runic.Foundation.Persistence
 
         public event EventHandler<RpcPeerEventArgs> PeerReady;
         public event EventHandler<RpcPeerEventArgs> PeerDisconnected;
+        public event EventHandler<RpcAdmissionRejectedEventArgs> AdmissionRejected;
 
         public IDisposable RegisterEndpoint(
             ModuleRegistration module,
@@ -877,6 +878,7 @@ namespace Runic.Foundation.Persistence
 
         private void ReceiveReject(PeerSession session, RpcWireFrame frame)
         {
+            string reason;
             lock (_gate)
             {
                 session.Accepted = false;
@@ -885,7 +887,10 @@ namespace Runic.Foundation.Persistence
                     ? "peer-rejected"
                     : frame.ReasonCode;
                 MarkFailedLocked(session, session.CompatibilityReason);
+                reason = session.CompatibilityReason;
             }
+            try { AdmissionRejected?.Invoke(this, new RpcAdmissionRejectedEventArgs(reason)); }
+            catch { }
         }
 
         private void ReceiveRequest(PeerSession session, RpcWireFrame frame)
@@ -925,9 +930,17 @@ namespace Runic.Foundation.Persistence
                     denial = "idempotency-key-required";
                 if (denial != null)
                 {
-                    SendResult(session, frame, new RpcHandlerResult(
+                    var deniedResult = new RpcHandlerResult(
                         denial == "endpoint-not-found" ? RpcResultCode.NotFound : RpcResultCode.Unauthorized,
-                        denial), false);
+                        denial);
+                    if (endpoint != null)
+                        ReportSecurityDenial(
+                            endpoint.Module,
+                            session,
+                            frame,
+                            deniedResult,
+                            FindingConfidence.High);
+                    SendResult(session, frame, deniedResult, false);
                     return;
                 }
                 peer = SnapshotLocked(session);
@@ -956,13 +969,21 @@ namespace Runic.Foundation.Persistence
                     RpcResultCode code = admission == RpcReplayAdmission.CapacityReached
                         ? RpcResultCode.CapacityReached
                         : RpcResultCode.ReplayConflict;
-                    SendResult(session, frame, new RpcHandlerResult(
+                    var replayDenied = new RpcHandlerResult(
                         code,
                         admission == RpcReplayAdmission.InProgress
                             ? "request-in-progress"
                             : admission == RpcReplayAdmission.CapacityReached
                                 ? "replay-capacity-reached"
-                                : "idempotency-conflict"), false);
+                                : "idempotency-conflict");
+                    if (admission == RpcReplayAdmission.Conflict)
+                        ReportSecurityDenial(
+                            endpoint.Module,
+                            session,
+                            frame,
+                            replayDenied,
+                            FindingConfidence.VeryHigh);
+                    SendResult(session, frame, replayDenied, false);
                     return;
                 }
             }
@@ -993,6 +1014,20 @@ namespace Runic.Foundation.Persistence
                 result = new RpcHandlerResult(RpcResultCode.HandlerFailed, "handler-threw");
             }
 
+            if (result.Code == RpcResultCode.Unauthorized ||
+                result.Code == RpcResultCode.ReplayConflict ||
+                result.ReasonCode.StartsWith("security-", StringComparison.Ordinal))
+                ReportSecurityDenial(
+                    endpoint.Module,
+                    session,
+                    frame,
+                    result,
+                    result.Code == RpcResultCode.ReplayConflict
+                        ? FindingConfidence.VeryHigh
+                        : result.ReasonCode.StartsWith("security-", StringComparison.Ordinal)
+                            ? FindingConfidence.High
+                            : FindingConfidence.Moderate);
+
             if (replayKey != null)
             {
                 if (RpcMutationReplayPolicy.ReleasesReservation(
@@ -1007,6 +1042,37 @@ namespace Runic.Foundation.Persistence
                         replayKey, fingerprint, result, _runtime.UtcNowTicks);
             }
             SendResult(session, frame, result, false);
+        }
+
+        private void ReportSecurityDenial(
+            ModuleRegistration provider,
+            PeerSession session,
+            RpcWireFrame frame,
+            RpcHandlerResult result,
+            FindingConfidence confidence)
+        {
+            try
+            {
+                if (!IsServer || provider == null || session == null || frame == null || result == null ||
+                    !_registry.TryGetService(
+                        RunicCapabilityIds.SecurityEnforcement,
+                        out ISentinelEnforcementService sentinel)) return;
+                string actor = session.Identity?.CanonicalKey ?? "unknown-actor";
+                sentinel.ReportViolation(
+                    provider,
+                    session.Peer?.m_uid ?? 0L,
+                    actor,
+                    result.ReasonCode,
+                    string.IsNullOrEmpty(frame.CorrelationId)
+                        ? "uncorrelated"
+                        : frame.CorrelationId,
+                    confidence,
+                    frame.ModuleId + "." + frame.EndpointId + ".denied");
+            }
+            catch
+            {
+                // Security telemetry cannot turn an already-denied request into an allowed one.
+            }
         }
 
         private void ReceiveResponse(PeerSession session, RpcWireFrame frame)
@@ -1774,9 +1840,17 @@ namespace Runic.Foundation.Persistence
         private bool IsServerAdminLocked(PeerSession session)
         {
             if (session == null || !session.LocalIsServer ||
-                !IsSessionCurrentLocked(session) ||
-                !IsEligibleSteamAdminIdentity(session.Identity))
+                !IsSessionCurrentLocked(session) || session.Identity == null)
                 return false;
+            if (_registry.TryGetService(
+                    RunicCapabilityIds.SecurityRoles,
+                    out ISentinelRoleService signedRoles) &&
+                signedRoles.PolicyReady &&
+                signedRoles.IsAdministrator(
+                    session.Identity.Authority,
+                    session.Identity.SubjectId))
+                return true;
+            if (!IsEligibleSteamAdminIdentity(session.Identity)) return false;
             if (_runtime.TryIsAdmin(session.Peer, out bool injected)) return injected;
             if (!(session.Peer?.m_socket is ZSteamSocket steam) ||
                 !TryResolveAuthenticatedSteamSubject(steam, out string transportSubject) ||

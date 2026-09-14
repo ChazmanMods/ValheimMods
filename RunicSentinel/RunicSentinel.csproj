@@ -12,13 +12,22 @@
     <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\RunicCore\Api\RunicIdentifier.cs" Link="Shared\RunicIdentifier.cs" />
-    <Compile Include="..\RunicCore\Api\Versions.cs" Link="Shared\Versions.cs" />
     <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="false" />
     <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="false" />
     <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="false" />
     <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="false" />
     <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(GAME_MANAGED)\UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(GAME_MANAGED)\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="com.rlabrecque.steamworks.net" HintPath="$(GAME_MANAGED)\com.rlabrecque.steamworks.net.dll" Private="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RunicSafety\RunicSafety.csproj" Private="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\RunicSentinelAdmission.Shared\AdmissionProfileContracts.cs" Link="Admission\AdmissionProfileContracts.cs" />
+    <Compile Include="..\RunicSentinelAdmission.Shared\AdmissionProfileCanonicalizer.cs" Link="Admission\AdmissionProfileCanonicalizer.cs" />
+    <Compile Include="..\RunicSentinelAdmission.Shared\AdmissionProtocolV2.cs" Link="Admission\AdmissionProtocolV2.cs" />
   </ItemGroup>
 </Project>

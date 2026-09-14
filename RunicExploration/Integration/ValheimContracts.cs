@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -9,8 +10,8 @@ namespace RunicExploration.Integration
     {
         internal MinimapReadView(
             List<Minimap.PinData> pins,
-            bool[] explored,
-            bool[] exploredOthers,
+            BitArray explored,
+            BitArray exploredOthers,
             int textureSize,
             float pixelSize)
         {
@@ -22,8 +23,8 @@ namespace RunicExploration.Integration
         }
 
         internal List<Minimap.PinData> Pins { get; }
-        internal bool[] Explored { get; }
-        internal bool[] ExploredOthers { get; }
+        internal BitArray Explored { get; }
+        internal BitArray ExploredOthers { get; }
         internal int TextureSize { get; }
         internal float PixelSize { get; }
     }
@@ -57,8 +58,7 @@ namespace RunicExploration.Integration
             RequireMethod(typeof(Minimap), "OnMapDblClick", typeof(void), false);
             RequireMethod(typeof(Minimap), "OnMapMiddleClick", typeof(void), false,
                 typeof(UIInputHandler));
-            RequireMethod(typeof(Minimap), "OnMapRightClick", typeof(void), false,
-                typeof(UIInputHandler));
+            RequireMethod(typeof(Minimap), "RemovePinUnderPointer", typeof(void), false);
             RequireMethod(typeof(ZInput), nameof(ZInput.IsGamepadActive), typeof(bool), true);
             RequireMethod(typeof(Player), nameof(Player.GetCurrentBiome), typeof(Heightmap.Biome), false);
             RequireMethod(typeof(Player), nameof(Player.GetControlledShip), typeof(Ship), false);
@@ -75,9 +75,9 @@ namespace RunicExploration.Integration
                 BindingFlags.Static | BindingFlags.Public);
             _pins = RequireField(
                 typeof(Minimap), "m_pins", typeof(List<Minimap.PinData>), InstanceFields);
-            _explored = RequireField(typeof(Minimap), "m_explored", typeof(bool[]), InstanceFields);
+            _explored = RequireField(typeof(Minimap), "m_explored", typeof(BitArray), InstanceFields);
             _exploredOthers = RequireField(
-                typeof(Minimap), "m_exploredOthers", typeof(bool[]), InstanceFields);
+                typeof(Minimap), "m_exploredOthers", typeof(BitArray), InstanceFields);
             _textureSize = RequireField(typeof(Minimap), "m_textureSize", typeof(int), InstanceFields);
             _pixelSize = RequireField(typeof(Minimap), "m_pixelSize", typeof(float), InstanceFields);
             RequirePublicPinField(nameof(Minimap.PinData.m_name), typeof(string));
@@ -99,8 +99,8 @@ namespace RunicExploration.Integration
             try
             {
                 var pins = _pins.GetValue(minimap) as List<Minimap.PinData>;
-                var explored = _explored.GetValue(minimap) as bool[];
-                var exploredOthers = _exploredOthers.GetValue(minimap) as bool[];
+                var explored = _explored.GetValue(minimap) as BitArray;
+                var exploredOthers = _exploredOthers.GetValue(minimap) as BitArray;
                 if (pins == null || explored == null) return false;
                 view = new MinimapReadView(
                     pins,

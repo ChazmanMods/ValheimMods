@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -27,7 +28,10 @@ namespace RunicPortals.Integration
 
     internal static class ValheimContracts
     {
-        internal const string AuditedGameVersion = "0.221.12";
+        internal const string AuditedGameVersion = "1.0.12";
+        internal static bool IsSupportedVersion(string version) =>
+            string.Equals(version, AuditedGameVersion, StringComparison.Ordinal) ||
+            string.Equals(version, "1.0.7", StringComparison.Ordinal);
         internal const int MaximumPortalObjectsScanned = 4096;
 
         private static FieldInfo _portalObjectsField;
@@ -35,6 +39,7 @@ namespace RunicPortals.Integration
         private static MethodInfo _privateAreaEnabled;
         private static MethodInfo _privateAreaInside;
         private static MethodInfo _privateAreaPermitted;
+        private static MethodInfo _zonePokeLocal;
 
         internal static bool Initialize(out string problem)
         {
@@ -42,10 +47,10 @@ namespace RunicPortals.Integration
             try
             {
                 string installedVersion = ReadGameVersion();
-                if (!string.Equals(installedVersion, AuditedGameVersion, StringComparison.Ordinal))
+                if (!IsSupportedVersion(installedVersion))
                     throw new NotSupportedException(
                         "Installed Valheim " + installedVersion + " is not audited; expected " +
-                        AuditedGameVersion + ".");
+                        "1.0.7 or " + AuditedGameVersion + ".");
                 RequireMethod(typeof(TeleportWorld), "Awake", Type.EmptyTypes, false, typeof(void));
                 RequireMethod(typeof(TeleportWorld), nameof(TeleportWorld.Interact),
                     new[] { typeof(Humanoid), typeof(bool), typeof(bool) }, true, typeof(bool));
@@ -57,7 +62,8 @@ namespace RunicPortals.Integration
                     new[] { typeof(Player) }, true, typeof(void));
                 RequireMethod(typeof(TeleportWorld), "HaveTarget", Type.EmptyTypes, false, typeof(bool));
                 RequireMethod(typeof(TeleportWorld), "TargetFound", Type.EmptyTypes, false, typeof(bool));
-                RequireMethod(typeof(Player), nameof(Player.IsTeleportable), Type.EmptyTypes, true, typeof(bool));
+                RequireMethod(typeof(Player), nameof(Player.IsTeleportable),
+                    new[] { typeof(bool) }, true, typeof(bool));
                 RequireMethod(typeof(Player), nameof(Player.TeleportTo),
                     new[] { typeof(Vector3), typeof(Quaternion), typeof(bool) }, true, typeof(bool));
                 RequireMethod(typeof(Player), nameof(Player.GetPlayerID), Type.EmptyTypes, true, typeof(long));
@@ -95,13 +101,15 @@ namespace RunicPortals.Integration
                 RequireMethod(typeof(Localization), nameof(Localization.Localize),
                     new[] { typeof(string) }, true, typeof(string));
                 RequireMethod(typeof(Game), nameof(Game.IncrementPlayerStat),
-                    new[] { typeof(PlayerStatType), typeof(float) }, true, typeof(void));
+                    new[] { typeof(PlayerStatType), typeof(float), typeof(bool) }, true, typeof(void));
                 RequireMethod(typeof(ZoneSystem), nameof(ZoneSystem.GetGlobalKey),
                     new[] { typeof(GlobalKeys) }, true, typeof(bool));
                 RequireMethod(typeof(ZoneSystem), nameof(ZoneSystem.GetGlobalKey),
                     new[] { typeof(GlobalKeys), typeof(float).MakeByRefType() }, true, typeof(bool));
                 RequireMethod(typeof(ZoneSystem), nameof(ZoneSystem.IsZoneLoaded),
                     new[] { typeof(Vector3) }, true, typeof(bool));
+                _zonePokeLocal = RequireMethod(typeof(ZoneSystem), "PokeLocalZone",
+                    new[] { typeof(Vector2s) }, false, typeof(bool));
                 RequireMethod(typeof(RandEventSystem), nameof(RandEventSystem.GetBossEvent),
                     Type.EmptyTypes, true, typeof(string));
 
@@ -132,10 +140,28 @@ namespace RunicPortals.Integration
             }
         }
 
-        internal static List<ZDO> PortalObjects() =>
-            ZDOMan.instance == null
-                ? null
-                : _portalObjectsField?.GetValue(ZDOMan.instance) as List<ZDO>;
+        internal static List<ZDO> PortalObjects()
+        {
+            if (ZDOMan.instance == null) return null;
+            object source = _portalObjectsField?.GetValue(ZDOMan.instance);
+            if (source is List<ZDO> legacy) return legacy;
+            if (!(source is IDictionary sectors)) return null;
+
+            var portals = new List<ZDO>();
+            foreach (DictionaryEntry sector in sectors)
+            {
+                if (!(sector.Value is IEnumerable members)) return null;
+                foreach (object member in members)
+                {
+                    if (!(member is ZDO portal)) return null;
+                    portals.Add(portal);
+                    // Return a deliberately over-limit result so every caller follows its
+                    // existing bounded-snapshot rejection path without walking the world.
+                    if (portals.Count > MaximumPortalObjectsScanned) return portals;
+                }
+            }
+            return portals;
+        }
 
         internal static bool IsServer => ZNet.instance != null && ZNet.instance.IsServer();
 
@@ -159,7 +185,7 @@ namespace RunicPortals.Integration
 
         internal static WardContext ResolveWard(Vector3 position, long playerId)
         {
-            if (playerId <= 0L || ZoneSystem.instance == null ||
+            if (playerId == 0L || ZoneSystem.instance == null ||
                 !ZoneSystem.instance.IsZoneLoaded(position))
                 return new WardContext(WardState.Ambiguous);
             var areas = _privateAreasField?.GetValue(null) as List<PrivateArea>;
@@ -189,6 +215,41 @@ namespace RunicPortals.Integration
 
         internal static bool WardAllows(WardContext ward) =>
             ward != null && (ward.State == WardState.None || ward.State == WardState.Allows);
+
+        /// <summary>
+        /// Resolves strict source-portal ward authority. A not-yet-loaded source zone remains
+        /// denied for this attempt, but the authoritative server is asked to load that exact
+        /// nearby zone so a bounded client retry can obtain real ward evidence. A known hostile
+        /// ward is never converted into a transient result.
+        /// </summary>
+        internal static bool SourceWardAllows(
+            Vector3 position,
+            long playerId,
+            out bool evidencePending)
+        {
+            WardContext ward = ResolveWard(position, playerId);
+            evidencePending = ward != null && ward.State == WardState.Ambiguous;
+            if (!evidencePending) return WardAllows(ward);
+            RequestSourceZone(position);
+            return false;
+        }
+
+        private static void RequestSourceZone(Vector3 position)
+        {
+            ZoneSystem zones = ZoneSystem.instance;
+            if (zones == null || !IsServer || zones.IsZoneLoaded(position)) return;
+            try
+            {
+                _zonePokeLocal?.Invoke(
+                    zones,
+                    new object[] { ZoneSystem.GetZone(position) });
+            }
+            catch
+            {
+                // The caller still fails closed and the bounded retry eventually reports that
+                // source ward evidence remained unavailable.
+            }
+        }
 
         /// <summary>
         /// A remote portal normally belongs to an unloaded zone, so the client cannot obtain a

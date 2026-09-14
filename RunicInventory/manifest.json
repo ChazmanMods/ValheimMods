@@ -1,9 +1,9 @@
 {
   "name": "RunicInventory",
-  "version_number": "1.0.0",
+  "version_number": "1.1.5",
   "website_url": "https://discord.gg/7HKHTCdFqY",
-  "description": "Labeled native-row equipment and quick slots, automatic empty-role equip, lossless armor swaps, locks, safe sort, and pickup controls for Valheim.",
+  "description": "Adds an automatic extra row with five equipment-only slots and three quick-use slots, preserving normal backpack space with locks, sorting, and pickup controls.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333"
+    "denikson-BepInExPack_Valheim-5.4.2350"
   ]
 }

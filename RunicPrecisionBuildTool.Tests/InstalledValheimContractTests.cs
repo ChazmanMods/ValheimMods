@@ -8,6 +8,7 @@ using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 using HarmonyLib;
 using QuietBuildRotation.Integration;
+using Splatform;
 using UnityEngine;
 
 namespace QuietBuildRotation.Tests
@@ -21,14 +22,15 @@ namespace QuietBuildRotation.Tests
 
         internal static void Register()
         {
-            TestRunner.Run("tests target installed Valheim 0.221.12", InstalledVersionIsExact);
-            TestRunner.Run("installed Valheim assembly is the audited 0.221.12 binary", InstalledHashIsExact);
+            TestRunner.Run("tests target installed Valheim 1.0.12", InstalledVersionIsExact);
+            TestRunner.Run("installed Valheim assembly is the audited 1.0.12 binary", InstalledHashIsExact);
             TestRunner.Run("installed build-menu visibility remains owned by the native build HUD", BuildMenuVisibilityContractIsExact);
             TestRunner.Run("installed placement IL retains one exact rotation and pre-snap hook seam", PlacementHookShapeIsExact);
             TestRunner.Run("all vanilla placement validation remains after the pre-snap seam", PlacementValidationRemainsNative);
             TestRunner.Run("installed placement creation assigns the native creator after instantiate", CreatorAssignmentOrderingIsExact);
             TestRunner.Run("installed undo seams expose exact owner removal and policy APIs", UndoContractsAreExact);
             TestRunner.Run("installed repair seams expose exact native repair and durability APIs", RepairContractsAreExact);
+            TestRunner.Run("installed inventory notification retains the exact Valheim 1.0 flags", InventoryChangedContractIsExact);
             TestRunner.Run("installed structural-support proof fields retain exact types", SupportContractsAreExact);
             TestRunner.Run("installed native support publication advances ZDO state after placement", NativeSupportPublicationIsPostPlacement);
             TestRunner.Run("installed PieceTable catalog APIs retain exact unlocked-list contracts", CatalogContractsAreExact);
@@ -50,7 +52,7 @@ namespace QuietBuildRotation.Tests
                 new[] { typeof(bool) },
                 null);
             TestAssert.True(method != null);
-            TestAssert.Equal("0.221.12", (string)method.Invoke(null, new object[] { false }));
+            TestAssert.Equal("1.0.12", (string)method.Invoke(null, new object[] { false }));
         }
 
         private static void InstalledHashIsExact()
@@ -59,7 +61,7 @@ namespace QuietBuildRotation.Tests
             string path = typeof(Player).Assembly.Location;
             string hash = Convert.ToHexString(sha.ComputeHash(File.ReadAllBytes(path)));
             TestAssert.Equal(
-                "3B26C8512778F6E0664B5AF2A26F3C30993A00F584C1E76D9123A742B67E2004",
+                "27A766A8D23A7BD8B6A54FB9AD0452A96C305FB3629B39C40527C09A1C393A84",
                 hash);
         }
 
@@ -70,10 +72,10 @@ namespace QuietBuildRotation.Tests
             MethodInfo visible = Exact(typeof(Hud), nameof(Hud.IsPieceSelectionVisible));
             TestAssert.True(IlReader.Calls(updateInput).Any(call => Equals(call, toggle)),
                 "BuildMenu input no longer opens through Hud.TogglePieceSelection.");
-            TestAssert.True(IlReader.AccessesField(visible, typeof(Hud), "m_buildHud"),
-                "Piece-menu visibility no longer depends on the native build HUD root.");
-            TestAssert.True(IlReader.AccessesField(visible, typeof(Hud), "m_pieceSelectionWindow"),
-                "Piece-menu visibility no longer depends on the native selection window.");
+            TestAssert.True(IlReader.AccessesField(visible, typeof(Hud), "m_buildUi"),
+                "Piece-menu visibility no longer depends on the native BuildUi root.");
+            TestAssert.True(IlReader.Calls(visible, typeof(Component), "get_gameObject"));
+            TestAssert.True(IlReader.Calls(visible, typeof(GameObject), "get_activeSelf"));
         }
 
         private static void PersistentAuthorityCataloguesAreExact()
@@ -237,17 +239,24 @@ namespace QuietBuildRotation.Tests
 
         private static void CreatorAssignmentOrderingIsExact()
         {
+            MethodInfo creatorMethod = Exact(
+                typeof(Piece),
+                nameof(Piece.SetCreator),
+                typeof(long),
+                typeof(PlatformUserID));
+            TestAssert.Equal(typeof(void), creatorMethod.ReturnType);
             MethodInfo place = Exact(
                 typeof(Player),
                 "PlacePiece",
                 typeof(Piece),
                 typeof(Vector3),
                 typeof(Quaternion),
+                typeof(bool),
                 typeof(bool));
             IReadOnlyList<MethodBase> calls = IlReader.Calls(place);
             int instantiate = calls.ToList().FindIndex(call =>
                 call.DeclaringType == typeof(UnityEngine.Object) && call.Name == nameof(UnityEngine.Object.Instantiate));
-            int creator = IlReader.CallIndex(calls, typeof(Piece), nameof(Piece.SetCreator));
+            int creator = calls.ToList().FindIndex(call => Equals(call, creatorMethod));
             TestAssert.True(instantiate >= 0 && creator > instantiate);
             TestAssert.Equal(1, IlReader.CountCalls(place, typeof(Piece), nameof(Piece.SetCreator)));
         }
@@ -287,6 +296,16 @@ namespace QuietBuildRotation.Tests
                 "Native build/remove durability no longer uses the audited player-adjusted cost.");
         }
 
+        private static void InventoryChangedContractIsExact()
+        {
+            MethodInfo changed = Exact(
+                typeof(Inventory), "Changed", typeof(bool), typeof(bool));
+            TestAssert.Equal(typeof(void), changed.ReturnType);
+            ParameterInfo[] parameters = changed.GetParameters();
+            TestAssert.Equal("success", parameters[0].Name);
+            TestAssert.Equal("cheatedStateChanged", parameters[1].Name);
+        }
+
         private static void SupportContractsAreExact()
         {
             FieldInfo supports = typeof(WearNTear).GetField("m_supportColliders", Instance);
@@ -319,9 +338,9 @@ namespace QuietBuildRotation.Tests
 
         private static void CatalogContractsAreExact()
         {
-            FieldInfo available = typeof(PieceTable).GetField("m_availablePieces", Instance);
+            FieldInfo available = typeof(PieceTable).GetField("m_availablePiecesByCategory", Instance);
             FieldInfo gridWidth = typeof(PieceTable).GetField("m_gridWidth", Static);
-            TestAssert.True(available != null, "PieceTable.m_availablePieces is missing.");
+            TestAssert.True(available != null, "PieceTable.m_availablePiecesByCategory is missing.");
             TestAssert.Equal(typeof(List<List<Piece>>), available.FieldType);
             TestAssert.True(gridWidth != null, "PieceTable.m_gridWidth is missing.");
             TestAssert.Equal(typeof(int), gridWidth.FieldType);
@@ -366,7 +385,7 @@ namespace QuietBuildRotation.Tests
             {
                 string hash = Convert.ToHexString(sha.ComputeHash(File.ReadAllBytes(path)));
                 TestAssert.Equal(
-                    "84A1B34F95774D36BE328390578D7B07C5CFFBC8CBB15119541900F055D486A3",
+                    "9DF99B0011B4CA0A448E6D935C77368B4E3B98EEE7B0AC8D1B43B34E267471B2",
                     hash);
             }
 
@@ -445,8 +464,8 @@ namespace QuietBuildRotation.Tests
             TestAssert.Equal(typeof(bool), Exact(
                 typeof(ZoneSystem), nameof(ZoneSystem.IsZoneLoaded), typeof(UnityEngine.Vector3)).ReturnType);
             TestAssert.Equal(typeof(bool), Exact(
-                typeof(ZoneSystem), nameof(ZoneSystem.IsZoneLoaded), typeof(Vector2i)).ReturnType);
-            TestAssert.Equal(typeof(Vector2i), Exact(
+                typeof(ZoneSystem), nameof(ZoneSystem.IsZoneLoaded), typeof(Vector2s)).ReturnType);
+            TestAssert.Equal(typeof(Vector2s), Exact(
                 typeof(ZoneSystem), nameof(ZoneSystem.GetZone), typeof(UnityEngine.Vector3)).ReturnType);
             TestAssert.Equal(typeof(long), Exact(typeof(ZDO), nameof(ZDO.GetOwner)).ReturnType);
             TestAssert.Equal(typeof(void), Exact(

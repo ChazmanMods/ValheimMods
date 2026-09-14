@@ -1,9 +1,9 @@
 {
   "name": "RunicProduction",
-  "version_number": "1.0.0",
+  "version_number": "1.0.7",
   "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicProduction",
-  "description": "Standalone native-owner Valheim production with persistent links, exemplar replenishment, and bounded nearby ingredient staging.",
+  "description": "Automate your base with chest-linked ingredients, fuel, outputs, and stock replenishment for Valheim's existing production stations.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333"
+    "denikson-BepInExPack_Valheim-5.4.2350"
   ]
 }

@@ -14,7 +14,7 @@ namespace RunicBuildCamera.Tests
 
         internal static void Register()
         {
-            TestRunner.Run("tests target installed Valheim 0.221.12", InstalledVersionIsExact);
+            TestRunner.Run("tests target installed Valheim 1.0.12", InstalledVersionIsExact);
             TestRunner.Run("placement ray derives from GameCamera transform", PlacementRayUsesGameCamera);
             TestRunner.Run("placement commit refreshes the camera-derived ghost", PlacementCommitRefreshesGhost);
             TestRunner.Run("repair hover ray derives from GameCamera transform", RepairRayUsesGameCamera);
@@ -33,7 +33,7 @@ namespace RunicBuildCamera.Tests
                 new[] { typeof(bool) },
                 null);
             TestAssert.NotNull(getVersion, "Installed Valheim version API is missing.");
-            TestAssert.Equal("0.221.12", (string)getVersion.Invoke(null, new object[] { false }));
+            TestAssert.Equal("1.0.12", (string)getVersion.Invoke(null, new object[] { false }));
         }
 
         private static void PlacementRayUsesGameCamera()

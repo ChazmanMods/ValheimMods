@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -14,7 +15,7 @@ namespace RunicExploration.Tests
 
         internal static void Register()
         {
-            TestRunner.Run("tests target installed Valheim 0.221.12", ExactInstalledVersion);
+            TestRunner.Run("tests target installed Valheim 1.0.7", ExactInstalledVersion);
             TestRunner.Run("startup verifier accepts exact installed signatures", VerifierAccepts);
             TestRunner.Run("Minimap pin and coverage fields are exact", MinimapFieldsAreExact);
             TestRunner.Run("Minimap world-to-pixel signature and formula are exact", WorldToPixelIsExact);
@@ -30,7 +31,7 @@ namespace RunicExploration.Tests
             MethodInfo method = version.GetMethod("GetVersionString",
                 BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(bool) }, null);
             TestAssert.NotNull(method);
-            TestAssert.Equal("0.221.12", (string)method.Invoke(null, new object[] { false }));
+            TestAssert.Equal("1.0.7", (string)method.Invoke(null, new object[] { false }));
         }
 
         private static void VerifierAccepts() => ValheimContracts.VerifyInstalledSignatures();
@@ -38,8 +39,8 @@ namespace RunicExploration.Tests
         private static void MinimapFieldsAreExact()
         {
             ExactField(typeof(Minimap), "m_pins", typeof(List<Minimap.PinData>));
-            ExactField(typeof(Minimap), "m_explored", typeof(bool[]));
-            ExactField(typeof(Minimap), "m_exploredOthers", typeof(bool[]));
+            ExactField(typeof(Minimap), "m_explored", typeof(BitArray));
+            ExactField(typeof(Minimap), "m_exploredOthers", typeof(BitArray));
             ExactField(typeof(Minimap), "m_textureSize", typeof(int));
             ExactField(typeof(Minimap), "m_pixelSize", typeof(float));
             ExactPublicField(typeof(Minimap.PinData), nameof(Minimap.PinData.m_name), typeof(string));
@@ -60,7 +61,7 @@ namespace RunicExploration.Tests
                 typeof(Vector3), typeof(int).MakeByRefType(), typeof(int).MakeByRefType());
             TestAssert.True(IlReader.AccessesField(method, typeof(Minimap), "m_textureSize"));
             TestAssert.True(IlReader.AccessesField(method, typeof(Minimap), "m_pixelSize"));
-            TestAssert.True(IlReader.Calls(method, typeof(Mathf), nameof(Mathf.RoundToInt)));
+            TestAssert.True(IlReader.Calls(method, typeof(Utils), nameof(Utils.RoundToInt)));
         }
 
         private static void ExploredFormulaIsExact()
@@ -99,8 +100,7 @@ namespace RunicExploration.Tests
             Exact(typeof(Minimap), "OnMapDblClick", typeof(void), false);
             Exact(typeof(Minimap), "OnMapMiddleClick", typeof(void), false,
                 typeof(UIInputHandler));
-            Exact(typeof(Minimap), "OnMapRightClick", typeof(void), false,
-                typeof(UIInputHandler));
+            Exact(typeof(Minimap), "RemovePinUnderPointer", typeof(void), false);
             Exact(typeof(Player), nameof(Player.GetCurrentBiome), typeof(Heightmap.Biome), false);
             Exact(typeof(Player), nameof(Player.GetControlledShip), typeof(Ship), false);
             Exact(typeof(Player), nameof(Player.GetPlayerID), typeof(long), false);
@@ -119,8 +119,8 @@ namespace RunicExploration.Tests
 
         private static void KnownCellMath()
         {
-            var local = new bool[16];
-            var shared = new bool[16];
+            var local = new BitArray(16);
+            var shared = new BitArray(16);
             local[2 * 4 + 2] = true;
             shared[1 * 4 + 3] = true;
             var view = new MinimapReadView(null, local, shared, 4, 10f);

@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.0.7 - 2026-09-14
+
+- Fixed production stopping after the player who configured it leaves and station/chest ownership splits between peers.
+- Added coordinated chest handoff for linked ingredients, fuel, outputs, replenishment, and eligible nearby recipe inputs.
+- Removed the original player's presence requirement from pending and legacy replenishment activation.
+- Preserved ward and personal-chest access checks, shared-chest serialization, and the link-click fixes from 1.0.6.
+
+## 1.0.6 - 2026-09-14
+
+- Fixed a repeated mouse-press signal across frames cancelling a newly selected production link.
+- Kept each accepted linking click captured until its button is released and the press signal clears, including fast clicks.
+- Preserved normal station-to-chest linking, Shift+Alt unlinking, and deliberate cancellation with a separate click.
+
+## 1.0.5 - 2026-09-11
+
+- Fixed production's native item-status checks after Valheim 1.0.12 changed the underlying game API. Supports both the 1.0.7 field and the 1.0.12 property without changing the game's item-status rules.
+
+## 1.0.4 - 2026-09-10
+
+- Fixed production link setup rejecting players who have chest and ward access but do not already own the station and chest's network state.
+
+## 1.0.3 - PreProduction
+
+- Read container contents from Valheim 1.0's byte-array storage rather than the retired string field.
+- Accept the exact native one-load durability conversion while rejecting unrelated inventory differences.
+- Check the replicated integer busy flag before and after synchronization.
+- Cross-peer station/chest ownership remains a limitation; this update does not add remote transfers.
+
+## 1.0.2 - 2026-09-09
+
+- Updated cheated-state provenance, queue, slot, item insertion, and inventory notification integration for Valheim 1.0.
+- Re-audited the installed Valheim 1.0.7 client and dedicated-server assemblies and updated the BepInEx dependency to 5.4.2350.
+
+## 1.0.1 - 2026-09-04
+
+- Fixed one Alt+mouse press being observed by both `Player.SetControls` and `Player.Update`, which
+  could immediately cancel a newly armed production link before the player could select a chest.
+- Kept an accepted link gesture captured until its physical mouse button is released, preserving
+  action suppression and the intended two-step station-to-chest workflow.
+- Rewrote the package introduction and description around player-facing production automation,
+  connected workflows, and existing Valheim machines while retaining the technical safety details.
+
 ## 1.0.0 - 2026-08-29
 
 - Made the plugin independently installable with BepInEx as its only runtime dependency while

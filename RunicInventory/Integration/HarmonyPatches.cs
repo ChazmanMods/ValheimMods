@@ -21,6 +21,62 @@ namespace RunicInventory.Integration
         }
     }
 
+    [HarmonyPatch(typeof(Player), nameof(Player.SetInventorySize), typeof(int))]
+    internal static class NativeInventorySizePatch
+    {
+        [HarmonyPriority(Priority.First)]
+        [HarmonyBefore(BetterArcheryCompatibility.Guid)]
+        private static bool Prefix(Player __instance, int __0)
+        {
+            InventoryRuntime runtime = Plugin.Instance?.Runtime;
+            if (!(runtime?.HandlesNativeInventorySize(__instance) ?? false)) return true;
+            try { runtime.SetNativeInventorySize(__instance, __0); }
+            catch (Exception exception)
+            {
+                Diagnostics.Error(exception, "Dedicated-row resize failed; original inventory retained.");
+                runtime.FailClosed("topology.native-resize-faulted");
+            }
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.DropInvalidItems))]
+    internal static class InvalidInventoryCleanupPatch
+    {
+        [HarmonyPriority(Priority.First)]
+        private static bool Prefix(Humanoid __instance)
+        {
+            try { return Plugin.Instance?.Runtime?.AllowInvalidItemCleanup(__instance) ?? true; }
+            catch (Exception exception)
+            {
+                Diagnostics.Error(exception, "Inventory cleanup guard faulted; automatic item dropping was skipped.");
+                return false;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Inventory), "AddItem", new[] { typeof(ItemDrop.ItemData), typeof(int), typeof(int), typeof(int), typeof(bool) })]
+    internal static class PositionedInventoryAddPatch
+    {
+        private static bool Prefix(Inventory __instance, ItemDrop.ItemData __0, int __2, int __3, bool __4, ref bool __result)
+        {
+            if (Plugin.Instance?.Runtime?.AllowPositionedAddition(__instance, __0, __2, __3, __4) ?? true) return true;
+            __result = false;
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Inventory), nameof(Inventory.AddItem), new[] { typeof(ItemDrop.ItemData), typeof(Vector2i) })]
+    internal static class PositionedInventoryPublicAddPatch
+    {
+        private static bool Prefix(Inventory __instance, ItemDrop.ItemData __0, Vector2i __1, ref bool __result)
+        {
+            if (Plugin.Instance?.Runtime?.AllowPositionedAddition(__instance, __0, __1.x, __1.y, false) ?? true) return true;
+            __result = false;
+            return false;
+        }
+    }
+
     [HarmonyPatch(typeof(Player), nameof(Player.Load), new[] { typeof(ZPackage) })]
     internal static class PlayerLoadPatch
     {
@@ -50,6 +106,8 @@ namespace RunicInventory.Integration
     [HarmonyPatch(typeof(Inventory), "FindEmptySlot", new[] { typeof(bool) })]
     internal static class FindEmptySlotPatch
     {
+        [HarmonyPriority(Priority.First + 100)]
+        [HarmonyBefore(BetterArcheryCompatibility.Guid)]
         private static bool Prefix(Inventory __instance, bool __0, ref Vector2i __result)
         {
             InventoryRuntime runtime = Plugin.Instance?.Runtime;
@@ -68,23 +126,18 @@ namespace RunicInventory.Integration
         }
     }
 
-    [HarmonyPatch(typeof(Inventory), "FindFreeStackItem",
-        new[] { typeof(string), typeof(int), typeof(float) })]
-    internal static class FindFreeStackPatch
+    [HarmonyPatch(typeof(Inventory), "HaveEmptySlot")]
+    internal static class ReservedRowEmptySlotPatch
     {
-        private static void Postfix(
-            Inventory __instance,
-            string __0,
-            int __1,
-            float __2,
-            ref ItemDrop.ItemData __result)
+        [HarmonyPriority(Priority.First + 100)]
+        [HarmonyBefore(BetterArcheryCompatibility.Guid)]
+        private static bool Prefix(Inventory __instance, ref bool __result)
         {
-            try { Plugin.Instance?.Runtime?.ReplaceLockedFreeStack(__instance, __0, __1, __2, ref __result); }
-            catch (Exception exception)
-            {
-                Diagnostics.Error(exception, "Locked stack routing faulted; automatic stacking was declined for this call.");
-                __result = null;
-            }
+            var runtime = Plugin.Instance?.Runtime;
+            if (!BetterArcheryCompatibility.Active || runtime == null ||
+                !runtime.TryFindEmptySlot(__instance, true, out Vector2i slot)) return true;
+            __result = slot.x >= 0 && slot.y >= 0;
+            return false;
         }
     }
 
@@ -159,13 +212,13 @@ namespace RunicInventory.Integration
         }
     }
 
-    [HarmonyPatch(typeof(InventoryGrid), "OnRightClick", new[] { typeof(UIInputHandler) })]
+    [HarmonyPatch(typeof(InventoryGrid), "OnRightDown", new[] { typeof(UIInputHandler) })]
     internal static class InventoryGridRightClickLockPatch
     {
         [HarmonyPriority(Priority.First)]
-        private static bool Prefix(InventoryGrid __instance)
+        private static bool Prefix(InventoryGrid __instance, UIInputHandler __0)
         {
-            try { return !(Plugin.Instance?.Runtime?.TryTogglePointerLock(__instance) ?? false); }
+            try { return !(Plugin.Instance?.Runtime?.TryTogglePointerLock(__instance, __0) ?? false); }
             catch (Exception exception)
             {
                 Diagnostics.Error(exception, "Alt-right-click slot lock failed closed.");

@@ -1,9 +1,9 @@
 {
   "name": "RunicWorldEngine",
-  "version_number": "1.0.0",
-  "website_url": "",
-  "description": "Bounded read-only ZDO observability with unknown world data preserved.",
+  "version_number": "1.2.0",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicWorldEngine",
+  "description": "Configurable server player cap, validated hosting limits, per-peer network health and ownership diagnostics, sustained health warnings, and safe save smoothing.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333"
+    "denikson-BepInExPack_Valheim-5.4.2350"
   ]
 }

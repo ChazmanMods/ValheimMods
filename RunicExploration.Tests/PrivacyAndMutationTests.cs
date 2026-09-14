@@ -134,7 +134,7 @@ namespace RunicExploration.Tests
             var allowed = new HashSet<string>(StringComparer.Ordinal)
             {
                 "InTextInput", "OnMapLeftDown", "OnMapLeftUp", "OnMapLeftClick",
-                "OnMapDblClick", "OnMapMiddleClick", "OnMapRightClick"
+                "OnMapDblClick", "OnMapMiddleClick", "RemovePinUnderPointer"
             };
             Type[] patches = typeof(Plugin).Assembly.GetTypes()
                 .Where(type => type.GetCustomAttributes<HarmonyPatch>().Any())

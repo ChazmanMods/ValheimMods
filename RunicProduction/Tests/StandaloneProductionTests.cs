@@ -15,18 +15,21 @@ namespace RunicProduction.Tests
             new List<KeyValuePair<string, Action>>
             {
                 Case("manifest has only the BepInEx runtime dependency", ManifestIsStandalone),
+                Case("Valheim 1.0 production adapter signatures match", Valheim10AdaptersInitialize),
+                Case("Valheim 1.0 cheated fermenter state round-trips", CheatedFermenterStateRoundTrips),
                 Case("project has no Foundation project references", ProjectIsStandalone),
                 Case("plugin has no hard Foundation dependency attributes", PluginIsStandalone),
                 Case("assembly references no Foundation runtime", AssemblyIsStandalone),
                 Case("retired transport and operation-state files are absent", RetiredFilesAreAbsent),
                 Case("production source contains no retired runtime coupling", SourceHasNoRetiredCoupling),
-                Case("native runtime never transfers ownership", RuntimeNeverTransfersOwnership),
-                Case("native runtime has no custom routed RPC transport", RuntimeHasNoCustomRpc),
+                Case("background handoff is separate from setup claims and native mutation guards remain", RuntimeNeverTransfersOwnership),
+                Case("handoff RPC publishes no remote inventory or item operations", RuntimeHasNoCustomRpc),
+                Case("handoff checks stored authorization and has no live-player dependency", HandoffAuthorizationIsExact),
                 Case("ordinary transfers have no persistent operation records", NoOperationPersistence),
                 Case("legacy stable token fields remain format-compatible", TokenFieldsAreCompatible),
                 Case("stable tokens are canonical lowercase nonempty GUIDs", TokensAreCanonical),
                 Case("link and catalog storage keys preserve their namespace", StorageKeysAreCompatible),
-                Case("mod and package versions remain unchanged", VersionsAreUnchanged),
+                Case("runtime and package are 1.0.7", VersionsMatchPublishedPackage),
                 Case("station role matrix matches supported gameplay", RoleMatrixIsExact),
                 Case("mouse gestures map exactly to input output and replenish", MouseGesturesAreExact),
                 Case("output gestures arm from the station without a physical output sub-target", StationLevelOutputControlsAreExact),
@@ -55,10 +58,59 @@ namespace RunicProduction.Tests
                 Case("Player interact prefix matches the installed void signature", PlayerInteractPatchMatchesVoid)
             }.AsReadOnly();
 
+        private static void Valheim10AdaptersInitialize()
+        {
+            const BindingFlags instance = BindingFlags.Instance |
+                                          BindingFlags.Public |
+                                          BindingFlags.NonPublic;
+            Type status = typeof(CookingStation).GetNestedType(
+                "Status", BindingFlags.NonPublic);
+            Require(status != null);
+            Require(typeof(Smelter).GetMethod(
+                "QueueOre", instance, null,
+                new[] { typeof(string), typeof(bool) }, null) != null);
+            Require(typeof(CookingStation).GetMethod(
+                "GetSlot", instance, null,
+                new[]
+                {
+                    typeof(int), typeof(string).MakeByRefType(),
+                    typeof(float).MakeByRefType(), status.MakeByRefType(),
+                    typeof(bool).MakeByRefType()
+                }, null) != null);
+            Require(typeof(CookingStation).GetMethod(
+                "SetSlot", instance, null,
+                new[] { typeof(int), typeof(string), typeof(float), status, typeof(bool) },
+                null) != null);
+            FieldInfo cheated = typeof(ItemDrop.ItemData).GetField(
+                "m_cheated", BindingFlags.Instance | BindingFlags.Public);
+            Require(cheated != null && cheated.FieldType == typeof(bool));
+            MethodInfo changed = typeof(Inventory).GetMethod(
+                "Changed",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                null,
+                new[] { typeof(bool), typeof(bool) },
+                null);
+            Require(changed != null && changed.ReturnType == typeof(void));
+        }
+
+        private static void CheatedFermenterStateRoundTrips()
+        {
+            Require(FermenterStationState.TryCreate(
+                "BarleyWineBase", new DateTime(2026, 9, 9, 0, 0, 0, DateTimeKind.Utc).Ticks,
+                true, out FermenterStationState state));
+            Require(state.Cheated);
+            Require(FermenterStationState.TryParse(
+                state.Serialize(), out FermenterStationState parsed));
+            Require(parsed.Cheated);
+            Require(parsed.InputPrefabId == state.InputPrefabId &&
+                    parsed.StartTicks == state.StartTicks);
+            Require(!FermenterStationState.TryCreate(string.Empty, 0L, true, out _));
+        }
+
         private static void ManifestIsStandalone()
         {
             string source = File.ReadAllText(PathInMod("manifest.json"));
-            Contains(source, "denikson-BepInExPack_Valheim-5.4.2333");
+            Contains(source, "denikson-BepInExPack_Valheim-5.4.2350");
             NotContains(source, "Chazman-RunicCore");
             NotContains(source, "Chazman-RunicPersistence");
             NotContains(source, "Chazman-RunicPermissions");
@@ -143,9 +195,23 @@ namespace RunicProduction.Tests
                 "Integration", "ProductionRuntime.cs"));
             Contains(source, "IsOwner()");
             Contains(source, "TrySynchronizeLocallyOwnedContainer");
+            string access = File.ReadAllText(PathInMod("Integration", "ValheimAccess.cs"));
+            Contains(access, "GetByteArray(ZDOVars.s_items)");
+            NotContains(access, "GetString(ZDOVars.s_items");
+            Contains(access, "ProductionInventoryPayloadComparison.MatchesLoaded");
+            Contains(access, "GetInt(ZDOVars.s_inUse, 0)");
             NotContains(source, "ClaimOwnership");
             NotContains(source, ".SetOwner(");
             NotContains(source, ".ClaimOwnership(");
+            Contains(source, "TryPrepareLinkOwnership(");
+            Contains(access, "ProductionSetupOwnership.TryAcquire(AccessStillValid");
+            Contains(access, "ContainerAllows(chest, actorId)");
+            Contains(access, "WardAllows(source, actorId)");
+            Contains(access, "WardAllows(target, actorId)");
+            Contains(access, "ContainerWithinReach(chest, player.transform.position");
+            Contains(access, "!ContainerWritable(chest)");
+            NotContains(source, "This process is not the station's current native owner.");
+            NotContains(source, "The station and chest must both be owned by this local process.");
         }
 
         private static void RuntimeHasNoCustomRpc()
@@ -157,6 +223,40 @@ namespace RunicProduction.Tests
             string access = File.ReadAllText(PathInMod(
                 "Integration", "ValheimAccess.cs"));
             Contains(access, "RPC_SetSlotVisual");
+            string handoff = File.ReadAllText(PathInMod("Integration", "ProductionChestHandoff.cs"));
+            Contains(handoff, "Register<ZDOID, long, string>");
+            Contains(handoff, "stationZdo.GetOwner() != sender");
+            Contains(handoff, "TrySynchronizeLocallyOwnedContainer");
+            Contains(handoff, "zdo.Set(ReceiptKey, nonce)");
+            Contains(handoff, "zdo.SetOwner(sender)");
+            NotContains(handoff, "ClaimOwnership");
+            NotContains(handoff, "Player.m_localPlayer");
+            NotContains(handoff, "ZPackage");
+        }
+
+        private static void HandoffAuthorizationIsExact()
+        {
+            string source = File.ReadAllText(PathInMod("Integration", "ProductionRuntime.cs"));
+            string pending = source.Substring(source.IndexOf("private static void TryActivatePendingReplenishment",
+                StringComparison.Ordinal));
+            pending = pending.Substring(0, pending.IndexOf("private static bool SameTargetSet", StringComparison.Ordinal));
+            NotContains(pending, "Player.m_localPlayer");
+            NotContains(pending, "actor?.GetPlayerID");
+            Contains(pending, ": link.OwnerId");
+            Contains(pending, "principalId != link.OwnerId");
+            Contains(source, "link.OwnerId == principal");
+            Contains(source, "ValheimAccess.Creator(station) != link.StationOwnerId");
+            Contains(source, "ValheimAccess.Creator(container) != link.TargetOwnerId");
+            Contains(source, "ValheimAccess.ContainerAllows(container, link.OwnerId)");
+            Contains(source, "ValheimAccess.WardAllows(stationPosition, link.OwnerId)");
+            Contains(source, "ValheimAccess.WardAllows(currentPosition, link.OwnerId)");
+            Contains(source, "ProtectedDestinationIds(station).Contains(chestZdo.m_uid)");
+            Contains(source, "ProductionChestHandoff.TryAcquire(station, container, actorId)");
+            Contains(source, "ProductionChestHandoff.TryAcquire(station, container, link.OwnerId)");
+            Contains(source, "if (query.Truncated) yield break;");
+            Require(typeof(ZNetView).GetMethod("InvokeRPC", new[] { typeof(long), typeof(string), typeof(object[]) }) != null);
+            Require(typeof(ZDOMan).GetMethod("ForceSendZDO", new[] { typeof(long), typeof(ZDOID) }) != null);
+            Require(typeof(ZDO).GetMethod("SetOwner", new[] { typeof(long) }) != null);
         }
 
         private static void NoOperationPersistence()
@@ -206,14 +306,14 @@ namespace RunicProduction.Tests
                 "Plugin.ModuleId + \".stock.destinations.slot.\"");
         }
 
-        private static void VersionsAreUnchanged()
+        private static void VersionsMatchPublishedPackage()
         {
-            Equal("1.0.0", Plugin.Version);
+            Equal("1.0.7", Plugin.Version);
             Contains(File.ReadAllText(PathInMod("manifest.json")),
-                "\"version_number\": \"1.0.0\"");
+                "\"version_number\": \"1.0.7\"");
             Contains(File.ReadAllText(PathInMod(
                 "Properties", "AssemblyInfo.cs")),
-                "AssemblyInformationalVersion(\"1.0.0\")");
+                "AssemblyInformationalVersion(\"1.0.7\")");
         }
 
         private static void RoleMatrixIsExact()

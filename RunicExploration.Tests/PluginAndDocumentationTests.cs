@@ -33,13 +33,13 @@ namespace RunicExploration.Tests
                 typeof(Plugin).GetCustomAttribute<BepInPlugin>());
             TestAssert.Equal("chazman.RunicExploration", Plugin.Guid);
             TestAssert.Equal("Runic Exploration", Plugin.Name);
-            TestAssert.Equal("1.0.0", Plugin.Version);
+            TestAssert.Equal("1.0.2", Plugin.Version);
             TestAssert.Equal(Plugin.Guid, identity.GUID);
             TestAssert.Equal(Plugin.Name, identity.Name);
             TestAssert.Equal(Plugin.Version, identity.Version.ToString());
-            TestAssert.Equal(new Version(1, 0, 0, 0),
+            TestAssert.Equal(new System.Version(1, 0, 2, 0),
                 typeof(Plugin).Assembly.GetName().Version);
-            TestAssert.Equal("1.0.0", typeof(Plugin).Assembly
+            TestAssert.Equal("1.0.2", typeof(Plugin).Assembly
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                 ?.InformationalVersion);
         }
@@ -106,13 +106,13 @@ namespace RunicExploration.Tests
                 File.ReadAllText(TestPaths.Plugin("manifest.json")));
             JsonElement root = document.RootElement;
             TestAssert.Equal("RunicExploration", root.GetProperty("name").GetString());
-            TestAssert.Equal(Plugin.Version, root.GetProperty("version_number").GetString());
+            TestAssert.Equal("1.0.2", root.GetProperty("version_number").GetString());
             string description = root.GetProperty("description").GetString();
-            TestAssert.Contains("already explored", description);
+            TestAssert.Contains("explored world", description);
             string[] dependencies = root.GetProperty("dependencies").EnumerateArray()
                 .Select(item => item.GetString()).ToArray();
             TestAssert.Equal(1, dependencies.Length);
-            TestAssert.True(dependencies.Contains("denikson-BepInExPack_Valheim-5.4.2333"));
+            TestAssert.True(dependencies.Contains("denikson-BepInExPack_Valheim-5.4.2350"));
         }
 
         private static void ConfigIsComplete()
@@ -132,7 +132,7 @@ namespace RunicExploration.Tests
             string readme = File.ReadAllText(TestPaths.Plugin("README.md"));
             foreach (string term in new[]
                      {
-                         "Valheim 0.221.12", "LAST KNOWN", "LIVE LOCAL SHIP", "10,000",
+                         "LAST KNOWN", "LIVE LOCAL SHIP", "10,000",
                          "4,096", "24", "256", "64", "48", "no-map", "Dedicated/batch",
                           "WorldGenerator", "ZoneSystem", "no remote recovery", "runtime-discovered",
                           "does not add a controller cursor", "unknown or unsaved pin", "Authority",
@@ -146,7 +146,7 @@ namespace RunicExploration.Tests
             TestAssert.Contains("100/1,000/10,000", testing);
             TestAssert.Contains("unknown pins are rejected before name/type/owner reads", testing);
             string change = File.ReadAllText(TestPaths.Plugin("CHANGELOG.md"));
-            TestAssert.Contains("1.0.0", change);
+            TestAssert.Contains("1.0.2", change);
             TestAssert.Contains("world-location scans", change);
         }
 

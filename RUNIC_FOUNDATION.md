@@ -15,3 +15,8 @@ No user world, character, catalog, or old release-evidence data is deleted by th
 Portals continues to own and read its existing portal/group feature data formats. Superseded package
 archives remain historical evidence only after the replacement release passes its acceptance and
 coexistence gates.
+
+Recoverable superseded Foundation packages are archived under
+`artifacts/RunicFoundation/Obsolete/`; name collisions receive a new archive path rather than
+overwriting prior evidence. A validation-only run does not run the
+test suites, create or change the Foundation artifact directory, or promote a package.

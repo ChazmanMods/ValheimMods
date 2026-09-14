@@ -1,2 +1,2 @@
-## Runic Persistence 1.0.0 currently has no player-facing settings.
-## Server-authoritative adapter settings will be added when the ZDO/RPC transport ships.
+## Runic Persistence 1.1.0 currently has no player-facing settings.
+## Direct admission and server-authoritative RPC enforcement are supplied by typed services.

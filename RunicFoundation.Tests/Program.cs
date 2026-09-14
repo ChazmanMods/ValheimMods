@@ -55,8 +55,8 @@ namespace RunicFoundation.Tests
                 "RunicCore",
                 "Runic Core",
                 "chazman.RunicCore",
-                "1.0.0",
-                new Version(1, 0, 0, 0));
+                "1.1.0",
+                new Version(1, 1, 0, 0));
             AssertReleaseIdentity(
                 permissionsPlugin,
                 "RunicPermissions",
@@ -76,8 +76,8 @@ namespace RunicFoundation.Tests
                 "RunicPersistence",
                 "Runic Persistence",
                 "chazman.RunicPersistence",
-                "1.0.0",
-                new Version(1, 0, 0, 0));
+                "1.1.0",
+                new Version(1, 1, 0, 0));
 
             Equal(0, corePlugin.GetCustomAttributes<BepInDependency>().Count());
             AssertCoreAndPersistenceDependencies(permissionsPlugin);
@@ -118,7 +118,7 @@ namespace RunicFoundation.Tests
             BepInDependency[] dependencies = pluginType.GetCustomAttributes<BepInDependency>().ToArray();
             Equal(1, dependencies.Length);
             Equal("chazman.RunicCore", dependencies[0].DependencyGUID);
-            Equal(new Version(1, 0, 0), dependencies[0].MinimumVersion);
+            Equal(new Version(1, 1, 0), dependencies[0].MinimumVersion);
             Equal(BepInDependency.DependencyFlags.HardDependency, dependencies[0].Flags);
         }
 

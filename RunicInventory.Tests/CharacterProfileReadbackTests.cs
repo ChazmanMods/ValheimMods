@@ -13,11 +13,11 @@ namespace RunicInventory.Tests
 
         internal static void Register()
         {
-            TestRunner.Run("exact v43 character primary validates hash and player package", ExactPrimaryAccepted);
+            TestRunner.Run("exact v46 character primary validates hash and player package", ExactPrimaryAccepted);
             TestRunner.Run("stale primary is rejected even when new or backup bytes are exact", StalePrimaryRejectsFallbackIllusion);
             TestRunner.Run("outer profile corruption is rejected before player evidence", CorruptionRejected);
             TestRunner.Run("truncated and trailing character envelopes fail closed", EnvelopeBoundsRejectFaults);
-            TestRunner.Run("rehashed malformed v43 structures fail closed", RehashedMalformedStructureRejected);
+            TestRunner.Run("rehashed malformed v46 structures fail closed", RehashedMalformedStructureRejected);
             TestRunner.Run("missing and mismatched player packages fail closed", PlayerDataMismatchRejected);
             TestRunner.Run("profile parser hard-bounds adversarial collections and strings", AdversarialBoundsRejectEarly);
         }
@@ -25,7 +25,7 @@ namespace RunicInventory.Tests
         private static void ExactPrimaryAccepted()
         {
             byte[] primary = Fixture(ExpectedPlayerData, playerId: 9123456789L);
-            TestAssert.True(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.True(CharacterProfileReadback.TryVerifyCurrentV46(
                 primary, ExpectedPlayerData, out CharacterProfileReadbackEvidence evidence, out string code));
             TestAssert.Equal("ok", code);
             TestAssert.Equal(9123456789L, evidence.PlayerId);
@@ -36,7 +36,7 @@ namespace RunicInventory.Tests
             // FileReader returns byte-identical content for both local FileStream and a successful
             // cloud ReadFile. Source durability is a separate storage-provider proof.
             byte[] cloudRead = (byte[])primary.Clone();
-            TestAssert.True(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.True(CharacterProfileReadback.TryVerifyCurrentV46(
                 cloudRead, ExpectedPlayerData, out _, out code));
             TestAssert.Equal("ok", code);
         }
@@ -48,14 +48,14 @@ namespace RunicInventory.Tests
             byte[] exactNewFile = Fixture(ExpectedPlayerData);
             byte[] exactBackup = Fixture(ExpectedPlayerData);
 
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 currentPrimary, ExpectedPlayerData, out _, out string staleCode));
             TestAssert.Equal("readback.player-data-mismatch", staleCode);
-            TestAssert.True(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.True(CharacterProfileReadback.TryVerifyCurrentV46(
                 exactNewFile, ExpectedPlayerData, out _, out _));
-            TestAssert.True(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.True(CharacterProfileReadback.TryVerifyCurrentV46(
                 exactBackup, ExpectedPlayerData, out _, out _));
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 currentPrimary, ExpectedPlayerData, out _, out _),
                 "An exact .new or cloud-backup file must never substitute for stale current-primary evidence.");
         }
@@ -64,7 +64,7 @@ namespace RunicInventory.Tests
         {
             byte[] corrupt = Fixture(ExpectedPlayerData);
             corrupt[12] ^= 0x40;
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 corrupt, ExpectedPlayerData, out _, out string code));
             TestAssert.Equal("readback.outer-hash-invalid", code);
         }
@@ -74,19 +74,19 @@ namespace RunicInventory.Tests
             byte[] exact = Fixture(ExpectedPlayerData);
             byte[] truncated = new byte[exact.Length - 1];
             Buffer.BlockCopy(exact, 0, truncated, 0, truncated.Length);
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 truncated, ExpectedPlayerData, out _, out _));
 
             byte[] trailing = new byte[exact.Length + 1];
             Buffer.BlockCopy(exact, 0, trailing, 0, exact.Length);
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 trailing, ExpectedPlayerData, out _, out string trailingCode));
             TestAssert.Equal("readback.envelope-trailing-or-truncated", trailingCode);
 
             byte[] badHashLength = (byte[])exact.Clone();
             int outerLength = BitConverter.ToInt32(badHashLength, 0);
             WriteInt32(badHashLength, 4 + outerLength, 63);
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 badHashLength, ExpectedPlayerData, out _, out string hashCode));
             TestAssert.Equal("readback.hash-length-invalid", hashCode);
         }
@@ -94,12 +94,12 @@ namespace RunicInventory.Tests
         private static void RehashedMalformedStructureRejected()
         {
             byte[] unsupported = Fixture(ExpectedPlayerData, version: 42);
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 unsupported, ExpectedPlayerData, out _, out string versionCode));
             TestAssert.Equal("readback.profile-version-unsupported", versionCode);
 
             byte[] invalidBoolean = Fixture(ExpectedPlayerData, firstSpawnEncoding: 2);
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 invalidBoolean, ExpectedPlayerData, out _, out string headerCode));
             TestAssert.Equal("readback.profile-header-invalid", headerCode);
         }
@@ -107,12 +107,12 @@ namespace RunicInventory.Tests
         private static void PlayerDataMismatchRejected()
         {
             byte[] noData = Fixture(ExpectedPlayerData, hasPlayerData: false);
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 noData, ExpectedPlayerData, out _, out string missingCode));
             TestAssert.Equal("readback.player-data-missing", missingCode);
 
             byte[] mismatch = Fixture(new byte[] { 4, 3, 2, 1 });
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 mismatch, ExpectedPlayerData, out _, out string mismatchCode));
             TestAssert.Equal("readback.player-data-mismatch", mismatchCode);
         }
@@ -120,18 +120,18 @@ namespace RunicInventory.Tests
         private static void AdversarialBoundsRejectEarly()
         {
             byte[] tooManyWorlds = Fixture(ExpectedPlayerData, worldCountOverride: int.MaxValue);
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 tooManyWorlds, ExpectedPlayerData, out _, out string worldCode));
             TestAssert.Equal("readback.world-count-invalid", worldCode);
 
             byte[] tooManyDictionaryEntries = Fixture(
                 ExpectedPlayerData, firstDictionaryCountOverride: int.MaxValue);
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 tooManyDictionaryEntries, ExpectedPlayerData, out _, out string dictionaryCode));
             TestAssert.Equal("readback.dictionary-count-invalid", dictionaryCode);
 
             byte[] oversizedExpected = new byte[CharacterProfileReadback.MaximumPlayerDataBytes + 1];
-            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV43(
+            TestAssert.False(CharacterProfileReadback.TryVerifyCurrentV46(
                 Fixture(ExpectedPlayerData), oversizedExpected, out _, out string expectedCode));
             TestAssert.Equal("readback.expected-player-data-too-large", expectedCode);
         }
@@ -151,8 +151,21 @@ namespace RunicInventory.Tests
             {
                 writer.Write(version);
                 writer.Write(CharacterProfileReadback.CurrentStatCount);
-                for (int index = 0; index < CharacterProfileReadback.CurrentStatCount; index++)
-                    writer.Write(index / 10f);
+                writer.Write(CharacterProfileReadback.CurrentProfileSetCount);
+                for (int profileSet = 0; profileSet < CharacterProfileReadback.CurrentProfileSetCount; profileSet++)
+                {
+                    for (int index = 0; index < CharacterProfileReadback.CurrentStatCount; index++)
+                        writer.Write(index / 10f);
+                    for (int dictionary = 0; dictionary < 3; dictionary++)
+                        writer.Write(profileSet == 0 && dictionary == 0 && firstDictionaryCountOverride.HasValue
+                            ? firstDictionaryCountOverride.Value
+                            : 0);
+                    writer.Write(CharacterProfileReadback.CurrentEnemyStatSetCount);
+                    for (int dictionary = 0;
+                         dictionary < CharacterProfileReadback.CurrentEnemyStatSetCount + 5;
+                         dictionary++)
+                        writer.Write(0);
+                }
                 writer.Write(firstSpawnEncoding);
                 writer.Write(worldCountOverride ?? 0);
                 writer.Write("Runic Tester");
@@ -160,12 +173,6 @@ namespace RunicInventory.Tests
                 writer.Write("start-seed");
                 writer.Write(false);
                 writer.Write(1700000000L);
-                for (int dictionary = 0; dictionary < 6; dictionary++)
-                {
-                    writer.Write(dictionary == 0 && firstDictionaryCountOverride.HasValue
-                        ? firstDictionaryCountOverride.Value
-                        : 0);
-                }
                 writer.Write(hasPlayerData);
                 if (hasPlayerData)
                 {

@@ -111,8 +111,8 @@ namespace RunicExploration.Integration
             float mapY = position.z / view.PixelSize + half;
             if (!Finite(mapX) || !Finite(mapY) || mapX < int.MinValue || mapX > int.MaxValue ||
                 mapY < int.MinValue || mapY > int.MaxValue) return false;
-            int x = Mathf.RoundToInt(mapX);
-            int y = Mathf.RoundToInt(mapY);
+            int x = Utils.RoundToInt(mapX);
+            int y = Utils.RoundToInt(mapY);
             if (x < 0 || x >= view.TextureSize || y < 0 || y >= view.TextureSize) return false;
             int offset = y * view.TextureSize + x;
             return view.Explored[offset] || includeSharedCoverage &&

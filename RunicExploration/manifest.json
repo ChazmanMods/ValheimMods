@@ -1,9 +1,9 @@
 {
   "name": "RunicExploration",
-  "version_number": "1.0.0",
+  "version_number": "1.0.2",
   "website_url": "https://discord.gg/7HKHTCdFqY",
-  "description": "Bounded search and navigation for saved pins in Valheim map cells the player has already explored.",
+  "description": "Search and filter saved locations in your explored world, then navigate to what you already discovered without revealing unknown map areas.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333"
+    "denikson-BepInExPack_Valheim-5.4.2350"
   ]
 }

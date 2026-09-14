@@ -31,8 +31,12 @@ $projects = @(
     'RunicSafety.Tests\RunicSafety.Tests.csproj'
     'RunicVelocity.Tests\RunicVelocity.Tests.csproj'
     'RunicSentinel.Tests\RunicSentinel.Tests.csproj'
+    'RunicSentinelClient.Tests\RunicSentinelClient.Tests.csproj'
+    'RunicSentinelServer.Tests\RunicSentinelServer.Tests.csproj'
     'RunicWorldEngine.Tests\RunicWorldEngine.Tests.csproj'
     'RunicBuildCamera.Tests\RunicBuildCamera.Tests.csproj'
+    'RunicSuite14.Tests\RunicSuite14.Tests.csproj'
+    '..\StandaloneItemStands\Tests\RunicDisplayStands.ContractTests.csproj'
 )
 
 Push-Location -LiteralPath $PSScriptRoot

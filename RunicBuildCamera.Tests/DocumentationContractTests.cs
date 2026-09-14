@@ -39,7 +39,7 @@ namespace RunicBuildCamera.Tests
             TestRunner.Run("example configuration defaults are exact", ExampleConfigurationDefaultsAreExact);
             TestRunner.Run("README configuration table matches the example", ReadmeConfigurationMatchesExample);
             TestRunner.Run("documentation defines the safety and multiplayer boundary", DocumentationDefinesSafetyBoundary);
-            TestRunner.Run("changelog and assembly share version 1.0.0", ChangelogVersionIsAligned);
+            TestRunner.Run("changelog and assembly share version 1.0.3", ChangelogVersionIsAligned);
         }
 
         private static void ManifestIdentityIsAligned()
@@ -48,15 +48,15 @@ namespace RunicBuildCamera.Tests
                 File.ReadAllText(TestPaths.PluginFile("manifest.json")));
             JsonElement root = document.RootElement;
             TestAssert.Equal("RunicBuildCamera", root.GetProperty("name").GetString());
-            TestAssert.Equal(Plugin.Version, root.GetProperty("version_number").GetString());
+            TestAssert.Equal("1.0.3", root.GetProperty("version_number").GetString());
             TestAssert.True(root.GetProperty("description").GetString()
-                .Contains("detached build camera", StringComparison.OrdinalIgnoreCase));
+                .Contains("detached camera", StringComparison.OrdinalIgnoreCase));
             string[] dependencies = root.GetProperty("dependencies")
                 .EnumerateArray()
                 .Select(item => item.GetString())
                 .ToArray();
             TestAssert.SequenceEqual(
-                new[] { "denikson-BepInExPack_Valheim-5.4.2333" }, dependencies);
+                new[] { "denikson-BepInExPack_Valheim-5.4.2350" }, dependencies);
             TestAssert.False(dependencies.Any(item =>
                 item.Contains("Precision", StringComparison.OrdinalIgnoreCase) ||
                 item.Contains("Runic", StringComparison.OrdinalIgnoreCase)),
@@ -121,7 +121,7 @@ namespace RunicBuildCamera.Tests
             string normalized = Regex.Replace(readme, @"\s+", " ");
             string[] required =
             {
-                "does not depend on Runic Core, Runic Precision Build Tool",
+                "standalone and requires only BepInEx",
                 "does not search, open, or transfer items from chests",
                 "player has an active Wisplight demister",
                 "avatar remains at the original world position and remains vulnerable",

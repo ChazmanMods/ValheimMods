@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using Runic.Foundation.Core;
 using RunicSentinel.Contracts;
 
 namespace RunicSentinel.Core
@@ -123,7 +122,8 @@ namespace RunicSentinel.Core
                 if (!present) continue;
                 if (rule.Classification == PluginClassification.Forbidden)
                 { Add("ForbiddenPresent", rule.Id, FindingConfidence.Conclusive, AdmissionDisposition.Deny); continue; }
-                if (rule.Classification == PluginClassification.ServerOnly)
+                if (rule.Classification == PluginClassification.ServerOnly &&
+                    !string.Equals(role, "server", StringComparison.Ordinal))
                 { Add("ServerOnlyOnClient", rule.Id, FindingConfidence.Conclusive, AdmissionDisposition.Deny); continue; }
                 if (rule.Classification == PluginClassification.AdministratorOnly && !string.Equals(role, "administrator", StringComparison.Ordinal))
                 { Add("AdministratorOnly", rule.Id, FindingConfidence.Conclusive, AdmissionDisposition.Deny); continue; }
@@ -137,6 +137,8 @@ namespace RunicSentinel.Core
                 }
                 if (rule.Classification == PluginClassification.Quarantined)
                     Add("PolicyQuarantine", rule.Id, FindingConfidence.High, AdmissionDisposition.Quarantine);
+                else if (rule.Classification == PluginClassification.Unmanaged)
+                    Add("GrayListPresent", rule.Id, FindingConfidence.Informational, AdmissionDisposition.Allow);
             }
             var known = new HashSet<string>(policy.Rules.Select(value => value.Id), StringComparer.Ordinal);
             foreach (AttestedPlugin plugin in validated)

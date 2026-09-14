@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using HarmonyLib;
+using RunicBuildCamera.Core;
 using UnityEngine;
 
 namespace RunicBuildCamera.Integration
@@ -40,7 +41,8 @@ namespace RunicBuildCamera.Integration
         }
 
         internal static bool ShouldSuppress(Player player) =>
-            _depth > 0 && player != null && player == _player;
+            _depth > 0 && player != null && player == _player &&
+            BuildCameraRuntime.ShouldFreezePlayer(player);
 
         internal static bool PlacementInput(Player player, bool current) =>
             ShouldSuppress(player) && _captured ? _originalTakeInput : current;
@@ -86,7 +88,21 @@ namespace RunicBuildCamera.Integration
         {
             if (!PlayerUpdateInputIsolation.ShouldSuppress(__instance)) return;
             PlayerUpdateInputIsolation.CaptureTakeInput(__instance, __result);
+            if (CameraExitInput.ReleaseIfRequested(__result,
+                    BuildCameraRuntime.ExitInputRequested, BuildCameraRuntime.ForceStop)) return;
             __result = false;
+        }
+    }
+
+    // Controller hotbar use is dispatched by HotkeyBar.Update, outside Player.Update.
+    // Let the existing native action run exactly once after releasing the camera.
+    [HarmonyPatch(typeof(Player), nameof(Player.UseHotbarItem), typeof(int))]
+    internal static class PlayerHotbarCameraExitPatch
+    {
+        private static void Prefix(Player __instance)
+        {
+            if (BuildCameraRuntime.ShouldFreezePlayer(__instance))
+                BuildCameraRuntime.ForceStop();
         }
     }
 

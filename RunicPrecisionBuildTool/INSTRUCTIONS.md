@@ -1,4 +1,4 @@
-# Runic Precision Build Tool 2.0.1 — Instructions
+# Runic Precision Build Tool 2.0.3 — Instructions
 
 ## Start and stop
 
@@ -61,6 +61,6 @@ pending operation, persistent journal, inventory lock, or recovery task.
 ## Failure behavior
 
 The readout augments Valheim's selected-piece panel and hides only its own rows when appropriate.
-If an installed Valheim method or IL seam differs from the audited 0.221.12 contract, the plugin
-disables its hooks and leaves vanilla building available. Version 2.0.1 supports keyboard/mouse and
+If an installed Valheim method or IL seam differs from the audited 1.0.7 contract, the plugin
+disables its hooks and leaves vanilla building available. Version 2.0.3 supports keyboard/mouse and
 has no controller bindings.

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Runic.Foundation.Core;
 using System.Globalization;
+using RunicSentinel.Core;
 
 namespace RunicSentinel.Contracts
 {

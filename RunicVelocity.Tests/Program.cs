@@ -295,7 +295,7 @@ namespace RunicVelocity.Tests
             {
                 PluginManifestEntry entry = new PluginManifestScanner().Scan(directory, cache, false, 8).Entries.Single();
                 Equal("chazman.RunicVelocity", entry.PluginId);
-                Equal("1.0.0", entry.PluginVersion);
+                Equal("1.0.2", entry.PluginVersion);
                 Equal(0, entry.Dependencies.Count);
                 Equal("runic-plugin", entry.Classification);
             });
@@ -346,7 +346,7 @@ namespace RunicVelocity.Tests
         private static void ReleaseSurfaceAligns()
         {
             string plugin = Read("RunicVelocity", "Plugin.cs");
-            Contains(plugin, "public const string Version = \"1.0.0\"");
+            Contains(plugin, "public const string Version = \"1.0.2\"");
             string contracts = Read("RunicVelocity", "Contracts", "VelocityContracts.cs");
             foreach (string forbidden in new[]
                      {
@@ -356,12 +356,12 @@ namespace RunicVelocity.Tests
                 False(contracts.Contains(forbidden, StringComparison.Ordinal));
             using JsonDocument manifest = JsonDocument.Parse(Read("RunicVelocity", "manifest.json"));
             Equal("RunicVelocity", manifest.RootElement.GetProperty("name").GetString());
-            Equal("1.0.0", manifest.RootElement.GetProperty("version_number").GetString());
+            Equal("1.0.2", manifest.RootElement.GetProperty("version_number").GetString());
             string[] dependencies = manifest.RootElement.GetProperty("dependencies")
                 .EnumerateArray().Select(value => value.GetString()).ToArray();
-            Sequence(new[] { "denikson-BepInExPack_Valheim-5.4.2333" }, dependencies);
+            Sequence(new[] { "denikson-BepInExPack_Valheim-5.4.2350" }, dependencies);
             using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(BuiltPlugin());
-            Equal(new Version(1, 0, 0, 0), assembly.Name.Version);
+            Equal(new Version(1, 0, 2, 0), assembly.Name.Version);
             False(assembly.MainModule.AssemblyReferences.Any(reference =>
                 reference.Name.StartsWith("Runic", StringComparison.OrdinalIgnoreCase)));
             False(assembly.MainModule.AssemblyReferences.Any(reference =>

@@ -164,7 +164,7 @@ internal static class ContainerHoverContents
 		}
 		CacheEntry orCreate = GetOrCreate(container);
 		orCreate.LastAccess = ++_accessSequence;
-		string text = val2.GetString(ZDOVars.s_items, string.Empty);
+		string text = ReadPersistedItems(val2);
 		bool samePersistedEvidence;
 		HoverPersistedEvidence expectedEvidence = CaptureEvidence(orCreate, text, out samePersistedEvidence);
 		float realtimeSinceStartup = Time.realtimeSinceStartup;
@@ -226,11 +226,11 @@ internal static class ContainerHoverContents
 		{
 			ZNetView val = ValheimContainerIdentity.NetworkView(container);
 			ZDO val2 = (((Object)(object)val != (Object)null && val.IsValid()) ? val.GetZDO() : null);
-			if (val2 == null || Loading.Invoke(container) || IsBusy(container, val2))
+			if (val2 == null || Loading.Invoke(container))
 			{
 				return false;
 			}
-			string text = val2.GetString(ZDOVars.s_items, string.Empty);
+			string text = ReadPersistedItems(val2);
 			HoverPersistedEvidence evidence = HoverPersistedEvidence.Capture(text, PluginConfig.HoverMaximumSnapshotCharacters.Value);
 			if (!TryGetExactInventory(container, text, evidence, out var inventory2))
 			{
@@ -238,8 +238,8 @@ internal static class ContainerHoverContents
 			}
 			ZNetView val3 = ValheimContainerIdentity.NetworkView(container);
 			ZDO val4 = (((Object)(object)val3 != (Object)null && val3.IsValid()) ? val3.GetZDO() : null);
-			string a = ((val4 != null) ? val4.GetString(ZDOVars.s_items, string.Empty) : null);
-			if (val3 != val || val4 != val2 || val4 == null || Loading.Invoke(container) || IsBusy(container, val4) || !string.Equals(a, text, StringComparison.Ordinal))
+			string a = ((val4 != null) ? ReadPersistedItems(val4) : null);
+			if (val3 != val || val4 != val2 || val4 == null || Loading.Invoke(container) || !string.Equals(a, text, StringComparison.Ordinal))
 			{
 				return false;
 			}
@@ -303,7 +303,7 @@ internal static class ContainerHoverContents
 			string suffix = ContainerHoverSummaryFormatter.Format(list, Mathf.Clamp(PluginConfig.HoverMaximumItemKinds.Value, 1, 24), Mathf.Clamp(PluginConfig.HoverItemsPerLine.Value, 1, 4), Mathf.Clamp(PluginConfig.HoverMaximumCharacters.Value, 64, 1024), num2);
 			ZNetView val2 = ValheimContainerIdentity.NetworkView(container);
 			ZDO val3 = (((Object)(object)val2 != (Object)null && val2.IsValid()) ? val2.GetZDO() : null);
-			string text2 = ((val3 != null) ? val3.GetString(ZDOVars.s_items, string.Empty) : null);
+			string text2 = ((val3 != null) ? ReadPersistedItems(val3) : null);
 			HoverPersistedEvidence hoverPersistedEvidence = HoverPersistedEvidence.Capture(text2, PluginConfig.HoverMaximumSnapshotCharacters.Value);
 			if (val2 == expectedView && val3 == expectedZdo && val3 != null && hoverPersistedEvidence.Equals(expectedEvidence) && string.Equals(text2, expectedPersistedItems, StringComparison.Ordinal))
 			{
@@ -311,7 +311,7 @@ internal static class ContainerHoverContents
 				if (enabled != null && enabled.Value)
 				{
 					ConfigEntry<bool> showContentsOnHover = PluginConfig.ShowContentsOnHover;
-					if (showContentsOnHover != null && showContentsOnHover.Value && !((Object)(object)Player.m_localPlayer != (Object)(object)expectedPlayer) && !((Object)(object)expectedPlayer == (Object)null) && ((Behaviour)container).isActiveAndEnabled && (int)container.m_privacy != 0 && !Loading.Invoke(container) && !IsBusy(container, val3))
+					if (showContentsOnHover != null && showContentsOnHover.Value && !((Object)(object)Player.m_localPlayer != (Object)(object)expectedPlayer) && !((Object)(object)expectedPlayer == (Object)null) && ((Behaviour)container).isActiveAndEnabled && (int)container.m_privacy != 0 && !Loading.Invoke(container))
 					{
 						Vector3 position = ((Component)container).transform.position;
 						Vector3 val4 = position - ((Component)expectedPlayer).transform.position;
@@ -368,7 +368,19 @@ internal static class ContainerHoverContents
 		{
 			return false;
 		}
-		return string.Equals(val.GetBase64(), persisted, StringComparison.Ordinal);
+		return StorageInventoryPayloadComparison.MatchesLoaded(Convert.FromBase64String(persisted), val.GetArray());
+	}
+
+	private static string ReadPersistedItems(ZDO zdo)
+	{
+		if (zdo == null)
+		{
+			return null;
+		}
+		byte[] persisted = zdo.GetByteArray(ZDOVars.s_items);
+		return persisted == null || persisted.Length == 0
+			? string.Empty
+			: Convert.ToBase64String(persisted);
 	}
 
 	private static bool IsBusy(Container container, ZDO zdo)
@@ -377,7 +389,7 @@ internal static class ContainerHoverContents
 		{
 			return true;
 		}
-		return zdo != null && zdo.GetBool(ZDOVars.s_inUse, false);
+		return zdo != null && zdo.GetInt(ZDOVars.s_inUse, 0) != 0;
 	}
 
 	private static bool HasBoundedSerializedShape(List<ItemData> items, int maximumSerializedBytes)

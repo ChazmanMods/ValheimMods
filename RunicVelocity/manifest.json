@@ -1,9 +1,9 @@
 {
   "name": "RunicVelocity",
-  "version_number": "1.0.0",
-  "website_url": "",
-  "description": "Bounded startup diagnostics and an integrity-checked, change-aware local plugin manifest cache.",
+  "version_number": "1.0.2",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicVelocity",
+  "description": "Diagnose heavily modded startup with loading milestones and an integrity-checked plugin cache that shows what changed and what was reused.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333"
+    "denikson-BepInExPack_Valheim-5.4.2350"
   ]
 }

@@ -14,7 +14,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\RunicStorage\Engine\StorageItemProtection.cs" Link="Integration\StorageItemProtection.cs" />
     <ProjectReference Include="..\RunicInventory\RunicInventory.csproj" />
+    <ProjectReference Include="..\RunicSafety\RunicSafety.csproj" />
     <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="true" />
     <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="true" />
     <Reference Include="Mono.Cecil" HintPath="$(BEPINEX_PROFILE)\core\Mono.Cecil.dll" Private="true" />

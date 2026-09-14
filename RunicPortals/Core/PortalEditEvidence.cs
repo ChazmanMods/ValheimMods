@@ -223,6 +223,8 @@ namespace RunicPortals.Core
             Append(builder, command?.GroupId ?? string.Empty);
             Append(builder, command != null && command.AcceptsArrival ? 1 : 0);
             Append(builder, command != null && command.PermitsDeparture ? 1 : 0);
+            Append(builder, command != null && command.HasVanillaTag ? 1 : 0);
+            Append(builder, command?.VanillaTag ?? string.Empty);
             Append(builder, creator);
             Append(builder, ownerStableIdentity ?? string.Empty);
             return "portal-v2:" + Hash(builder.ToString());
@@ -243,6 +245,8 @@ namespace RunicPortals.Core
             Append(builder, command?.DisplayName ?? string.Empty);
             Append(builder, command != null && command.AcceptsArrival ? 1 : 0);
             Append(builder, command != null && command.PermitsDeparture ? 1 : 0);
+            Append(builder, command != null && command.HasVanillaTag ? 1 : 0);
+            Append(builder, command?.VanillaTag ?? string.Empty);
             Append(builder, creator);
             return "portal-v1:" + Hash(builder.ToString());
         }

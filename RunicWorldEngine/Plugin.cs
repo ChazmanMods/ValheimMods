@@ -14,7 +14,7 @@ namespace RunicWorldEngine
     {
         public const string Guid = "chazman.RunicWorldEngine";
         public const string Name = "Runic World Engine";
-        public const string Version = "1.0.0";
+        public const string Version = "1.2.0";
         private Harmony _harmony;
         private float _nextSummaryAt;
 
@@ -35,8 +35,10 @@ namespace RunicWorldEngine
                 _harmony = new Harmony(Guid);
                 ObservatoryRuntime.Verify();
                 _harmony.PatchAll(typeof(Plugin).Assembly);
+                CapacityRuntime.Initialize();
+                HealthRuntime.Initialize();
                 Logger.LogInfo(
-                    $"{Name} v{Version} ready: bounded aggregate ZDO observability. " +
+                    $"{Name} v{Version} ready: world/network diagnostics and save smoothing. Capacity: {CapacityRuntime.Status}. " +
                     "Unknown data is preserved; compaction and sync changes are off.");
             }
             catch (Exception exception)
@@ -48,6 +50,8 @@ namespace RunicWorldEngine
 
         private void Update()
         {
+            SaveSmoothingRuntime.Tick();
+            HealthRuntime.Tick();
             if (!(WorldEngineConfig.Enabled?.Value ?? false) ||
                 !(WorldEngineConfig.LogPeriodicSummary?.Value ?? false)) return;
             float now = Time.unscaledTime;
@@ -62,6 +66,12 @@ namespace RunicWorldEngine
                 $"created={value.CreatedSincePreviousSample}, destroyed={value.DestroyedSincePreviousSample}, " +
                 $"sent/s={value.SentLastSecond}, received/s={value.ReceivedLastSecond}, " +
                 $"save={value.LastSaveMilliseconds:F1}ms, load={value.LastLoadMilliseconds:F1}ms.");
+            int lineNumber = 0;
+            foreach (string line in HealthRuntime.Report())
+            {
+                if (WorldEngineConfig.LogPeerDetails.Value || lineNumber < 3) Logger.LogInfo(line);
+                lineNumber++;
+            }
         }
 
         private void OnDestroy() => Shutdown();
@@ -70,7 +80,10 @@ namespace RunicWorldEngine
         {
             try { _harmony?.UnpatchSelf(); } catch { }
             _harmony = null;
+            CapacityRuntime.Reset();
+            HealthRuntime.Reset();
             ObservatoryRuntime.Reset();
+            SaveSmoothingRuntime.Reset();
         }
     }
 }

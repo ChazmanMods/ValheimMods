@@ -1,11 +1,24 @@
-# Runic Precision Build Tool 2.0.1
+# Runic Precision Build Tool 2.0.4
 
-Runic Precision Build Tool extends Valheim's hammer preview with exact six-degree-of-freedom
-control while preserving Valheim's normal placement validation and commit path.
+Valheim's building system makes extraordinary structures possible, but serious builders eventually fight the placement controls: a beam is almost aligned, a roof needs one more axis, or one bad click means dismantling work that was already right.
 
-The mod is independently installable. Its only runtime requirement is BepInExPack Valheim
-5.4.2333; it has no Runic Core, Persistence, Transactions, Permissions, Inventory, or shared-library
-dependency.
+**Runic Precision Build Tool gives the hammer full six-axis control.** Move and rotate pending pieces exactly, match existing geometry, repeat useful transforms, undo placements, and repair bounded areas while keeping Valheim's familiar building workflow.
+
+## Major features
+
+- Move and rotate pending pieces across all six degrees of freedom.
+- Switch between normal and fine movement or rotation steps.
+- Match complete or individual transforms from existing pieces.
+- Repeat placements, search the catalog, and inspect precise readouts.
+- Undo eligible placements and repair a configurable bounded area.
+
+## How it feels in-game
+
+The structure in your head is no longer limited by the angle the vanilla preview happens to offer. Small corrections stay small, complicated geometry becomes repeatable, and mistakes cost a click instead of an afternoon.
+
+## Safety and compatibility
+
+Precision mode is explicit and scoped to the active hammer preview. Normal costs, piece requirements, placement validation, wards, range, structural rules, and Valheim's commit path still apply. Undo and area repair are bounded and ownership-aware. The mod is standalone and requires only BepInEx.
 
 ## Precision placement
 
@@ -96,7 +109,7 @@ commit. The plugin does not add a protocol handshake or require other gameplay m
 Harmony ordering remains explicit where preview responsibilities overlap: Precision reads after
 Runic Build Camera, begins placement capture before Runic Crafting, and finalizes its ghost before
 Runic Agriculture observes it. Those mods are optional. If PerfectPlacement free rotation is
-enabled, or the installed Valheim 0.221.12 method/IL contract does not match the audited seams,
+enabled, or the installed Valheim method/IL contract does not match the audited seams,
 Precision disables its hooks and leaves vanilla building available.
 
 ## Performance and installation
@@ -106,9 +119,9 @@ repair, and structural scans are bounded and occur only at their documented samp
 explicit action. Relative history stores two transforms and undo stores one session-only record.
 Favorites and recents are bounded configuration strings; safe utilities create no persistent data.
 
-Install BepInExPack Valheim 5.4.2333, then place `RunicPrecisionBuildTool.dll` under
+Install BepInExPack Valheim 5.4.2350, then place `RunicPrecisionBuildTool.dll` under
 `BepInEx/plugins/RunicPrecisionBuildTool/`. Configuration is generated at
-`BepInEx/config/chazman.RunicPrecisionBuildTool.cfg`. Version 2.0.1 supports keyboard and mouse; it
+`BepInEx/config/chazman.RunicPrecisionBuildTool.cfg`. Version 2.0.4 supports keyboard and mouse; it
 does not promise controller bindings.
 
 Community: https://discord.gg/7HKHTCdFqY

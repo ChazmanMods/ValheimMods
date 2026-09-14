@@ -152,7 +152,7 @@ namespace RunicInteraction.Integration
         }
     }
 
-    [HarmonyPatch(typeof(ZDOMan), nameof(ZDOMan.AddToSector), typeof(ZDO), typeof(Vector2i))]
+    [HarmonyPatch(typeof(ZDOMan), nameof(ZDOMan.AddToSector), typeof(ZDO), typeof(ZoneSystem.SectorIndex))]
     internal static class InteractionWardZdoAddedPatch
     {
         private static void Postfix(ZDO zdo)
@@ -166,7 +166,7 @@ namespace RunicInteraction.Integration
         }
     }
 
-    [HarmonyPatch(typeof(ZDOMan), nameof(ZDOMan.RemoveFromSector), typeof(ZDO), typeof(Vector2i))]
+    [HarmonyPatch(typeof(ZDOMan), nameof(ZDOMan.RemoveFromSector), typeof(ZDO), typeof(ZoneSystem.SectorIndex))]
     internal static class InteractionWardZdoRemovedPatch
     {
         private static void Prefix(ZDO zdo)

@@ -19,7 +19,7 @@ namespace RunicAgriculture.Integration
         private static readonly MethodInfo GetPlaceDurabilityMethod =
             AccessTools.Method(typeof(Player), "GetPlaceDurability", new[] { typeof(ItemDrop.ItemData) });
         private static readonly MethodInfo InventoryChangedMethod =
-            AccessTools.Method(typeof(Inventory), "Changed", Type.EmptyTypes);
+            AccessTools.Method(typeof(Inventory), "Changed", new[] { typeof(bool), typeof(bool) });
         private static readonly PlayerInputDelegate TakeInput = ResolveTakeInput();
         private static readonly MethodInfo PlantGrowTimeMethod =
             AccessTools.Method(typeof(Plant), "GetGrowTime", Type.EmptyTypes);
@@ -62,7 +62,7 @@ namespace RunicAgriculture.Integration
                 GetKeyboardKeyMethod == null || GetKeyboardKeyDownMethod == null ||
                 GetBoundKeyStringMethod == null || GetMouseScrollWheelMethod == null)
                 throw new MissingMemberException(
-                    "Valheim placement or ZInput signatures do not match the audited 0.221.12 contract.");
+                    "Valheim placement or ZInput signatures do not match the audited Valheim 1.0 contract.");
         }
 
         internal static GameObject GetPlacementGhost(Player player) =>
@@ -80,7 +80,7 @@ namespace RunicAgriculture.Integration
         internal static void NotifyInventoryChanged(Inventory inventory)
         {
             if (inventory == null) throw new ArgumentNullException(nameof(inventory));
-            InventoryChangedMethod.Invoke(inventory, Array.Empty<object>());
+            InventoryChangedMethod.Invoke(inventory, new object[] { false, false });
         }
 
         internal static bool PlayerTakesInput(Player player) =>

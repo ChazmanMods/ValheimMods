@@ -43,6 +43,7 @@ namespace RunicPortals.Integration
             internal bool IconFilterWasVisible;
             internal PickerCandidate Pending;
             internal string DirectoryRequestId = string.Empty;
+            internal ZDOID DirectorySourceZdoId;
             internal long DirectorySourceRevision;
             internal float DirectoryDeadline;
             internal float DirectoryNextAttempt;
@@ -300,7 +301,7 @@ namespace RunicPortals.Integration
         }
 
         internal bool TryHandleMapPickerClick() =>
-            TryHandleMapPickerClick(ZInput.mousePosition);
+            TryHandleMapPickerClick(ZInput.pointerPosition);
 
         private void TickMapPicker()
         {

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.3 - 2026-09-11
+
+- Fixed the detached camera blocking the hammer's hotbar unequip action and switching items.
+- Fixed intermittent missed put-away input by releasing the camera before Valheim processes the same keypress.
+- Controller hotbar use now exits the detached camera before using the selected item.
+- Preserved Valheim's menu, chat, and controller radial input rules on Valheim 1.0.12.
+
+## 1.0.2 - 2026-09-09
+
+- Re-audited every camera, placement, pickup, and input contract against the installed Valheim 1.0.7 assemblies.
+- Updated version-type handling for Valheim 1.0 and the BepInEx dependency to 5.4.2350.
+
+## 1.0.1 - 2026-09-05
+
+- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
+- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.0.0.
+
 ## 1.0.0
 
 - Promote the completed standalone Runic Build Camera feature set to its first stable release.

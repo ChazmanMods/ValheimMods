@@ -1,0 +1,21 @@
+## Runic Clock 1.0.1 — chazman.RunicClock
+
+[General]
+Enabled = true
+Visible = true
+ToggleShortcut = C + LeftAlt
+
+[Clock]
+Use24Hour = true
+ShowDay = true
+ShowSunMoon = true
+ShowRealWorldTime = false
+RealWorldUse24Hour = true
+
+[Display]
+Anchor = TopCenter
+OffsetX = 0
+OffsetY = 64
+Scale = 1
+BackgroundOpacity = 0.65
+HideInMenus = true

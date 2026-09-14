@@ -30,6 +30,8 @@ namespace RunicCrafting.Integration
                         cellUnchanged,
                         exactContainerPresent)) return;
 
+                PreviewRefreshRuntime.Invalidate();
+                UiPreviewCache.Invalidate();
                 UnregisterLocked(container, instanceId);
                 if (!Cells.TryGetValue(cell, out List<Container> entries))
                 {
@@ -110,6 +112,8 @@ namespace RunicCrafting.Integration
 
         internal static void Clear()
         {
+            PreviewRefreshRuntime.Invalidate();
+            UiPreviewCache.Invalidate();
             lock (Gate)
             {
                 Cells.Clear();
@@ -120,6 +124,8 @@ namespace RunicCrafting.Integration
         private static void UnregisterLocked(Container container, int instanceId)
         {
             if (!Membership.TryGetValue(instanceId, out CellKey oldCell)) return;
+            PreviewRefreshRuntime.Invalidate();
+            UiPreviewCache.Invalidate();
             if (Cells.TryGetValue(oldCell, out List<Container> entries))
             {
                 entries.RemoveAll(value => value == null || ReferenceEquals(value, container));

@@ -11,6 +11,7 @@ namespace RunicPermissions.Groups
         Active = 2,
         Members = 3,
         WhoAmI = 4,
+        Invitations = 5,
         Create = 16,
         Select = 17,
         Invite = 18,
@@ -21,7 +22,8 @@ namespace RunicPermissions.Groups
         Remove = 23,
         SetRole = 24,
         TransferOwnership = 25,
-        Delete = 26
+        Delete = 26,
+        Decline = 27
     }
 
     internal sealed class GroupFriendlyRequest
@@ -61,6 +63,7 @@ namespace RunicPermissions.Groups
                 case GroupFriendlyOperation.Active:
                 case GroupFriendlyOperation.Members:
                 case GroupFriendlyOperation.WhoAmI:
+                case GroupFriendlyOperation.Invitations:
                 case GroupFriendlyOperation.Leave:
                 case GroupFriendlyOperation.Delete:
                     if (primary || secondary || Number != 0 || ProposedGroupId != Guid.Empty)
@@ -72,7 +75,6 @@ namespace RunicPermissions.Groups
                     GroupIdentity.RequireDisplayName(Primary);
                     return;
                 case GroupFriendlyOperation.Select:
-                case GroupFriendlyOperation.Accept:
                 case GroupFriendlyOperation.Rename:
                 case GroupFriendlyOperation.CancelInvitation:
                 case GroupFriendlyOperation.Remove:
@@ -81,6 +83,13 @@ namespace RunicPermissions.Groups
                         throw new ArgumentException("This Group operation requires one text argument.");
                     if (Operation == GroupFriendlyOperation.Rename)
                         GroupIdentity.RequireDisplayName(Primary);
+                    return;
+                case GroupFriendlyOperation.Accept:
+                case GroupFriendlyOperation.Decline:
+                    if (!primary || Number != 0 || ProposedGroupId != Guid.Empty ||
+                        secondary && (!long.TryParse(Secondary, System.Globalization.NumberStyles.None,
+                            System.Globalization.CultureInfo.InvariantCulture, out long revision) || revision < 1))
+                        throw new ArgumentException("Invitation response requires a group and optional issued revision.");
                     return;
                 case GroupFriendlyOperation.Invite:
                     if (!primary || secondary || Number < 1 || ProposedGroupId != Guid.Empty)

@@ -1008,7 +1008,7 @@ namespace RunicAgriculture.Integration
                         }
                         using (debit)
                         {
-                            player.PlacePiece(piece, fresh.Position, rotation, false);
+                            player.PlacePiece(piece, fresh.Position, rotation, false, false);
                             debit.Complete();
                         }
                         _seedBudgetExpiresAt = 0f;
@@ -1409,7 +1409,7 @@ namespace RunicAgriculture.Integration
             _controllerPathSignature = pathSignature;
             _lastControllerProblem = null;
             if (changed)
-                _log.LogInfo("Runic Agriculture validated distinct Valheim 0.221.12 controller paths: " +
+                _log.LogInfo("Runic Agriculture validated distinct Valheim 1.0 controller paths: " +
                              pathSignature + ".");
             return true;
         }

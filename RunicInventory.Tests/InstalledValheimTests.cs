@@ -16,7 +16,8 @@ namespace RunicInventory.Tests
 
         internal static void Register()
         {
-            TestRunner.Run("installed Valheim target is exactly 0.221.12", VersionIsExact);
+            TestRunner.Run("installed Valheim target is exactly 1.0.12", VersionIsExact);
+            TestRunner.Run("runtime reflection contracts initialize against Valheim 1.0", RuntimeContractsInitialize);
             TestRunner.Run("installed Valheim assembly hash is the audited binary", AssemblyHashIsExact);
             TestRunner.Run("installed input assembly hash is the audited binary", InputAssemblyHashIsExact);
             TestRunner.Run("native Inventory exposes exact 8x4-safe coordinate APIs", InventorySignaturesAreExact);
@@ -43,24 +44,29 @@ namespace RunicInventory.Tests
         private static void VersionIsExact()
         {
             Type version = typeof(Player).Assembly.GetType("Version", true);
-            MethodInfo method = version.GetMethod("GetVersionString", BindingFlags.Public | BindingFlags.Static,
-                null, new[] { typeof(bool) }, null);
-            TestAssert.NotNull(method);
-            TestAssert.Equal("0.221.12", (string)method.Invoke(null, new object[] { false }));
+            PropertyInfo property = version.GetProperty("CurrentVersion", BindingFlags.Public | BindingFlags.Static);
+            TestAssert.NotNull(property);
+            TestAssert.Equal("1.0.12", property.GetValue(null)?.ToString());
+            RunicInventory.Integration.ValheimContracts.ValidateGameVersion(version);
+        }
+
+        private static void RuntimeContractsInitialize()
+        {
+            TestAssert.True(RunicInventory.Integration.ValheimContracts.Initialize(out string problem), problem);
         }
 
         private static void AssemblyHashIsExact()
         {
             using SHA256 sha = SHA256.Create();
             string hash = Convert.ToHexString(sha.ComputeHash(File.ReadAllBytes(TestPaths.InstalledValheim)));
-            TestAssert.Equal("3B26C8512778F6E0664B5AF2A26F3C30993A00F584C1E76D9123A742B67E2004", hash);
+            TestAssert.Equal("27A766A8D23A7BD8B6A54FB9AD0452A96C305FB3629B39C40527C09A1C393A84", hash);
         }
 
         private static void InputAssemblyHashIsExact()
         {
             using SHA256 sha = SHA256.Create();
             string hash = Convert.ToHexString(sha.ComputeHash(File.ReadAllBytes(TestPaths.InstalledUtils)));
-            TestAssert.Equal("41C2D53EC0351E974BB962B88A122C9E915E3FA0B8B1E6ACE59786BAE6405993", hash);
+            TestAssert.Equal("9333361C9D2A2A941C1E6D47E76220689FED1761DE8B5D123F7F42F26BE3132A", hash);
         }
 
         private static void InventorySignaturesAreExact()
@@ -97,8 +103,10 @@ namespace RunicInventory.Tests
         private static void FocusContractsAreExact()
         {
             MethodInfo hover = Exact(typeof(InventoryGrid), "GetHoveredElement");
-            TestAssert.True(hover.ReturnType.IsNested && hover.ReturnType.DeclaringType == typeof(InventoryGrid));
-            TestAssert.NotNull(hover.ReturnType.GetField("m_go", Instance));
+            TestAssert.Equal(typeof(InventoryElement), hover.ReturnType);
+            TestAssert.True(typeof(Component).IsAssignableFrom(hover.ReturnType));
+            TestAssert.Equal(typeof(RectTransform), Exact(typeof(InventoryElement),
+                nameof(InventoryElement.GetElementRectTransform)).ReturnType);
             TestAssert.Equal(typeof(bool), typeof(ZInput).GetMethod(nameof(ZInput.IsGamepadActive),
                 BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null)?.ReturnType);
         }
@@ -106,13 +114,17 @@ namespace RunicInventory.Tests
         private static void SavePreservesMetadata()
         {
             MethodInfo save = Exact(typeof(Inventory), nameof(Inventory.Save), typeof(ZPackage));
+            MethodInfo itemSave = Exact(typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.Save), typeof(ZPackage));
+            TestAssert.True(IlReader.Calls(save, typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.Save)));
             foreach (string field in new[]
                      {
                          "m_gridPos", "m_stack", "m_durability", "m_equipped", "m_quality", "m_variant",
-                         "m_crafterID", "m_crafterName", "m_customData", "m_worldLevel", "m_pickedUp", "m_dropPrefab"
+                         "m_crafterID", "m_crafterName", "m_customData", "m_worldLevel", "m_pickedUp",
+                         "m_cheated", "m_dropPrefab"
                      })
-                TestAssert.True(IlReader.Accesses(save, typeof(ItemDrop.ItemData), field), "Inventory.Save no longer accesses " + field + ".");
-            TestAssert.False(IlReader.Calls(save, typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.Clone)),
+                TestAssert.True(IlReader.Accesses(itemSave, typeof(ItemDrop.ItemData), field),
+                    "ItemData.Save no longer accesses " + field + ".");
+            TestAssert.False(IlReader.Calls(itemSave, typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.Clone)),
                 "Native save unexpectedly clones live item state.");
         }
 
@@ -120,13 +132,24 @@ namespace RunicInventory.Tests
         {
             MethodInfo load = Exact(typeof(Inventory), nameof(Inventory.Load), typeof(ZPackage));
             IReadOnlyList<MethodBase> calls = IlReader.Calls(load);
-            TestAssert.True(calls.Any(call => call.DeclaringType == typeof(Inventory) && call.Name == "AddItem" &&
-                                                call.GetParameters().Length >= 4),
-                "Inventory.Load no longer restores through coordinate AddItem.");
+            TestAssert.True(calls.Any(call => call.DeclaringType == typeof(ItemDrop.ItemData) &&
+                                              call.Name == nameof(ItemDrop.ItemData.Load)),
+                "Inventory.Load no longer restores through ItemData.Load.");
+            TestAssert.True(calls.Any(call => call.DeclaringType == typeof(Inventory) &&
+                                              call.Name == "AddItem" &&
+                                              call.GetParameters().Select(parameter => parameter.ParameterType)
+                                                  .SequenceEqual(new[]
+                                                  {
+                                                      typeof(int), typeof(ItemDrop.ItemData), typeof(bool)
+                                                  })),
+                "Inventory.Load no longer restores through the installed item-data AddItem path.");
             MethodInfo add = typeof(Inventory).GetMethods(Instance)
                 .Single(method => method.Name == "AddItem" && method.IsPrivate &&
                                   method.GetParameters().Select(parameter => parameter.ParameterType)
-                                      .SequenceEqual(new[] { typeof(ItemDrop.ItemData), typeof(int), typeof(int), typeof(int) }));
+                                      .SequenceEqual(new[]
+                                      {
+                                          typeof(ItemDrop.ItemData), typeof(int), typeof(int), typeof(int), typeof(bool)
+                                      }));
             TestAssert.True(IlReader.Accesses(add, typeof(Inventory), "m_width"));
             TestAssert.True(IlReader.Accesses(add, typeof(Inventory), "m_height"));
         }
@@ -145,7 +168,8 @@ namespace RunicInventory.Tests
 
         private static void ProfileSaveHasNoDurableAcknowledgement()
         {
-            MethodInfo gameSave = Exact(typeof(Game), nameof(Game.SavePlayerProfile), typeof(bool));
+            MethodInfo gameSave = Exact(typeof(Game), nameof(Game.SavePlayerProfile),
+                typeof(bool), typeof(bool));
             MethodInfo profileSave = Exact(typeof(PlayerProfile), nameof(PlayerProfile.Save));
             MethodInfo saveToDisk = Exact(typeof(PlayerProfile), "SavePlayerToDisk");
             TestAssert.Equal(typeof(void), gameSave.ReturnType);
@@ -188,8 +212,11 @@ namespace RunicInventory.Tests
             const BindingFlags publicStatic = BindingFlags.Public | BindingFlags.Static;
             MethodInfo replace = TestAssert.NotNull(typeof(FileHelpers).GetMethod(
                 nameof(FileHelpers.ReplaceOldFile), publicStatic));
-            MethodInfo unmount = TestAssert.NotNull(typeof(FileHelpers).GetMethod(
-                nameof(FileHelpers.Unmount), publicStatic, null, Type.EmptyTypes, null));
+            MethodInfo unmount = TestAssert.NotNull(typeof(FileHelpers).GetMethods(publicStatic)
+                .SingleOrDefault(method => method.Name == nameof(FileHelpers.Unmount) &&
+                                           method.GetParameters().Length == 1 &&
+                                           method.GetParameters()[0].ParameterType.FullName ==
+                                           "Splatform.UnmountMode"));
             ConstructorInfo reader = TestAssert.NotNull(typeof(FileReader).GetConstructor(
                 new[] { typeof(string), typeof(FileHelpers.FileSource), typeof(FileHelpers.FileHelperType) }));
             TestAssert.Equal(typeof(void), replace.ReturnType);
@@ -311,9 +338,12 @@ namespace RunicInventory.Tests
             TestAssert.Equal(1, (int)InputLayout.Alternative1);
             TestAssert.Equal(2, (int)InputLayout.Alternative2);
 
-            MethodInfo generic = Exact(typeof(ZInput), "ResetGamepadButtonsGeneric");
-            TestAssert.Equal(GamepadInput.Select, MappedInput(generic, "JoyMap"));
-            TestAssert.Equal(GamepadInput.Select, MappedInput(generic, "JoyChat"));
+            MethodInfo generic = Exact(typeof(ZInput), "AddGenericGamepadButtons");
+            GamepadInput map = MappedInput(generic, "JoyMap");
+            GamepadInput chat = MappedInput(generic, "JoyChat");
+            TestAssert.Equal(map, chat);
+            TestAssert.True(map == GamepadInput.Select || map == GamepadInput.DualShockTouchpad,
+                "JoyMap must remain the platform select/touchpad action.");
             TestAssert.Equal(GamepadInput.BumperL, MappedInput(generic, "JoyLBumper"));
             TestAssert.Equal(GamepadInput.FaceButtonY, MappedInput(generic, "JoyButtonY"));
             TestAssert.Equal(GamepadInput.BumperR, MappedInput(generic, "JoyRBumper"));
@@ -321,11 +351,11 @@ namespace RunicInventory.Tests
             TestAssert.Equal(GamepadInput.FaceButtonB, MappedInput(generic, "JoyButtonB"));
 
             TestAssert.Equal(GamepadInput.TriggerL,
-                MappedInput(Exact(typeof(ZInput), "ResetGamepadToClassic"), "JoyAltKeys"));
+                MappedInput(Exact(typeof(ZInput), "AddGamepadClassicButtons"), "JoyAltKeys"));
             TestAssert.Equal(GamepadInput.BumperL,
-                MappedInput(Exact(typeof(ZInput), "ResetGamepadToAlt1"), "JoyAltKeys"));
+                MappedInput(Exact(typeof(ZInput), "AddGamepadAlt1Buttons"), "JoyAltKeys"));
             TestAssert.Equal(GamepadInput.TriggerL,
-                MappedInput(Exact(typeof(ZInput), "ResetGamepadToAlt2"), "JoyAltKeys"));
+                MappedInput(Exact(typeof(ZInput), "AddGamepadAlt2Buttons"), "JoyAltKeys"));
 
             FieldInfo mapField = TestAssert.NotNull(typeof(ZInput).GetField(
                 "s_gamepadInputPathMap", BindingFlags.NonPublic | BindingFlags.Static));
@@ -337,7 +367,7 @@ namespace RunicInventory.Tests
 
         private static void ControllerDefaultsAreUnique()
         {
-            MethodInfo generic = Exact(typeof(ZInput), "ResetGamepadButtonsGeneric");
+            MethodInfo generic = Exact(typeof(ZInput), "AddGenericGamepadButtons");
             GamepadInput[] primaries =
             {
                 MappedInput(generic, "JoyMap"),
@@ -348,7 +378,7 @@ namespace RunicInventory.Tests
             };
             foreach (string layout in new[]
                      {
-                         "ResetGamepadToClassic", "ResetGamepadToAlt1", "ResetGamepadToAlt2"
+                         "AddGamepadClassicButtons", "AddGamepadAlt1Buttons", "AddGamepadAlt2Buttons"
                      })
             {
                 var unique = new HashSet<GamepadInput>(primaries)
@@ -359,7 +389,7 @@ namespace RunicInventory.Tests
             }
 
             GamepadInput altOneModifier = MappedInput(
-                Exact(typeof(ZInput), "ResetGamepadToAlt1"), "JoyAltKeys");
+                Exact(typeof(ZInput), "AddGamepadAlt1Buttons"), "JoyAltKeys");
             TestAssert.Equal(MappedInput(generic, "JoyLBumper"), altOneModifier,
                 "The installed legacy Alt1 collision must remain an explicit regression premise.");
         }

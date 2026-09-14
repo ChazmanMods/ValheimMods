@@ -9,7 +9,7 @@ namespace Runic.Foundation.Core
     {
         public const string Guid = "chazman.RunicCore";
         public const string Name = "Runic Core";
-        public const string Version = "1.0.0";
+        public const string Version = "1.1.0";
 
         private readonly List<IDisposable> _registrations = new List<IDisposable>();
         private ModuleRegistration _moduleRegistration;

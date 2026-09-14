@@ -7,14 +7,14 @@ using Runic.Foundation.Core;
 namespace Runic.Foundation.Persistence
 {
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
-    [BepInDependency(RunicCoreGuid, "1.0.0")]
+    [BepInDependency(RunicCoreGuid, "1.1.0")]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string PluginGuid = "chazman.RunicPersistence";
         public const string RunicCoreGuid = "chazman.RunicCore";
         public const string ModuleId = "runic.persistence";
         public const string PluginName = "Runic Persistence";
-        public const string PluginVersion = "1.0.0";
+        public const string PluginVersion = "1.1.0";
         public const string ProtocolVersion = "1.0";
 
         private ModuleRegistration _moduleRegistration;
@@ -40,7 +40,7 @@ namespace Runic.Foundation.Persistence
             if (!RunicCoreApi.IsPluginLoaded)
             {
                 Logger.LogError(
-                    "Runic Persistence did not register because Runic Core 1.0.0+ did not " +
+                    "Runic Persistence did not register because Runic Core 1.1.0+ did not " +
                     "finish loading. Repair or update Runic Core, then restart.");
                 return;
             }

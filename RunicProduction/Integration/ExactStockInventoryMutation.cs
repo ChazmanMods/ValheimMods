@@ -41,7 +41,8 @@ namespace RunicProduction.Integration
             int quality,
             int variant,
             long crafterId,
-            string crafterName)
+            string crafterName,
+            bool cheated = false)
         {
             if (!StockDomainValidation.IsExactPrefabId(prefabId))
                 throw new ArgumentException("An exact output prefab ID is required.", nameof(prefabId));
@@ -53,6 +54,7 @@ namespace RunicProduction.Integration
             Amount = amount;
             Quality = quality;
             Variant = variant;
+            Cheated = cheated;
             CrafterId = crafterId;
             if (crafterId == 0L)
             {
@@ -75,6 +77,7 @@ namespace RunicProduction.Integration
         internal int Variant { get; }
         internal long CrafterId { get; }
         internal string CrafterName { get; }
+        internal bool Cheated { get; }
     }
 
     /// <summary>An immutable exact serialization and hash of one Valheim inventory.</summary>
@@ -124,10 +127,14 @@ namespace RunicProduction.Integration
 
     internal sealed class StockInventoryTransition
     {
-        internal StockInventoryTransition(StockInventoryState before, StockInventoryState after)
+        internal StockInventoryTransition(
+            StockInventoryState before,
+            StockInventoryState after,
+            bool consumedCheated = false)
         {
             Before = before ?? throw new ArgumentNullException(nameof(before));
             After = after ?? throw new ArgumentNullException(nameof(after));
+            ConsumedCheated = consumedCheated;
             if (string.Equals(
                     before.FingerprintValue,
                     after.FingerprintValue,
@@ -137,6 +144,7 @@ namespace RunicProduction.Integration
 
         internal StockInventoryState Before { get; }
         internal StockInventoryState After { get; }
+        internal bool ConsumedCheated { get; }
 
         internal bool MatchesBefore(Inventory inventory) => Before.Matches(inventory);
         internal bool MatchesAfter(Inventory inventory) => After.Matches(inventory);
@@ -242,6 +250,7 @@ namespace RunicProduction.Integration
 
         internal int SourceCount { get; }
         internal IReadOnlyList<ExactStockCompositeSourceEntry> Entries { get; }
+        internal bool ConsumedCheated => Entries.Any(entry => entry.Transition.ConsumedCheated);
     }
 
     /// <summary>
@@ -254,10 +263,13 @@ namespace RunicProduction.Integration
         private static readonly MethodInfo InventoryAddAtMethod = AccessTools.Method(
             typeof(Inventory),
             "AddItem",
-            new[] { typeof(ItemDrop.ItemData), typeof(int), typeof(int), typeof(int) }) ??
+            new[]
+            {
+                typeof(ItemDrop.ItemData), typeof(int), typeof(int), typeof(int), typeof(bool)
+            }) ??
             throw new MissingMethodException(
                 typeof(Inventory).FullName,
-                "AddItem(ItemData,int,int,int)");
+                "AddItem(ItemData,int,int,int,bool)");
 
         internal static bool TryPrepare(
             Inventory source,
@@ -337,6 +349,7 @@ namespace RunicProduction.Integration
                 failure = "stock.source-snapshot-not-roundtrippable";
                 return false;
             }
+            bool consumedCheated = false;
             foreach (ReplenishmentRequirement requirement in normalized)
             {
                 int available = CountExact(shadow, requirement.PrefabId);
@@ -347,12 +360,17 @@ namespace RunicProduction.Integration
                     failure = "stock.ingredient-reserve-protected:" + requirement.PrefabId;
                     return false;
                 }
-                if (!RemoveExact(shadow, requirement.PrefabId, requirement.Amount))
+                if (!RemoveExact(
+                        shadow,
+                        requirement.PrefabId,
+                        requirement.Amount,
+                        out bool requirementCheated))
                 {
                     failureKind = StockSourcePreparationFailureKind.IngredientUnavailable;
                     failure = "stock.ingredient-unavailable:" + requirement.PrefabId;
                     return false;
                 }
+                consumedCheated |= requirementCheated;
             }
             StockInventoryState after = StockInventoryState.Capture(shadow);
             try
@@ -365,7 +383,7 @@ namespace RunicProduction.Integration
                 failure = "stock.source-result-not-roundtrippable";
                 return false;
             }
-            transition = new StockInventoryTransition(before, after);
+            transition = new StockInventoryTransition(before, after, consumedCheated);
             normalizedRequirements = new ReadOnlyCollection<ReplenishmentRequirement>(normalized);
             return true;
         }
@@ -455,6 +473,7 @@ namespace RunicProduction.Integration
                 var before = new StockInventoryState[orderedSources.Count];
                 var shadows = new Inventory[orderedSources.Count];
                 var changed = new bool[orderedSources.Count];
+                var consumedCheated = new bool[orderedSources.Count];
                 for (int index = 0; index < orderedSources.Count; index++)
                 {
                     before[index] = StockInventoryState.Capture(orderedSources[index]);
@@ -476,11 +495,16 @@ namespace RunicProduction.Integration
                         int available = Math.Max(0, current - reserve);
                         int take = Math.Min(remaining, available);
                         if (take == 0) continue;
-                        if (!RemoveExact(shadows[index], requirement.PrefabId, take))
+                        if (!RemoveExact(
+                                shadows[index],
+                                requirement.PrefabId,
+                                take,
+                                out bool sourceCheated))
                         {
                             failure = "stock.composite-remove-failed:" + requirement.PrefabId;
                             return false;
                         }
+                        consumedCheated[index] |= sourceCheated;
                         changed[index] = true;
                         remaining -= take;
                     }
@@ -499,7 +523,8 @@ namespace RunicProduction.Integration
                     Clone(shadows[index], after);
                     entries.Add(new ExactStockCompositeSourceEntry(
                         index,
-                        new StockInventoryTransition(before[index], after)));
+                            new StockInventoryTransition(
+                                before[index], after, consumedCheated[index])));
                 }
                 plan = new ExactStockCompositeSourcePlan(orderedSources.Count, entries);
                 return true;
@@ -780,8 +805,16 @@ namespace RunicProduction.Integration
             return true;
         }
 
-        private static bool RemoveExact(Inventory inventory, string prefabId, int amount)
+        private static bool RemoveExact(Inventory inventory, string prefabId, int amount) =>
+            RemoveExact(inventory, prefabId, amount, out _);
+
+        private static bool RemoveExact(
+            Inventory inventory,
+            string prefabId,
+            int amount,
+            out bool consumedCheated)
         {
+            consumedCheated = false;
             List<ItemDrop.ItemData> candidates = inventory.GetAllItems()
                 .Where(item =>
                     string.Equals(ValheimAccess.PrefabName(item), prefabId, StringComparison.Ordinal) &&
@@ -795,6 +828,7 @@ namespace RunicProduction.Integration
             {
                 int remove = Math.Min(Math.Max(0, item.m_stack), remaining);
                 if (remove <= 0) continue;
+                consumedCheated |= item.m_cheated;
                 if (!inventory.RemoveItem(item, remove)) return false;
                 remaining -= remove;
                 if (remaining == 0) return true;
@@ -896,6 +930,7 @@ namespace RunicProduction.Integration
             template.m_worldLevel = (byte)Game.m_worldLevel;
             template.m_pickedUp = false;
             template.m_equipped = false;
+            template.m_cheated = output.Cheated;
             template.m_durability = template.GetMaxDurability();
 
             int maximumStack = template.m_shared.m_maxStackSize;
@@ -948,7 +983,7 @@ namespace RunicProduction.Integration
             payload.m_stack = amount;
             bool added = (bool)InventoryAddAtMethod.Invoke(
                 inventory,
-                new object[] { payload, amount, slot.x, slot.y });
+                new object[] { payload, amount, slot.x, slot.y, false });
             return added && payload.m_stack == 0;
         }
 
@@ -971,6 +1006,7 @@ namespace RunicProduction.Integration
                     StringComparison.Ordinal) ||
                 left.m_pickedUp != right.m_pickedUp ||
                 left.m_equipped != right.m_equipped ||
+                left.m_cheated != right.m_cheated ||
                 !left.m_durability.Equals(right.m_durability)) return false;
             return DictionaryEquals(left.m_customData, right.m_customData);
         }

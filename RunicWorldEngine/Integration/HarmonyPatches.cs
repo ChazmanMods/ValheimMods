@@ -26,8 +26,8 @@ namespace RunicWorldEngine.Integration
         private static void Postfix(ZDOMan __instance) => ObservatoryRuntime.Capture(__instance);
     }
 
-    [HarmonyPatch(typeof(ZDOMan), "SaveAsync", typeof(BinaryWriter))]
-    internal static class ZdoSaveTimingPatch
+    [HarmonyPatch(typeof(ZDOMan), "SaveChunks", typeof(string), typeof(FileHelpers.FileSource))]
+    internal static class ZdoChunkSaveTimingPatch
     {
         private static void Prefix(ref long __state) => __state = ObservatoryRuntime.BeginTimedOperation();
 
@@ -38,8 +38,21 @@ namespace RunicWorldEngine.Integration
         }
     }
 
-    [HarmonyPatch(typeof(ZDOMan), "Load", typeof(BinaryReader), typeof(int))]
-    internal static class ZdoLoadTimingPatch
+    [HarmonyPatch(typeof(ZDOMan), "LoadChunks", typeof(string), typeof(FileHelpers.FileSource),
+        typeof(global::Version.World))]
+    internal static class ZdoChunkLoadTimingPatch
+    {
+        private static void Prefix(ref long __state) => __state = ObservatoryRuntime.BeginTimedOperation();
+
+        private static Exception Finalizer(long __state, Exception __exception)
+        {
+            ObservatoryRuntime.EndLoad(__state);
+            return __exception;
+        }
+    }
+
+    [HarmonyPatch(typeof(ZDOMan), "Load", typeof(BinaryReader), typeof(global::Version.World))]
+    internal static class ZdoLegacyLoadTimingPatch
     {
         private static void Prefix(ref long __state) => __state = ObservatoryRuntime.BeginTimedOperation();
 

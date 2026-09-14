@@ -20,7 +20,10 @@ namespace QuietBuildRotation.Integration
         private delegate bool CheckCanRemovePieceDelegate(Player player, Piece piece);
         private delegate ItemDrop.ItemData GetRightItemDelegate(Humanoid humanoid);
         private delegate float GetPlaceDurabilityDelegate(Player player, ItemDrop.ItemData item);
-        private delegate void InventoryChangedDelegate(Inventory inventory);
+        private delegate void InventoryChangedDelegate(
+            Inventory inventory,
+            bool success,
+            bool cheatedStateChanged);
 
         private static readonly Collider[] ColliderBuffer = new Collider[ColliderCapacity];
         private static readonly RepairCandidate[] RepairCandidates =
@@ -50,7 +53,7 @@ namespace QuietBuildRotation.Integration
                 MethodInfo getRight = AccessTools.Method(
                     typeof(Humanoid), "GetRightItem", Type.EmptyTypes);
                 MethodInfo changed = AccessTools.Method(
-                    typeof(Inventory), "Changed", Type.EmptyTypes);
+                    typeof(Inventory), "Changed", new[] { typeof(bool), typeof(bool) });
                 MethodInfo getPlaceDurability = AccessTools.Method(
                     typeof(Player), "GetPlaceDurability", new[] { typeof(ItemDrop.ItemData) });
                 if (getRight == null || getRight.ReturnType != typeof(ItemDrop.ItemData))
@@ -294,7 +297,10 @@ namespace QuietBuildRotation.Integration
                     if (inventoryChanged)
                     {
                         Inventory inventory = player.GetInventory();
-                        if (inventory != null) _inventoryChanged?.Invoke(inventory);
+                        // Area repair changes only the equipped tool's durability. The two
+                        // Valheim 1.0 flags are item-add success and cheated-state change;
+                        // neither applies to this ordinary inventory-content notification.
+                        if (inventory != null) _inventoryChanged?.Invoke(inventory, false, false);
                     }
                 }
 

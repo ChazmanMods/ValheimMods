@@ -1,9 +1,24 @@
 # Runic Awareness
 
-Runic Awareness 1.0.0 is a restrained, display-only explanation layer for Valheim 0.221.12. Its
-only runtime requirement is BepInExPack Valheim 5.4.2333. It does not change food, effects,
-equipment, comfort, structures, creatures, inventories, production, input, network ownership, or
-world state.
+Valheim communicates a great deal through icons, short labels, and systems whose details are easy to forget. That often means leaving the game to look up a food, decode an effect, or work out why comfort changed.
+
+**Runic Awareness brings useful explanations into the moment where you need them.** It adds a restrained contextual overlay for food, status effects, comfort, equipment comparisons, production, farming, tameables, and building information.
+
+## Major features
+
+- Review active food and remaining duration at a glance.
+- Understand visible status effects and Rested or comfort context.
+- Compare a hovered item with the equipment already in its slot.
+- See useful context for supported production, farming, creature, and building targets.
+- Configure individual panels, placement, scale, and refresh behavior.
+
+## How it feels in-game
+
+The game becomes easier to read without becoming easier to beat. Useful context appears while you are making a decision, then yields when inventories, maps, dialogs, or other interactive interfaces need the screen.
+
+## Safety and compatibility
+
+Awareness is display-only. It uses already-known local state, reveals no unexplored content, changes no gameplay values or world objects, sends no network requests, and adds no input binding. Its only runtime requirement is BepInEx.
 
 ## What it observes and shows
 

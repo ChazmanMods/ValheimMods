@@ -1,0 +1,11 @@
+[Server]
+## Import previously played characters on first enrollment, retaining their existing data.
+## The first upload is trusted. Existing vault profiles are always authoritative.
+AllowExistingCharacters = true
+
+## Allow one platform account to enroll more than one character name.
+AllowMultipleCharacters = false
+
+## Optional comma-separated Valheim prefab:quantity pairs granted to a newly enrolled character.
+## Example: Hammer:1,Torch:1
+StartingItems =

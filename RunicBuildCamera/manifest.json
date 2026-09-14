@@ -1,9 +1,9 @@
 {
   "name": "RunicBuildCamera",
-  "version_number": "1.0.0",
+  "version_number": "1.0.3",
   "website_url": "https://discord.gg/7HKHTCdFqY",
-  "description": "A bounded detached build camera with remote building, loose-item pickup, and Wisplight mist-clearing support.",
+  "description": "Build from the angle you need with a detached camera, remote placement, repair and removal, optional loose-material pickup, and Wisplight support.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2333"
+    "denikson-BepInExPack_Valheim-5.4.2350"
   ]
 }

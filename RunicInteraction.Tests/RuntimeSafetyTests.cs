@@ -167,7 +167,7 @@ namespace RunicInteraction.Tests
         {
             TestAssert.True(IlReader.LoadsString(
                 Method(typeof(InteractionRuntime), "OnConfigurationChanged"),
-                "DragTransfer remains disabled: Valheim 0.221.12 exposes no authority-safe " +
+                "DragTransfer remains disabled: Valheim 1.0.7 exposes no authority-safe " +
                 "drag-sweep transaction boundary. Ordinary vanilla dragging is unchanged."));
         }
 

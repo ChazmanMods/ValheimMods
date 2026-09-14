@@ -14,7 +14,7 @@ namespace RunicAwareness.Tests
 
         internal static void Register()
         {
-            TestRunner.Run("tests target installed Valheim 0.221.12", InstalledVersionIsExact);
+            TestRunner.Run("tests target installed Valheim 1.0.7", InstalledVersionIsExact);
             TestRunner.Run("startup verifier accepts exact installed signatures", VerifierAcceptsInstalledGame);
             TestRunner.Run("food and effect readers expose existing local lists", LocalListsAreExact);
             TestRunner.Run("timer and comfort APIs are exact", TimerAndComfortApisAreExact);
@@ -36,7 +36,7 @@ namespace RunicAwareness.Tests
                 new[] { typeof(bool) },
                 null);
             TestAssert.NotNull(getVersion);
-            TestAssert.Equal("0.221.12", (string)getVersion.Invoke(null, new object[] { false }));
+            TestAssert.Equal("1.0.7", (string)getVersion.Invoke(null, new object[] { false }));
         }
 
         private static void VerifierAcceptsInstalledGame() =>
@@ -77,7 +77,10 @@ namespace RunicAwareness.Tests
                 typeof(Player), typeof(ItemDrop.ItemData));
             TestAssert.True(IlReader.Calls(update, typeof(InventoryGrid), create.Name));
             TestAssert.True(IlReader.Calls(update, typeof(InventoryGrid), "GetHoveredElement"));
-            TestAssert.True(IlReader.Calls(update, typeof(ZInput), nameof(ZInput.IsGamepadActive)));
+            TestAssert.True(IlReader.Calls(
+                update,
+                typeof(ZInput),
+                nameof(ZInput.IsExclusiveGamepadActive)));
             Exact(typeof(InventoryGrid), nameof(InventoryGrid.GetGamepadSelectedItem),
                 typeof(ItemDrop.ItemData), false);
         }

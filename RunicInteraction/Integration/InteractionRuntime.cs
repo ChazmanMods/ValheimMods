@@ -29,7 +29,7 @@ namespace RunicInteraction.Integration
             {
                 _dragWarning = true;
                 Diagnostics.Warn(
-                    "DragTransfer remains disabled: Valheim 0.221.12 exposes no authority-safe " +
+                    "DragTransfer remains disabled: Valheim 1.0.7 exposes no authority-safe " +
                     "drag-sweep transaction boundary. Ordinary vanilla dragging is unchanged.");
             }
             if (InteractionConfig.MenuMemory.Value && !_filterMemoryWarning)
@@ -37,7 +37,7 @@ namespace RunicInteraction.Integration
                 _filterMemoryWarning = true;
                 Diagnostics.Info(
                     "Menu memory is active for context/category/recipe selection. Filter memory is " +
-                    "disabled because Valheim 0.221.12 exposes no stable filter state.");
+                    "disabled because Valheim 1.0.7 exposes no stable filter state.");
             }
             if (!InteractionConfig.DragTransfer.Value) _dragWarning = false;
             if (!InteractionConfig.MenuMemory.Value) _filterMemoryWarning = false;

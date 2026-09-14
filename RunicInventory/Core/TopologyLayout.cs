@@ -15,7 +15,8 @@ namespace RunicInventory.Core
         Cape = 6,
         Utility = 7,
         Tool = 8,
-        Other = 9
+        Other = 9,
+        Ammunition = 10
     }
 
     internal sealed class TopologyLayout

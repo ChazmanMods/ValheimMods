@@ -5,7 +5,7 @@ consistent way to name persistent keys, migrate schemas without partial mutation
 data, negotiate optional capability protocols, and exchange bounded direct-peer requests without
 trusting a client-controlled routed sender UID.
 
-## Current 1.0.0 scope
+## Current 1.1.0 scope
 
 - Canonical `runic.<module>.<key>` namespacing.
 - Record headers carrying module, schema, owner, editor, and modification metadata.
@@ -27,6 +27,9 @@ trusting a client-controlled routed sender UID.
   that peer, with a separately labeled server-evaluated Steam admin fact.
 - A checksum-protected, atomically replaced, world-scoped, reverse-unique backend-account to
   Valheim-player binding used only when a caller explicitly requests `AccountBoundPlayer`.
+- A client-visible admission rejection event used by Raven's Gate for precise login explanations.
+- Central server-side reporting of rejected Runic RPC requests to Sentinel's bounded automatic
+  enforcement ladder. The request remains rejected even when Sentinel is absent or unavailable.
 
 Persistence stores are explicitly module-scoped. Their IDs use exactly `runic.<module>` (two
 segments), while local keys may add validated dot-separated segments. This makes namespace
@@ -93,7 +96,7 @@ Runic Persistence does not add recipes, items, pieces, UI, or gameplay behavior.
 
 ## Discovery
 
-Runic Persistence requires Runic Core 1.0.0 or later. It registers these typed services through the
+Runic Persistence requires Runic Core 1.1.0 or later. It registers these typed services through the
 shared registry:
 
 - `persistence.migrate` as `IMigrationService`.

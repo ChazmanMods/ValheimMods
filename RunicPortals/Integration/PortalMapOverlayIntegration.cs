@@ -54,6 +54,8 @@ namespace RunicPortals.Integration
                 _nextMapOverlayRefresh = 0f;
             }
             overlay.Tick(Minimap.instance, MapPickerActive);
+            if (!MapPickerActive && overlay.IsMapOpen)
+                TickMapDirectorySync(context, realtime);
             if (MapPickerActive || !overlay.IsMapOpen || realtime < _nextMapOverlayRefresh)
                 return;
             _nextMapOverlayRefresh = realtime + Math.Max(0.5f, interval);
@@ -76,7 +78,7 @@ namespace RunicPortals.Integration
             context = string.Empty;
             Player player = Player.m_localPlayer;
             ZNet network = ZNet.instance;
-            if (player == null || network == null || player.GetPlayerID() <= 0L) return false;
+            if (player == null || network == null || player.GetPlayerID() == 0L) return false;
             long world = network.GetWorldUID();
             if (world == 0L) return false;
             context = unchecked((ulong)world).ToString("x16", CultureInfo.InvariantCulture) + ":" +
@@ -95,7 +97,7 @@ namespace RunicPortals.Integration
             candidates = new List<OverlayCandidate>();
             Player player = Player.m_localPlayer;
             List<ZDO> portals = ValheimContracts.PortalObjects();
-            if (player == null || player.GetPlayerID() <= 0L || portals == null ||
+            if (player == null || player.GetPlayerID() == 0L || portals == null ||
                 portals.Count > ValheimContracts.MaximumPortalObjectsScanned) return false;
             string traveler = PortalPermissionAdapter.Identity(player.GetPlayerID());
             var ids = new HashSet<string>(StringComparer.Ordinal);

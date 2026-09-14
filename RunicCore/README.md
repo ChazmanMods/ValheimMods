@@ -2,7 +2,7 @@
 
 Runic Core is the small, non-gameplay foundation for the Runic Valheim mod suite. It gives
 independent plugins one stable place to publish discovery metadata, find typed services, report
-input conflicts, and send concise actionable notifications. Version 1.0.0 installs no Harmony
+input conflicts, and send concise actionable notifications. Version 1.1.0 installs no Harmony
 patches and does not alter a world, player, inventory, ZDO, RPC, or save.
 
 ## What it provides
@@ -86,7 +86,7 @@ IDs fail immediately with an actionable exception.
 
 `SemanticVersion` accepts and orders SemVer 2.0.0 versions, including prerelease and build
 metadata. `ProtocolVersion` uses `major.minor`; peers with the same protocol major are compatible,
-and minor versions represent additive revisions. Runic Core 1.0.0 publishes protocol `1.0` through
+and minor versions represent additive revisions. Runic Core 1.1.0 publishes protocol `1.0` through
 `RunicCoreMetadata` and its own `ModuleDescriptor`.
 
 Capability availability begins when at least one registered module declares the ID; a service is
@@ -112,6 +112,9 @@ the registry lock is released, and one failing subscriber is isolated from later
 | `SecurityAttest` | `security.attest` | Publish a bounded local plugin snapshot and non-auth nonce binding |
 | `SecurityEvidence` | `security.evidence` | Register exact-lease providers and submit bounded review evidence |
 | `SecurityAdmission` | `security.admission` | Publish non-authoritative local admission diagnostics |
+| `SecurityRoles` | `security.roles` | Resolve signed administrator identities |
+| `SecurityEnforcement` | `security.enforcement` | Report a server-observed violation for bounded enforcement |
+| `SecurityRuntimeIntegrity` | `security.runtime-integrity` | Read Sentinel's current runtime integrity state |
 | `InventoryItemLocks` | `inventory.item-locks` | Query one native item's bounded protection state |
 | `InventoryDurableOperations` | `inventory.durable-operations` | Journal and reconcile one bounded local-owner inventory operation |
 | `SafetyConfirmation` | `safety.confirmation` | Request one-shot confirmation for a high-impact operation |
@@ -137,11 +140,12 @@ save call as a durable acknowledgement. Recovery consumers can call `TryReadExac
 their exact active owner/operation pair; the provider returns a bounded defensive copy and denies
 terminal, corrupt, or mirror-conflicting evidence.
 
-Security contracts deliberately grant no authority: Core's attestation interface exposes
-`ProvidesClientAuthenticityProof`, and Sentinel 1.0.0 reports false. Admission is review evidence,
-not a connection grant. Evidence's `EffectiveAction` is a policy-limited recommendation, not proof
-that an action ran. Provider/confirmation/world-ownership APIs authenticate cooperative callers with
-an active `ModuleRegistration` from the exact target registry instance and its private lease token.
+Core itself grants no authority. Its attestation interface exposes `ProvidesClientAuthenticityProof`,
+and Sentinel reports false because client DLL claims are self-reported compatibility evidence.
+Sentinel's enforcement contract accepts reports only from active registered modules and acts only
+on the authoritative server; its result says whether a disconnect actually ran. Provider,
+enforcement, confirmation, and world-ownership APIs authenticate cooperative callers with an active
+`ModuleRegistration` from the exact target registry instance and its private lease token.
 
 ## Keybinding conflict registry
 
@@ -222,7 +226,7 @@ dependency.
 - Capability constants define boundaries; Runic Core does not implement permissions, container
   mutation, reservations, migrations, security checks, or ZDO ownership policy.
 - Only bindings explicitly registered by participating mods or a vanilla-binding adapter can be
-  compared. Version 1.0.0 does not scrape arbitrary BepInEx configuration files.
+  compared. Version 1.1.0 does not scrape arbitrary BepInEx configuration files.
 - Notifications are logged by Core but have no built-in HUD, localization catalog, persistence,
   or network transport.
 - Service contracts remain owned by the capability modules. Core stores typed instances and never

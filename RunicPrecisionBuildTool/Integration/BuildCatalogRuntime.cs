@@ -29,7 +29,7 @@ namespace QuietBuildRotation.Integration
         private static readonly List<BuildCatalogEntry> Scratch =
             new List<BuildCatalogEntry>(BoundedBuildCatalog.EntryCapacity);
 
-        private static AccessTools.FieldRef<PieceTable, List<List<Piece>>> _availablePieces;
+        private static AccessTools.FieldRef<PieceTable, List<List<Piece>>> _availablePiecesByCategory;
         private static int _gridWidth;
         private static bool _hasGridWidth;
         private delegate string TranslateDelegate(Localization localization, string key);
@@ -43,10 +43,10 @@ namespace QuietBuildRotation.Integration
             error = null;
             try
             {
-                FieldInfo field = AccessTools.Field(typeof(PieceTable), "m_availablePieces");
+                FieldInfo field = AccessTools.Field(typeof(PieceTable), "m_availablePiecesByCategory");
                 if (field == null || field.FieldType != typeof(List<List<Piece>>))
-                    throw new MissingFieldException(typeof(PieceTable).FullName, "m_availablePieces");
-                _availablePieces =
+                    throw new MissingFieldException(typeof(PieceTable).FullName, "m_availablePiecesByCategory");
+                _availablePiecesByCategory =
                     AccessTools.FieldRefAccess<PieceTable, List<List<Piece>>>(field);
                 if (!InitializeGridWidthReader(out string gridWidthError))
                     throw new InvalidOperationException(gridWidthError);
@@ -60,7 +60,7 @@ namespace QuietBuildRotation.Integration
             }
             catch (Exception exception)
             {
-                _availablePieces = null;
+                _availablePiecesByCategory = null;
                 _gridWidth = 0;
                 _hasGridWidth = false;
                 _translate = null;
@@ -73,7 +73,7 @@ namespace QuietBuildRotation.Integration
         internal static void Shutdown()
         {
             PersistLists();
-            _availablePieces = null;
+            _availablePiecesByCategory = null;
             _gridWidth = 0;
             _hasGridWidth = false;
             _translate = null;
@@ -112,7 +112,7 @@ namespace QuietBuildRotation.Integration
         {
             message = null;
             if (!player || player != Player.m_localPlayer ||
-                _availablePieces == null || !_hasGridWidth)
+                _availablePiecesByCategory == null || !_hasGridWidth)
             {
                 message = "Build catalog is unavailable.";
                 return false;
@@ -189,7 +189,7 @@ namespace QuietBuildRotation.Integration
         private static bool Rebuild(PieceTable table)
         {
             Scratch.Clear();
-            List<List<Piece>> categories = _availablePieces(table);
+            List<List<Piece>> categories = _availablePiecesByCategory(table);
             if (categories == null || !TryReadGridWidth(out int gridWidth)) return false;
 
             for (int category = 0;
@@ -223,7 +223,7 @@ namespace QuietBuildRotation.Integration
 
         private static bool TrySelectFresh(PieceTable table, in BuildCatalogEntry entry)
         {
-            List<List<Piece>> categories = _availablePieces(table);
+            List<List<Piece>> categories = _availablePiecesByCategory(table);
             if (categories == null || !TryReadGridWidth(out int gridWidth) ||
                 gridWidth != entry.GridWidth ||
                 entry.Category < 0 || entry.Category >= categories.Count)

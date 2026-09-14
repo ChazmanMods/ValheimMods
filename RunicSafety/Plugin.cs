@@ -12,7 +12,7 @@ namespace RunicSafety
     {
         public const string Guid = "chazman.RunicSafety";
         public const string Name = "Runic Safety";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.5";
         public const string ModuleId = "runic.safety";
         public const string ProtocolVersion = "1.0";
 

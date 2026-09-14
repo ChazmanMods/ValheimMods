@@ -146,6 +146,7 @@ namespace RunicTransactions.Tests
             public bool IsServerConnectionReady => ServerReady;
             public event EventHandler<RpcPeerEventArgs> PeerReady { add { } remove { } }
             public event EventHandler<RpcPeerEventArgs> PeerDisconnected { add { } remove { } }
+            public event EventHandler<RpcAdmissionRejectedEventArgs> AdmissionRejected { add { } remove { } }
             public IDisposable RegisterEndpoint(ModuleRegistration module, RpcEndpointDescriptor descriptor, RunicRpcHandler handler) => throw new NotSupportedException();
             public IDisposable RegisterPeerRequirement(ModuleRegistration module, RpcPeerRequirement requirement) => throw new NotSupportedException();
             public IDisposable RegisterPlayerBindingResolver(ModuleRegistration module, IRpcPlayerBindingResolver resolver) => throw new NotSupportedException();

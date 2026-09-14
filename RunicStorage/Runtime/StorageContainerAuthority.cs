@@ -28,6 +28,27 @@ namespace RunicStorage.Runtime
             out Inventory inventory) =>
             TryGetOwnedInventory(container, allowInUse: false, out inventory);
 
+        internal static bool TryClaimWritableInventory(
+            Container container,
+            bool allowCurrentUse)
+        {
+            if (ZNet.instance == null || container == null || !container.isActiveAndEnabled ||
+                (bool)LoadingField.GetValue(container) ||
+                container.m_wagon != null && container.m_wagon.InUse())
+                return false;
+
+            ZNetView view = ValheimContainerIdentity.NetworkView(container);
+            ZDO zdo = view != null && view.IsValid() ? view.GetZDO() : null;
+            if (zdo == null) return false;
+
+            bool persistedInUse = zdo.GetInt(ZDOVars.s_inUse, 0) != 0;
+            if (!allowCurrentUse && (container.IsInUse() || persistedInUse)) return false;
+            if (allowCurrentUse && persistedInUse && !view.IsOwner()) return false;
+
+            if (!view.IsOwner()) view.ClaimOwnership();
+            return view.IsOwner() && zdo.GetOwner() == ZNet.GetUID();
+        }
+
         internal static bool TryGetExactOpenedServerOwnerInventory(
             Container container,
             Player player,
@@ -57,29 +78,27 @@ namespace RunicStorage.Runtime
             out Inventory inventory)
         {
             inventory = null;
-            if (ZNet.instance == null || container == null || !container.isActiveAndEnabled ||
-                !container.IsOwner() || (!allowInUse &&
-                (container.IsInUse() || container.m_wagon != null && container.m_wagon.InUse())) ||
-                (bool)LoadingField.GetValue(container))
+            if (!TryClaimWritableInventory(container, allowInUse))
                 return false;
 
             ZNetView view = ValheimContainerIdentity.NetworkView(container);
             ZDO zdo = view != null && view.IsValid() && view.IsOwner() ? view.GetZDO() : null;
             if (zdo == null || zdo.GetOwner() != ZNet.GetUID()) return false;
-            if (allowInUse && !zdo.GetBool(ZDOVars.s_inUse, false)) return false;
+            if (allowInUse && zdo.GetInt(ZDOVars.s_inUse, 0) == 0) return false;
 
             try
             {
                 LoadMethod.Invoke(container, Array.Empty<object>());
                 inventory = container.GetInventory();
                 if (inventory == null) return false;
-                string persisted = zdo.GetString(ZDOVars.s_items, string.Empty);
+                byte[] persistedBytes = zdo.GetByteArray(ZDOVars.s_items);
+                string persisted = persistedBytes == null || persistedBytes.Length == 0
+                    ? string.Empty
+                    : Convert.ToBase64String(persistedBytes);
                 return string.IsNullOrEmpty(persisted)
                     ? inventory.GetAllItems().Count == 0
-                    : string.Equals(
-                        ValheimContainerService.SaveInventory(inventory).GetBase64(),
-                        persisted,
-                        StringComparison.Ordinal);
+                    : StorageInventoryPayloadComparison.MatchesLoaded(
+                        persistedBytes, ValheimContainerService.SaveInventory(inventory).GetArray());
             }
             catch
             {

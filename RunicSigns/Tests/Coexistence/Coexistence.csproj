@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="Game.csproj" />
+    <ProjectReference Include="StorageHooks.csproj" />
+    <ProjectReference Include="SignsHooks.csproj" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+</Project>

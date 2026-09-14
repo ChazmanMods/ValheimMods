@@ -12,11 +12,12 @@ using UnityEngine;
 namespace RunicInventory
 {
     [BepInPlugin(Guid, Name, Version)]
+    [BepInDependency(BetterArcheryCompatibility.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "chazman.RunicInventory";
         public const string Name = "Runic Inventory";
-        public const string Version = "1.0.0";
+        public const string Version = "1.1.5";
         public const string ModuleId = "runic.inventory";
         public const string ProtocolVersion = "1.0";
 
@@ -38,6 +39,7 @@ namespace RunicInventory
         {
             Instance = this;
             Diagnostics.Initialize(Logger);
+            InventoryIntegrationApi.BeginInitialization();
             try
             {
                 InventoryConfig.Bind(Config);
@@ -52,6 +54,7 @@ namespace RunicInventory
                 _runtime = new InventoryRuntime(batch: false);
                 _harmony = new Harmony(Guid);
                 _harmony.PatchAll(typeof(Plugin).Assembly);
+                BetterArcheryCompatibility.Initialize(_harmony);
                 RegisterBindings();
                 _runtime.Initialize();
                 InventoryIntegrationApi.Attach(_runtime);
@@ -68,6 +71,7 @@ namespace RunicInventory
             {
                 Logger.LogError(Name + " startup failed: " + exception);
                 ShutdownRuntime();
+                InventoryIntegrationApi.MarkStartupFailed();
             }
         }
 
@@ -95,6 +99,9 @@ namespace RunicInventory
         private void OnSettingChanged(object sender, SettingChangedEventArgs arguments)
         {
             if (!RuntimeReady || _runtime == null) return;
+            // The display hook reads this setting on the next UI refresh; no inventory
+            // migration or keybinding registration is needed for a spacing change.
+            if (ReferenceEquals(arguments?.ChangedSetting, InventoryConfig.CompactQuiverLayout)) return;
             try { _runtime.OnConfigurationChanged(); }
             catch (Exception exception)
             {
@@ -260,6 +267,7 @@ namespace RunicInventory
                 Diagnostics.Error(exception, "Inventory Harmony cleanup was incomplete.");
             }
             _harmony = null;
+            BetterArcheryCompatibility.Reset();
         }
     }
 }

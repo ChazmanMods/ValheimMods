@@ -28,13 +28,13 @@ namespace RunicAwareness.Tests
                 typeof(Plugin).GetCustomAttribute<BepInPlugin>());
             TestAssert.Equal("chazman.RunicAwareness", Plugin.Guid);
             TestAssert.Equal("Runic Awareness", Plugin.Name);
-            TestAssert.Equal("1.0.0", Plugin.Version);
+            TestAssert.Equal("1.0.2", Plugin.Version);
             TestAssert.Equal(Plugin.Guid, identity.GUID);
             TestAssert.Equal(Plugin.Name, identity.Name);
             TestAssert.Equal(Plugin.Version, identity.Version.ToString());
-            TestAssert.Equal(new Version(1, 0, 0, 0), typeof(Plugin).Assembly.GetName().Version);
+            TestAssert.Equal(new System.Version(1, 0, 2, 0), typeof(Plugin).Assembly.GetName().Version);
             TestAssert.Equal(
-                "1.0.0",
+                "1.0.2",
                 typeof(Plugin).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                     ?.InformationalVersion);
         }

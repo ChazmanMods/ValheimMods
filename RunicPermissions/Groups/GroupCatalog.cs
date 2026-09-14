@@ -222,6 +222,21 @@ namespace RunicPermissions.Groups
                 "group-invitation-cancelled");
         }
 
+        public GroupMutationResult Decline(
+            long expectedCatalogRevision, Guid id, long expectedGroupRevision,
+            StableIdentity actor, long nowUtcTicks)
+        {
+            if (!TryMutation(expectedCatalogRevision, id, expectedGroupRevision, out GroupRecord group, out GroupMutationResult failure))
+                return failure;
+            if (actor == null || nowUtcTicks <= 0) return Invalid(group);
+            if (!group.TryGetInvitation(actor, out GroupInvitation invitation))
+                return Fail(GroupMutationCode.InvitationMissing, "group-invitation-missing", group);
+            if (invitation.IsExpired(nowUtcTicks))
+                return Fail(GroupMutationCode.InvitationExpired, "group-invitation-expired", group);
+            return Replace(group, group.CancelInvitation(actor),
+                GroupMutationCode.InvitationCancelled, "group-invitation-declined");
+        }
+
         public GroupMutationResult Accept(
             long expectedCatalogRevision,
             Guid id,

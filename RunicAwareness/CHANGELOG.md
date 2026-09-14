@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.2 - 2026-09-09
+
+- Updated the exact gamepad and runtime contracts for Valheim 1.0 and re-audited the installed 1.0.7 client assemblies.
+- Updated the BepInEx dependency to 5.4.2350 and aligned the package, plugin, and assembly versions.
+
+## 1.0.1 - 2026-09-05
+
+- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
+- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.0.0.
+
 ## 1.0.0
 
 - Added bounded local food and HUD-effect timers with configurable upward-rounding precision.
@@ -13,7 +23,7 @@
   current hover path; no cross-mod status service, capability, registry, or protocol is used.
 - Added bounded direct localization lookup, safe-area anchoring, UI/controller scaling, per-panel
   toggles, low-frequency signature caching, dedicated-process inertness, and fail-closed startup.
-- Added focused deterministic, installed-Valheim 0.221.12 signature, Harmony, privacy, display-only,
+- Added focused deterministic, pre-1.0 Valheim 0.221.12 signature, Harmony, privacy, display-only,
   performance, dependency, and documentation contract tests.
 - Bound building detail to physical-avatar interaction reach and strict no-flash hostile-ward proof;
   remote Build Camera selections now expose only a generic unavailable status.

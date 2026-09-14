@@ -15,9 +15,6 @@ namespace RunicCrafting.Integration
         private static ManualLogSource _log;
         private static WorkshopAccessRuntime _workshopAccess;
         private static ContainerQueryRuntime _containerQuery;
-        private static readonly object AvailabilityCacheGate = new object();
-        private static readonly Dictionary<BreakdownKey, BreakdownEntry> AvailabilityCache =
-            new Dictionary<BreakdownKey, BreakdownEntry>();
         private static string _lastStationStatusKey;
         private static float _lastStationStatusAt = -100f;
 
@@ -26,6 +23,7 @@ namespace RunicCrafting.Integration
         [ThreadStatic] private static bool _insidePlacementUpdate;
 
         internal static bool IsInitialized => _containerQuery != null;
+        internal static bool HasMaterialOperation => _activeOperation != null || _pendingCraft != null;
 
         internal static void Initialize(ManualLogSource log)
         {
@@ -40,17 +38,20 @@ namespace RunicCrafting.Integration
             _insidePlacementUpdate = false;
             CleanupActive(success: false);
             ContainerSpatialIndex.Clear();
+            ValheimReflection.ClearPreviewCache();
+            PreviewRefreshRuntime.Reset();
             _containerQuery = null;
             _workshopAccess = null;
             _log = null;
-            lock (AvailabilityCacheGate) AvailabilityCache.Clear();
+            UiPreviewCache.Reset();
             _lastStationStatusKey = null;
             _lastStationStatusAt = -100f;
         }
 
         internal static void OnConfigurationChanged()
         {
-            lock (AvailabilityCacheGate) AvailabilityCache.Clear();
+            PreviewRefreshRuntime.Invalidate();
+            UiPreviewCache.Invalidate();
             _lastStationStatusKey = null;
             _lastStationStatusAt = -100f;
         }
@@ -142,7 +143,8 @@ namespace RunicCrafting.Integration
                 return true;
             }
             int multiplier = multiCrafting ? Math.Max(1, multiCraftAmount) : 1;
-            if (!TryBuildRequirements(recipe.m_resources, quality, multiplier, out List<MaterialRequirement> requirements))
+            if (!TryBuildRequirements(recipe.m_resources, quality, multiplier, out List<MaterialRequirement> requirements,
+                    station != null && station.m_upgrader))
             {
                 CraftingDiagnostics.TraceAction("nearby-craft-bypass", "no-valid-material-requirements", "vanilla handles the action");
                 return true;
@@ -368,10 +370,8 @@ namespace RunicCrafting.Integration
                 queryScope == BuildMaterialQueryScope.PlayerLocalStationless;
             float range = stationlessAccessAuthorized
                 ? Configuration.SafeStationlessBuildRange
-                : GetStationRange(station);
-            Vector3 origin = stationlessAccessAuthorized
-                ? player.transform.position
-                : station.transform.position;
+                : Configuration.SafeRangeCap;
+            Vector3 origin = BuildQueryOrigin(player);
             if (!TryBeginNearbyOperation(
                     player,
                     station,
@@ -472,8 +472,9 @@ namespace RunicCrafting.Integration
                 CraftingDiagnostics.TraceGate("recipe-preview", state.ReasonCode);
                 return;
             }
-            if (!TryBuildRequirements(recipe.m_resources, quality, multiplier, out List<MaterialRequirement> requirements)) return;
-            result = CheckAvailability(
+            if (!TryBuildRequirements(recipe.m_resources, quality, multiplier, out List<MaterialRequirement> requirements,
+                    station != null && station.m_upgrader)) return;
+            result = CheckUiAvailability(
                 player,
                 station,
                 station != null ? station.transform.position : player.transform.position,
@@ -481,7 +482,6 @@ namespace RunicCrafting.Integration
                 requirements,
                 "runic.crafting.recipe-preview",
                 stationlessAccessAuthorized: false,
-                out _,
                 out string reason);
             CraftingDiagnostics.TraceGate("recipe-preview", result ? "nearby-materials-satisfy-cost" : reason);
         }
@@ -509,13 +509,11 @@ namespace RunicCrafting.Integration
             if (queryScope == BuildMaterialQueryScope.RequiredStationUnavailable) return;
             bool stationlessAccessAuthorized =
                 queryScope == BuildMaterialQueryScope.PlayerLocalStationless;
-            Vector3 origin = stationlessAccessAuthorized
-                ? player.transform.position
-                : station.transform.position;
+            Vector3 origin = BuildQueryOrigin(player);
             float range = stationlessAccessAuthorized
                 ? Configuration.SafeStationlessBuildRange
-                : GetStationRange(station);
-            result = CheckAvailability(
+                : Configuration.SafeRangeCap;
+            result = CheckUiAvailability(
                 player,
                 station,
                 origin,
@@ -523,9 +521,11 @@ namespace RunicCrafting.Integration
                 requirements,
                 "runic.crafting.build-preview",
                 stationlessAccessAuthorized,
-                out _,
                 out string reason);
-            CraftingDiagnostics.TraceGate("build-preview", result ? "nearby-materials-satisfy-cost" : reason);
+            if (Configuration.DetailedLogging.Value)
+                CraftingDiagnostics.TraceGate("build-preview:" + ValheimReflection.PiecePrefabId(piece),
+                    result ? "nearby-materials-satisfy-cost" : reason,
+                    "player-centered chest range=" + range + "m; required station=" + (station != null ? station.m_name : "none"));
         }
 
         internal static bool BeforeVanillaConsume(
@@ -622,12 +622,10 @@ namespace RunicCrafting.Integration
             }
             bool stationlessAccessAuthorized =
                 queryScope == BuildMaterialQueryScope.PlayerLocalStationless;
-            Vector3 origin = stationlessAccessAuthorized
-                ? player.transform.position
-                : station.transform.position;
+            Vector3 origin = BuildQueryOrigin(player);
             float range = stationlessAccessAuthorized
                 ? Configuration.SafeStationlessBuildRange
-                : GetStationRange(station);
+                : Configuration.SafeRangeCap;
             return TryResolveNearbyBreakdown(
                 player,
                 station,
@@ -657,28 +655,15 @@ namespace RunicCrafting.Integration
             ref int nearby,
             ref NearbyCraftingFeatureState state)
         {
-            var cacheKey = new BreakdownKey(
-                player.GetPlayerID(),
-                stationlessAccessAuthorized
-                    ? StationlessAnchorId(origin)
-                    : ValheimReflection.StationEndpointId(station),
-                resource,
-                required);
-            float now = Time.realtimeSinceStartup;
-            lock (AvailabilityCacheGate)
-            {
-                if (AvailabilityCache.TryGetValue(cacheKey, out BreakdownEntry cached) && cached.ExpiresAt >= now)
-                {
-                    nearby = cached.Nearby;
-                    CraftingDiagnostics.TraceGate(
-                        diagnosticOperation,
-                        "ready",
-                        "resource=" + resource + "; required=" + required + "; carried=" + carried +
-                        "; nearby=" + nearby + "; cached=true");
-                    return true;
-                }
-            }
             var one = new[] { new MaterialRequirement(resource, required) };
+            bool memoize = UiPreviewCache.TryKey(player, station, origin, range, one,
+                diagnosticOperation + ":row", stationlessAccessAuthorized, out UiPreviewCache.Key cacheKey);
+            if (memoize && UiPreviewCache.TryGet(cacheKey, out UiPreviewCache.Answer cached))
+            {
+                nearby = cached.Nearby;
+                return true;
+            }
+            long epoch = UiPreviewCache.Epoch;
             IReadOnlyList<IMutableMaterialSource> sources = _containerQuery.ResolveSources(
                 player,
                 station,
@@ -687,7 +672,7 @@ namespace RunicCrafting.Integration
                 one,
                 queryPurpose,
                 stationlessAccessAuthorized,
-                out string queryReason);
+                out string queryReason, allowRefreshCache: !PreviewRefreshRuntime.InAction);
             if (IsBlockingQueryReason(queryReason))
             {
                 state = QueryFailureState(queryReason);
@@ -703,11 +688,7 @@ namespace RunicCrafting.Integration
                     nearby = nearby > int.MaxValue - available ? int.MaxValue : nearby + available;
                 }
             }
-            lock (AvailabilityCacheGate)
-            {
-                if (AvailabilityCache.Count >= 512) AvailabilityCache.Clear();
-                AvailabilityCache[cacheKey] = new BreakdownEntry(nearby, now + 0.25f);
-            }
+            if (memoize) UiPreviewCache.Store(cacheKey, true, "ready", epoch, nearby);
             CraftingDiagnostics.TraceGate(
                 diagnosticOperation,
                 "ready",
@@ -748,7 +729,8 @@ namespace RunicCrafting.Integration
                 requirements,
                 purpose,
                 stationlessAccessAuthorized,
-                out string queryReason);
+                out string queryReason,
+                requireWritable: true);
             CraftingDiagnostics.TraceAction(
                 purpose + ":source-query",
                 queryReason,
@@ -796,6 +778,27 @@ namespace RunicCrafting.Integration
             return true;
         }
 
+        private static bool CheckUiAvailability(
+            Player player, CraftingStation station, Vector3 origin, float range,
+            IReadOnlyList<MaterialRequirement> requirements, string purpose,
+            bool stationlessAccessAuthorized, out string reason)
+        {
+            bool memoize = UiPreviewCache.TryKey(player, station, origin, range, requirements,
+                purpose, stationlessAccessAuthorized, out UiPreviewCache.Key key);
+            if (memoize && UiPreviewCache.TryGet(key, out UiPreviewCache.Answer answer))
+            {
+                reason = answer.Reason;
+                return answer.Available;
+            }
+            long epoch = UiPreviewCache.Epoch;
+            bool available = CheckAvailability(player, station, origin, range, requirements,
+                purpose, stationlessAccessAuthorized, out _, out reason,
+                allowRefreshCache: !PreviewRefreshRuntime.InAction);
+            if (memoize) UiPreviewCache.Store(key, available, reason, epoch);
+            return available;
+        }
+
+        // Craft-click decisions always use this fresh path; UI callers opt into refresh reuse explicitly.
         private static bool CheckAvailability(
             Player player,
             CraftingStation station,
@@ -805,7 +808,8 @@ namespace RunicCrafting.Integration
             string purpose,
             bool stationlessAccessAuthorized,
             out MaterialPlan plan,
-            out string reason)
+            out string reason,
+            bool allowRefreshCache = false)
         {
             plan = null;
             reason = "insufficient-materials";
@@ -827,7 +831,7 @@ namespace RunicCrafting.Integration
                 requirements,
                 purpose,
                 stationlessAccessAuthorized,
-                out string queryReason);
+                out string queryReason, allowRefreshCache: allowRefreshCache);
             if (IsBlockingQueryReason(queryReason))
             {
                 reason = queryReason;
@@ -1014,33 +1018,10 @@ namespace RunicCrafting.Integration
             Piece.Requirement[] source,
             int quality,
             int multiplier,
-            out List<MaterialRequirement> requirements)
-        {
-            requirements = new List<MaterialRequirement>();
-            if (source == null || multiplier <= 0) return false;
-            try
-            {
-                foreach (Piece.Requirement requirement in source)
-                {
-                    if (requirement?.m_resItem == null) continue;
-                    int amount = checked(requirement.GetAmount(quality) * multiplier);
-                    if (amount <= 0) continue;
-                    string resourceId = ValheimReflection.ResourceId(requirement.m_resItem);
-                    if (resourceId.Length == 0)
-                    {
-                        requirements.Clear();
-                        return false;
-                    }
-                    requirements.Add(new MaterialRequirement(resourceId, amount));
-                }
-                return requirements.Count > 0;
-            }
-            catch (OverflowException)
-            {
-                requirements.Clear();
-                return false;
-            }
-        }
+            out List<MaterialRequirement> requirements,
+            bool? upgraderStation = null) =>
+            RecipeMaterialRequirements.TryBuild(source, quality, multiplier,
+                out requirements, upgraderStation);
 
         private static string FormatMaterialAvailability(
             IEnumerable<MaterialRequirement> requirements,
@@ -1103,6 +1084,10 @@ namespace RunicCrafting.Integration
                 if (ValheimReflection.CountRequirementItems(inventory, requirement.Key) < requirement.Value) return false;
             return true;
         }
+
+        // All hammer paths (preview, row and actual consumption) share the player's exact
+        // position. The required station still authorizes the operation, not its chest origin.
+        private static Vector3 BuildQueryOrigin(Player player) => player.transform.position;
 
         private static float GetStationRange(CraftingStation station)
         {
@@ -1209,49 +1194,6 @@ namespace RunicCrafting.Integration
             internal IReadOnlyList<MaterialRequirement> Requirements { get; }
             internal int Quality { get; }
             internal int Multiplier { get; }
-        }
-
-        private readonly struct BreakdownKey : IEquatable<BreakdownKey>
-        {
-            internal BreakdownKey(long playerId, string stationId, string resourceId, int required)
-            {
-                PlayerId = playerId;
-                StationId = stationId;
-                ResourceId = resourceId;
-                Required = required;
-            }
-
-            private long PlayerId { get; }
-            private string StationId { get; }
-            private string ResourceId { get; }
-            private int Required { get; }
-            public bool Equals(BreakdownKey other) =>
-                PlayerId == other.PlayerId && Required == other.Required &&
-                string.Equals(StationId, other.StationId, StringComparison.Ordinal) &&
-                string.Equals(ResourceId, other.ResourceId, StringComparison.Ordinal);
-            public override bool Equals(object obj) => obj is BreakdownKey other && Equals(other);
-            public override int GetHashCode()
-            {
-                unchecked
-                {
-                    int hash = PlayerId.GetHashCode();
-                    hash = (hash * 397) ^ (StationId == null ? 0 : StringComparer.Ordinal.GetHashCode(StationId));
-                    hash = (hash * 397) ^ (ResourceId == null ? 0 : StringComparer.Ordinal.GetHashCode(ResourceId));
-                    return (hash * 397) ^ Required;
-                }
-            }
-        }
-
-        private readonly struct BreakdownEntry
-        {
-            internal BreakdownEntry(int nearby, float expiresAt)
-            {
-                Nearby = nearby;
-                ExpiresAt = expiresAt;
-            }
-
-            internal int Nearby { get; }
-            internal float ExpiresAt { get; }
         }
 
     }

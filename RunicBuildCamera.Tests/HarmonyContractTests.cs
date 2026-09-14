@@ -343,8 +343,10 @@ namespace RunicBuildCamera.Tests
         {
             MethodInfo tick = typeof(BuildCameraRuntime).GetMethod(
                 "Tick", BindingFlags.Static | BindingFlags.NonPublic);
-            TestAssert.True(IlReader.LoadsString(tick, "Hide"));
-            TestAssert.True(IlReader.LoadsString(tick, "JoyHide"));
+            MethodInfo exitInput = typeof(BuildCameraRuntime).GetMethod(
+                "ExitInputRequested", BindingFlags.Static | BindingFlags.NonPublic);
+            TestAssert.True(IlReader.LoadsString(exitInput, "Hide"));
+            TestAssert.True(IlReader.LoadsString(exitInput, "JoyHide"));
             TestAssert.True(IlReader.Calls(tick, typeof(ValheimAdapter), "IsBuildToolEquipped"));
             TestAssert.True(IlReader.Calls(tick, typeof(BuildCameraRuntime), "Stop"));
 

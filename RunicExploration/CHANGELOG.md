@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.2 - 2026-09-09
+
+- Updated explored-map storage, rounding, and pin-removal integration to Valheim 1.0's exact APIs.
+- Re-audited the installed Valheim 1.0.7 client assemblies and updated the BepInEx dependency to 5.4.2350.
+
+## 1.0.1 - 2026-09-05
+
+- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
+- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.0.0.
+
 ## 1.0.0
 
 - Fixed the large-map browser permanently disappearing when a typing or filter change narrowed the
@@ -14,7 +24,7 @@
   bounded text and caches, low-frequency state fingerprints, and vanilla fallback.
 - Added optional Runic Portals enabled-state detection through BepInEx metadata without a registry,
   capability, protocol, directory query, or hard optional dependency.
-- Added focused deterministic, installed-Valheim 0.221.12 signature/IL, privacy, mutation,
+- Added focused deterministic, pre-1.0 Valheim 0.221.12 signature/IL, privacy, mutation,
   dependency, documentation, icon, and 100/1,000/10,000 work-profile tests.
 - Added 0.75-second evidence quieting and a two-second maximum continuous-churn rebuild cadence,
   with repeated-change allocation/time budgets at 100, 1,000, and 10,000 pins.

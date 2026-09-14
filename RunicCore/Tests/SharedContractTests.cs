@@ -14,6 +14,7 @@ namespace Runic.Foundation.Core.Tests
             TestRunner.Run("World declarations stop duplicate floods after the inspection cap", WorldInputsAreBounded);
             TestRunner.Run("Durable inventory intent and custody are immutable and bounded", DurableInventoryContractsAreBounded);
             TestRunner.Run("Durable inventory service contract contains no Valheim types", DurableInventoryContractIsProviderNeutral);
+            TestRunner.Run("Sentinel enforcement and integrity contracts are bounded", SentinelSecurityContractsAreBounded);
         }
 
         private static void ItemProtectionIsBounded()
@@ -438,6 +439,33 @@ namespace Runic.Foundation.Core.Tests
             TestAssert.Equal(typeof(Func<byte[], byte[]>), forecastParameters[2].ParameterType);
             TestAssert.Equal(typeof(string).MakeByRefType(), forecastParameters[3].ParameterType);
             TestAssert.True(forecastParameters[3].IsOut);
+        }
+
+        private static void SentinelSecurityContractsAreBounded()
+        {
+            var integrity = new SentinelIntegritySnapshot(
+                SentinelIntegrityState.Ready,
+                1L,
+                "ready",
+                new string('a', 64));
+            TestAssert.Equal(SentinelIntegrityState.Ready, integrity.State);
+            TestAssert.Equal(64, integrity.PolicyDigest.Length);
+            var blocked = new SentinelEnforcementDecision(
+                EnforcementAction.Cancel,
+                false,
+                false,
+                "sentinel-request-blocked");
+            TestAssert.False(blocked.RequestAllowed);
+            TestAssert.Throws<ArgumentException>(() => new SentinelEnforcementDecision(
+                EnforcementAction.Cancel,
+                false,
+                false,
+                "bad reason"));
+            TestAssert.Equal("security.roles", RunicCapabilityIds.SecurityRoles);
+            TestAssert.Equal("security.enforcement", RunicCapabilityIds.SecurityEnforcement);
+            TestAssert.Equal(
+                "security.runtime-integrity",
+                RunicCapabilityIds.SecurityRuntimeIntegrity);
         }
 
         private static bool IsValheimType(Type type)

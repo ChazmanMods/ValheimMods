@@ -1,4 +1,4 @@
-## Settings file was created by plugin Runic Crafting v1.0.0
+## Settings file was created by plugin Runic Crafting v1.1.0
 ## Plugin GUID: chazman.RunicCrafting
 
 [General]
@@ -15,6 +15,12 @@ MaximumReturnedContainers = 32
 ExcludePersonalContainers = true
 RequireWardAccess = false
 
+[Manual Interactions]
+
+CookFromContainers = true
+RefuelFromContainers = true
+RangeMeters = 20
+
 [Stationless Building]
 
 Enabled = true
@@ -25,13 +31,23 @@ DeniedPrefabIds =
 [Workshop Access]
 
 DefaultStationUse = Everyone
-DefaultLocalMaterialUse = Approved
+DefaultLocalMaterialUse = Everyone
 
 [Repair]
 
 RepairAll = true
 
+[Area Repair]
+
+# Disable independently of inventory-equipment RepairAll. Cancels any pending area repairs.
+Enabled = true
+# BepInEx KeyboardShortcut; Semicolon is the ; key.
+Hotkey = Semicolon
+# 1–100m, independent of the chest search range.
+RadiusMeters = 50
+
 [Diagnostics]
 
 ShowStatusMessages = true
 DetailedLogging = false
+LogCacheStats = false

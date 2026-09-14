@@ -10,6 +10,7 @@ namespace RunicInventory
         internal static ConfigEntry<bool> ShowInventoryStatus { get; private set; }
         internal static ConfigEntry<bool> ShowRoleLabels { get; private set; }
         internal static ConfigEntry<bool> ShowPickupPreview { get; private set; }
+        internal static ConfigEntry<bool> CompactQuiverLayout { get; private set; }
         internal static ConfigEntry<string> FilteredPickupItems { get; private set; }
         internal static ConfigEntry<string> SortRows { get; private set; }
         internal static ConfigEntry<KeyboardShortcut> Quick1 { get; private set; }
@@ -29,13 +30,16 @@ namespace RunicInventory
         internal static void Bind(ConfigFile config)
         {
             Enabled = config.Bind("General", "Enabled", true,
-                "Enable the validated native-row topology. Disabling never removes or serializes an item.");
+                new ConfigDescription("Automatically add the equipment and quick-use row. Disable is unavailable until there is room in normal inventory for every extra-row item.",
+                    null, new Integration.ConfigurationManagerAttributes()));
             ShowInventoryStatus = config.Bind("UI", "ShowInventoryStatus", false,
                 "Show the bounded topology/authority panel while the player inventory is open.");
             ShowRoleLabels = config.Bind("UI", "ShowRoleLabels", true,
                 "Label and subtly outline the eight native bottom-row equipment and quick slots while inventory is open.");
             ShowPickupPreview = config.Bind("UI", "ShowPickupPreview", true,
                 "Append a bounded local capacity/weight preview to nearby world-item hover text.");
+            CompactQuiverLayout = config.Bind("UI", "CompactQuiverLayout", true,
+                "Collapse unused display space between Better Archery's quiver and Runic equipment row. Visual only; no inventory slots or items are moved.");
             FilteredPickupItems = config.Bind("Pickup Filter", "Items", string.Empty,
                 "Exact comma/semicolon/newline-separated prefab IDs or shared-name tokens to refuse before pickup mutation; maximum 128 safe entries. Quest items always bypass the filter.");
             SortRows = config.Bind("Sort", "Rows", "1,2",
@@ -66,7 +70,7 @@ namespace RunicInventory
             ControllerToggleLock = config.Bind("Controller", "ToggleFocusedSlotLockAction", ControllerBindingPolicy.ToggleLockAction,
                 "Existing gamepad action pressed with ModifierAction to toggle the focused slot lock.");
             VerboseDiagnostics = config.Bind("Diagnostics", "Verbose", false,
-                "Log bounded reason codes and control routes; never log inventory contents or player metadata.");
+                "Log successful bounded protection decisions and control routes. Indeterminate protection decisions always log once per reason. Inventory contents and player metadata are never logged.");
         }
     }
 }

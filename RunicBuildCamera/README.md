@@ -1,13 +1,24 @@
 # Runic Build Camera
 
-Runic Build Camera is a standalone client-side Valheim mod that lets a player move a detached
-camera while using the ordinary building workflow. Version 1.0.0 keeps the feature deliberately
-bounded: the camera stays near the player, remote actions have a separate distance limit, and all
-limits have finite configuration ranges.
+The hardest part of an ambitious Valheim build is often getting your Viking—and the camera—into the one position where the next piece can be seen and placed. Roofs, tall walls, tight interiors, and awkward corners turn perspective into the real construction challenge.
 
-The plugin GUID is chazman.RunicBuildCamera. It depends only on BepInEx, Harmony, and assemblies
-shipped with Valheim. It does not depend on Runic Core, Runic Precision Build Tool, or another
-Runic foundation package.
+**Runic Build Camera lets your view move around the project while your Viking stays put.** Fly to the useful angle and keep using Valheim's familiar building workflow from there.
+
+## Major features
+
+- Toggle a detached camera while building.
+- Place, repair, and remove pieces from the remote view.
+- Configure movement speed, range, inversion, and reference behavior.
+- Optionally collect eligible loose materials near the camera.
+- Optionally carry an equipped Wisplight's mist clearing with the view.
+
+## How it feels in-game
+
+You can inspect the far side of a wall, rise above a roofline, or reach a cramped detail without repeatedly rebuilding scaffolding or repositioning your character. The hammer still feels like the hammer; you simply get a better seat.
+
+## Safety and compatibility
+
+The camera is client-side and range-limited. Normal costs, placement validation, required station types, wards, and removal paths remain in control. Your Viking remains at the original position and stays vulnerable while the camera is away. The mod is standalone and requires only BepInEx and Valheim's shipped assemblies.
 
 ## Feature scope
 
@@ -38,6 +49,10 @@ Press B while building to toggle the camera with the default configuration. Norm
 look inputs drive the detached camera. The usual jump and crouch inputs move vertically, and the
 usual run input applies the fast-move multiplier. Remapped Valheim inputs remain the source of
 those actions.
+
+To put away your hammer or switch items, use the normal hotbar action; the detached camera
+exits automatically. Keyboard put-away also exits the camera and keeps the same keypress.
+Controller hotbar use follows the same exit behavior. Compatible with Valheim 1.0.12.
 
 The toggle can be replaced with any BepInEx keyboard shortcut in
 BepInEx/config/chazman.RunicBuildCamera.cfg.
@@ -89,7 +104,7 @@ loaded by the game.
 
 ## Multiplayer
 
-Version 1.0.0 introduces no custom RPC, synchronized configuration, or networked data type. Install
+Version 1.0.3 introduces no custom RPC, synchronized configuration, or networked data type. Install
 it on each client that wants to use the camera; a dedicated server does not need a matching copy
 for the client feature to operate. Installing this DLL on a dedicated server does not turn the
 client-side camera and range settings into an enforcement system.

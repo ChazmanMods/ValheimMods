@@ -4,20 +4,20 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BepInEx;
 using BepInEx.Bootstrap;
-using Runic.Foundation.Core;
-using RunicSentinel.Contracts;
+using RunicSentinel.Admission;
 using RunicSentinel.Core;
+using Local = RunicSentinel.Contracts;
 
 namespace RunicSentinel.Runtime
 {
     internal sealed class SentinelRuntime :
-        ISentinelAttestationService,
-        ISentinelAdmissionService,
-        ISentinelNetworkProfileSource,
+        Local.ISentinelAttestationService,
+        Local.ISentinelAdmissionService,
         IDisposable
     {
         private const long MaximumPluginBytes = 512L * 1024L * 1024L;
@@ -29,10 +29,15 @@ namespace RunicSentinel.Runtime
 
         private readonly object _gate = new object();
         private CancellationTokenSource _cancel;
-        private AttestationSnapshot _snapshot;
+        private Local.AttestationSnapshot _snapshot;
+        private AdmissionClientProfile _lastRemoteProfile;
         private SentinelPolicy _policy;
-        private SentinelNetworkProfile _networkProfile;
         private SentinelNetworkCompatibility _network;
+        private string _lastAdmissionFailure = string.Empty;
+        private IntegrityFileStamp[] _integrityFiles = Array.Empty<IntegrityFileStamp>();
+        private bool _integrityCompromised;
+        private string _integrityReason = "snapshot-unavailable";
+        private long _nextIntegrityCheckUtcTicks;
         private string _status = "NotStarted";
         private long _generation;
         private long _highestPolicySequence;
@@ -57,6 +62,15 @@ namespace RunicSentinel.Runtime
         public long PolicySequence { get { lock (_gate) return _policy?.Sequence ?? 0L; } }
         public string PolicyProfile { get { lock (_gate) return _policy?.Profile ?? string.Empty; } }
 
+        internal bool TryGetVerifiedPolicy(out SentinelPolicy policy)
+        {
+            lock (_gate)
+            {
+                policy = PolicyCurrentLocked() ? _policy : null;
+                return policy != null;
+            }
+        }
+
         internal void Start(string configDirectory)
         {
             CancellationTokenSource previous;
@@ -72,8 +86,12 @@ namespace RunicSentinel.Runtime
                 current = new CancellationTokenSource();
                 _cancel = current;
                 _snapshot = null;
+                _lastRemoteProfile = null;
                 _policy = null;
-                _networkProfile = null;
+                _integrityFiles = Array.Empty<IntegrityFileStamp>();
+                _integrityCompromised = false;
+                _integrityReason = "snapshot-pending";
+                _nextIntegrityCheckUtcTicks = 0L;
                 _status = "PendingLocalSnapshot";
                 Evidence.SetPolicySequence(0L);
             }
@@ -98,7 +116,7 @@ namespace RunicSentinel.Runtime
                 token);
         }
 
-        public bool TryGetCurrent(out AttestationSnapshot snapshot, out string status)
+        public bool TryGetCurrent(out Local.AttestationSnapshot snapshot, out string status)
         {
             lock (_gate)
             {
@@ -128,7 +146,7 @@ namespace RunicSentinel.Runtime
             }
         }
 
-        public AdmissionDecision Evaluate(AttestationSnapshot snapshot, string role)
+        public Local.AdmissionDecision Evaluate(Local.AttestationSnapshot snapshot, string role)
         {
             lock (_gate)
                 return AdmissionPolicy.Evaluate(_policy, snapshot, role ?? string.Empty);
@@ -136,10 +154,7 @@ namespace RunicSentinel.Runtime
 
         internal void AttachNetwork(SentinelRemoteAdmissionMode mode)
         {
-            var network = new SentinelNetworkCompatibility(
-                this,
-                Evidence,
-                mode);
+            var network = new SentinelNetworkCompatibility(this, Evidence, mode);
             lock (_gate)
             {
                 if (_disposed || _network != null)
@@ -152,18 +167,196 @@ namespace RunicSentinel.Runtime
             }
         }
 
-        internal void TickNetwork()
+        internal SentinelRemoteAdmissionMode EffectiveRemoteAdmissionMode
         {
-            SentinelNetworkCompatibility network;
-            lock (_gate) network = _network;
-            network?.Tick();
+            get
+            {
+                SentinelNetworkCompatibility network;
+                lock (_gate) network = _network;
+                return network?.Mode ?? SentinelRemoteAdmissionMode.Disabled;
+            }
         }
 
-        public bool TryGetNetworkProfile(out SentinelNetworkProfile profile)
+        internal void TickNetwork()
+        {
+            _network?.Tick();
+        }
+
+        internal bool IsAdministrator(string authority, string subject)
+        {
+            lock (_gate)
+                return PolicyCurrentLocked() && _policy.Administrators.Any(role =>
+                    string.Equals(role.Authority, authority, StringComparison.Ordinal) &&
+                    string.Equals(role.Subject, subject, StringComparison.Ordinal));
+        }
+
+        internal bool IsBanned(string authority, string subject)
+        {
+            lock (_gate)
+                return PolicyCurrentLocked() && _policy.BannedUsers.Any(role =>
+                    string.Equals(role.Authority, authority, StringComparison.Ordinal) &&
+                    string.Equals(role.Subject, subject, StringComparison.Ordinal));
+        }
+
+        internal SentinelIntegritySnapshot GetIntegritySnapshot()
         {
             lock (_gate)
             {
-                profile = _networkProfile;
+                SentinelIntegrityState state = _integrityCompromised
+                    ? SentinelIntegrityState.Compromised
+                    : _snapshot == null
+                    ? SentinelIntegrityState.Unavailable
+                    : _policy == null
+                        ? SentinelIntegrityState.MonitorOnly
+                        : SentinelIntegrityState.Ready;
+                return new SentinelIntegritySnapshot(
+                    state,
+                    DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    _integrityReason,
+                    _policy?.PayloadDigest ?? string.Empty);
+            }
+        }
+
+        internal void TickIntegrity()
+        {
+            IntegrityFileStamp[] files;
+            long now = DateTime.UtcNow.Ticks;
+            lock (_gate)
+            {
+                if (_disposed || _integrityCompromised || now < _nextIntegrityCheckUtcTicks) return;
+                int seconds = Math.Max(
+                    5,
+                    Math.Min(300, SentinelConfig.IntegrityCheckSeconds?.Value ?? 15));
+                _nextIntegrityCheckUtcTicks = now + TimeSpan.FromSeconds(seconds).Ticks;
+                if (_policy != null && _policy.ExpiresUnixSeconds != 0L &&
+                    DateTimeOffset.UtcNow.ToUnixTimeSeconds() >= _policy.ExpiresUnixSeconds)
+                {
+                    _integrityCompromised = true;
+                    _integrityReason = "passport-expired";
+                    _lastAdmissionFailure = "sentinel-passport-expired";
+                    return;
+                }
+                files = _integrityFiles;
+            }
+            for (int index = 0; index < files.Length; index++)
+            {
+                IntegrityFileStamp expected = files[index];
+                var current = new FileInfo(expected.Path);
+                if (!current.Exists || current.Length != expected.Length ||
+                    current.LastWriteTimeUtc.Ticks != expected.LastWriteUtcTicks)
+                {
+                    lock (_gate)
+                    {
+                        _integrityCompromised = true;
+                        _integrityReason = expected.PolicyAsset
+                            ? "passport-file-changed"
+                            : "plugin-file-changed";
+                        _lastAdmissionFailure = "sentinel-runtime-integrity-changed";
+                    }
+                    return;
+                }
+            }
+        }
+
+        private bool PolicyCurrentLocked()
+        {
+            if (_policy == null || _integrityCompromised) return false;
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            return _policy.IssuedUnixSeconds <= now + 300L &&
+                   (_policy.ExpiresUnixSeconds == 0L || now < _policy.ExpiresUnixSeconds);
+        }
+
+        internal void RecordAdmissionFailure(string reason)
+        {
+            if (string.IsNullOrEmpty(reason) || reason.Length > 128 ||
+                !RunicIdentifier.IsValid(reason)) reason = "sentinel-admission-denied";
+            lock (_gate) _lastAdmissionFailure = reason;
+        }
+
+        internal string LastAdmissionFailure
+        {
+            get { lock (_gate) return _lastAdmissionFailure; }
+        }
+
+        internal bool TryGetTransitionFingerprint(out string fingerprint)
+        {
+            lock (_gate)
+            {
+                if (_snapshot == null || _policy == null || _integrityCompromised)
+                {
+                    fingerprint = string.Empty;
+                    return false;
+                }
+                using SHA256 sha = SHA256.Create();
+                fingerprint = SentinelPolicy.Hex(sha.ComputeHash(Encoding.ASCII.GetBytes(
+                    "RUNIC-TRANSITION/1\n" + _policy.PayloadDigest + "\n" + _snapshot.Digest + "\n")));
+                return true;
+            }
+        }
+
+#if !RUNIC_SENTINEL_SERVER_ONLY
+        internal bool TryGetAdmissionClientProfile(out AdmissionClientProfile profile)
+        {
+            Local.AttestationSnapshot snapshot;
+            lock (_gate)
+            {
+                snapshot = !_disposed && !_integrityCompromised ? _snapshot : null;
+            }
+            if (snapshot == null)
+            {
+                profile = null;
+                return false;
+            }
+            var plugins = snapshot.Plugins.Select(value =>
+                new AdmissionPluginEvidence(value.Id, value.Version, value.Sha256));
+            return AdmissionProfileCanonicalizer.TryCreate(
+                plugins,
+                snapshot.CapturedUnixSeconds,
+                out profile,
+                out _);
+        }
+#endif
+
+        internal Local.AdmissionDecision EvaluateAdmissionClientProfile(
+            SentinelPolicy policy,
+            AdmissionClientProfile profile,
+            string role)
+        {
+            if (policy == null || profile == null)
+                return AdmissionPolicy.Evaluate(null, null, role ?? string.Empty);
+            var plugins = profile.Plugins.Select(value => new Local.AttestedPlugin(
+                value.Id,
+                value.Version,
+                value.Sha256,
+                Array.Empty<string>(),
+                Array.Empty<string>())).ToArray();
+            if (!AttestationPolicy.TryCanonicalize(
+                    plugins,
+                    out IReadOnlyList<Local.AttestedPlugin> canonical,
+                    out string text,
+                    out _))
+                return AdmissionPolicy.Evaluate(policy, null, role ?? string.Empty);
+            var snapshot = new Local.AttestationSnapshot(
+                AttestationPolicy.Digest(text),
+                canonical,
+                profile.CapturedUnixSeconds);
+            return AdmissionPolicy.Evaluate(policy, snapshot, role ?? string.Empty);
+        }
+
+        internal void ObserveRemoteAdmissionProfile(AdmissionClientProfile profile)
+        {
+            if (profile == null) return;
+            lock (_gate)
+            {
+                if (!_disposed) _lastRemoteProfile = profile;
+            }
+        }
+
+        internal bool TryGetLastRemoteAdmissionProfile(out AdmissionClientProfile profile)
+        {
+            lock (_gate)
+            {
+                profile = _lastRemoteProfile;
                 return profile != null;
             }
         }
@@ -180,8 +373,11 @@ namespace RunicSentinel.Runtime
                 cancel = _cancel;
                 _cancel = null;
                 _snapshot = null;
+                _lastRemoteProfile = null;
                 _policy = null;
-                _networkProfile = null;
+                _integrityFiles = Array.Empty<IntegrityFileStamp>();
+                _integrityCompromised = false;
+                _integrityReason = "disposed";
                 network = _network;
                 _network = null;
                 _status = "Disposed";
@@ -200,7 +396,7 @@ namespace RunicSentinel.Runtime
         {
             try
             {
-                var plugins = new List<AttestedPlugin>(descriptors.Length);
+                var plugins = new List<Local.AttestedPlugin>(descriptors.Length);
                 var evidenceByPath = new Dictionary<string, FileEvidence>(PathComparer);
                 long totalBytes = 0L;
                 var hashBuffer = new byte[65536];
@@ -227,10 +423,13 @@ namespace RunicSentinel.Runtime
                         if (!info.Exists || info.Length != expectedLength ||
                             info.LastWriteTimeUtc != expectedWrite)
                             throw new IOException("Plugin changed during local snapshot hashing.");
-                        fileEvidence = new FileEvidence(hash);
+                        fileEvidence = new FileEvidence(
+                            hash,
+                            expectedLength,
+                            expectedWrite.Ticks);
                         evidenceByPath.Add(fullPath, fileEvidence);
                     }
-                    plugins.Add(new AttestedPlugin(
+                    plugins.Add(new Local.AttestedPlugin(
                         descriptor.Id,
                         descriptor.Version,
                         fileEvidence.Sha256,
@@ -240,16 +439,25 @@ namespace RunicSentinel.Runtime
 
                 if (!AttestationPolicy.TryCanonicalize(
                         plugins,
-                        out IReadOnlyList<AttestedPlugin> canonical,
+                        out IReadOnlyList<Local.AttestedPlugin> canonical,
                         out string text,
                         out string failure))
                     throw new InvalidDataException(failure);
-                var snapshot = new AttestationSnapshot(
+                var snapshot = new Local.AttestationSnapshot(
                     AttestationPolicy.Digest(text),
                     canonical,
                     DateTimeOffset.UtcNow.ToUnixTimeSeconds());
                 SentinelPolicy policy = TryLoadPolicy(inputs, token, out string policyStatus);
-                Publish(generation, token, snapshot, policy, policyStatus);
+                SentinelDraftExporter.TryWrite(
+                    inputs.ConfigRoot,
+                    snapshot);
+                Publish(
+                    generation,
+                    token,
+                    snapshot,
+                    policy,
+                    policyStatus,
+                    CaptureIntegrityStamps(evidenceByPath, inputs, policy != null));
             }
             catch (OperationCanceledException) { }
             catch (Exception exception)
@@ -261,9 +469,10 @@ namespace RunicSentinel.Runtime
         private void Publish(
             long generation,
             CancellationToken token,
-            AttestationSnapshot snapshot,
+            Local.AttestationSnapshot snapshot,
             SentinelPolicy policy,
-            string policyStatus)
+            string policyStatus,
+            IntegrityFileStamp[] integrityFiles)
         {
             lock (_gate)
             {
@@ -289,24 +498,9 @@ namespace RunicSentinel.Runtime
                 }
                 _snapshot = snapshot;
                 _policy = policy;
-                if (policy == null)
-                {
-                    _networkProfile = null;
-                }
-                else
-                {
-                    AdmissionDecision localAdmission = AdmissionPolicy.Evaluate(
-                        policy,
-                        snapshot,
-                        "player");
-                    _networkProfile = new SentinelNetworkProfile(
-                        snapshot.Digest,
-                        snapshot.CapturedUnixSeconds,
-                        policy.PayloadDigest,
-                        policy.Sequence,
-                        policy.Profile,
-                        localAdmission.Disposition);
-                }
+                _integrityFiles = integrityFiles ?? Array.Empty<IntegrityFileStamp>();
+                _integrityCompromised = false;
+                _integrityReason = policy == null ? "passport-unavailable" : "verified";
                 _status = policy == null
                     ? "ReadyLocalSnapshot:MonitorOnly:" + policyStatus
                     : "ReadyLocalSnapshot:VerifiedRsaPolicy";
@@ -324,8 +518,10 @@ namespace RunicSentinel.Runtime
                 if (_disposed || token.IsCancellationRequested || generation != _generation) return;
                 _snapshot = null;
                 _policy = null;
-                _networkProfile = null;
                 _status = "FailedLocalSnapshot:" + failure;
+                _integrityFiles = Array.Empty<IntegrityFileStamp>();
+                _integrityCompromised = true;
+                _integrityReason = "snapshot-failed";
                 Evidence.SetPolicySequence(0L);
             }
         }
@@ -509,10 +705,44 @@ namespace RunicSentinel.Runtime
         {
             string root = Path.GetFullPath(configDirectory ?? string.Empty);
             return new WorkerInputs(
+                root,
                 Resolve(root, SentinelConfig.PolicyFile?.Value),
                 Resolve(root, SentinelConfig.SignatureFile?.Value),
                 Resolve(root, SentinelConfig.PublicKeyFile?.Value),
                 SentinelConfig.TrustedPublicKeySha256?.Value ?? string.Empty);
+        }
+
+        private static IntegrityFileStamp[] CaptureIntegrityStamps(
+            IReadOnlyDictionary<string, FileEvidence> pluginFiles,
+            WorkerInputs inputs,
+            bool includePolicyAssets)
+        {
+            var result = new List<IntegrityFileStamp>(pluginFiles.Count + 3);
+            foreach (KeyValuePair<string, FileEvidence> pair in pluginFiles
+                         .OrderBy(value => value.Key, PathComparer))
+                result.Add(new IntegrityFileStamp(
+                    pair.Key,
+                    pair.Value.Length,
+                    pair.Value.LastWriteUtcTicks,
+                    false));
+            if (includePolicyAssets)
+            {
+                AddPolicy(inputs.PolicyPath);
+                AddPolicy(inputs.SignaturePath);
+                AddPolicy(inputs.PublicKeyPath);
+            }
+            return result.ToArray();
+
+            void AddPolicy(string path)
+            {
+                var info = new FileInfo(path);
+                if (!info.Exists) throw new IOException("Verified passport asset disappeared.");
+                result.Add(new IntegrityFileStamp(
+                    info.FullName,
+                    info.Length,
+                    info.LastWriteTimeUtc.Ticks,
+                    true));
+            }
         }
 
         private static string Resolve(string root, string configured)
@@ -532,24 +762,53 @@ namespace RunicSentinel.Runtime
 
         private sealed class FileEvidence
         {
-            internal FileEvidence(string sha256) { Sha256 = sha256; }
+            internal FileEvidence(string sha256, long length, long lastWriteUtcTicks)
+            {
+                Sha256 = sha256;
+                Length = length;
+                LastWriteUtcTicks = lastWriteUtcTicks;
+            }
             internal string Sha256 { get; }
+            internal long Length { get; }
+            internal long LastWriteUtcTicks { get; }
+        }
+
+        private sealed class IntegrityFileStamp
+        {
+            internal IntegrityFileStamp(
+                string path,
+                long length,
+                long lastWriteUtcTicks,
+                bool policyAsset)
+            {
+                Path = path;
+                Length = length;
+                LastWriteUtcTicks = lastWriteUtcTicks;
+                PolicyAsset = policyAsset;
+            }
+            internal string Path { get; }
+            internal long Length { get; }
+            internal long LastWriteUtcTicks { get; }
+            internal bool PolicyAsset { get; }
         }
 
         private sealed class WorkerInputs
         {
             internal WorkerInputs(
+                string configRoot,
                 string policyPath,
                 string signaturePath,
                 string publicKeyPath,
                 string pinnedPublicKeySha256)
             {
+                ConfigRoot = configRoot;
                 PolicyPath = policyPath;
                 SignaturePath = signaturePath;
                 PublicKeyPath = publicKeyPath;
                 PinnedPublicKeySha256 = pinnedPublicKeySha256;
             }
 
+            internal string ConfigRoot { get; }
             internal string PolicyPath { get; }
             internal string SignaturePath { get; }
             internal string PublicKeyPath { get; }

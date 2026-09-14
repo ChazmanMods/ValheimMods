@@ -1,10 +1,24 @@
 # Runic Exploration
 
-Runic Exploration 1.0.0 is a client-side, display/navigation-only known-world browser for
-Valheim 0.221.12. Its only runtime requirement is BepInExPack Valheim 5.4.2333. It never explores
-terrain, discovers locations, scans entities, changes pins, tracks remote players, requests network
-ownership, sends RPCs, or mutates world/gameplay state. If its installed-game contracts do not
-match, it stays hidden and Valheim's map remains available unchanged.
+Exploring Valheim is memorable. Finding the crypt, cave, trader, dock, or resource patch you marked three weeks ago is often less so—especially after the map fills with pins.
+
+**Runic Exploration turns the world you have already discovered into something you can search.** Browse and filter known pins, inspect useful destination context, and ask Valheim's map to center on the place you chose.
+
+## Major features
+
+- Search saved pins that lie inside explored map cells.
+- Filter and group known locations without altering the underlying pins.
+- Distinguish personal, shared, and mixed pin sources.
+- Show distance, direction, elevation, and careful last-known labels.
+- Display local sailing context while you are actually controlling a ship.
+
+## How it feels in-game
+
+Your map becomes a practical travel tool instead of a wall of symbols. You still earn every discovery by exploring; the mod simply helps you remember and navigate what your character has already found.
+
+## Safety and compatibility
+
+Exploration is client-side and display/navigation-only. It does not uncover terrain, scan the world for hidden locations, create or delete pins, track remote players, claim ownership, send RPCs, or mutate gameplay state. No-map rules are respected, and an incompatible state causes the interface to stay hidden rather than interfere with Valheim's map.
 
 ## What it does
 

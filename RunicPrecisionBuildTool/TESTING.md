@@ -1,6 +1,6 @@
-# Testing Runic Precision Build Tool 2.0.1
+# Testing Runic Precision Build Tool 2.0.3
 
-Use the audited Valheim 0.221.12 assemblies and configured BepInEx profile. From the repository root,
+Use the audited Valheim 1.0.7 assemblies and configured BepInEx profile. From the repository root,
 run the plugin build once and then its focused suite once:
 
 ```powershell

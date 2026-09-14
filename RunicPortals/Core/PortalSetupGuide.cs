@@ -69,10 +69,6 @@ namespace RunicPortals.Core
 
     internal static class PortalSetupGuide
     {
-        internal const string PublicCommand = "network|public|NETWORK|NAME|both";
-        internal const string PrivateCommand = "network|private|NETWORK|NAME|both";
-        internal const string GroupCommand = "network|group|NETWORK|NAME|both";
-
         internal static PortalSetupGuideContent Compose(
             PortalHoverPanelState state,
             string useBinding,
@@ -86,10 +82,9 @@ namespace RunicPortals.Core
                   (state.VanillaConnected ? "connected" : "unlinked");
             string warning = string.Empty;
             if (state.EditorOpen)
-                warning = "Runic editor open: enter one exact command from this guide and confirm it.";
+                warning = "Portal setup is open. Choose Standard Pair or Runic Network, fill in the visible fields, then Save.";
             else if (!state.IsNetwork && state.VanillaConnected)
-                warning = "Connected vanilla pair: first use " + use +
-                          " to give this portal a unique vanilla tag. Runic Portals refuses conversion while the vanilla pair is connected.";
+                warning = "Connected vanilla pair: give it a unique Standard Pair tag before converting it to a Runic network.";
 
             string controls;
             if (!state.IsNetwork)
@@ -109,17 +104,12 @@ namespace RunicPortals.Core
                                : "\nDeparture-only endpoint: a destination click confirms that the trip may be one-way.");
 
             string instructions =
-                "PUBLIC - players may discover and use it, subject to wards and current route/world rules\n" +
-                PublicCommand + "\n\n" +
-                "PRIVATE - only the portal owner's persisted identity may discover and use it, subject to wards and route/world rules\n" +
-                PrivateCommand + "\n\n" +
-                "GROUP - current members of one Runic group may discover and use it, subject to wards and route/world rules\n" +
-                GroupCommand + "\n\n" +
-                "NETWORK is the map and route filter. Only portals with the exact same NETWORK spelling appear together. Public, your private, and your current Group endpoints may share a NETWORK; access is checked separately for every portal. Give every portal a distinct NAME.\n\n" +
-                "Direction replaces 'both': both = arrive and depart; arrive = destination only; depart = source only.\n\n" +
-                "Groups use Valheim chat, not F5: /group create <name>, /group invite <player>, /group accept <name>, and /group use <group name>. The active Group is used automatically by the Group portal command; no UUID is entered.\n\n" +
-                "Setup: open the Runic editor on each unlinked Standard Pair portal and enter its command. Walk into a configured depart/both portal to open the destination map, then click an authorized arrive/both portal. On the normal large map, press P to show or hide the world-wide authorized directory: vanilla Standard Pair portals, public Runic portals, your private Runic portals, and Runic Group portals for groups you currently belong to. This directory includes arrive-only, depart-only, and bidirectional Runic portals and does not require standing near a portal. To restore vanilla mode, edit a configured portal with " +
-                use + " and enter 'standard'. Changing an existing Network portal or restoring 'standard' requires repeating the identical command once to confirm.";
+                "STANDARD PAIR - Valheim's normal one-to-one portal. Check Standard Pair and enter a tag of up to 10 characters.\n\n" +
+                "RUNIC NETWORK - enter a Network Name shared by the destinations that belong together, then give this endpoint a distinct Portal Name.\n\n" +
+                "ACCESS - Public is available to everyone, Private is owner-only, and Group is available to current members of the selected Runic Group.\n\n" +
+                "DIRECTION - Both supports arrival and departure; Arrivals Only is a destination; Departures Only starts trips and may be one-way.\n\n" +
+                "Groups are managed in Valheim chat with /group create, /group invite, /group accept, and /group list. Your groups appear automatically in the editor.\n\n" +
+                "Walk into a departure-capable Runic portal and click an authorized destination on the map. On the normal large map, press P to show or hide the world-wide authorized portal directory.";
             return new PortalSetupGuideContent(status, warning, controls, instructions);
         }
 

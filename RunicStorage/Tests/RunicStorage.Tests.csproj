@@ -8,9 +8,21 @@
     <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <VALHEIM_INSTALL Condition="'$(VALHEIM_INSTALL)' == ''">E:\SteamLibrary\steamapps\common\Valheim</VALHEIM_INSTALL>
+    <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="TransferRegressionTests.cs" />
+    <Compile Include="ChestRulesTests.cs" />
+    <Compile Include="ChestGroupTests.cs" />
+    <Compile Include="ChestLabelTests.cs" />
+    <Compile Include="GameTransferStubs.cs" />
+    <Compile Include="..\Runtime\ValheimContainerService.cs" Link="Runtime\ValheimContainerService.cs" />
+    <Compile Include="..\Runtime\StorageInventorySnapshot.cs" Link="Runtime\StorageInventorySnapshot.cs" />
+    <Compile Include="..\Runtime\StorageInventoryPayloadComparison.cs" Link="Runtime\StorageInventoryPayloadComparison.cs" />
+    <Compile Include="..\Runtime\StorageMutationLease.cs" Link="Runtime\StorageMutationLease.cs" />
     <Compile Include="..\Engine\*.cs" Link="Engine\%(Filename)%(Extension)" />
+    <Reference Include="Mono.Cecil" HintPath="$(BEPINEX_PROFILE)\core\Mono.Cecil.dll" Private="true" />
   </ItemGroup>
 </Project>

@@ -35,12 +35,12 @@ namespace RunicSafety.Tests
             BepInPlugin identity = TestAssert.NotNull(typeof(Plugin).GetCustomAttribute<BepInPlugin>());
             TestAssert.Equal("chazman.RunicSafety", Plugin.Guid);
             TestAssert.Equal("Runic Safety", Plugin.Name);
-            TestAssert.Equal("1.0.0", Plugin.Version);
+            TestAssert.Equal("1.0.5", Plugin.Version);
             TestAssert.Equal("runic.safety", Plugin.ModuleId);
             TestAssert.Equal("1.0", Plugin.ProtocolVersion);
             TestAssert.Equal(Plugin.Guid, identity.GUID);
             TestAssert.Equal(Plugin.Version, identity.Version.ToString());
-            TestAssert.Equal(new System.Version(1, 0, 0, 0), typeof(Plugin).Assembly.GetName().Version);
+            TestAssert.Equal(new System.Version(1, 0, 5, 0), typeof(Plugin).Assembly.GetName().Version);
         }
 
         private static void NoHardDependencies() =>

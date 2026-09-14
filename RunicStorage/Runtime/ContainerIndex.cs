@@ -16,6 +16,7 @@ namespace RunicStorage.Runtime
         internal void Add(Container container)
         {
             if (container == null) return;
+            ChestRuleStore.Attach(container);
             int instanceId;
             Vector3 position;
             try
@@ -67,6 +68,12 @@ namespace RunicStorage.Runtime
         /// </summary>
         internal int RefreshLoadedContainers()
         {
+            return RefreshLoadedContainers(Vector3.zero, 0f, out _);
+        }
+
+        internal int RefreshLoadedContainers(Vector3 origin, float radius, out int loadedInRange)
+        {
+            loadedInRange = 0;
             Container[] loaded;
             try
             {
@@ -77,7 +84,24 @@ namespace RunicStorage.Runtime
             {
                 return 0;
             }
-            for (int index = 0; index < loaded.Length; index++) Add(loaded[index]);
+            bool measureRange = Finite(origin) && !float.IsNaN(radius) &&
+                                !float.IsInfinity(radius) && radius > 0f;
+            float radiusSquared = measureRange ? radius * radius : 0f;
+            for (int index = 0; index < loaded.Length; index++)
+            {
+                Container container = loaded[index];
+                Add(container);
+                if (!measureRange || container == null) continue;
+                try
+                {
+                    if (!container.isActiveAndEnabled) continue;
+                    float distance = (container.transform.position - origin).sqrMagnitude;
+                    if (!float.IsNaN(distance) && !float.IsInfinity(distance) &&
+                        distance <= radiusSquared)
+                        loadedInRange++;
+                }
+                catch { }
+            }
             return loaded.Length;
         }
 

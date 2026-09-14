@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.3 - 2026-09-10
+
+- Fixed nearby seed chests failing synchronization checks because their contents were read using the old inventory format.
+- Fixed false chest-content mismatches caused by Valheim's normal durability rounding during loading.
+- Corrected the shared chest-busy check before consuming seeds.
+
+## 1.0.2 - 2026-09-09
+
+- Updated the native placement call and inventory-change notification to Valheim 1.0's exact method signatures.
+- Re-audited the installed Valheim 1.0.7 client assemblies and updated the BepInEx dependency to 5.4.2350.
+
+## 1.0.1 - 2026-09-05
+
+- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
+- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.0.0.
+
 ## 1.0.0
 
 - Kept bounded area harvest available for every ready, permitted Valheim Pickable, including wild

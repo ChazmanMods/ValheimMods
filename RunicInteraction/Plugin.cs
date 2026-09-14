@@ -12,7 +12,7 @@ namespace RunicInteraction
     {
         public const string Guid = "chazman.RunicInteraction";
         public const string Name = "Runic Interaction";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.4";
         public const string ModuleId = "runic.interaction";
         private readonly List<KeybindingDescriptor> _keybindings =
             new List<KeybindingDescriptor>();
@@ -45,7 +45,8 @@ namespace RunicInteraction
                 RuntimeReady = true;
 
                 Logger.LogInfo(
-                    Name + " v" + Version + " ready for Valheim 0.221.12. Hold-repeat uses " +
+                    Name + " v" + Version + " ready for Valheim " +
+                    ValheimAccess.AuditedGameVersion + ". Hold-repeat uses " +
                     "Valheim's 0.2 s cadence and every repeated item still passes the original station callback.");
                 Logger.LogInfo(
                     "Door auto-close is off by default. Drag-sweep and generic filter memory are explicit " +

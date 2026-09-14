@@ -1,11 +1,24 @@
-# Runic Interaction 1.0.0
+# Runic Interaction 1.0.4
 
-Runic Interaction adds reversible input and UI conveniences around Valheim 0.221.12 while keeping
-the installed vanilla action as the final gameplay mutation. Its only runtime requirement is BepInExPack
-Valheim 5.4.2333; it has no shared Runic library or required gameplay-mod dependency.
+Not every frustration deserves a separate system. Some are simply small interruptions that happen often enough to wear you down: repeated use clicks, fussy transfers, doors left open, forgotten menu choices, unwanted pickups, and equipment that does not return when expected.
 
-Every feature is independently toggleable. Turning the master switch off makes every patch yield to
-vanilla behavior.
+**Runic Interaction polishes those everyday moments.** Each improvement is independently configurable and keeps Valheim's installed action as the final gameplay operation.
+
+## Major features
+
+- Hold Use for supported repeated fuel and input interactions.
+- Move a full stack with a convenient modifier gesture.
+- Optionally close doors after a safe, obstruction-aware delay.
+- Restore valid equipment and remember selected menu choices.
+- Improve selected text handling and filter unwanted automatic pickups.
+
+## How it feels in-game
+
+Common actions require fewer repeated clicks and fewer corrections. Nothing announces itself as a new game system; the controls simply behave more like you expected them to in the first place.
+
+## Safety and compatibility
+
+Every feature can be disabled, and the master switch yields completely to vanilla behavior. Enhanced actions revalidate access, ownership, wards, obstructions, and current state before calling Valheim's native path. The mod has no required Runic dependency; optional integrations fail only the enhanced action when their evidence is unavailable.
 
 ## Features
 
@@ -27,7 +40,7 @@ Inventory preserves standalone behavior; an installed but incompatible or indete
 denies only the enhanced move. There is no hard Crafting, Storage, Inventory, or Foundation
 dependency.
 
-`DragTransfer` is an explicit disabled gate because Valheim 0.221.12 has no stable atomic drag-sweep
+`DragTransfer` is an explicit disabled gate because Valheim 1.0.7 has no stable atomic drag-sweep
 boundary. Ordinary dragging remains vanilla.
 
 ### Session-only door auto-close
@@ -101,7 +114,7 @@ qualifying native local player and loaded door state.
 | Controller | PickupBypassModifierAction | JoyRStick |
 | Diagnostics | VerboseLogging | false |
 
-Install BepInExPack Valheim 5.4.2333 and place `RunicInteraction.dll` under
+Install BepInExPack Valheim 5.4.2350 and place `RunicInteraction.dll` under
 `BepInEx/plugins/RunicInteraction/`. Remove the DLL and its configuration to uninstall.
 No world cleanup is required.
 

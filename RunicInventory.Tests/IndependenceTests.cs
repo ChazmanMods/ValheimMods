@@ -4,6 +4,8 @@ using System.Linq;
 using System.Reflection;
 using Mono.Cecil;
 using RunicInventory.Api;
+using RunicInventory.Core;
+using RunicInventory.Integration;
 
 namespace RunicInventory.Tests
 {
@@ -50,6 +52,15 @@ namespace RunicInventory.Tests
             TestAssert.True(parameters[1].IsOut);
             TestAssert.False(InventoryIntegrationApi.TryGetProtection(new object(), out int state));
             TestAssert.Equal(0, state);
+
+            MethodInfo runtimeQuery = typeof(InventoryRuntime).GetMethod(
+                nameof(InventoryRuntime.TryGetProtection),
+                BindingFlags.Public | BindingFlags.Instance);
+            TestAssert.True(runtimeQuery != null);
+            TestAssert.True(IlReader.Calls(
+                runtimeQuery,
+                typeof(ItemProtectionAvailabilityPolicy),
+                nameof(ItemProtectionAvailabilityPolicy.Classify)));
         }
 
         private static void DurableFilesAreRemoved()
@@ -77,7 +88,7 @@ namespace RunicInventory.Tests
             TestAssert.Contains(runtime, "SameItemReferences(items, refreshedItems)");
             TestAssert.Contains(contracts, "GetElement");
             TestAssert.Contains(patches, "InventoryGridRightClickLockPatch");
-            TestAssert.Contains(patches, "OnRightClick");
+            TestAssert.Contains(patches, "OnRightDown");
         }
 
         private static void OverlayAndRepairScopeAreExact()
@@ -89,7 +100,7 @@ namespace RunicInventory.Tests
             string patches = File.ReadAllText(
                 TestPaths.Module("Integration", "HarmonyPatches.cs"));
             TestAssert.Contains(runtime, "ValheimContracts.InventoryModalVisible()");
-            TestAssert.Contains(contracts, "m_splitPanel");
+            TestAssert.Contains(contracts, "m_splitDialog");
             TestAssert.Contains(contracts, "m_variantDialog");
             TestAssert.Contains(runtime, "DrawLockedSlotOverlay");
             TestAssert.Contains(runtime, "new Color(1f, 0.84f, 0.08f, 1f)");

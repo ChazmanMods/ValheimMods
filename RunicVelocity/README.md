@@ -1,9 +1,24 @@
-# Runic Velocity 1.0.0
+# Runic Velocity 1.0.2
 
-Runic Velocity is a standalone startup-measurement and local cache diagnostic. Version 1.0.0 is a
-normal BepInEx plugin: it begins measuring when its own assembly is initialized, retains a bounded
-local timeline, and builds an integrity-checked manifest of installed plugin DLLs on a background
-worker. Its only runtime requirement is BepInExPack Valheim 5.4.2333.
+A heavily modded Valheim profile can spend a long time between pressing Play and reaching the world, with little indication of what happened or what changed since the previous launch.
+
+**Runic Velocity makes startup behavior measurable.** It records meaningful loading milestones and builds a validated local manifest of installed plugin files so unchanged metadata can be recognized and startup changes can be diagnosed.
+
+## Major features
+
+- Record bounded milestones from plugin entry through player readiness.
+- Inventory installed plugin identities, versions, dependencies, and file hashes.
+- Reuse validated cache records only when file evidence still matches.
+- Detect changed, replaced, truncated, corrupt, or oversized inputs safely.
+- Keep diagnostics local without publishing a cross-mod authority service.
+
+## How it feels in-game
+
+Velocity is quiet during play. Its value appears when you are maintaining a large profile: startup becomes something you can inspect rather than guess about, and unchanged plugin information does not have to be treated as unknown every time.
+
+## Safety and compatibility
+
+The background scanner never loads third-party plugin code, resolves plugins on their behalf, calls Unity from its worker, changes gameplay, or authorizes a server connection. Invalid cache evidence is discarded and rebuilt. Velocity is a diagnostic and validated-cache layer—not a promise that every profile will load faster—and requires only BepInEx.
 
 ## What it does now
 

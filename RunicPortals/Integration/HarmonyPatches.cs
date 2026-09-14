@@ -176,8 +176,8 @@ namespace RunicPortals.Integration
         private static bool Prefix() => !PortalMapPickerHarmonyGuard.Blocks("middle-click");
     }
 
-    [HarmonyPatch(typeof(Minimap), "OnMapRightClick", typeof(UIInputHandler))]
-    internal static class PortalMapPickerRightClickPatch
+    [HarmonyPatch(typeof(Minimap), "RemovePinUnderPointer", new Type[] { })]
+    internal static class PortalMapPickerRemoveUnderPointerPatch
     {
         private static bool Prefix() => !PortalMapPickerHarmonyGuard.Blocks("right-click");
     }
@@ -247,13 +247,4 @@ namespace RunicPortals.Integration
         }
     }
 
-    [HarmonyPatch(typeof(TextInput), nameof(TextInput.Hide))]
-    internal static class TextInputHidePatch
-    {
-        private static void Postfix(TextInput __instance)
-        {
-            try { if (Plugin.RuntimeReady) Plugin.CurrentRuntime?.OnTextInputHidden(__instance); }
-            catch (Exception exception) { Plugin.DisableAfterPatchFault(exception, "text-cancel"); }
-        }
-    }
 }

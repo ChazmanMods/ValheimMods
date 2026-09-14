@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>RunicSentinelServer</AssemblyName>
+    <RootNamespace>RunicSentinel</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <DefineConstants>$(DefineConstants);RUNIC_SENTINEL_SERVER_ONLY</DefineConstants>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+    <VALHEIM_INSTALL Condition="'$(VALHEIM_INSTALL)' == ''">E:\SteamLibrary\steamapps\common\Valheim</VALHEIM_INSTALL>
+    <GAME_MANAGED>$(VALHEIM_INSTALL)\valheim_Data\Managed</GAME_MANAGED>
+    <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\RunicSentinel\Configuration.cs" Link="Authority\Configuration.cs" />
+    <Compile Include="..\RunicSentinel\Api\SentinelIntegrationApi.cs" Link="Authority\Api\SentinelIntegrationApi.cs" />
+    <Compile Include="..\RunicSentinel\Contracts\SecurityContracts.cs" Link="Authority\Contracts\SecurityContracts.cs" />
+    <Compile Include="..\RunicSentinel\Contracts\SentinelContracts.cs" Link="Authority\Contracts\SentinelContracts.cs" />
+    <Compile Include="..\RunicSentinel\Core\AttestationPolicy.cs" Link="Authority\Core\AttestationPolicy.cs" />
+    <Compile Include="..\RunicSentinel\Core\SentinelAdministratorRules.cs" Link="Authority\Core\SentinelAdministratorRules.cs" />
+    <Compile Include="..\RunicSentinel\Core\EvidenceLedger.cs" Link="Authority\Core\EvidenceLedger.cs" />
+    <Compile Include="..\RunicSentinel\Core\PinnedRsaPublicKey.cs" Link="Authority\Core\PinnedRsaPublicKey.cs" />
+    <Compile Include="..\RunicSentinel\Core\RunicIdentifier.cs" Link="Authority\Core\RunicIdentifier.cs" />
+    <Compile Include="..\RunicSentinel\Core\SentinelNetworkCompatibility.cs" Link="Authority\Core\SentinelNetworkCompatibility.cs" />
+    <Compile Include="..\RunicSentinel\Core\SentinelPolicy.cs" Link="Authority\Core\SentinelPolicy.cs" />
+    <Compile Include="..\RunicSentinel\Core\SentinelProtocol.cs" Link="Authority\Core\SentinelProtocol.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelAdminControl.cs" Link="Authority\Runtime\SentinelAdminControl.cs" />
+    <Compile Include="..\RunicSentinel\Core\SentinelCapacitySettings.cs" Link="Authority\Core\SentinelCapacitySettings.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelCapacityBridge.cs" Link="Authority\Runtime\SentinelCapacityBridge.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelCapacityProtocol.cs" Link="Authority\Runtime\SentinelCapacityProtocol.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelServerAdministrator.cs" Link="Authority\Runtime\SentinelServerAdministrator.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelAdminProtocol.cs" Link="Authority\Runtime\SentinelAdminProtocol.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelDraftExporter.cs" Link="Authority\Runtime\SentinelDraftExporter.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelEnforcementRuntime.cs" Link="Authority\Runtime\SentinelEnforcementRuntime.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelFlightRecorder.cs" Link="Authority\Runtime\SentinelFlightRecorder.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelIntegritySnapshot.cs" Link="Authority\Runtime\SentinelIntegritySnapshot.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelManagedPolicyService.cs" Link="Authority\Runtime\SentinelManagedPolicyService.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelNetworkMapWriter.cs" Link="Authority\Runtime\SentinelNetworkMapWriter.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelOperatorCommands.cs" Link="Authority\Runtime\SentinelOperatorCommands.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelRuntime.cs" Link="Authority\Runtime\SentinelRuntime.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelTransitionBackup.cs" Link="Authority\Runtime\SentinelTransitionBackup.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelTransportIdentity.cs" Link="Authority\Runtime\SentinelTransportIdentity.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelSteamSessions.cs" Link="Authority\Runtime\SentinelSteamSessions.cs" />
+    <Compile Include="..\RunicSentinel\Runtime\SentinelSocketTransport.cs" Link="Authority\Runtime\SentinelSocketTransport.cs" />
+    <Compile Include="..\RunicSentinel\Core\SteamSessionEvidence.cs" Link="Authority\Core\SteamSessionEvidence.cs" />
+    <Compile Include="..\RunicSentinelAdmission.Shared\AdmissionProfileContracts.cs" Link="Admission\AdmissionProfileContracts.cs" />
+    <Compile Include="..\RunicSentinelAdmission.Shared\AdmissionProfileCanonicalizer.cs" Link="Admission\AdmissionProfileCanonicalizer.cs" />
+    <Compile Include="..\RunicSentinelAdmission.Shared\AdmissionProtocolV2.cs" Link="Admission\AdmissionProtocolV2.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="false" />
+    <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="com.rlabrecque.steamworks.net" HintPath="$(GAME_MANAGED)\com.rlabrecque.steamworks.net.dll" Private="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RunicSafety\RunicSafety.csproj" Private="false" />
+  </ItemGroup>
+</Project>

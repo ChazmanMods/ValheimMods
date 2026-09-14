@@ -46,7 +46,8 @@ $expectedAuditCounts = [ordered]@{
     'RunicInteraction.Tests\RunicInteraction.Tests.csproj' = 70
     'RunicSafety.Tests\RunicSafety.Tests.csproj' = 197
     'RunicVelocity.Tests\RunicVelocity.Tests.csproj' = 19
-    'RunicSentinel.Tests\RunicSentinel.Tests.csproj' = 29
+    'RunicSentinel.Tests\RunicSentinel.Tests.csproj' = 30
+    'RunicSentinelClient.Tests\RunicSentinelClient.Tests.csproj' = 10
     'RunicWorldEngine.Tests\RunicWorldEngine.Tests.csproj' = 15
     'RunicGameplayWave1.Tests\RunicGameplayWave1.Tests.csproj' = 21
     'RunicBuildCamera.Tests\RunicBuildCamera.Tests.csproj' = 71
@@ -1329,8 +1330,8 @@ try {
                 result = 'PASS'
             }
         }
-        if ($totalChecks -ne 1418) {
-            throw "Expected audit-count ledger drifted from 1,418 checks to $totalChecks."
+        if ($totalChecks -ne 1515) {
+            throw "Expected audit-count ledger drifted from 1,515 checks to $totalChecks."
         }
         $packageEvidence = @($pending | ForEach-Object {
             [pscustomobject][ordered]@{
@@ -2020,5 +2021,5 @@ if ($SkipTests) {
     Write-Output 'Runic Suite 14 build/package validation completed; tests and promotion were skipped.'
 }
 else {
-    Write-Output 'Runic Suite 14 build, 1,418-check unified diagnostics, two-pass reproducibility, exact-byte true-ready dedicated smoke, canonical evidence, and transactional promotion completed.'
+    Write-Output 'Runic Suite 14 build, 1,515-check unified diagnostics, two-pass reproducibility, exact-byte true-ready dedicated smoke, canonical evidence, and transactional promotion completed.'
 }

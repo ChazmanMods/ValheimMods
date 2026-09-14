@@ -4,16 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Mono.Cecil;
-using Runic.Foundation.Core;
 using RunicSentinel.Contracts;
 using RunicSentinel.Core;
+using RunicSentinel.Runtime;
 
 namespace RunicSentinel.Tests
 {
-    internal static class Program
+    internal static partial class Program
     {
         private static readonly RSA SigningKey = CreateSigningKey();
 
@@ -21,9 +22,23 @@ namespace RunicSentinel.Tests
         {
             var tests = new (string Name, Action Run)[]
             {
+                ("Steam ticket authentication requires native acceptance and asynchronous validation", SentinelAuthenticationTests.SteamSessionTests.ValidTicket),
+                ("Steam rejected and revoked sessions remain denied", SentinelAuthenticationTests.SteamSessionTests.RejectedTicket),
+                ("Steam authentication is bound to exact account socket and handle", SentinelAuthenticationTests.SteamSessionTests.ExactConnection),
+                ("Steam disconnect end-session and world changes discard evidence", SentinelAuthenticationTests.SteamSessionTests.DisconnectAndWorldChange),
+                ("Steam duplicate sessions and capacity fail closed", SentinelAuthenticationTests.SteamSessionTests.DuplicateAndCapacity),
+                ("Steam compiled hooks match Windows Linux and administrator boundaries", SentinelAuthenticationTests.SteamSessionTests.CompiledHooks),
+                ("capacity request grammar is strict and bounded", CapacityRequestIsStrict),
+                ("capacity status extends old documents without breaking policy fields", CapacityStatusIsCompatible),
+                ("capacity edits preserve unrelated configuration and encoding", CapacityEditsAreScoped),
+                ("invalid or ambiguous capacity configs reject edits", CapacityConfigsRejectAmbiguity),
+                ("capacity saves are atomic backed up and reject stale revisions", CapacityPersistenceIsSafe),
+                ("capacity endpoint remains server-authorized and restart-only", CapacityAuthorityIsServerOwned),
+                ("World Engine optional adapter matches the compiled capacity contract", CapacityAdapterMatchesWorldEngine),
                 ("RSA-3072 policy verifies exact canonical v2 bytes", RsaPolicyRoundTrip),
                 ("tampered policy wrong keys and noncanonical files fail closed", RsaPolicyRejectsForgery),
                 ("policy sequence grammar and enum grammar are strict", PolicyGrammarIsStrict),
+                ("v3 passport lists modules roles and bans with strict ordering", PassportV3IsStrict),
                 ("installed Valheim crypto surface supports exact RSA verifier", InstalledCryptoSurfaceIsExact),
                 ("attestation is sorted immutable and inspection bounded", AttestationIsCanonical),
                 ("nonce binding is explicitly non-authenticating", NonceBindingIsHonest),
@@ -34,15 +49,26 @@ namespace RunicSentinel.Tests
                 ("evidence fairness preserves quiet providers under a flood", EvidenceIsFair),
                 ("evidence records requested effective policy and drop state", EvidenceCapturesPolicyState),
                 ("evidence enum cursor and sequence overflow fail closed", EvidenceOverflowIsSafe),
-                ("private Sentinel compatibility accepts an exact profile", NetworkCompatibilityTests.CleanProfileIsCompatible),
-                ("Sentinel version snapshot and policy match exactly", NetworkCompatibilityTests.VersionSnapshotAndPolicyMustMatchExactly),
-                ("Sentinel missing policy and timestamp bounds fail closed", NetworkCompatibilityTests.MissingPolicyAndTimestampBoundsFailClosed),
-                ("Sentinel request codec rejects trailing and oversized data", NetworkCompatibilityTests.RequestCodecIsExactAndRejectsTrailingBytes),
-                ("Sentinel request IDs and profiles use canonical grammar", NetworkCompatibilityTests.RequestIdsAndProfilesUseCanonicalGrammar),
-                ("Sentinel private RPC is bounded and non-durable", NetworkCompatibilityTests.RpcSurfaceIsPrivateBoundedAndNonDurable),
+                ("flight recorder rotates within a hard two-file bound", FlightRecorderIsBounded),
+                ("administrator protocol is bounded and round trips exactly", AdminProtocolIsBounded),
+                ("administrator panel operations are server re-authorized", AdminControlIsServerAuthorized),
+                ("server administrator ID formats match only authenticated Steam subjects", ServerAdministratorIdFormats),
+                ("signed roles native roles revocation and bans use exact authorization rules", ServerAdministratorAuthorization),
+                ("first-time setup requires a native administrator and pristine ready state", FirstTimeSetupRules),
+                ("setup request carries no identity and authorization precedes replay cache", FirstTimeSetupBoundary),
+                ("managed RSA-3072 generation and import use validated provider fallbacks", ManagedRsaProviderIsExact),
+                ("direct Sentinel admission accepts a server-evaluated client profile", NetworkCompatibilityTests.CleanProfileIsCompatible),
+                ("client and server plugin sets are evaluated asymmetrically", NetworkCompatibilityTests.VersionSnapshotAndPolicyMustMatchExactly),
+                ("missing server policy and stale challenges fail closed", NetworkCompatibilityTests.MissingPolicyAndTimestampBoundsFailClosed),
+                ("v2 admission codec rejects trailing and oversized data", NetworkCompatibilityTests.RequestCodecIsExactAndRejectsTrailingBytes),
+                ("v2 request profiles and bindings use canonical grammar", NetworkCompatibilityTests.RequestIdsAndProfilesUseCanonicalGrammar),
+                ("optional admission failure starts a fresh exchange", NetworkCompatibilityTests.OptionalFailureStartsAFreshAdmissionExchange),
+                ("direct pre-handshake admission is bounded and non-durable", NetworkCompatibilityTests.RpcSurfaceIsPrivateBoundedAndNonDurable),
                 ("runtime workers are generation safe bounded and deduplicated", RuntimeIsBounded),
+                ("admission evaluation has bounded low-frequency cost", AdmissionPerformanceIsBounded),
                 ("disabled mode is startup inert", DisabledModeIsInert),
-                ("release surface is canonical and private-key free", ReleaseIsAligned)
+                ("dedicated console input is bounded and main-thread executed", DedicatedConsoleIsBounded),
+                ("release surface is canonical and standalone", ReleaseIsAligned)
             };
             int failed = 0;
             foreach ((string name, Action run) in tests)
@@ -157,6 +183,29 @@ namespace RunicSentinel.Tests
             Equal(long.MaxValue, maximum.Sequence);
         }
 
+        private static void PassportV3IsStrict()
+        {
+            True(TryPolicy(PassportV3Text(), out SentinelPolicy policy));
+            Equal(3, policy.FormatVersion);
+            Equal(3, policy.Modules.Count);
+            Equal(1, policy.Administrators.Count);
+            Equal("steam", policy.Administrators[0].Authority);
+            Equal("76561198000000000", policy.Administrators[0].Subject);
+            Equal(1, policy.BannedUsers.Count);
+            Equal("76561198999999999", policy.BannedUsers[0].Subject);
+            True(policy.Modules.Single(value => value.Id == "runic.sentinel")
+                .Capabilities.Contains("security.enforcement"));
+            False(TryPolicy(PassportV3Text().Replace(
+                "security.enforcement,security.evidence",
+                "security.evidence,security.enforcement"), out _));
+            False(TryPolicy(PassportV3Text().Replace(
+                "unknown-capability=Forbidden",
+                "unknown-capability=Unmanaged"), out _));
+            False(TryPolicy(PassportV3Text().Replace(
+                "role=steam|76561198000000000\n",
+                "role=steam|76561198000000000\nrole=steam|76561198000000000\n"), out _));
+        }
+
         private static void InstalledCryptoSurfaceIsExact()
         {
             string game = Environment.GetEnvironmentVariable("VALHEIM_INSTALL") ??
@@ -234,7 +283,7 @@ namespace RunicSentinel.Tests
                 out string second));
             False(first == second);
             False(AttestationPolicy.TryComputeNonceBinding("short", digest, out _));
-            string contract = Read("RunicCore", "Api", "SecurityContracts.cs");
+            string contract = Read("RunicSentinel", "Contracts", "SecurityContracts.cs");
             Contains(contract, "ProvidesClientAuthenticityProof");
             Contains(contract, "TryComputeNonceBinding");
             False(contract.Contains("TryAnswerChallenge", StringComparison.Ordinal));
@@ -258,6 +307,19 @@ namespace RunicSentinel.Tests
             Equal("2026.08.22", result.PolicyProfile);
             True(result.Findings.Any(value => value.Rule == "RequiredMissing"));
             True(result.Findings.Any(value => value.Rule == "ForbiddenPresent"));
+
+            True(TryPolicy(PolicyText(
+                unknown: "Unmanaged",
+                firstClassification: "Unmanaged"), out SentinelPolicy grayPolicy));
+            True(AttestationPolicy.TryCanonicalize(
+                new[] { Plugin("a.required") }, out IReadOnlyList<AttestedPlugin> grayPlugins,
+                out string grayCanonical, out _));
+            AdmissionDecision gray = AdmissionPolicy.Evaluate(
+                grayPolicy,
+                new AttestationSnapshot(AttestationPolicy.Digest(grayCanonical), grayPlugins, 1L),
+                "player");
+            Equal(AdmissionDisposition.Allow, gray.Disposition);
+            True(gray.Findings.Any(value => value.Rule == "GrayListPresent"));
         }
 
         private static void AdmissionRevalidatesEvidence()
@@ -278,6 +340,30 @@ namespace RunicSentinel.Tests
             var wrongDigest = new AttestationSnapshot(new string('b', 64), plugins, 1L);
             Equal(AdmissionDisposition.Deny,
                 AdmissionPolicy.Evaluate(Policy(), wrongDigest, "player").Disposition);
+        }
+
+        private static void AdmissionPerformanceIsBounded()
+        {
+            SentinelPolicy policy = Policy();
+            True(AttestationPolicy.TryCanonicalize(
+                new[] { Plugin("a.required") },
+                out IReadOnlyList<AttestedPlugin> plugins,
+                out string canonical,
+                out _));
+            var snapshot = new AttestationSnapshot(
+                AttestationPolicy.Digest(canonical), plugins, 1L);
+            const int iterations = 10000;
+            var stopwatch = Stopwatch.StartNew();
+            for (int index = 0; index < iterations; index++)
+            {
+                AdmissionDecision decision = AdmissionPolicy.Evaluate(policy, snapshot, "player");
+                Equal(AdmissionDisposition.Allow, decision.Disposition);
+            }
+            stopwatch.Stop();
+            System.Console.WriteLine(
+                "     admission x" + iterations + " ms=" + stopwatch.Elapsed.TotalMilliseconds.ToString("F2"));
+            True(stopwatch.Elapsed < TimeSpan.FromSeconds(5),
+                "Admission evaluation exceeded its generous release performance ceiling.");
         }
 
         private static void EvidenceIdentityIsAuthenticated()
@@ -412,6 +498,44 @@ namespace RunicSentinel.Tests
             Equal(0, overflowLedger.ReadAfter(0L, 256).Providers.Count);
         }
 
+        private static void FlightRecorderIsBounded()
+        {
+            string root = Path.Combine(
+                Path.GetTempPath(),
+                "RunicSentinelFlightTests-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                var ledger = new EvidenceLedger();
+                using (var recorder = new SentinelFlightRecorder(ledger, null, root))
+                using (ISentinelEvidenceProviderLease lease = ledger.RegisterProvider("runic.recorder"))
+                    for (int index = 0; index < 1000; index++)
+                        True(lease.Sink.TryAppend(
+                            "steam:76561198000000000",
+                            "bounded-flight-test",
+                            "record-" + index,
+                            FindingConfidence.High,
+                            EnforcementAction.Warn,
+                            new string('x', 512),
+                            out _));
+                string directory = Path.Combine(root, "RunicSentinel", "flight-recorder");
+                string current = Path.Combine(directory, "security-current.log");
+                string previous = Path.Combine(directory, "security-previous.log");
+                True(File.Exists(current));
+                True(File.Exists(previous));
+                True(new FileInfo(current).Length <= SentinelFlightRecorder.MaximumFileBytes);
+                True(new FileInfo(previous).Length <= SentinelFlightRecorder.MaximumFileBytes);
+                Equal(2, Directory.GetFiles(directory, "*.log").Length);
+                True(File.ReadAllText(current).StartsWith(
+                    "RUNIC-SENTINEL-FLIGHT/1\n",
+                    StringComparison.Ordinal));
+            }
+            finally
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
         private static void RuntimeIsBounded()
         {
             string source = Read("RunicSentinel", "Runtime", "SentinelRuntime.cs");
@@ -448,22 +572,260 @@ namespace RunicSentinel.Tests
             Contains(plugin, "no worker or network handlers were created");
         }
 
+        private static void DedicatedConsoleIsBounded()
+        {
+            string commands = Read(
+                "RunicSentinel", "Runtime", "SentinelOperatorCommands.cs");
+            Contains(commands, "Application.isBatchMode");
+            Contains(commands, "System.Console.ReadLine()");
+            Contains(commands, "ConcurrentQueue<string>");
+            Contains(commands, "TickDedicatedConsole()");
+            Contains(commands, "handled++ < 8");
+            Contains(commands, "line.Length > 1024");
+            Contains(commands, "_queuedDedicatedLines) > 32");
+            Contains(Read("RunicSentinel", "Plugin.cs"),
+                "_operatorCommands?.TickDedicatedConsole()");
+        }
+
+        private static void AdminProtocolIsBounded()
+        {
+            var input = new SentinelAdminDocument
+            {
+                Sequence = 77,
+                Profile = "strict-runic",
+                RequiredMods = "a.mod|1.2.3|*\nb.mod|2.0.0|" + new string('a', 64),
+                Administrators = "steam|76561198000000000",
+                BannedUsers = "steam|76561198999999999",
+                AdmissionMode = "Required",
+                VeryHighThreshold = "2",
+                HighThreshold = "3",
+                EnforcementWindowSeconds = "90",
+                ManagedSigningKey = true
+            };
+            byte[] bytes = SentinelAdminProtocol.Encode(input);
+            True(bytes.Length <= SentinelAdminProtocol.MaximumWireBytes);
+            True(SentinelAdminProtocol.TryDecode(bytes, out SentinelAdminDocument output));
+            Equal(input.Sequence, output.Sequence);
+            Equal(input.Profile, output.Profile);
+            Equal(input.RequiredMods, output.RequiredMods);
+            Equal(input.Administrators, output.Administrators);
+            Equal(input.AdmissionMode, output.AdmissionMode);
+            True(output.ManagedSigningKey);
+            False(SentinelAdminProtocol.TryDecode(
+                new byte[SentinelAdminProtocol.MaximumWireBytes + 1], out _));
+            Sequence(SentinelAdminProtocol.EncodeTool("backup"),
+                Encoding.UTF8.GetBytes("RUNIC-SENTINEL-ADMIN-TOOL/1\nbackup\n"));
+            Throws<ArgumentException>(() => SentinelAdminProtocol.EncodeTool("shell"));
+        }
+
+        private static void AdminControlIsServerAuthorized()
+        {
+            string control = Read("RunicSentinel", "Runtime", "SentinelAdminControl.cs");
+            Contains(control, "ReceiveRequest(ZRpc rpc, ZPackage package)");
+            Contains(control, "_serverConnections.TryGetValue(rpc");
+            Contains(control, "FindExactReadyPeer(network, rpc)");
+            Contains(control, "connection.Rpc.Invoke(ResponseRpc, package)");
+            Contains(control, "MaximumTrackedPeers = 64");
+            False(control.Contains("ZRoutedRpc", StringComparison.Ordinal));
+            False(control.Contains("GetPeer(sender)", StringComparison.Ordinal));
+            Contains(control, "SentinelTransportIdentity.TryResolvePeer");
+            Contains(control, "_runtime.IsAdministrator(authority, subject)");
+            Contains(control, "MaximumReplayEntries = 256");
+            Contains(control, "RequestLifetimeTicks");
+            Contains(control, "Fixed(cached.RequestDigest, digest)");
+            string panel = Read("RunicSentinel", "Runtime", "SentinelAdminPanel.cs");
+            Contains(panel, "KeyCode.F3");
+            Contains(panel, "SentinelAdminPanel.IsOpen");
+            Contains(panel, "__result = false");
+            Contains(panel, "BlocksLocalPlayer");
+            Contains(panel, "PlayerAttackInput");
+            Contains(panel, "Character.StartAttack");
+            Contains(panel, "UpdatePlacement");
+            Contains(panel, "HarmonyBefore(\"chazman.RunicBuildCamera\")");
+            Contains(panel, "UpdateBuildGuiInput");
+            Contains(panel, "private static bool Prefix() => !SentinelAdminPanel.IsOpen;");
+            Contains(panel, "RunicSentinelValheimSkin");
+            Contains(panel, "CreateWoodTexture");
+            Contains(panel, "CreateInsetTexture");
+            Contains(panel, "RUNIC SENTINEL FORGE");
+            Contains(panel, "GUIContent.none");
+            Contains(panel,
+                "Every operation is independently re-authorized by the server.");
+            string managed = Read("RunicSentinel", "Runtime", "SentinelManagedPolicyService.cs");
+            Contains(managed, "server-private");
+            Contains(managed, "CreateManagedRsa3072()");
+            Contains(managed, "parameters.Modulus.Length == 384");
+            Contains(managed, "RSASignaturePadding.Pkcs1");
+            Contains(Read("RunicSentinel", "Plugin.cs"), "CreateVerifiedBackupNow");
+        }
+
+        private static void ServerAdministratorIdFormats()
+        {
+            const string id = "76561198000000001";
+            foreach (string entry in new[] { id, "Steam_" + id, "V_" + id })
+                True(SentinelAdministratorRules.MatchesSteamList("steam", id, value => value == entry));
+            False(SentinelAdministratorRules.MatchesSteamList("steam", id, value => value == "V_76561198000000002"));
+            foreach (string bad in new[] { "", "0", "01", " " + id, id + " ", "Steam_" + id, "V_" + id, "PlayerName", "18446744073709551616" })
+                False(SentinelAdministratorRules.MatchesSteamList("steam", bad, _ => true));
+            False(SentinelAdministratorRules.MatchesSteamList("playfab.entity", id, _ => true));
+            False(SentinelAdministratorRules.MatchesSteamList("Steam", id, _ => true));
+            False(SentinelAdministratorRules.MatchesSteamList("steam", id, null));
+            var entries = new HashSet<string> { "V_" + id };
+            True(SentinelAdministratorRules.MatchesSteamList("steam", id, entries.Contains));
+            entries.Clear();
+            False(SentinelAdministratorRules.MatchesSteamList("steam", id, entries.Contains));
+        }
+
+        private static void ServerAdministratorAuthorization()
+        {
+            foreach (bool signed in new[] { false, true })
+            foreach (bool native in new[] { false, true })
+            foreach (bool banned in new[] { false, true })
+                Equal(!banned && (signed || native), SentinelAdministratorRules.Allows(signed, native, banned));
+        }
+
+        private static void FirstTimeSetupRules()
+        {
+            foreach (bool native in new[] { false, true })
+            foreach (bool trustMaterial in new[] { false, true })
+            foreach (bool ready in new[] { false, true })
+            foreach (bool banned in new[] { false, true })
+                Equal(native && !trustMaterial && ready && !banned,
+                    SentinelAdministratorRules.CanInitialize(native, trustMaterial, ready, banned));
+        }
+
+        private static void FirstTimeSetupBoundary()
+        {
+            True(SentinelAdminProtocol.TryDecodeTool(SentinelAdminProtocol.EncodeTool("bootstrap"), out string tool));
+            Equal("bootstrap", tool);
+            False(SentinelAdminProtocol.TryDecodeTool(Encoding.UTF8.GetBytes(
+                "RUNIC-SENTINEL-ADMIN-TOOL/1\nbootstrap steam somebody-else\n"), out _));
+            var input = new SentinelAdminDocument { SetupAvailable = true, AdministratorSource = "Server administrator / local host" };
+            True(SentinelAdminProtocol.TryDecode(SentinelAdminProtocol.Encode(input), out SentinelAdminDocument output));
+            True(output.SetupAvailable);
+            Equal(input.AdministratorSource, output.AdministratorSource);
+            string legacy = Encoding.UTF8.GetString(SentinelAdminProtocol.Encode(input));
+            legacy = string.Join("\n", legacy.Split('\n').Where(line => !line.StartsWith("setup-available=") && !line.StartsWith("administrator-source=")));
+            True(SentinelAdminProtocol.TryDecode(Encoding.UTF8.GetBytes(legacy), out output));
+            False(output.SetupAvailable);
+            Equal(string.Empty, output.AdministratorSource);
+            string control = Read("RunicSentinel", "Runtime", "SentinelAdminControl.cs");
+            string receive = control.Substring(control.IndexOf("private void ReceiveRequest", StringComparison.Ordinal));
+            True(receive.IndexOf("SentinelServerAdministrator.IsAdministrator", StringComparison.Ordinal) < receive.IndexOf("_cache.TryGetValue", StringComparison.Ordinal));
+            True(receive.IndexOf("_runtime.IsBanned", StringComparison.Ordinal) < receive.IndexOf("_cache.TryGetValue", StringComparison.Ordinal));
+            Contains(control, "if (!serverAdministrator)");
+            Contains(control, "InitializeFromServerAdministrator(authority, subject)");
+            string bridge = Read("RunicSentinel", "Runtime", "SentinelServerAdministrator.cs");
+            Contains(bridge, "!network.IsServer()");
+            Contains(bridge, "UseServerAdminList");
+            Contains(bridge, "!network.IsDedicated() && !UnityEngine.Application.isBatchMode");
+            Contains(bridge, "network.IsAdmin(peer.m_socket.GetHostName())");
+            Contains(bridge, "as SyncedList");
+            string managed = Read("RunicSentinel", "Runtime", "SentinelManagedPolicyService.cs");
+            Contains(managed, "PathExists(_privatePath)");
+            Contains(managed, "PathExists(Resolve(SentinelConfig.PolicyFile?.Value))");
+            Contains(managed, "PathExists(Resolve(SentinelConfig.SignatureFile?.Value))");
+            Contains(managed, "PathExists(Resolve(SentinelConfig.PublicKeyFile?.Value))");
+            Contains(managed, "lock (_gate)");
+            Contains(managed, "if (!CanInitialize)");
+            Contains(managed, "return Bootstrap(authority, subject)");
+            Contains(managed, "UnknownMods = \"Unmanaged\"");
+            Contains(Read("RunicSentinel", "Runtime", "SentinelAdminPanel.cs"), "Set Up Sentinel");
+        }
+
+        private static void ManagedRsaProviderIsExact()
+        {
+            using RSA generated = SentinelManagedPolicyService.CreateManagedRsa3072();
+            Equal(3072, generated.KeySize);
+            RSAParameters privateParameters = generated.ExportParameters(true);
+            Equal(384, privateParameters.Modulus.Length);
+            Sequence(new byte[] { 1, 0, 1 }, privateParameters.Exponent);
+            byte[] payload = Encoding.UTF8.GetBytes("sentinel-managed-rsa-provider-test");
+            byte[] signature;
+            using (RSA imported = SentinelManagedPolicyService.ImportManagedRsa3072(
+                       privateParameters))
+            {
+                Equal(3072, imported.KeySize);
+                signature = imported.SignData(
+                    payload,
+                    HashAlgorithmName.SHA256,
+                    RSASignaturePadding.Pkcs1);
+                True(imported.VerifyData(
+                    payload,
+                    signature,
+                    HashAlgorithmName.SHA256,
+                    RSASignaturePadding.Pkcs1));
+            }
+            Equal(384, signature.Length);
+
+            string source = Read(
+                "RunicSentinel", "Runtime", "SentinelManagedPolicyService.cs");
+            Contains(source, "new RSACryptoServiceProvider(3072)");
+            Contains(source, "PersistKeyInCsp = false");
+            Contains(source, "parameters.Modulus.Length == 384");
+        }
+
         private static void ReleaseIsAligned()
         {
             string plugin = Read("RunicSentinel", "Plugin.cs");
-            Contains(plugin, "public const string Version = SentinelNetworkCompatibility.PluginVersion");
-            Contains(plugin, "Private post-connect compatibility admission");
-            Contains(plugin, "self-reported compatibility evidence");
+            Contains(plugin, "public const string Version = SentinelVersion.Current");
+            Contains(plugin, "standalone plugin");
+            Contains(Read("RunicSentinel", "README.md"), "compatibility evidence");
             Equal("security.attest", SentinelCapabilityIds.Attestation);
-            Equal("2.0", SentinelCapabilityIds.ProtocolVersion);
+            Equal("security.enforcement", SentinelCapabilityIds.Enforcement);
+            Equal("security.roles", SentinelCapabilityIds.Roles);
+            Equal("security.runtime-integrity", SentinelCapabilityIds.RuntimeIntegrity);
+            string runtimeSource = Read("RunicSentinel", "Runtime", "SentinelRuntime.cs");
+            Contains(runtimeSource, "PolicyCurrentLocked");
+            Contains(runtimeSource, "sentinel-passport-expired");
+            string backupSource = Read("RunicSentinel", "Runtime", "SentinelTransitionBackup.cs");
+            Contains(backupSource, "SentinelRemoteAdmissionMode.Required");
+            Contains(backupSource, "sentinel-transition-profile-unverified");
+            string recorderSource = Read("RunicSentinel", "Runtime", "SentinelFlightRecorder.cs");
+            Contains(recorderSource, "MaximumFileBytes = 512L * 1024L");
+            Contains(recorderSource, "security-previous.log");
+            Contains(recorderSource, "enforcement remains active");
+            Equal("3.0", SentinelCapabilityIds.ProtocolVersion);
 
             string network = Read("RunicSentinel", "Core", "SentinelNetworkCompatibility.cs");
-            Contains(network, "runic.sentinel.admission.request.v1");
-            Contains(network, "GetPeer(sender)");
-            Contains(network, "peer.IsReady()");
-            Contains(network, "MaximumCachedRequests = 256");
-            False(network.Contains("IRunicRpcService", StringComparison.Ordinal));
-            False(network.Contains("Journal", StringComparison.Ordinal));
+            Contains(network, "MaximumTrackedConnections = 64");
+            Contains(network, "RPC_ServerHandshake");
+            Contains(network, "typeof(ZRpc), typeof(string)");
+            Contains(network, "m_inviteSecretKey");
+            Contains(network, "state.NativeHandshakeSecret");
+            False(network.Contains("Array.Empty<object>()", StringComparison.Ordinal));
+            Contains(network, "RPC_PeerInfo");
+            Contains(network, "AfterPeerInfo");
+            Contains(network, "state.Peer.IsReady()");
+            Contains(network, "sentinel-peer-info-before-admission");
+            Contains(network, "sentinel-native-handshake-resume-timeout");
+            Contains(network, "sentinel-peer-info-timeout");
+            Contains(network, "PolicyIsCurrentLocked");
+            Contains(network, "Stopwatch.GetTimestamp()");
+            False(network.Contains("DateTime.UtcNow.Ticks", StringComparison.Ordinal));
+            Contains(network, "UnregisterOwnedHandler");
+            Contains(network, ".Rpc.Invoke(\"ServerHandshake\"");
+            Contains(network, "AdmissionProtocolV2.DirectRpcName");
+            False(network.Contains("ZRoutedRpc", StringComparison.Ordinal));
+
+            string enforcement = Read("RunicSentinel", "Runtime", "SentinelEnforcementRuntime.cs");
+            Contains(enforcement, "MaximumTrackedPeers = 256");
+            Contains(enforcement, "Prune(now)");
+            string maps = Read("RunicSentinel", "Runtime", "SentinelNetworkMapWriter.cs");
+            Contains(maps, "MaximumZdos = 16384");
+            Contains(maps, "MaximumEdges = 2048");
+            Contains(maps, "!network.IsServer()");
+            string transition = Read("RunicSentinel", "Runtime", "SentinelTransitionBackup.cs");
+            Contains(transition, "BackupBeforeTransitions");
+            Contains(transition, "ValidateBackup");
+            Contains(transition, "[HarmonyPatch(typeof(ZNet), \"ServerLoadWorld\")]");
+            Contains(transition, "world.GetSavePaths()");
+            Contains(transition, "MaximumWorldBackupFiles = 1024");
+            Contains(transition, "new MigrationBackupRequest(");
+            False(transition.Contains("world.GetMetaPath()", StringComparison.Ordinal));
+            Contains(transition, "FileCopyOutFromCloud");
+            Contains(transition, "world.m_fileSource == FileHelpers.FileSource.Cloud");
+            Contains(transition, "throw new InvalidOperationException");
 
             string allSource = string.Join("\n", Directory.GetFiles(
                 PathOf("RunicSentinel"),
@@ -472,7 +834,6 @@ namespace RunicSentinel.Tests
                 .Where(path => !path.Contains("\\obj\\", StringComparison.OrdinalIgnoreCase))
                 .Select(File.ReadAllText));
             False(allSource.Contains("HMAC", StringComparison.OrdinalIgnoreCase));
-            False(allSource.Contains("SigningKey", StringComparison.Ordinal));
             False(allSource.Contains("security.attestation", StringComparison.Ordinal));
             Contains(allSource, "RSASignaturePadding.Pkcs1");
             Contains(allSource, "HashAlgorithmName.SHA256");
@@ -480,33 +841,76 @@ namespace RunicSentinel.Tests
             string config = Read("RunicSentinel", "RunicSentinel.cfg.example");
             Contains(config, "PublicKeyFile");
             Contains(config, "TrustedPublicKeySha256");
-            Contains(config, "private signer remains external");
-            Contains(config, "Sentinel never loads it");
-            False(config.Contains("SigningKey", StringComparison.Ordinal));
+            Contains(config, "server-private");
+            Contains(config, "OpenPanel");
+            string pluginLifecycle = Read("RunicSentinel", "Plugin.cs");
+            int unityStart = pluginLifecycle.IndexOf("private void Start()", StringComparison.Ordinal);
+            int initialSnapshot = pluginLifecycle.IndexOf(
+                "_runtime.Start(Paths.ConfigPath)", StringComparison.Ordinal);
+            True(unityStart >= 0 && initialSnapshot > unityStart);
+            string configurationSource = Read("RunicSentinel", "Configuration.cs");
+            Contains(configurationSource, "Sampled at startup; changing it requires a restart");
+            False(configurationSource.Contains(
+                "RemoteAdmissionPolicy.SettingChanged += Notify", StringComparison.Ordinal));
+            Contains(Read("RunicSentinel", "Runtime", "SentinelManagedPolicyService.cs"),
+                "admission-mode-restart-required");
             string readme = Read("RunicSentinel", "README.md");
-            Contains(readme, "external Server");
-            Contains(readme, "public verification only");
-            Contains(readme, "no private key or");
+            Contains(readme, "F3");
+            Contains(readme, "server-managed");
+            Contains(readme, "not unforgeable proof");
             using JsonDocument manifest = JsonDocument.Parse(Read("RunicSentinel", "manifest.json"));
             Equal("RunicSentinel", manifest.RootElement.GetProperty("name").GetString());
-            Equal("1.0.0", manifest.RootElement.GetProperty("version_number").GetString());
+            Equal("1.4.2", manifest.RootElement.GetProperty("version_number").GetString());
             Sequence(
                 new[]
                 {
-                    "denikson-BepInExPack_Valheim-5.4.2333"
+                    "denikson-BepInExPack_Valheim-5.4.2350"
+                    ,"Chazman-RunicSafety-1.0.2"
                 },
                 manifest.RootElement.GetProperty("dependencies").EnumerateArray()
                     .Select(value => value.GetString()).ToArray());
 
             using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(BuiltPlugin());
-            False(assembly.MainModule.AssemblyReferences.Any(reference =>
-                reference.Name == "RunicCore" || reference.Name == "RunicPersistence" ||
-                reference.Name == "RunicPermissions" || reference.Name == "RunicTransactions"));
+            False(assembly.MainModule.AssemblyReferences.Any(reference => reference.Name == "RunicCore"));
+            False(assembly.MainModule.AssemblyReferences.Any(reference => reference.Name == "RunicPersistence"));
+            True(assembly.MainModule.AssemblyReferences.Any(reference => reference.Name == "RunicSafety"));
             True(assembly.MainModule.Types.Any(type =>
                 type.FullName == "RunicSentinel.Contracts.AttestationSnapshot"));
+            AssertInstalledValheim10Contracts();
         }
 
-        private static SentinelPolicy Policy()
+        private static void AssertInstalledValheim10Contracts()
+        {
+            string clientRoot = Environment.GetEnvironmentVariable("VALHEIM_INSTALL") ??
+                                @"E:\SteamLibrary\steamapps\common\Valheim";
+            string serverRoot = Environment.GetEnvironmentVariable("VALHEIM_SERVER_INSTALL") ??
+                                @"E:\SteamLibrary\steamapps\common\Valheim dedicated server";
+            foreach (string path in new[]
+                     {
+                         Path.Combine(clientRoot, "valheim_Data", "Managed", "assembly_valheim.dll"),
+                         Path.Combine(serverRoot, "valheim_server_Data", "Managed", "assembly_valheim.dll")
+                     })
+            {
+                True(File.Exists(path), "Missing installed Valheim 1.0 assembly: " + path);
+                using AssemblyDefinition game = AssemblyDefinition.ReadAssembly(path);
+                TypeDefinition znet = game.MainModule.Types.Single(type => type.FullName == "ZNet");
+                Equal("System.Void", Method(
+                    znet, "RPC_ServerHandshake", "ZRpc", "System.String").ReturnType.FullName);
+                Equal("System.Void", Method(znet, "ServerLoadWorld").ReturnType.FullName);
+                TypeDefinition world = game.MainModule.Types.Single(type => type.FullName == "World");
+                MethodDefinition savePaths = Method(world, "GetSavePaths");
+                Equal("System.Collections.Generic.List`1<System.String>",
+                    savePaths.ReturnType.FullName);
+                True(savePaths.IsPublic && !savePaths.IsStatic);
+                False(world.Methods.Any(method =>
+                    method.Name == "GetMetaPath" && method.IsPublic));
+                FieldDefinition secret = znet.Fields.Single(field =>
+                    field.Name == "m_inviteSecretKey");
+                True(secret.IsStatic && secret.FieldType.FullName == "System.String");
+            }
+        }
+
+        internal static SentinelPolicy Policy()
         {
             True(TryPolicy(PolicyText(), out SentinelPolicy policy));
             return policy;
@@ -545,6 +949,21 @@ namespace RunicSentinel.Tests
                    "unknown=" + unknown + "\n" +
                    (reverseRules ? second + first : first + second);
         }
+
+        private static string PassportV3Text() =>
+            "RUNIC-SENTINEL/3\n" +
+            "profile=runic-suite\n" +
+            "sequence=43\n" +
+            "issued=1\n" +
+            "expires=0\n" +
+            "unknown=Forbidden\n" +
+            "unknown-capability=Forbidden\n" +
+            "rule=Required|a.required|1.0.0|*\n" +
+            "module=Both|runic.core|1.1.0|1|foundation.modules,foundation.services,keybindings.registry,notification.publish\n" +
+            "module=Both|runic.persistence|1.1.0|1|network.actor-identity-binding,network.peer-admission,network.protocol,network.rpc,persistence.migrate\n" +
+            "module=Both|runic.sentinel|1.1.0|3|security.admission,security.attest,security.enforcement,security.evidence,security.roles,security.runtime-integrity\n" +
+            "role=steam|76561198000000000\n" +
+            "ban=steam|76561198999999999\n";
 
         private static AttestedPlugin Plugin(string id, string version = "1.0.0") =>
             new AttestedPlugin(

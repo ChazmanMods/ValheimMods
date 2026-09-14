@@ -13,11 +13,25 @@ using UnityEngine;
 
 namespace RunicPortals.Integration
 {
+    internal readonly struct PortalGroupChoice
+    {
+        internal PortalGroupChoice(string groupId, string displayName)
+        {
+            if (!GroupIdentity.IsCanonicalId(groupId))
+                throw new ArgumentException("A canonical Group UUID is required.", nameof(groupId));
+            GroupId = groupId;
+            DisplayName = GroupIdentity.RequireDisplayName(displayName);
+        }
+
+        internal string GroupId { get; }
+        internal string DisplayName { get; }
+    }
+
     internal sealed class PortalGroupRuntime : IDisposable, IPortalGroupMembershipResolver
     {
-        private const string RequestRpc = "RunicPortals.Groups.Request.v1";
-        private const string ResponseRpc = "RunicPortals.Groups.Response.v1";
-        private const int WireSchema = 1;
+        private const string RequestRpc = "RunicPortals.Groups.Request.v2";
+        private const string ResponseRpc = "RunicPortals.Groups.Response.v2";
+        private const int WireSchema = 2;
         private const int TerminalMarker = 0x47525031;
         private const int MaximumPending = 32;
         private const int MaximumReplayEntries = 128;
@@ -36,6 +50,7 @@ namespace RunicPortals.Integration
             internal string Id;
             internal byte[] Payload;
             internal Action<string> Output;
+            internal Action<GroupFriendlyResponse> Completed;
             internal bool Silent;
             internal long Deadline;
             internal long NextAttempt;
@@ -67,6 +82,7 @@ namespace RunicPortals.Integration
         private readonly Queue<string> _replayOrder = new Queue<string>();
         private readonly HashSet<string> _clientMemberships =
             new HashSet<string>(StringComparer.Ordinal);
+        private PortalGroupChoice[] _clientGroupChoices = Array.Empty<PortalGroupChoice>();
 
         private ZRoutedRpc _registeredRpc;
         private ActiveGroupSelection _clientActive = ActiveGroupSelection.Stale;
@@ -74,6 +90,11 @@ namespace RunicPortals.Integration
         private float _nextRefresh;
         private bool _refreshPending;
         private bool _disposed;
+        private bool _supportsInvitationUi;
+        private GroupInvitationUi _invitations;
+
+        internal bool SupportsInvitationUi => ZNet.instance != null &&
+            (ZNet.instance.IsServer() || _supportsInvitationUi);
 
         internal PortalGroupRuntime(ManualLogSource log)
         {
@@ -97,7 +118,7 @@ namespace RunicPortals.Integration
                         "group",
                         "Runic Group management. Type /group help.",
                         (Terminal.ConsoleEvent)OnGroupCommand,
-                        false, false, false, false, false, null, false, false, false);
+                        false, false, false, false, false, false, null, false, false, false);
             }
         }
 
@@ -106,8 +127,17 @@ namespace RunicPortals.Integration
             if (_disposed) return;
             ZRoutedRpc routed = ZRoutedRpc.instance;
             ZNet network = ZNet.instance;
-            if (routed == null || network == null) return;
+            if (routed == null || network == null)
+            {
+                _invitations?.Reset();
+                return;
+            }
             Register(routed);
+            if (!Application.isBatchMode)
+            {
+                if (_invitations == null) _invitations = new GroupInvitationUi(this, _log);
+                _invitations.Tick();
+            }
             long now = DateTime.UtcNow.Ticks;
             Expire(now);
             if (network.IsServer())
@@ -122,6 +152,7 @@ namespace RunicPortals.Integration
                 {
                     _pending.Remove(pending.Id);
                     if (!pending.Silent) pending.Output?.Invoke("Runic Group: request timed out.");
+                    pending.Completed?.Invoke(null);
                     if (pending.Silent) _refreshPending = false;
                     continue;
                 }
@@ -140,12 +171,15 @@ namespace RunicPortals.Integration
         {
             if (_disposed) return;
             _disposed = true;
+            _invitations?.Reset();
+            _invitations = null;
             lock (CommandGate)
                 if (ReferenceEquals(_commandRuntime, this)) _commandRuntime = null;
             _pending.Clear();
             _replays.Clear();
             _replayOrder.Clear();
             _clientMemberships.Clear();
+            _clientGroupChoices = Array.Empty<PortalGroupChoice>();
             _clientActive = ActiveGroupSelection.Stale;
             _registeredRpc = null;
         }
@@ -153,7 +187,7 @@ namespace RunicPortals.Integration
         internal bool TryIsMember(string groupId, long playerId, out bool isMember)
         {
             isMember = false;
-            if (_disposed || !GroupIdentity.IsCanonicalId(groupId) || playerId <= 0L)
+            if (_disposed || !GroupIdentity.IsCanonicalId(groupId) || playerId == 0L)
                 return false;
             StableIdentity identity = PlayerIdentity(playerId);
             if (ZNet.instance != null && ZNet.instance.IsServer())
@@ -181,7 +215,7 @@ namespace RunicPortals.Integration
         {
             groupId = string.Empty;
             displayName = string.Empty;
-            if (_disposed || playerId <= 0L) return false;
+            if (_disposed || playerId == 0L) return false;
             ActiveGroupSelection active;
             if (ZNet.instance != null && ZNet.instance.IsServer())
                 active = _activeGroups.Resolve(PlayerIdentity(playerId));
@@ -198,12 +232,40 @@ namespace RunicPortals.Integration
             return true;
         }
 
+        internal bool TryGetLocalGroupChoices(out IReadOnlyList<PortalGroupChoice> choices)
+        {
+            choices = Array.Empty<PortalGroupChoice>();
+            if (_disposed) return false;
+            Player local = Player.m_localPlayer;
+            long playerId = local == null ? 0L : local.GetPlayerID();
+            ZNet network = ZNet.instance;
+            if (playerId == 0L || network == null) return false;
+            if (network.IsServer())
+            {
+                if (!TryMembershipChoices(PlayerIdentity(playerId), out PortalGroupChoice[] current))
+                    return false;
+                choices = Array.AsReadOnly(current);
+                return true;
+            }
+            if (DateTime.UtcNow.Ticks >= _clientSnapshotExpires) return false;
+            choices = Array.AsReadOnly((PortalGroupChoice[])_clientGroupChoices.Clone());
+            return true;
+        }
+
+        internal void RequestLocalGroupChoiceRefresh()
+        {
+            if (_disposed || ZNet.instance == null || ZNet.instance.IsServer()) return;
+            _nextRefresh = 0f;
+        }
+
         private void Register(ZRoutedRpc routed)
         {
             if (ReferenceEquals(_registeredRpc, routed)) return;
             routed.Register<ZPackage>(RequestRpc, ReceiveRequest);
             routed.Register<ZPackage>(ResponseRpc, ReceiveResponse);
             _registeredRpc = routed;
+            _supportsInvitationUi = false;
+            _invitations?.Reset();
             _pending.Clear();
             _refreshPending = false;
             _nextRefresh = 0f;
@@ -213,9 +275,25 @@ namespace RunicPortals.Integration
         private void ReceiveRequest(long sender, ZPackage package)
         {
             if (_disposed || ZNet.instance == null || !ZNet.instance.IsServer() ||
-                ZRoutedRpc.instance == null ||
-                !TryReadRequest(package, out string requestId, out byte[] payload) ||
-                !TryResolvePeerIdentity(sender, out StableIdentity actor)) return;
+                ZRoutedRpc.instance == null) return;
+            if (!TryReadRequest(package, out string requestId, out byte[] payload))
+            {
+                SentinelSecurityBridge.Report(
+                    sender, "portal-group-envelope-invalid", "portal-group-envelope", 3,
+                    "The server rejected a malformed bounded Group request envelope.");
+                return;
+            }
+            if (!TryResolvePeerIdentity(sender, out StableIdentity actor, out string identityFailure))
+            {
+                // Character replication may not be ready yet. Reply without disclosing group
+                // data; normal readiness failures are not evidence of cheating.
+                ZNetPeer peer = ZNet.instance.GetPeer(sender);
+                if (peer != null && peer.IsReady() && peer.m_uid == sender)
+                    SendResponse(sender, requestId, false,
+                        "Character identity is not ready: " + identityFailure + ". Wait until spawned and retry.",
+                        null, null, DateTime.UtcNow.Ticks);
+                return;
+            }
 
             long now = DateTime.UtcNow.Ticks;
             Expire(now);
@@ -225,20 +303,28 @@ namespace RunicPortals.Integration
                 if (Exact(replay.Request, payload))
                     ZRoutedRpc.instance.InvokeRoutedRPC(sender, ResponseRpc, Clone(replay.Response));
                 else
+                {
+                    SentinelSecurityBridge.Report(
+                        sender, "portal-group-replay-conflict", requestId, 4,
+                        "One request identity was reused with different bytes.");
                     SendResponse(sender, requestId, false, "request-id-conflict", null, actor, now);
+                }
                 return;
             }
 
             if (!GroupFriendlyProtocol.TryDecodeRequest(
                     payload, out GroupFriendlyRequest request, out string failure))
             {
+                SentinelSecurityBridge.Report(
+                    sender, "portal-group-payload-invalid", requestId, 3,
+                    "The server rejected malformed Group command bytes.");
                 SendResponse(sender, requestId, false, failure, null, actor, now);
                 return;
             }
             GroupFriendlyResponse response = request.IsQuery
                 ? EvaluateQuery(actor, request)
                 : EvaluateMutation(actor, request);
-            SendResponse(sender, requestId, true, "ok", response, actor, now, payload, key);
+            SendResponse(sender, requestId, true, "ok-invites-v1", response, actor, now, payload, key);
         }
 
         private void ReceiveResponse(long sender, ZPackage package)
@@ -252,24 +338,39 @@ namespace RunicPortals.Integration
                     out bool accepted,
                     out string reason,
                     out byte[] payload,
-                    out string[] memberships) ||
+                    out PortalGroupChoice[] memberships) ||
                 !_pending.TryGetValue(requestId, out Pending pending)) return;
             _pending.Remove(requestId);
             if (pending.Silent) _refreshPending = false;
             if (!accepted || !GroupFriendlyProtocol.TryDecodeResponse(
                     payload, out GroupFriendlyResponse response, out _))
             {
+                ClearClientSnapshot();
                 if (!pending.Silent)
                     pending.Output?.Invoke("Runic Group: request failed (" + reason + ").");
+                pending.Completed?.Invoke(null);
+                return;
+            }
+            if (response.Active.IsAvailable && !memberships.Any(value =>
+                    string.Equals(value.GroupId, response.Active.GroupId, StringComparison.Ordinal) &&
+                    string.Equals(value.DisplayName, response.Active.DisplayName, StringComparison.Ordinal)))
+            {
+                ClearClientSnapshot();
+                if (!pending.Silent)
+                    pending.Output?.Invoke("Runic Group: request failed (group-snapshot-invalid).");
+                pending.Completed?.Invoke(null);
                 return;
             }
             _clientMemberships.Clear();
             for (int index = 0; index < memberships.Length; index++)
-                _clientMemberships.Add(memberships[index]);
+                _clientMemberships.Add(memberships[index].GroupId);
+            _clientGroupChoices = (PortalGroupChoice[])memberships.Clone();
             _clientActive = response.Active;
             _clientSnapshotExpires = DateTime.UtcNow.Ticks + SnapshotLifetimeTicks;
+            _supportsInvitationUi = string.Equals(reason, "ok-invites-v1", StringComparison.Ordinal);
             if (!pending.Silent && response.Text.Length != 0)
                 pending.Output?.Invoke(response.Text);
+            pending.Completed?.Invoke(response);
         }
 
         private void SendResponse(
@@ -283,7 +384,8 @@ namespace RunicPortals.Integration
             byte[] requestPayload = null,
             string replayKey = null)
         {
-            string[] memberships = MembershipIds(actor);
+            PortalGroupChoice[] memberships = actor == null
+                ? Array.Empty<PortalGroupChoice>() : MembershipChoices(actor);
             byte[] payload = response == null
                 ? Array.Empty<byte>()
                 : GroupFriendlyProtocol.EncodeResponse(response);
@@ -305,13 +407,23 @@ namespace RunicPortals.Integration
             ZRoutedRpc.instance?.InvokeRoutedRPC(peerId, ResponseRpc, package);
         }
 
-        private void Submit(GroupFriendlyRequest request, Action<string> output, bool silent)
+        internal void RequestInvitations(Action<GroupFriendlyResponse> completed) =>
+            Submit(new GroupFriendlyRequest(GroupFriendlyOperation.Invitations), null, false, completed);
+
+        internal void RespondToInvitation(GroupInvitationChoice invitation, bool accept,
+            Action<GroupFriendlyResponse> completed) =>
+            Submit(new GroupFriendlyRequest(accept ? GroupFriendlyOperation.Accept : GroupFriendlyOperation.Decline,
+                invitation.GroupId, invitation.Revision.ToString(CultureInfo.InvariantCulture)), null, false, completed);
+
+        private void Submit(GroupFriendlyRequest request, Action<string> output, bool silent,
+            Action<GroupFriendlyResponse> completed = null)
         {
-            if (_disposed || request == null) return;
+            if (_disposed || request == null) { completed?.Invoke(null); return; }
             ZNet network = ZNet.instance;
             if (network == null)
             {
                 if (!silent) output?.Invoke("Runic Group: network is unavailable.");
+                completed?.Invoke(null);
                 return;
             }
             if (network.IsServer())
@@ -319,17 +431,27 @@ namespace RunicPortals.Integration
                 if (!TryLocalIdentity(out StableIdentity actor))
                 {
                     if (!silent) output?.Invoke("Runic Group: local player identity is unavailable.");
+                    completed?.Invoke(null);
                     return;
                 }
                 GroupFriendlyResponse response = request.IsQuery
                     ? EvaluateQuery(actor, request)
                     : EvaluateMutation(actor, request);
                 if (!silent && response.Text.Length != 0) output?.Invoke(response.Text);
+                completed?.Invoke(response);
+                return;
+            }
+            if ((request.Operation == GroupFriendlyOperation.Invitations || request.Operation == GroupFriendlyOperation.Decline) &&
+                !_supportsInvitationUi)
+            {
+                if (!silent) output?.Invoke("Group invitation buttons and decline require RunicPortals 1.2.4 on the server. Use /group accept <group name> on older servers.");
+                completed?.Invoke(null);
                 return;
             }
             if (_pending.Count >= MaximumPending)
             {
                 if (!silent) output?.Invoke("Runic Group: too many requests are pending.");
+                completed?.Invoke(null);
                 return;
             }
             string id = Guid.NewGuid().ToString("N");
@@ -339,6 +461,7 @@ namespace RunicPortals.Integration
                 Id = id,
                 Payload = GroupFriendlyProtocol.EncodeRequest(request),
                 Output = output,
+                Completed = completed,
                 Silent = silent,
                 Deadline = now + RequestLifetimeTicks,
                 NextAttempt = now
@@ -369,6 +492,10 @@ namespace RunicPortals.Integration
                 return Friendly("Group information is unavailable (" + failure + ").", active);
             switch (request.Operation)
             {
+                case GroupFriendlyOperation.Invitations:
+                    return Friendly(GroupInvitationSnapshot.Encode(GroupInvitationSnapshot.Select(
+                        catalog, actor, DateTime.UtcNow.Ticks,
+                        identity => ConnectedLabel(ConnectedPlayers(), identity))), active);
                 case GroupFriendlyOperation.List:
                 {
                     IReadOnlyList<GroupMembership> groups = catalog.GetMemberships(actor);
@@ -427,11 +554,15 @@ namespace RunicPortals.Integration
                 command = new GroupCommand(
                     GroupCommandKind.Create, request.ProposedGroupId, request.Primary);
             }
-            else if (request.Operation == GroupFriendlyOperation.Accept)
+            else if (request.Operation == GroupFriendlyOperation.Accept || request.Operation == GroupFriendlyOperation.Decline)
             {
                 if (!TryResolveInvitation(catalog, actor, request.Primary, out target, out failure))
                     return Friendly(failure, active);
-                command = new GroupCommand(GroupCommandKind.Accept, target.Id);
+                target.TryGetInvitation(actor, out GroupInvitation invitation);
+                if (!GroupInvitationSnapshot.Matches(invitation, request.Secondary, DateTime.UtcNow.Ticks))
+                    return Friendly("That invitation changed or expired. Wait for the current invitation.", active);
+                command = new GroupCommand(request.Operation == GroupFriendlyOperation.Accept
+                    ? GroupCommandKind.Accept : GroupCommandKind.Decline, target.Id);
             }
             else
             {
@@ -441,7 +572,11 @@ namespace RunicPortals.Integration
                 if (command == null) return Friendly(failure, active);
             }
 
-            GroupCommandExecutionResult result = _processor.Execute(actor, command);
+            long expectedInvitationRevision = 0;
+            if ((request.Operation == GroupFriendlyOperation.Accept || request.Operation == GroupFriendlyOperation.Decline) &&
+                request.Secondary.Length != 0)
+                long.TryParse(request.Secondary, NumberStyles.None, CultureInfo.InvariantCulture, out expectedInvitationRevision);
+            GroupCommandExecutionResult result = _processor.Execute(actor, command, expectedInvitationRevision);
             if (!result.Success)
                 return Friendly("Group command denied: " + ReasonLabel(result.ReasonCode) + ".", active);
             bool select = request.Operation == GroupFriendlyOperation.Create ||
@@ -525,14 +660,28 @@ namespace RunicPortals.Integration
             return catalog != null;
         }
 
-        private string[] MembershipIds(StableIdentity actor)
+        private PortalGroupChoice[] MembershipChoices(StableIdentity actor)
         {
-            if (actor == null || !TryReadCatalog(out GroupCatalog catalog, out _))
-                return Array.Empty<string>();
-            return catalog.GetMemberships(actor)
-                .Take(GroupLimits.MaximumGroupsPerIdentity)
-                .Select(value => value.GroupIdText)
-                .ToArray();
+            return TryMembershipChoices(actor, out PortalGroupChoice[] memberships)
+                ? memberships
+                : Array.Empty<PortalGroupChoice>();
+        }
+
+        private bool TryMembershipChoices(
+            StableIdentity actor,
+            out PortalGroupChoice[] memberships)
+        {
+            memberships = Array.Empty<PortalGroupChoice>();
+            if (actor == null || !TryReadCatalog(out GroupCatalog catalog, out _)) return false;
+            IReadOnlyList<GroupMembership> current = catalog.GetMemberships(actor);
+            int count = Math.Min(current.Count, GroupLimits.MaximumGroupsPerIdentity);
+            var snapshot = new PortalGroupChoice[count];
+            for (int index = 0; index < count; index++)
+                snapshot[index] = new PortalGroupChoice(
+                    current[index].GroupIdText,
+                    current[index].DisplayName);
+            memberships = snapshot;
+            return true;
         }
 
         private static bool TryResolveMemberGroup(
@@ -621,6 +770,10 @@ namespace RunicPortals.Integration
                 return true;
             }
             if (matches.Length > 1) failure = "More than one connected player has that name.";
+            else if (ZNet.instance != null && ZNet.instance.IsServer() &&
+                     ZNet.instance.GetPeers().Take(64).Any(peer => peer != null && peer.IsReady() &&
+                         string.Equals(peer.m_playerName, selector, StringComparison.OrdinalIgnoreCase)))
+                failure = "That player is connected, but their character identity is not ready. Ask them to finish spawning and retry /group whoami.";
             return false;
         }
 
@@ -631,7 +784,7 @@ namespace RunicPortals.Integration
             ZNet network = ZNet.instance;
             if (network == null || !network.IsServer()) return values;
             Player host = Player.m_localPlayer;
-            if (host != null && host.IsOwner() && host.GetPlayerID() > 0L)
+            if (host != null && host.IsOwner() && host.GetPlayerID() != 0L)
                 AddConnected(values, seen, PlayerIdentity(host.GetPlayerID()), host.GetPlayerName());
             foreach (ZNetPeer peer in network.GetPeers().Take(64))
                 if (peer != null && peer.IsReady() &&
@@ -658,21 +811,30 @@ namespace RunicPortals.Integration
             "Player " + identity.SubjectId;
 
         private static bool TryResolvePeerIdentity(long sender, out StableIdentity identity)
+            => TryResolvePeerIdentity(sender, out identity, out _);
+
+        private static bool TryResolvePeerIdentity(long sender, out StableIdentity identity, out string failure)
         {
             identity = null;
+            failure = "connection unavailable";
             ZNet network = ZNet.instance;
             ZNetPeer peer = network?.GetPeer(sender);
             if (network == null || !network.IsServer() || peer == null || peer.m_uid != sender ||
-                !peer.IsReady() || peer.m_characterID.IsNone() || ZDOMan.instance == null)
+                !peer.IsReady() || peer.m_rpc == null || peer.m_socket == null)
                 return false;
+            failure = "character not spawned";
+            if (peer.m_characterID.IsNone() || ZDOMan.instance == null) return false;
             ZDO character = ZDOMan.instance.GetZDO(peer.m_characterID);
+            failure = "character data not synchronized";
             if (character == null || !character.IsValid() || character.GetOwner() != sender ||
                 ZDOMan.instance.GetZDO(peer.m_characterID) != character) return false;
             GameObject prefab = ZNetScene.instance?.GetPrefab(character.GetPrefab());
             long playerId = character.GetLong(ZDOVars.s_playerID, 0L);
-            if (prefab == null || prefab.GetComponent<Player>() == null || playerId <= 0L)
+            failure = "character ID or prefab unavailable";
+            if (prefab == null || prefab.GetComponent<Player>() == null || playerId == 0L)
                 return false;
             identity = PlayerIdentity(playerId);
+            failure = string.Empty;
             return true;
         }
 
@@ -680,7 +842,7 @@ namespace RunicPortals.Integration
         {
             identity = null;
             Player player = Player.m_localPlayer;
-            if (player == null || !player.IsOwner() || player.GetPlayerID() <= 0L) return false;
+            if (player == null || !player.IsOwner() || player.GetPlayerID() == 0L) return false;
             identity = PlayerIdentity(player.GetPlayerID());
             return true;
         }
@@ -691,15 +853,7 @@ namespace RunicPortals.Integration
                 playerId.ToString(CultureInfo.InvariantCulture));
 
         private static bool TryCanonicalPlayerIdentity(string value, out StableIdentity identity)
-        {
-            identity = null;
-            const string prefix = "valheim.player:";
-            if (value == null || !value.StartsWith(prefix, StringComparison.Ordinal)) return false;
-            string subject = value.Substring(prefix.Length);
-            return long.TryParse(subject, NumberStyles.None, CultureInfo.InvariantCulture, out long id) &&
-                   id > 0L && subject == id.ToString(CultureInfo.InvariantCulture) &&
-                   StableIdentity.TryCreate("valheim.player", subject, out identity);
-        }
+            => PortalPermissionAdapter.TryParseIdentity(value, out identity);
 
         private static string CurrentWorldScope()
         {
@@ -731,6 +885,7 @@ namespace RunicPortals.Integration
         private void ClearClientSnapshot()
         {
             _clientMemberships.Clear();
+            _clientGroupChoices = Array.Empty<PortalGroupChoice>();
             _clientActive = ActiveGroupSelection.Stale;
             _clientSnapshotExpires = 0L;
         }
@@ -770,7 +925,7 @@ namespace RunicPortals.Integration
             bool accepted,
             string reason,
             byte[] payload,
-            IReadOnlyList<string> memberships)
+            IReadOnlyList<PortalGroupChoice> memberships)
         {
             var package = new ZPackage();
             package.Write(WireSchema);
@@ -781,7 +936,10 @@ namespace RunicPortals.Integration
             package.Write(memberships?.Count ?? 0);
             if (memberships != null)
                 for (int index = 0; index < memberships.Count; index++)
-                    package.Write(memberships[index]);
+                {
+                    package.Write(memberships[index].GroupId);
+                    package.Write(memberships[index].DisplayName);
+                }
             package.Write(TerminalMarker);
             return package;
         }
@@ -792,13 +950,13 @@ namespace RunicPortals.Integration
             out bool accepted,
             out string reason,
             out byte[] payload,
-            out string[] memberships)
+            out PortalGroupChoice[] memberships)
         {
             id = string.Empty;
             accepted = false;
             reason = string.Empty;
             payload = null;
-            memberships = Array.Empty<string>();
+            memberships = Array.Empty<PortalGroupChoice>();
             try
             {
                 if (package == null || package.Size() < 1 || package.Size() > MaximumEnvelopeBytes ||
@@ -811,17 +969,22 @@ namespace RunicPortals.Integration
                 if (!CanonicalRequestId(id) || !CanonicalReason(reason) || payload == null ||
                     payload.Length > GroupFriendlyProtocol.MaximumResponseBytes || count < 0 ||
                     count > GroupLimits.MaximumGroupsPerIdentity) return false;
-                memberships = new string[count];
+                memberships = new PortalGroupChoice[count];
+                var ids = new HashSet<string>(StringComparer.Ordinal);
+                var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 for (int index = 0; index < count; index++)
                 {
-                    memberships[index] = package.ReadString();
-                    if (!GroupIdentity.IsCanonicalId(memberships[index])) return false;
+                    string groupId = package.ReadString();
+                    string displayName = package.ReadString();
+                    var choice = new PortalGroupChoice(groupId, displayName);
+                    if (!ids.Add(choice.GroupId) || !names.Add(choice.DisplayName)) return false;
+                    memberships[index] = choice;
                 }
                 return package.ReadInt() == TerminalMarker && package.GetPos() == package.Size();
             }
             catch
             {
-                memberships = Array.Empty<string>();
+                memberships = Array.Empty<PortalGroupChoice>();
                 return false;
             }
         }
@@ -879,6 +1042,7 @@ namespace RunicPortals.Integration
                 case GroupFriendlyOperation.Create: return "Group created: " + name + ". It is now active.";
                 case GroupFriendlyOperation.Invite: return "Invitation sent for " + name + ".";
                 case GroupFriendlyOperation.Accept: return "Joined " + name + ". It is now active.";
+                case GroupFriendlyOperation.Decline: return "Declined invitation to " + name + ".";
                 case GroupFriendlyOperation.Leave: return "You left " + name + ".";
                 case GroupFriendlyOperation.Rename: return "Group renamed to " + name + ".";
                 case GroupFriendlyOperation.CancelInvitation: return "Invitation cancelled.";
@@ -933,7 +1097,7 @@ namespace RunicPortals.Integration
                 switch (verb)
                 {
                     case "help":
-                        message = "Group commands: create, list, use, active, members, whoami, invite, accept, leave, rename, cancel, remove, role, transfer, delete.";
+                        message = "Group commands: create, list, use, active, members, whoami, invite, accept, decline, leave, rename, cancel, remove, role, transfer, delete.";
                         return false;
                     case "list": RequireCount(args, 2); request = new GroupFriendlyRequest(GroupFriendlyOperation.List); break;
                     case "active": RequireCount(args, 2); request = new GroupFriendlyRequest(GroupFriendlyOperation.Active); break;
@@ -944,6 +1108,7 @@ namespace RunicPortals.Integration
                     case "select": request = new GroupFriendlyRequest(GroupFriendlyOperation.Select, Join(args, 2)); break;
                     case "invite": request = new GroupFriendlyRequest(GroupFriendlyOperation.Invite, Join(args, 2), number: 168); break;
                     case "accept": request = new GroupFriendlyRequest(GroupFriendlyOperation.Accept, Join(args, 2)); break;
+                    case "decline": request = new GroupFriendlyRequest(GroupFriendlyOperation.Decline, Join(args, 2)); break;
                     case "leave": RequireCount(args, 2); request = new GroupFriendlyRequest(GroupFriendlyOperation.Leave); break;
                     case "rename": request = new GroupFriendlyRequest(GroupFriendlyOperation.Rename, Join(args, 2)); break;
                     case "cancel": request = new GroupFriendlyRequest(GroupFriendlyOperation.CancelInvitation, Join(args, 2)); break;

@@ -13,6 +13,8 @@ namespace RunicPortals.Core
 
     internal sealed class PortalEditCommand
     {
+        internal const int MaximumVanillaTagLength = 10;
+
         private PortalEditCommand(
             PortalEditKind kind,
             string networkId,
@@ -21,6 +23,8 @@ namespace RunicPortals.Core
             string groupId,
             bool acceptsArrival,
             bool permitsDeparture,
+            bool hasVanillaTag,
+            string vanillaTag,
             string error)
         {
             Kind = kind;
@@ -30,6 +34,8 @@ namespace RunicPortals.Core
             GroupId = groupId;
             AcceptsArrival = acceptsArrival;
             PermitsDeparture = permitsDeparture;
+            HasVanillaTag = hasVanillaTag;
+            VanillaTag = vanillaTag ?? string.Empty;
             Error = error;
         }
 
@@ -42,6 +48,8 @@ namespace RunicPortals.Core
             NetworkKind == PortalNetworkKind.Group && GroupId.Length == 0;
         internal bool AcceptsArrival { get; }
         internal bool PermitsDeparture { get; }
+        internal bool HasVanillaTag { get; }
+        internal string VanillaTag { get; }
         internal string Error { get; }
 
         internal PortalEditCommand BindGroup(string groupId)
@@ -58,7 +66,105 @@ namespace RunicPortals.Core
                 groupId,
                 AcceptsArrival,
                 PermitsDeparture,
+                HasVanillaTag,
+                VanillaTag,
                 string.Empty);
+        }
+
+        internal static PortalEditCommand CreateStandard(string vanillaTag)
+        {
+            try
+            {
+                return new PortalEditCommand(
+                    PortalEditKind.StandardPair,
+                    string.Empty,
+                    string.Empty,
+                    PortalNetworkKind.Custom,
+                    string.Empty,
+                    true,
+                    true,
+                    true,
+                    NormalizeVanillaTag(vanillaTag),
+                    string.Empty);
+            }
+            catch (ArgumentException exception)
+            {
+                return Invalid(exception.Message);
+            }
+        }
+
+        internal static PortalEditCommand CreateNetwork(
+            string networkId,
+            string displayName,
+            PortalNetworkKind networkKind,
+            string groupId,
+            bool acceptsArrival,
+            bool permitsDeparture) => CreateNetwork(
+                networkId,
+                displayName,
+                networkKind,
+                groupId,
+                acceptsArrival,
+                permitsDeparture,
+                false);
+
+        private static PortalEditCommand CreateNetwork(
+            string networkId,
+            string displayName,
+            PortalNetworkKind networkKind,
+            string groupId,
+            bool acceptsArrival,
+            bool permitsDeparture,
+            bool allowActiveGroupFallback)
+        {
+            try
+            {
+                if (networkKind != PortalNetworkKind.Public &&
+                    networkKind != PortalNetworkKind.Personal &&
+                    networkKind != PortalNetworkKind.Group)
+                    return Invalid("Access must be Public, Private, or Group.");
+                if (!acceptsArrival && !permitsDeparture)
+                    return Invalid("Choose Both, Arrivals only, or Departures only.");
+                ValidateRawEditorText(networkId, "Network names");
+                ValidateRawEditorText(displayName, "Portal names");
+                ValidateRawEditorText(groupId, "Group selections");
+                string network = PortalText.Require(
+                    networkId,
+                    PortalContractLimits.MaximumNetworkIdLength,
+                    nameof(networkId));
+                string name = PortalText.Require(
+                    displayName,
+                    PortalContractLimits.MaximumNameLength,
+                    nameof(displayName));
+                if (network.IndexOf('|') >= 0 || name.IndexOf('|') >= 0)
+                    return Invalid("Network and portal names cannot contain the | character.");
+                string group = (groupId ?? string.Empty).Trim();
+                if (networkKind == PortalNetworkKind.Group)
+                {
+                    if (group.Length == 0 && !allowActiveGroupFallback ||
+                        group.Length != 0 && !GroupIdentity.IsCanonicalId(group))
+                        return Invalid("Choose one of your current Runic Groups.");
+                }
+                else if (group.Length != 0)
+                {
+                    return Invalid("Only Group access may include a Group.");
+                }
+                return new PortalEditCommand(
+                    PortalEditKind.PublicNetwork,
+                    network,
+                    name,
+                    networkKind,
+                    group,
+                    acceptsArrival,
+                    permitsDeparture,
+                    false,
+                    string.Empty,
+                    string.Empty);
+            }
+            catch (ArgumentException exception)
+            {
+                return Invalid(EditorError(exception));
+            }
         }
 
         internal static PortalEditCommand Parse(string text)
@@ -69,7 +175,8 @@ namespace RunicPortals.Core
             string normalized = raw.Trim();
             if (string.Equals(normalized, "standard", StringComparison.OrdinalIgnoreCase))
                 return new PortalEditCommand(PortalEditKind.StandardPair, string.Empty, string.Empty,
-                    PortalNetworkKind.Custom, string.Empty, true, true, string.Empty);
+                    PortalNetworkKind.Custom, string.Empty, true, true, false, string.Empty,
+                    string.Empty);
             if (normalized.Length == 0 || normalized.Length > 256)
                 return Invalid(Usage());
             for (int index = 0; index < normalized.Length; index++)
@@ -114,9 +221,6 @@ namespace RunicPortals.Core
                 {
                     return Invalid(Usage());
                 }
-                string network = PortalText.Require(parts[networkIndex], PortalContractLimits.MaximumNetworkIdLength,
-                    nameof(text));
-                string name = PortalText.Require(parts[nameIndex], PortalContractLimits.MaximumNameLength, nameof(text));
                 string direction = parts[directionIndex].Trim();
                 bool arrive;
                 bool depart;
@@ -136,8 +240,14 @@ namespace RunicPortals.Core
                     depart = true;
                 }
                 else return Invalid("Direction must be both, arrive, or depart.");
-                return new PortalEditCommand(PortalEditKind.PublicNetwork, network, name,
-                    kind, groupId, arrive, depart, string.Empty);
+                return CreateNetwork(
+                    parts[networkIndex],
+                    parts[nameIndex],
+                    kind,
+                    groupId,
+                    arrive,
+                    depart,
+                    kind == PortalNetworkKind.Group && groupId.Length == 0);
             }
             catch (ArgumentException exception)
             {
@@ -145,10 +255,57 @@ namespace RunicPortals.Core
             }
         }
 
+        private static void ValidateRawEditorText(string value, string label)
+        {
+            string raw = value ?? string.Empty;
+            for (int index = 0; index < raw.Length; index++)
+            {
+                char character = raw[index];
+                if (char.IsControl(character))
+                    throw new ArgumentException(label + " cannot contain control characters.");
+                if (!char.IsSurrogate(character)) continue;
+                if (!char.IsHighSurrogate(character) || index + 1 >= raw.Length ||
+                    !char.IsLowSurrogate(raw[index + 1]))
+                    throw new ArgumentException(label + " contain malformed text.");
+                index++;
+            }
+        }
+
         private static PortalEditCommand Invalid(string error) =>
             new PortalEditCommand(PortalEditKind.Invalid, string.Empty, string.Empty,
-                PortalNetworkKind.Custom, string.Empty, false, false,
+                PortalNetworkKind.Custom, string.Empty, false, false, false, string.Empty,
                 error ?? "Invalid portal command.");
+
+        private static string NormalizeVanillaTag(string value)
+        {
+            string tag = value ?? string.Empty;
+            if (tag.Length > MaximumVanillaTagLength)
+                throw new ArgumentException(
+                    "A Standard Pair tag can contain at most 10 characters.");
+            for (int index = 0; index < tag.Length; index++)
+            {
+                char character = tag[index];
+                if (char.IsControl(character))
+                    throw new ArgumentException(
+                        "A Standard Pair tag cannot contain control characters.");
+                if (!char.IsSurrogate(character)) continue;
+                if (!char.IsHighSurrogate(character) || index + 1 >= tag.Length ||
+                    !char.IsLowSurrogate(tag[index + 1]))
+                    throw new ArgumentException(
+                        "A Standard Pair tag contains malformed text.");
+                index++;
+            }
+            return tag;
+        }
+
+        private static string EditorError(ArgumentException exception)
+        {
+            if (exception is ArgumentOutOfRangeException)
+                return "Network and portal names can contain at most 64 characters.";
+            return exception.Message.StartsWith("A value is required", StringComparison.Ordinal)
+                ? "Enter both a network name and a portal name."
+                : exception.Message;
+        }
 
         private static string Usage() =>
             "Use network|NETWORK|NAME|DIRECTION, network|public|NETWORK|NAME|DIRECTION, " +

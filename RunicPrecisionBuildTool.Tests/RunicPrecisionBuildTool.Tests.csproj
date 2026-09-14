@@ -33,6 +33,7 @@
     <Reference Include="assembly_guiutils" HintPath="$(GAME_MANAGED)\assembly_guiutils.dll" Private="true" />
     <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="true" />
     <Reference Include="SoftReferenceableAssets" HintPath="$(GAME_MANAGED)\SoftReferenceableAssets.dll" Private="true" />
+    <Reference Include="Splatform" HintPath="$(GAME_MANAGED)\Splatform.dll" Private="true" />
     <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="true" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="true" />
     <Reference Include="UnityEngine.InputLegacyModule" HintPath="$(GAME_MANAGED)\UnityEngine.InputLegacyModule.dll" Private="true" />

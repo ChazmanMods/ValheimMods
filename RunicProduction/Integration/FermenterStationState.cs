@@ -9,32 +9,45 @@ namespace RunicProduction.Integration
     /// </summary>
     internal sealed class FermenterStationState
     {
-        private const int SchemaVersion = 1;
+        private const int SchemaVersion = 2;
+        private const int LegacySchemaVersion = 1;
         private const int MaximumEncodedCharacters = 512;
 
-        private FermenterStationState(string inputPrefabId, long startTicks)
+        private FermenterStationState(
+            string inputPrefabId,
+            long startTicks,
+            bool cheated)
         {
             InputPrefabId = inputPrefabId;
             StartTicks = startTicks;
+            Cheated = cheated;
         }
 
         internal string InputPrefabId { get; }
         internal long StartTicks { get; }
+        internal bool Cheated { get; }
         internal bool IsEmpty => InputPrefabId.Length == 0;
 
         internal static FermenterStationState Empty { get; } =
-            new FermenterStationState(string.Empty, 0L);
+            new FermenterStationState(string.Empty, 0L, false);
 
         internal static bool TryCreate(
             string inputPrefabId,
             long startTicks,
+            out FermenterStationState state)
+            => TryCreate(inputPrefabId, startTicks, false, out state);
+
+        internal static bool TryCreate(
+            string inputPrefabId,
+            long startTicks,
+            bool cheated,
             out FermenterStationState state)
         {
             state = null;
             string prefab = inputPrefabId ?? string.Empty;
             if (prefab.Length == 0)
             {
-                if (startTicks != 0L) return false;
+                if (startTicks != 0L || cheated) return false;
                 state = Empty;
                 return true;
             }
@@ -49,7 +62,7 @@ namespace RunicProduction.Integration
             {
                 return false;
             }
-            state = new FermenterStationState(prefab, startTicks);
+            state = new FermenterStationState(prefab, startTicks, cheated);
             return true;
         }
 
@@ -59,6 +72,7 @@ namespace RunicProduction.Integration
             return station != null && TryCreate(
                 ValheimAccess.FermenterContent(station),
                 ValheimAccess.FermenterStartTicks(station),
+                ValheimAccess.FermenterCheated(station),
                 out state);
         }
 
@@ -68,6 +82,7 @@ namespace RunicProduction.Integration
             return zdo != null && zdo.IsValid() && TryCreate(
                 zdo.GetString(ZDOVars.s_content, string.Empty),
                 zdo.GetLong(ZDOVars.s_startTime, 0L),
+                zdo.GetBool(ZDOVars.s_cheatedQueued, false),
                 out state);
         }
 
@@ -77,6 +92,7 @@ namespace RunicProduction.Integration
             package.Write(SchemaVersion);
             package.Write(InputPrefabId);
             package.Write(StartTicks);
+            package.Write(Cheated);
             return Convert.ToBase64String(package.GetArray());
         }
 
@@ -90,11 +106,14 @@ namespace RunicProduction.Integration
                 byte[] bytes = Convert.FromBase64String(encoded);
                 if (bytes.Length == 0 || bytes.Length > 256) return false;
                 var package = new ZPackage(bytes);
-                if (package.ReadInt() != SchemaVersion) return false;
+                int schema = package.ReadInt();
+                if (schema != SchemaVersion && schema != LegacySchemaVersion) return false;
                 string input = package.ReadString();
                 long ticks = package.ReadLong();
+                bool cheated = schema == SchemaVersion && package.ReadBool();
                 if (package.GetPos() != package.Size()) return false;
-                return TryCreate(input, ticks, out state) &&
+                if (!TryCreate(input, ticks, cheated, out state)) return false;
+                return schema == LegacySchemaVersion ||
                        string.Equals(state.Serialize(), encoded, StringComparison.Ordinal);
             }
             catch
@@ -106,12 +125,13 @@ namespace RunicProduction.Integration
         internal bool Matches(Fermenter station) =>
             station != null &&
             string.Equals(InputPrefabId, ValheimAccess.FermenterContent(station), StringComparison.Ordinal) &&
-            StartTicks == ValheimAccess.FermenterStartTicks(station);
+            StartTicks == ValheimAccess.FermenterStartTicks(station) &&
+            Cheated == ValheimAccess.FermenterCheated(station);
 
         internal void Apply(Fermenter station)
         {
             if (station == null) throw new ArgumentNullException(nameof(station));
-            ValheimAccess.SetFermenterState(station, InputPrefabId, StartTicks);
+            ValheimAccess.SetFermenterState(station, InputPrefabId, StartTicks, Cheated);
         }
 
         internal void ApplyToZdo(ZDO zdo)
@@ -120,6 +140,7 @@ namespace RunicProduction.Integration
                 throw new ArgumentNullException(nameof(zdo));
             zdo.Set(ZDOVars.s_content, InputPrefabId);
             zdo.Set(ZDOVars.s_startTime, StartTicks);
+            zdo.Set(ZDOVars.s_cheatedQueued, Cheated);
         }
     }
 }

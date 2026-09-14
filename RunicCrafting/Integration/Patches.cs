@@ -144,7 +144,7 @@ namespace RunicCrafting.Integration
         new[]
         {
             typeof(string), typeof(int), typeof(int), typeof(int), typeof(long),
-            typeof(string), typeof(Vector2i), typeof(bool)
+            typeof(string), typeof(Vector2i), typeof(bool), typeof(bool), typeof(bool)
         })]
     internal static class InventoryAddCraftOutputPatch
     {
@@ -255,7 +255,10 @@ namespace RunicCrafting.Integration
     [HarmonyPatch(
         typeof(Player),
         "PlacePiece",
-        new[] { typeof(Piece), typeof(Vector3), typeof(Quaternion), typeof(bool) })]
+        new[]
+        {
+            typeof(Piece), typeof(Vector3), typeof(Quaternion), typeof(bool), typeof(bool)
+        })]
     internal static class PlayerPlacePieceInstantiationPatch
     {
         private static readonly MethodInfo PlacementCreated =

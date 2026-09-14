@@ -47,6 +47,9 @@ namespace Runic.Foundation.Core
         public const string SecurityAttest = "security.attest";
         public const string SecurityEvidence = "security.evidence";
         public const string SecurityAdmission = "security.admission";
+        public const string SecurityRoles = "security.roles";
+        public const string SecurityEnforcement = "security.enforcement";
+        public const string SecurityRuntimeIntegrity = "security.runtime-integrity";
         public const string InventoryItemLocks = "inventory.item-locks";
         /// <summary>
         /// Provider-neutral local-owner inventory crash journal, reconciliation lock, profile

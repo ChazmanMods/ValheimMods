@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><LangVersion>latest</LangVersion><MSBuildWarningsAsMessages>MSB3277</MSBuildWarningsAsMessages></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../RunicDeathPenalty/RunicDeathPenalty.csproj" />
+    <Reference Include="BepInEx" HintPath="C:/Users/Charles Sammons/AppData/Roaming/r2modmanPlus-local/Valheim/profiles/Default/BepInEx/core/BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="C:/Users/Charles Sammons/AppData/Roaming/r2modmanPlus-local/Valheim/profiles/Default/BepInEx/core/0Harmony.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="E:/SteamLibrary/steamapps/common/Valheim/valheim_Data/Managed/assembly_valheim.dll" Private="false" />
+    <Reference Include="assembly_utils" HintPath="E:/SteamLibrary/steamapps/common/Valheim/valheim_Data/Managed/assembly_utils.dll" Private="false" />
+    <Reference Include="assembly_guiutils" HintPath="E:/SteamLibrary/steamapps/common/Valheim/valheim_Data/Managed/assembly_guiutils.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="E:/SteamLibrary/steamapps/common/Valheim/valheim_Data/Managed/UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="E:/SteamLibrary/steamapps/common/Valheim/valheim_Data/Managed/UnityEngine.CoreModule.dll" Private="false" />
+  </ItemGroup>
+</Project>

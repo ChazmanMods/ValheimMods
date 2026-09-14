@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Runic.Foundation.Core;
 using RunicSentinel.Contracts;
 
 namespace RunicSentinel.Core
@@ -19,9 +18,13 @@ namespace RunicSentinel.Core
         private long _token;
         private long _policySequence;
 
+        internal event Action<SecurityEvidence> Accepted;
+
         public ISentinelEvidenceProviderLease RegisterProvider(string providerId)
         {
-            string moduleId = RunicIdentifier.Require(providerId, nameof(providerId));
+            string moduleId = RunicIdentifier.Require(
+                providerId,
+                nameof(providerId));
             lock (_gate)
             {
                 if (_token == long.MaxValue)
@@ -92,6 +95,7 @@ namespace RunicSentinel.Core
             out SecurityEvidence accepted)
         {
             accepted = null;
+            Action<SecurityEvidence> notify;
             lock (_gate)
             {
                 if (!_providers.TryGetValue(moduleId, out ProviderState state) ||
@@ -131,8 +135,11 @@ namespace RunicSentinel.Core
                 }
                 state.Entries.Enqueue(accepted);
                 state.Accepted = SaturatingIncrement(state.Accepted);
-                return true;
+                notify = Accepted;
             }
+            try { notify?.Invoke(accepted); }
+            catch { /* Recording/reporting observers never change enforcement acceptance. */ }
+            return true;
         }
 
         private static bool IsActiveLocked(ProviderState state) => state.Token > 0L;

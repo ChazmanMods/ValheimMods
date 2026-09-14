@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using RunicPermissions.Contracts;
 using RunicPermissions.Groups;
 using RunicPortals.Api;
@@ -10,7 +11,7 @@ using RunicPortals.Integration;
 
 namespace RunicPortals.Tests
 {
-    internal static class Program
+    internal static partial class Program
     {
         private sealed class AllowAll : IPortalAccessEvaluator
         {
@@ -36,13 +37,42 @@ namespace RunicPortals.Tests
             }
         }
 
+        private static void VersionGateAcceptsOnlyAuditedBuilds()
+        {
+            if (!ValheimContracts.IsSupportedVersion("1.0.7") || !ValheimContracts.IsSupportedVersion("1.0.12"))
+                throw new Exception("Audited version rejected.");
+            foreach (string unsupported in new[] { "1.0.8", "1.0.13", "l-1.0.12", "1.0.120", "", null })
+                if (ValheimContracts.IsSupportedVersion(unsupported))
+                    throw new Exception("Unsupported version accepted.");
+        }
+
         private static int Main()
         {
             var tests = new (string Name, Action Run)[]
             {
+                ("InvitationSnapshotIsPrivateAndExpires", InvitationSnapshotIsPrivateAndExpires),
+                ("InvitationSnapshotCodecIsBounded", InvitationSnapshotCodecIsBounded),
+                ("InvitationResponsesPreserveLegacyCommands", InvitationResponsesPreserveLegacyCommands),
+                ("DeclinePersistsOnlyInviteesOwnInvitation", DeclinePersistsOnlyInviteesOwnInvitation),
+                ("StalePopupCannotAcceptReplacementInvitation", StalePopupCannotAcceptReplacementInvitation),
+                ("NativeInvitationDialogContractsAndInputProtection", NativeInvitationDialogContractsAndInputProtection),
+                ("VersionGateAcceptsOnlyAuditedBuilds", VersionGateAcceptsOnlyAuditedBuilds),
                 ("ParserKeepsPublicPrivateAndGroupFormats", ParserKeepsPublicPrivateAndGroupFormats),
+                ("InstalledValheimContractsInitialize", InstalledValheimContractsInitialize),
+                ("InstalledMapMutationHooksExist", InstalledMapMutationHooksExist),
+                ("TypedStandardEditorCommandsKeepVanillaTagsSeparate", TypedStandardEditorCommandsKeepVanillaTagsSeparate),
+                ("TypedNetworkEditorCommandsCoverPoliciesAndDirections", TypedNetworkEditorCommandsCoverPoliciesAndDirections),
+                ("TypedEditorCommandsNormalizeAndRejectUnsafeFields", TypedEditorCommandsNormalizeAndRejectUnsafeFields),
+                ("EditorDraftPrefillsAndRoundTrips", EditorDraftPrefillsAndRoundTrips),
+                ("EditorPanelUsesTypedCommandsOnly", EditorPanelUsesTypedCommandsOnly),
+                ("GroupChoicesRoundTripVersionedResponse", GroupChoicesRoundTripVersionedResponse),
+                ("GroupEditorAuthorizationUsesCurrentMembership", GroupEditorAuthorizationUsesCurrentMembership),
                 ("PortalMetadataKeysRemainStable", PortalMetadataKeysRemainStable),
                 ("GroupCatalogCodecRoundTrips", GroupCatalogCodecRoundTrips),
+                ("SignedCharacterIdentitiesAreCanonical", SignedCharacterIdentitiesAreCanonical),
+                ("SignedCharactersCreateInviteAcceptAndPersist", SignedCharactersCreateInviteAcceptAndPersist),
+                ("SignedGroupMembersKeepPortalPermissionBoundaries", SignedGroupMembersKeepPortalPermissionBoundaries),
+                ("GroupIdentityFailureRepliesWithoutMembershipDisclosure", GroupIdentityFailureRepliesWithoutMembershipDisclosure),
                 ("CompatibleGroupStoreUsesExistingFormat", CompatibleGroupStoreUsesExistingFormat),
                 ("DirectoryStaysInsideExactNetwork", DirectoryStaysInsideExactNetwork),
                 ("RouteRejectsCrossNetwork", RouteRejectsCrossNetwork),
@@ -64,6 +94,8 @@ namespace RunicPortals.Tests
                 ("ProductionHasNoDurableOrRegistryLayer", ProductionHasNoDurableOrRegistryLayer),
                 ("GroupRpcIsBoundedAndPeerAuthenticated", GroupRpcIsBoundedAndPeerAuthenticated),
                 ("DirectorySyncWarmsRemotePortalsOnFirstUse", DirectorySyncWarmsRemotePortalsOnFirstUse),
+                ("LegacyDirectoryProtocolGetsCompatibilityRejection", LegacyDirectoryProtocolGetsCompatibilityRejection),
+                ("NormalMapDirectoryWarmsFromAuthoritativeServer", NormalMapDirectoryWarmsFromAuthoritativeServer),
                 ("PortalMutationsNeverClaimOwnership", PortalMutationsNeverClaimOwnership)
             };
             int passed = 0;
@@ -85,6 +117,27 @@ namespace RunicPortals.Tests
             return 0;
         }
 
+        private static void InstalledValheimContractsInitialize()
+        {
+            True(ValheimContracts.Initialize(out string problem), problem);
+        }
+
+        private static void InstalledMapMutationHooksExist()
+        {
+            const BindingFlags instance = BindingFlags.Instance |
+                                          BindingFlags.Public |
+                                          BindingFlags.NonPublic;
+            True(typeof(Minimap).GetMethod(
+                "RemovePinUnderPointer", instance, null, Type.EmptyTypes, null) != null);
+            True(typeof(Minimap).GetMethod(
+                "OnMapLeftClick", instance, null, Type.EmptyTypes, null) != null);
+            True(typeof(Minimap).GetMethod(
+                "OnMapDblClick", instance, null, Type.EmptyTypes, null) != null);
+            True(typeof(Minimap).GetMethod(
+                "OnMapMiddleClick", instance, null,
+                new[] { typeof(UIInputHandler) }, null) != null);
+        }
+
         private static void ParserKeepsPublicPrivateAndGroupFormats()
         {
             Equal(PortalEditKind.PublicNetwork,
@@ -95,6 +148,250 @@ namespace RunicPortals.Tests
                 "network|group|home|north|depart").BindGroup(Guid.NewGuid().ToString("N"));
             Equal(PortalNetworkKind.Group, group.NetworkKind);
             True(GroupIdentity.IsCanonicalId(group.GroupId));
+        }
+
+        private static void TypedStandardEditorCommandsKeepVanillaTagsSeparate()
+        {
+            PortalEditCommand empty = PortalEditCommand.CreateStandard(string.Empty);
+            Equal(PortalEditKind.StandardPair, empty.Kind);
+            True(empty.HasVanillaTag);
+            Equal(string.Empty, empty.VanillaTag);
+            Equal(string.Empty, empty.NetworkId);
+            Equal(string.Empty, empty.DisplayName);
+
+            string maximum = new string('v', PortalEditCommand.MaximumVanillaTagLength);
+            PortalEditCommand bounded = PortalEditCommand.CreateStandard(maximum);
+            Equal(PortalEditKind.StandardPair, bounded.Kind);
+            True(bounded.HasVanillaTag);
+            Equal(maximum, bounded.VanillaTag);
+
+            PortalEditCommand tooLong = PortalEditCommand.CreateStandard(maximum + "x");
+            Equal(PortalEditKind.Invalid, tooLong.Kind);
+            False(tooLong.HasVanillaTag);
+            Equal(string.Empty, tooLong.VanillaTag);
+
+            PortalEditCommand legacy = PortalEditCommand.Parse("standard");
+            Equal(PortalEditKind.StandardPair, legacy.Kind);
+            False(legacy.HasVanillaTag);
+            Equal(string.Empty, legacy.VanillaTag);
+        }
+
+        private static void TypedNetworkEditorCommandsCoverPoliciesAndDirections()
+        {
+            string groupId = Guid.NewGuid().ToString("N");
+            var policies = new[]
+            {
+                PortalNetworkKind.Public,
+                PortalNetworkKind.Personal,
+                PortalNetworkKind.Group
+            };
+            var directions = new[]
+            {
+                (Arrives: true, Departs: true),
+                (Arrives: true, Departs: false),
+                (Arrives: false, Departs: true)
+            };
+
+            foreach (PortalNetworkKind policy in policies)
+            foreach ((bool arrives, bool departs) in directions)
+            {
+                string selectedGroup = policy == PortalNetworkKind.Group ? groupId : string.Empty;
+                PortalEditCommand command = PortalEditCommand.CreateNetwork(
+                    "RealmCase",
+                    "NorthGate",
+                    policy,
+                    selectedGroup,
+                    arrives,
+                    departs);
+                Equal(PortalEditKind.PublicNetwork, command.Kind);
+                Equal("RealmCase", command.NetworkId);
+                Equal("NorthGate", command.DisplayName);
+                Equal(policy, command.NetworkKind);
+                Equal(selectedGroup, command.GroupId);
+                Equal(arrives, command.AcceptsArrival);
+                Equal(departs, command.PermitsDeparture);
+                False(command.HasVanillaTag);
+                Equal(string.Empty, command.VanillaTag);
+            }
+        }
+
+        private static void TypedEditorCommandsNormalizeAndRejectUnsafeFields()
+        {
+            PortalEditCommand normalized = PortalEditCommand.CreateNetwork(
+                "  RealmCase  ",
+                "  NorthGate  ",
+                PortalNetworkKind.Public,
+                string.Empty,
+                true,
+                true);
+            Equal(PortalEditKind.PublicNetwork, normalized.Kind);
+            Equal("RealmCase", normalized.NetworkId);
+            Equal("NorthGate", normalized.DisplayName);
+
+            string tooLong = new string('x', PortalContractLimits.MaximumNetworkIdLength + 1);
+            string malformed = new string(new[] { '\uD800' });
+            foreach (PortalEditCommand invalid in new[]
+                     {
+                         PortalEditCommand.CreateNetwork(
+                             string.Empty, "Gate", PortalNetworkKind.Public, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm", "   ", PortalNetworkKind.Public, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             tooLong, "Gate", PortalNetworkKind.Public, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm", tooLong, PortalNetworkKind.Public, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm\n", "Gate", PortalNetworkKind.Public, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm", malformed, PortalNetworkKind.Public, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm|Injected", "Gate", PortalNetworkKind.Public, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm", "Gate|Injected", PortalNetworkKind.Public, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm", "Gate", PortalNetworkKind.Custom, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm", "Gate", PortalNetworkKind.Group, string.Empty, true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm", "Gate", PortalNetworkKind.Public, Guid.NewGuid().ToString("N"), true, true),
+                         PortalEditCommand.CreateNetwork(
+                             "Realm", "Gate", PortalNetworkKind.Public, string.Empty, false, false),
+                         PortalEditCommand.CreateStandard("line\nbreak"),
+                         PortalEditCommand.CreateStandard(malformed)
+                     })
+                Equal(PortalEditKind.Invalid, invalid.Kind);
+        }
+
+        private static void EditorDraftPrefillsAndRoundTrips()
+        {
+            PortalEditorDraft standard = PortalEditorDraft.ForStandard("HomeGate");
+            True(standard.StandardPair);
+            Equal("HomeGate", standard.VanillaTag);
+            PortalEditCommand standardCommand = standard.BuildCommand();
+            Equal(PortalEditKind.StandardPair, standardCommand.Kind);
+            True(standardCommand.HasVanillaTag);
+            Equal("HomeGate", standardCommand.VanillaTag);
+
+            string groupId = Guid.NewGuid().ToString("N");
+            var endpoint = new PortalEndpoint(
+                "portal:group",
+                PortalMode.Network,
+                "MountainGate",
+                "RealmCase",
+                PortalNetworkKind.Group,
+                "valheim.player:1",
+                "Owner",
+                PortalOnlineState.Online,
+                true,
+                false,
+                PortalAccessProfile.ForGroup(groupId),
+                7L);
+            PortalEditorDraft group = PortalEditorDraft.ForNetwork("OldTag", endpoint);
+            False(group.StandardPair);
+            Equal("OldTag", group.VanillaTag);
+            Equal("RealmCase", group.NetworkName);
+            Equal("MountainGate", group.PortalName);
+            Equal(PortalNetworkKind.Group, group.Access);
+            Equal(groupId, group.GroupId);
+            Equal(PortalEditorDirection.ArrivalsOnly, group.Direction);
+
+            PortalEditCommand groupCommand = group.BuildCommand();
+            Equal(PortalEditKind.PublicNetwork, groupCommand.Kind);
+            Equal(endpoint.NetworkId, groupCommand.NetworkId);
+            Equal(endpoint.DisplayName, groupCommand.DisplayName);
+            Equal(endpoint.NetworkKind, groupCommand.NetworkKind);
+            Equal(groupId, groupCommand.GroupId);
+            Equal(endpoint.AcceptsArrival, groupCommand.AcceptsArrival);
+            Equal(endpoint.PermitsDeparture, groupCommand.PermitsDeparture);
+            False(groupCommand.HasVanillaTag);
+        }
+
+        private static void EditorPanelUsesTypedCommandsOnly()
+        {
+            string panelPath = Path.Combine(
+                ProjectRoot(), "Integration", "PortalEditorPanel.cs");
+            True(File.Exists(panelPath), "The typed portal editor panel source is missing.");
+            string panel = File.ReadAllText(panelPath);
+            Contains(panel,
+                "class PortalEditorPanel",
+                "_draft.BuildCommand()",
+                "PortalEditCommand");
+            Reject(panel, "network|");
+        }
+
+        private static void GroupChoicesRoundTripVersionedResponse()
+        {
+            string firstId = Guid.NewGuid().ToString("N");
+            string secondId = Guid.NewGuid().ToString("N");
+            var choices = new[]
+            {
+                new PortalGroupChoice(firstId, "Builders"),
+                new PortalGroupChoice(secondId, "Raiders")
+            };
+            Type runtime = typeof(PortalGroupRuntime);
+            MethodInfo writer = runtime.GetMethod(
+                "WriteResponse",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            MethodInfo reader = runtime.GetMethod(
+                "TryReadResponse",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            True(writer != null && reader != null);
+
+            string requestId = Guid.NewGuid().ToString("N");
+            byte[] payload = { 1, 2, 3 };
+            var package = (ZPackage)writer.Invoke(
+                null,
+                new object[] { requestId, true, "ok", payload, choices });
+            var schema = new ZPackage(package.GetArray());
+            Equal(2, schema.ReadInt());
+
+            object[] arguments =
+            {
+                new ZPackage(package.GetArray()),
+                string.Empty,
+                false,
+                string.Empty,
+                null,
+                null
+            };
+            True((bool)reader.Invoke(null, arguments));
+            Equal(requestId, (string)arguments[1]);
+            True((bool)arguments[2]);
+            Equal("ok", (string)arguments[3]);
+            True(payload.SequenceEqual((byte[])arguments[4]));
+            var decoded = (PortalGroupChoice[])arguments[5];
+            Equal(2, decoded.Length);
+            Equal(firstId, decoded[0].GroupId);
+            Equal("Builders", decoded[0].DisplayName);
+            Equal(secondId, decoded[1].GroupId);
+            Equal("Raiders", decoded[1].DisplayName);
+
+            string source = File.ReadAllText(Path.Combine(
+                ProjectRoot(), "Integration", "PortalGroupRuntime.cs"));
+            Contains(source,
+                "RunicPortals.Groups.Request.v2",
+                "RunicPortals.Groups.Response.v2",
+                "memberships[index].GroupId",
+                "memberships[index].DisplayName");
+        }
+
+        private static void GroupEditorAuthorizationUsesCurrentMembership()
+        {
+            string source = File.ReadAllText(Path.Combine(
+                ProjectRoot(), "Integration", "PortalRuntime.cs"));
+            int start = source.IndexOf(
+                "private bool TryAuthorizeBoundGroupEdit(",
+                StringComparison.Ordinal);
+            int end = source.IndexOf(
+                "private void ConsumeEdit(",
+                start,
+                StringComparison.Ordinal);
+            True(start >= 0 && end > start,
+                "The bounded Group edit authorization method was not found.");
+            string authorization = source.Substring(start, end - start);
+            Contains(authorization,
+                "_groups.TryIsMember(command.GroupId, playerId, out bool member)");
+            Reject(authorization, "TryGetActive");
         }
 
         private static void PortalMetadataKeysRemainStable()
@@ -117,6 +414,92 @@ namespace RunicPortals.Tests
             True(GroupCatalogCodec.TryDecode(encoded, scope, out GroupCatalog decoded, out _));
             Equal(created.Catalog.Revision, decoded.Revision);
             Equal("Builders", decoded.Groups[0].DisplayName);
+        }
+
+        private static void SignedCharacterIdentitiesAreCanonical()
+        {
+            foreach (long value in new[] { 1L, -1L, -691478230L, 1793603172L, long.MinValue, long.MaxValue })
+            {
+                string canonical = PortalPermissionAdapter.Identity(value);
+                True(PortalPermissionAdapter.TryPlayerId(canonical, out long parsed));
+                Equal(value, parsed);
+                True(PortalPermissionAdapter.TryParseIdentity(canonical, out StableIdentity identity));
+                Equal(canonical, identity.CanonicalKey);
+            }
+            foreach (string value in new[] { "0", "-0", "+1", "01", "-01", " 1", "1 ", "1.0", "--1",
+                         "9223372036854775808", "-9223372036854775809", "", "Bulvye" })
+                False(PortalPermissionAdapter.TryParseIdentity("valheim.player:" + value, out _));
+            False(PortalPermissionAdapter.TryParseIdentity("steam:123", out _));
+            False(PortalPermissionAdapter.TryParseIdentity(null, out _));
+        }
+
+        private static void SignedCharactersCreateInviteAcceptAndPersist()
+        {
+            foreach (long ownerId in new[] { 123L, -123L })
+            foreach (long memberId in new[] { 456L, -456L })
+            {
+                string root = Path.Combine(Path.GetTempPath(), "runic-portals-signed-" + Guid.NewGuid().ToString("N"));
+                try
+                {
+                    const string scope = "valheim.0000000000000003";
+                    True(PortalPermissionAdapter.TryParseIdentity(PortalPermissionAdapter.Identity(ownerId), out StableIdentity owner));
+                    True(PortalPermissionAdapter.TryParseIdentity(PortalPermissionAdapter.Identity(memberId), out StableIdentity member));
+                    var stranger = new StableIdentity("valheim.player", "-789");
+                    var store = new CompatibleGroupWorldStore(root);
+                    var processor = new GroupCommandProcessor(store, () => scope);
+                    Guid group = Guid.NewGuid();
+                    True(processor.Execute(owner, new GroupCommand(GroupCommandKind.Create, group, "Builders")).Success);
+                    False(processor.Execute(stranger, new GroupCommand(GroupCommandKind.Invite, group,
+                        target: member, invitationExpiresUtcTicks: DateTime.UtcNow.AddHours(1).Ticks)).Success);
+                    True(processor.Execute(owner, new GroupCommand(GroupCommandKind.Invite, group,
+                        target: member, invitationExpiresUtcTicks: DateTime.UtcNow.AddHours(1).Ticks)).Success);
+                    False(processor.Execute(stranger, new GroupCommand(GroupCommandKind.Accept, group)).Success);
+                    True(processor.Execute(member, new GroupCommand(GroupCommandKind.Accept, group)).Success);
+                    var reopened = new CompatibleGroupWorldStore(root);
+                    GroupWorldReadResult read = reopened.Read(scope);
+                    Equal(GroupWorldReadState.Ready, read.State);
+                    True(read.Catalog.TryGetGroup(group, out GroupRecord saved));
+                    True(saved.TryGetMember(member, out _));
+                    True(saved.TryGetMember(owner, out _));
+                    False(saved.TryGetMember(stranger, out _));
+                    True(processor.Execute(owner, new GroupCommand(GroupCommandKind.Remove, group, target: member)).Success);
+                    True(store.Read(scope).Catalog.TryGetGroup(group, out GroupRecord updated));
+                    False(updated.TryGetMember(member, out _));
+                }
+                finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+            }
+        }
+
+        private static void SignedGroupMembersKeepPortalPermissionBoundaries()
+        {
+            string groupId = Guid.NewGuid().ToString("N");
+            var groups = new GroupMemberships();
+            groups.Add(groupId, -456L);
+            var permissions = new PortalPermissionAdapter(groups);
+            PortalEndpoint endpoint = PolicyEndpoint(PortalNetworkKind.Group,
+                "valheim.player:-123", PortalAccessProfile.ForGroup(groupId));
+            True(permissions.Allows(endpoint, "valheim.player:-456", PortalAccessAction.Arrive));
+            True(permissions.Allows(endpoint, "valheim.player:-456", PortalAccessAction.Depart));
+            False(permissions.Allows(endpoint, "valheim.player:456", PortalAccessAction.Arrive));
+            False(permissions.Allows(endpoint, "valheim.player:0", PortalAccessAction.Arrive));
+            False(permissions.Allows(endpoint, "valheim.player:-456", PortalAccessAction.Edit));
+            True(permissions.Allows(endpoint, "valheim.player:-123", PortalAccessAction.Edit));
+            groups.Available = false;
+            False(permissions.Allows(endpoint, "valheim.player:-456", PortalAccessAction.Arrive));
+        }
+
+        private static void GroupIdentityFailureRepliesWithoutMembershipDisclosure()
+        {
+            string source = File.ReadAllText(Path.Combine(ProjectRoot(), "Integration", "PortalGroupRuntime.cs"));
+            Contains(source, "out string identityFailure", "SendResponse(sender, requestId, false,",
+                "null, null, DateTime.UtcNow.Ticks", "actor == null",
+                "? Array.Empty<PortalGroupChoice>() : MembershipChoices(actor)",
+                "character.GetOwner() != sender", "peer.m_rpc == null || peer.m_socket == null",
+                "PortalPermissionAdapter.TryParseIdentity(value, out identity)");
+            Reject(source, "portal-group-identity-unbound", "playerId <= 0L", "GetPlayerID() <= 0L", "GetPlayerID() > 0L");
+            foreach (string file in new[] { "PortalDirectorySync.cs", "PortalMapOverlayIntegration.cs", "PortalRuntime.cs", "ValheimContracts.cs" })
+                Reject(File.ReadAllText(Path.Combine(ProjectRoot(), "Integration", file)),
+                    "playerId <= 0L", "playerId > 0L", "GetPlayerID() <= 0L");
         }
 
         private static void CompatibleGroupStoreUsesExistingFormat()
@@ -380,7 +763,9 @@ namespace RunicPortals.Tests
         private static void ManifestHasOnlyBepInEx()
         {
             string manifest = File.ReadAllText(Path.Combine(ProjectRoot(), "manifest.json"));
-            Contains(manifest, "denikson-BepInExPack_Valheim-5.4.2333");
+            Contains(manifest, "\"version_number\": \"1.2.4\"");
+            Equal("1.2.4", Plugin.Version);
+            Contains(manifest, "denikson-BepInExPack_Valheim-5.4.2350");
             Reject(manifest, "RunicCore", "RunicPersistence", "RunicPermissions", "RunicTransactions");
         }
 
@@ -418,16 +803,76 @@ namespace RunicPortals.Tests
             Contains(source,
                 "MaximumDirectoryEnvelopeBytes = 2048",
                 "MaximumDirectoryEndpointsSent = 512",
+                "MaximumDirectoryAttempts = 8",
                 "MaximumDirectoryRequestDistanceMeters = 16f",
+                "sourceZdoId",
+                "ZDOMan.instance?.GetZDO(sourceZdoId)",
                 "GetPeer(sender)",
                 "character.GetOwner() != sender",
                 "PortalAccessAction.ViewDiscover",
                 "PortalAccessAction.Arrive",
                 "ForceSendZDO(sender, zdo.m_uid)",
-                "DirectoryRequestTimeoutSeconds");
+                "DirectoryRequestTimeoutSeconds = 8f",
+                "source-ward-unavailable");
+            string contracts = File.ReadAllText(Path.Combine(
+                ProjectRoot(), "Integration", "ValheimContracts.cs"));
+            Contains(contracts,
+                "SourceWardAllows",
+                "PokeLocalZone",
+                "ZoneSystem.GetZone(position)",
+                "WardState.Ambiguous");
             Contains(picker,
                 "BeginDirectorySync(_mapPicker, source, candidates, truncated)",
                 "TickDirectoryPicker(session)");
+            Reject(source, "SetOwner(", "ClaimOwnership", "RequestOwnership");
+        }
+
+        private static void LegacyDirectoryProtocolGetsCompatibilityRejection()
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var request = new ZPackage();
+            request.Write(1);
+            request.Write(requestId);
+            request.Write("3227159871:3");
+            request.Write(1L);
+            request.Write("home");
+            request.Write(0x50524431);
+
+            Type runtime = typeof(Plugin).Assembly.GetType(
+                "RunicPortals.Integration.PortalRuntime", true);
+            MethodInfo reader = runtime.GetMethod(
+                "TryReadLegacyDirectoryRequest",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            True(reader != null);
+            object[] arguments = { new ZPackage(request.GetArray()), string.Empty };
+            True((bool)reader.Invoke(null, arguments));
+            Equal(requestId, (string)arguments[1]);
+
+            string source = File.ReadAllText(Path.Combine(
+                ProjectRoot(), "Integration", "PortalDirectorySync.cs"));
+            Contains(source,
+                "portal-directory-protocol-outdated",
+                "client-update-required",
+                "legacyRequestId, 2");
+            string groups = File.ReadAllText(Path.Combine(
+                ProjectRoot(), "Integration", "PortalGroupRuntime.cs"));
+            Contains(groups, "Character identity is not ready: ", "SendResponse(sender, requestId, false,");
+        }
+
+        private static void NormalMapDirectoryWarmsFromAuthoritativeServer()
+        {
+            string source = File.ReadAllText(Path.Combine(
+                ProjectRoot(), "Integration", "PortalDirectorySync.cs"));
+            string overlay = File.ReadAllText(Path.Combine(
+                ProjectRoot(), "Integration", "PortalMapOverlayIntegration.cs"));
+            Contains(source,
+                "MapDirectoryRequestRpc",
+                "MapDirectoryResponseRpc",
+                "TickMapDirectorySync",
+                "PortalAccessAction.ViewDiscover",
+                "ForceSendZDO(sender, zdo.m_uid)",
+                "MapDirectoryRefreshSeconds = 15f");
+            Contains(overlay, "TickMapDirectorySync(context, realtime)");
             Reject(source, "SetOwner(", "ClaimOwnership", "RequestOwnership");
         }
 

@@ -23,12 +23,12 @@ namespace RunicAwareness.Tests
                 File.ReadAllText(TestPaths.PluginFile("manifest.json")));
             JsonElement root = document.RootElement;
             TestAssert.Equal("RunicAwareness", root.GetProperty("name").GetString());
-            TestAssert.Equal("1.0.0", root.GetProperty("version_number").GetString());
+            TestAssert.Equal("1.0.2", root.GetProperty("version_number").GetString());
             string[] dependencies = root.GetProperty("dependencies")
                 .EnumerateArray().Select(value => value.GetString()).ToArray();
             TestAssert.Equal(1, dependencies.Length);
             TestAssert.True(dependencies.Contains(
-                "denikson-BepInExPack_Valheim-5.4.2333", StringComparer.Ordinal));
+                "denikson-BepInExPack_Valheim-5.4.2350", StringComparer.Ordinal));
             TestAssert.False(dependencies.Any(value =>
                 value != null && (value.Contains("Production", StringComparison.Ordinal) ||
                                   value.Contains("Storage", StringComparison.Ordinal) ||
@@ -40,7 +40,7 @@ namespace RunicAwareness.Tests
             string readme = File.ReadAllText(TestPaths.PluginFile("README.md"));
             foreach (string required in new[]
                      {
-                         "display-only", "0.221.12", "GetFoods()", "completed vanilla",
+                         "display-only", "GetFoods()", "completed vanilla",
                          "0.8 seconds", "5 seconds", "8,192", "10 m", "native hover text",
                          "never claims", "runtime-discovered", "No hidden enemy",
                          "Intentional MVP limits", "does not probe private",
@@ -90,8 +90,8 @@ namespace RunicAwareness.Tests
         {
             string changelog = File.ReadAllText(TestPaths.PluginFile("CHANGELOG.md"));
             string testing = File.ReadAllText(TestPaths.PluginFile("TESTING.md"));
-            TestAssert.Contains("## 1.0.0", changelog);
-            TestAssert.Contains("Runic Awareness 1.0.0", testing);
+            TestAssert.Contains("## 1.0.2", changelog);
+            TestAssert.Contains("Runic Awareness 1.0.2", testing);
             TestAssert.Contains("missing or incompatible optional Portals metadata hides cleanly", testing);
             TestAssert.Contains("interactive UI suppression", testing);
             TestAssert.Contains("left-middle", changelog);

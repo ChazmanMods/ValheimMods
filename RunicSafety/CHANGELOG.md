@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.0.5 - 2026-09-12
+
+- Added support for RunicInventory 1.1.2's separate item-use protection, allowing locked supplies to be cooked, used as fuel, smelted, or fermented.
+- Preserved equipped, quest-item, rare-item, external-provider, and disposal protections.
+
+## 1.0.4 - 2026-09-11
+
+- Fixed safeguards being disabled by the Valheim 1.0.12 version check. Retained Valheim 1.0.7 support.
+
+## 1.0.3 - 2026-09-10
+
+- Fixed optional Inventory protection API discovery remaining unavailable after an early startup lookup.
+
+## 1.0.2 - 2026-09-09
+
+- Added bounded, deterministic directory-source backups for Valheim 1.0's chunked world-save format.
+- Rejects reparse points, backup-root overlap, changing members, unsafe paths, and configured file/byte limits before promotion.
+- Re-audited the installed Valheim 1.0.7 assemblies and updated the BepInEx dependency to 5.4.2350.
+
+## 1.0.1 - 2026-09-05
+
+- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
+- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.0.0.
+
 ## 1.0.0
 
 - Kept context-keyed confirmations for occupied containers, vehicles, portal overwrites, and rare

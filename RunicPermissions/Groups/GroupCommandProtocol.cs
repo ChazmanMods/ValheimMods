@@ -17,7 +17,8 @@ namespace RunicPermissions.Groups
         Remove = 7,
         SetRole = 8,
         TransferOwnership = 9,
-        Delete = 10
+        Delete = 10,
+        Decline = 11
     }
 
     public sealed class GroupCommand

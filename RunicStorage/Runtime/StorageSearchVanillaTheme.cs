@@ -195,7 +195,8 @@ namespace RunicStorage.Runtime
         {
             Image best = null;
             int bestScore = int.MinValue;
-            ScoreImages(inventory.m_splitPanel, 180, ref best, ref bestScore);
+            ScoreImages(inventory.m_splitDialog != null ? inventory.m_splitDialog.transform : null,
+                180, ref best, ref bestScore);
             ScoreImages(inventory.m_textsDialog ? inventory.m_textsDialog.transform : null,
                 120, ref best, ref bestScore);
             ScoreImages(inventory.m_player, 80, ref best, ref bestScore);

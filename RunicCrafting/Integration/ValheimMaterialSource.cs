@@ -31,6 +31,10 @@ namespace RunicCrafting.Integration
         public string SourceId { get; }
         internal bool IsEligible => _eligibility();
 
+        internal bool TryStageOne(Inventory destination, string resource,
+            Func<ItemDrop.ItemData, bool> permitted, out string reason) =>
+            ManualItemTransfer.TryMoveOne(_inventory, destination, resource, _eligibility, permitted, out reason);
+
         public MaterialSourceSnapshot Snapshot()
         {
             var quantities = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -58,9 +62,9 @@ namespace RunicCrafting.Integration
                 remaining -= take;
             }
             if (remaining != 0) return false;
-            if (!ValheimReflection.CanRoundTripInventory(_inventory)) return false;
-
-            ZPackage inventoryBackup = ValheimReflection.SaveInventory(_inventory);
+            CraftingInventorySnapshot inventoryBackup;
+            try { inventoryBackup = new CraftingInventorySnapshot(_inventory); }
+            catch { return false; }
             try
             {
                 foreach (Removal removal in planned)
@@ -97,12 +101,12 @@ namespace RunicCrafting.Integration
         private sealed class InventoryRestoreToken : IMaterialRestoreToken
         {
             private readonly Inventory _inventory;
-            private readonly ZPackage _snapshot;
+            private readonly CraftingInventorySnapshot _snapshot;
             private bool _active = true;
 
             internal InventoryRestoreToken(
                 Inventory inventory,
-                ZPackage snapshot)
+                CraftingInventorySnapshot snapshot)
             {
                 _inventory = inventory;
                 _snapshot = snapshot;

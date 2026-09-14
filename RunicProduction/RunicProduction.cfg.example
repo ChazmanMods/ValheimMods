@@ -1,4 +1,4 @@
-## Runic Production 1.0.0 example configuration
+## Runic Production 1.0.7 example configuration
 ## Copy to BepInEx/config/chazman.RunicProduction.cfg while Valheim is closed.
 ## Each process applies its local values to exact objects it currently owns.
 

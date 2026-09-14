@@ -6,7 +6,7 @@ namespace QuietBuildRotation
 {
     internal static class Diagnostics
     {
-        internal const string AuditedValheimVersion = "0.221.12";
+        internal const string AuditedValheimVersion = "1.0.12";
         private static ManualLogSource _log;
         private static bool _adapterFailureLogged;
         private static bool _compatibilityWarningLogged;
@@ -64,7 +64,7 @@ namespace QuietBuildRotation
 
         internal static string GetValheimVersion()
         {
-            return AuditedValheimVersion;
+            return global::Version.CurrentVersion.ToString();
         }
     }
 }

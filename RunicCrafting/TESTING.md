@@ -1,4 +1,4 @@
-# Runic Crafting 1.0.0 verification
+# Runic Crafting 1.0.2 verification
 
 Run from the repository root:
 

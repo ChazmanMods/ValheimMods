@@ -70,9 +70,9 @@ namespace RunicProduction.Integration
     }
 
     /// <summary>
-    /// Compact local runtime. It never requests ownership, sends a mod RPC, or persists an
-    /// in-progress transfer. Every mutation is planned from exact snapshots and is attempted only
-    /// while the station and every participating Container are native local owners.
+    /// Explicit authorized setup may claim the selected pair using native ownership. Background
+    /// automation requests owner-approved chest handoff to the current station owner. Mutations
+    /// remain synchronous and require native ownership of every participating object.
     /// </summary>
     internal static class ProductionRuntime
     {
@@ -105,6 +105,7 @@ namespace RunicProduction.Integration
 
         internal static void Initialize()
         {
+            ProductionChestHandoff.Initialize();
             Stations.Clear();
             Selections.Clear();
             SafetyPausedStations.Clear();
@@ -121,6 +122,7 @@ namespace RunicProduction.Integration
 
         internal static void Shutdown()
         {
+            ProductionChestHandoff.Shutdown();
             _initialized = false;
             Stations.Clear();
             Selections.Clear();
@@ -213,6 +215,8 @@ namespace RunicProduction.Integration
 
         internal static void SeedLoadedStations()
         {
+            foreach (Container chest in UnityEngine.Object.FindObjectsByType<Container>(
+                         FindObjectsSortMode.None)) ProductionChestHandoff.Register(chest);
             foreach (Smelter station in UnityEngine.Object.FindObjectsByType<Smelter>(
                          FindObjectsSortMode.None)) Register(station);
             foreach (CookingStation station in
@@ -369,6 +373,14 @@ namespace RunicProduction.Integration
             if (entry?.Component == null || !ValheimAccess.IsNativeOwner(entry.Component))
                 return false;
             if (SafetyPausedStations.Contains(entry.Component.GetInstanceID())) return false;
+            // Warm every explicit role, including output, before the next native machine tick.
+            // Requests are bounded and asynchronous; unresolved chests never become inventories.
+            foreach (ProductionLinkRole role in new[] { ProductionLinkRole.Input, ProductionLinkRole.Fuel,
+                         ProductionLinkRole.Output, ProductionLinkRole.Replenishment })
+                foreach (StoredProductionLink link in RoleLinks(entry.Component, role))
+                    if (TryReadAuthorizedEndpoint(entry.Component, link, true,
+                            out Container chest, out _, out _))
+                        ProductionChestHandoff.TryAcquire(entry.Component, chest, link.OwnerId);
             TryActivatePendingReplenishment(entry);
             switch (entry.Kind)
             {
@@ -392,7 +404,6 @@ namespace RunicProduction.Integration
             if (station?.Component == null ||
                 !StationSupportsRole(station.Kind, ProductionLinkRole.Replenishment)) return;
             ZDO stationZdo = ValheimAccess.Zdo(station.Component);
-            Player actor = Player.m_localPlayer;
             string stationId = ValheimAccess.StableId(station.Component);
             StoredRecordState planState = MultiReplenishmentRuntimeSupport.ReadOrMigrate(
                 stationZdo,
@@ -404,7 +415,6 @@ namespace RunicProduction.Integration
                 !TryReadOrMigrateReplenishmentRoleLinks(
                     station.Component,
                     plans,
-                    actor,
                     out ProductionRoleLinkCatalog links)) return;
             // The role catalog is the authoritative user-visible link set. A stale signed plan
             // that is not present here is inert and must never resurrect orphan automation.
@@ -417,10 +427,10 @@ namespace RunicProduction.Integration
                     current.Plan.AuthorizedPlayerId == link.OwnerId;
                 long principalId = storedPrincipalMatches
                     ? current.Plan.AuthorizedPlayerId
-                    : actor?.GetPlayerID() ?? 0L;
+                    : link.OwnerId;
                 string principalName = storedPrincipalMatches
                     ? current.Plan.AuthorizedPlayerName
-                    : actor?.GetPlayerName() ?? string.Empty;
+                    : "Production link " + link.OwnerId;
                 if (principalId == 0L || principalId != link.OwnerId ||
                     string.IsNullOrWhiteSpace(principalName)) continue;
                 if (!TryResolveEndpoint(
@@ -463,7 +473,6 @@ namespace RunicProduction.Integration
         private static bool TryReadOrMigrateReplenishmentRoleLinks(
             Component station,
             MultiReplenishmentCatalog plans,
-            Player actor,
             out ProductionRoleLinkCatalog links)
         {
             links = null;
@@ -475,7 +484,6 @@ namespace RunicProduction.Integration
             if (state == StoredRecordState.Valid) return links != null;
             if (state == StoredRecordState.Invalid) return false;
 
-            long liveActorId = actor?.GetPlayerID() ?? 0L;
             var candidates = new List<StoredProductionLink>();
             StoredProductionLink singleton = ProductionLinkStore.Load(
                 stationZdo, ProductionLinkRole.Replenishment);
@@ -501,7 +509,7 @@ namespace RunicProduction.Integration
                         value.Link,
                         candidate.TargetToken,
                         candidate.TargetPrefabHash));
-                long authorizedId = signed?.Plan?.AuthorizedPlayerId ?? liveActorId;
+                long authorizedId = signed?.Plan?.AuthorizedPlayerId ?? candidate?.OwnerId ?? 0L;
                 if (candidate == null || candidate.OwnerId != authorizedId ||
                     !TryResolveEndpoint(
                         station,
@@ -596,18 +604,24 @@ namespace RunicProduction.Integration
                         out _)) continue;
                 int before = ValheimAccess.QueueSize(station);
                 string tail = ValheimAccess.QueueTail(station, before);
+                bool cheatedBefore = ValheimAccess.SmelterQueuedCheated(station);
                 if (!ApplySourceToStation(
                         station,
                         source,
                         transition,
-                        () => ValheimAccess.QueueOre(station, prefab),
-                        () => ValheimAccess.RestoreQueueTail(station, before, tail),
+                        () => ValheimAccess.QueueOre(
+                            station, prefab, transition.ConsumedCheated),
+                        () => ValheimAccess.RestoreQueueTail(
+                            station, before, tail, cheatedBefore),
                         () => ValheimAccess.QueueSize(station) == before &&
                               string.Equals(
                                   ValheimAccess.QueueTail(station, before),
                                   tail,
-                                  StringComparison.Ordinal),
-                        () => ValheimAccess.QueueSize(station) == before + 1))
+                                  StringComparison.Ordinal) &&
+                              ValheimAccess.SmelterQueuedCheated(station) == cheatedBefore,
+                        () => ValheimAccess.QueueSize(station) == before + 1 &&
+                              ValheimAccess.SmelterQueuedCheated(station) ==
+                              transition.ConsumedCheated))
                     continue;
                 Stop(station, ProductionStopCode.Ready, "pulled " + prefab);
                 return true;
@@ -715,7 +729,8 @@ namespace RunicProduction.Integration
             {
                 ValheimAccess.GetCookingSlot(
                     station, slot,
-                    out string item, out float elapsed, out CookingSlotStatus status);
+                    out string item, out float elapsed, out CookingSlotStatus status,
+                    out bool cheated);
                 if (string.IsNullOrEmpty(item) ||
                     status != CookingSlotStatus.Done &&
                     status != CookingSlotStatus.Burnt) continue;
@@ -726,7 +741,8 @@ namespace RunicProduction.Integration
                         1,
                         ReplenishmentProducerKind.TimedCooking,
                         out ProductionDestination destination)) continue;
-                var output = new StockOutputDefinition(item, 1, 1, 0, 0L, string.Empty);
+                var output = new StockOutputDefinition(
+                    item, 1, 1, 0, 0L, string.Empty, cheated);
                 if (!ExactStockInventoryMutation.TryPrepareDestination(
                         destination.Endpoint.Inventory,
                         output,
@@ -740,9 +756,9 @@ namespace RunicProduction.Integration
                             station, slot, string.Empty, 0f,
                             CookingSlotStatus.NotDone),
                         () => ValheimAccess.SetCookingSlot(
-                            station, slot, item, elapsed, status),
+                            station, slot, item, elapsed, status, cheated),
                         () => CookingSlotMatches(
-                            station, slot, item, elapsed, status),
+                            station, slot, item, elapsed, status, cheated),
                         () => CookingSlotIsEmpty(station, slot))) continue;
                 AdvanceDestination(ValheimAccess.Zdo(station), destination);
                 Stop(station, ProductionStopCode.Ready, "stored " + item);
@@ -852,14 +868,16 @@ namespace RunicProduction.Integration
                             transition,
                             () => ValheimAccess.SetCookingSlot(
                                 station, slot, prefab, 0f,
-                                CookingSlotStatus.NotDone),
+                                CookingSlotStatus.NotDone,
+                                transition.ConsumedCheated),
                             () => ValheimAccess.SetCookingSlot(
                                 station, slot, string.Empty, 0f,
                                 CookingSlotStatus.NotDone),
                             () => CookingSlotIsEmpty(station, slot),
                             () => CookingSlotMatches(
                                 station, slot, prefab,
-                                CookingSlotStatus.NotDone))) return true;
+                                CookingSlotStatus.NotDone,
+                                transition.ConsumedCheated))) return true;
                 }
             }
             return false;
@@ -908,18 +926,6 @@ namespace RunicProduction.Integration
                     !ReplenishmentNeedsStock(target.OutputPrefabId, currentOutput, 0))
                     continue;
 
-                var output = new StockOutputDefinition(
-                    target.OutputPrefabId,
-                    target.OutputAmount,
-                    1,
-                    0,
-                    target.AuthorizedPlayerId,
-                    target.AuthorizedPlayerName);
-                if (!ExactStockInventoryMutation.TryPrepareDestination(
-                        destination.Inventory,
-                        output,
-                        out StockInventoryTransition destinationTransition,
-                        out _)) continue;
                 List<ProductionEndpoint> inputs = ResolveRecipeInputs(
                         station,
                         destination,
@@ -932,6 +938,19 @@ namespace RunicProduction.Integration
                         target.Requirements,
                         _ingredientReserves,
                         out ExactStockCompositeSourcePlan sourcePlan,
+                        out _)) continue;
+                var output = new StockOutputDefinition(
+                    target.OutputPrefabId,
+                    target.OutputAmount,
+                    1,
+                    0,
+                    target.AuthorizedPlayerId,
+                    target.AuthorizedPlayerName,
+                    sourcePlan.ConsumedCheated && !ValheimAccess.BypassCheatChecks);
+                if (!ExactStockInventoryMutation.TryPrepareDestination(
+                        destination.Inventory,
+                        output,
+                        out StockInventoryTransition destinationTransition,
                         out _) ||
                     !ApplyCompositeSourcesToDestination(
                         station,
@@ -987,13 +1006,13 @@ namespace RunicProduction.Integration
             {
                 Container container = candidate.Container;
                 if (container == null || ReferenceEquals(container, destination?.Container) ||
-                    !NearbyIngredientContainerIndex.IsStaticNonWagon(container) ||
-                    !ValheimAccess.IsNativeOwner(container)) continue;
+                    !NearbyIngredientContainerIndex.IsStaticNonWagon(container)) continue;
                 ZDO zdo = ValheimAccess.Zdo(container);
                 if (zdo == null || protectedDestinations.Contains(zdo.m_uid) ||
                     !seen.Add(zdo.m_uid) ||
                     !ValheimAccess.ContainerAllows(container, actorId) ||
                     !ValheimAccess.WardAllows(container.transform.position, actorId) ||
+                    !ProductionChestHandoff.TryAcquire(station, container, actorId) ||
                     !ValheimAccess.TrySynchronizeLocallyOwnedContainer(
                         container, out Inventory inventory)) continue;
                 yield return new ProductionEndpoint
@@ -1058,7 +1077,8 @@ namespace RunicProduction.Integration
                 1,
                 0,
                 0L,
-                string.Empty);
+                string.Empty,
+                ValheimAccess.FermenterOutputCheated(station));
             if (!ExactStockInventoryMutation.TryPrepareDestination(
                     destination.Endpoint.Inventory,
                     output,
@@ -1072,10 +1092,11 @@ namespace RunicProduction.Integration
                         station, string.Empty, 0L),
                     () => state.Apply(station),
                     () => FermenterStateMatches(
-                        station, state.InputPrefabId, state.StartTicks),
+                        station, state.InputPrefabId, state.StartTicks, state.Cheated),
                     () => string.IsNullOrEmpty(
                         ValheimAccess.FermenterContent(station)) &&
-                          ValheimAccess.FermenterStartTicks(station) == 0L)) return false;
+                          ValheimAccess.FermenterStartTicks(station) == 0L &&
+                          !ValheimAccess.FermenterCheated(station))) return false;
             AdvanceDestination(ValheimAccess.Zdo(station), destination);
             Stop(station, ProductionStopCode.Ready,
                 "stored " + conversion.OutputPrefabId);
@@ -1129,7 +1150,7 @@ namespace RunicProduction.Integration
                             source,
                             transition,
                             () => ValheimAccess.SetFermenterState(
-                                station, prefab, ticks),
+                                station, prefab, ticks, transition.ConsumedCheated),
                             () => ValheimAccess.SetFermenterState(
                                 station, string.Empty, 0L),
                             () => FermenterStateMatches(
@@ -1138,7 +1159,9 @@ namespace RunicProduction.Integration
                                       ValheimAccess.FermenterContent(station),
                                       prefab,
                                       StringComparison.Ordinal) &&
-                                  ValheimAccess.FermenterStartTicks(station) == ticks))
+                                  ValheimAccess.FermenterStartTicks(station) == ticks &&
+                                  ValheimAccess.FermenterCheated(station) ==
+                                  transition.ConsumedCheated))
                         return true;
                 }
             }
@@ -1163,7 +1186,8 @@ namespace RunicProduction.Integration
                 : ValheimAccess.PrefabName(conversion.m_to.gameObject);
             if (!StockDomainValidation.IsExactPrefabId(outputPrefab)) return false;
             var output = new StockOutputDefinition(
-                outputPrefab, amount, 1, 0, 0L, string.Empty);
+                outputPrefab, amount, 1, 0, 0L, string.Empty,
+                ValheimAccess.SmelterOutputCheated(station));
             foreach (ProductionEndpoint destination in ResolveRoleEndpoints(
                          station, ProductionLinkRole.Output))
             {
@@ -1239,11 +1263,12 @@ namespace RunicProduction.Integration
                 ProductionLinkGesturePolicy.RequestedRole(button);
             ProductionLinkRole role = RefineInputRoleForTarget(
                 station, stationTarget, requested);
-            if (!ValheimAccess.IsNativeOwner(station.Component))
-            {
-                detail = "This process is not the station's current native owner.";
-                return true;
-            }
+            if (player != Player.m_localPlayer || !player.IsOwner() ||
+                ValheimAccess.Zdo(station.Component) == null ||
+                !ValheimAccess.ComponentWithinReach(station.Component, player.transform.position,
+                    Mathf.Clamp(player.m_maxInteractDistance, 1f, 10f)) ||
+                !ValheimAccess.WardAllows(station.Component.transform.position, playerId))
+                return Fail("The station is out of reach or ward access is denied.", out detail);
             if (!StationSupportsRole(station.Kind, role) ||
                 !ValidateStation(station, out detail))
             {
@@ -1294,16 +1319,12 @@ namespace RunicProduction.Integration
             out string detail)
         {
             detail = string.Empty;
-            if (selection == null || selection.Station?.Component == null ||
+            if (player == null || player != Player.m_localPlayer || !player.IsOwner() ||
+                selection == null || selection.Station?.Component == null ||
                 selection.ExpiresAt < Time.realtimeSinceStartup ||
                 selection.PlayerId != player.GetPlayerID())
                 return Fail("The production link selection expired.", out detail);
             Component station = selection.Station.Component;
-            if (!ValheimAccess.IsNativeOwner(station) ||
-                !ValheimAccess.IsNativeOwner(container))
-                return Fail(
-                    "The station and chest must both be owned by this local process.",
-                    out detail);
             ZDO stationZdo = ValheimAccess.Zdo(station);
             ZDO targetZdo = ValheimAccess.Zdo(container);
             if (stationZdo == null || targetZdo == null ||
@@ -1325,8 +1346,13 @@ namespace RunicProduction.Integration
                 !ValheimAccess.WardAllows(stationPosition, actorId) ||
                 !ValheimAccess.WardAllows(targetPosition, actorId))
                 return Fail("Vanilla chest or ward access denied this link.", out detail);
-            if (!ValheimAccess.ContainerWritable(container) ||
-                !ValheimAccess.TrySynchronizeLocallyOwnedContainer(
+            if (!StationSupportsRole(selection.Station.Kind, selection.Role) ||
+                !ValidateStation(selection.Station, out detail))
+                return Fail("The selected station no longer supports this production role. " + detail, out detail);
+            if (!ValheimAccess.TryPrepareLinkOwnership(
+                    player, station, stationZdo, container, targetZdo, LinkRange, out detail))
+                return false;
+            if (!ValheimAccess.TrySynchronizeLocallyOwnedContainer(
                     container, out Inventory inventory))
                 return Fail("The chest is busy or not synchronized.", out detail);
             if (!ProductionEndpointIdentity.TryCaptureCurrentTarget(
@@ -1838,41 +1864,55 @@ namespace RunicProduction.Integration
                 !ValheimAccess.IsNativeOwner(station))
                 return Fail("The station is not a native local owner.", out failure);
 
+            if (!TryReadAuthorizedEndpoint(station, link, singleton,
+                    out Container container, out ZDO targetZdo, out failure)) return false;
+            if (!ProductionChestHandoff.TryAcquire(station, container, link.OwnerId))
+                return Fail("Waiting for the linked chest's current owner to hand it over.", out failure);
+            if (string.IsNullOrEmpty(link.TargetToken))
+            {
+                if (!ProductionEndpointIdentity.TryGetOrEnsureToken(
+                        ValheimAccess.View(container), out string token) ||
+                    !ProductionLinkStore.TryUpgradeResolvedTarget(
+                        ValheimAccess.Zdo(station), link, targetZdo, token, targetZdo.GetPrefab(),
+                        out StoredProductionLink upgraded))
+                    return Fail("The legacy chest identity could not be upgraded.", out failure);
+                link = upgraded;
+            }
+            if (!ValheimAccess.TrySynchronizeLocallyOwnedContainer(container, out Inventory inventory))
+                return Fail("The exact chest is busy or not synchronized.", out failure);
+            endpoint = new ProductionEndpoint
+            {
+                Link = link, Container = container, Zdo = targetZdo, Inventory = inventory
+            };
+            return true;
+        }
+
+        // Read-only access proof, shared by the requester and the current chest owner.
+        // It never resolves authorization from a caller-supplied player name or presence.
+        private static bool TryReadAuthorizedEndpoint(Component station, StoredProductionLink link,
+            bool allowLegacy, out Container container, out ZDO targetZdo, out string failure)
+        {
+            container = null;
+            targetZdo = null;
+            failure = string.Empty;
+            if (station == null || link == null || link.OwnerId == 0L) return false;
             ProductionIdentityStatus status = ProductionEndpointIdentity.ResolveStable(
-                link, out Container container, out ZDO targetZdo,
+                link, out container, out targetZdo,
                 out string identityFailure);
-            if (status == ProductionIdentityStatus.Missing && singleton &&
+            if (status == ProductionIdentityStatus.Missing && allowLegacy &&
                 ProductionEndpointIdentity.TryResolveUniqueLegacyTarget(
                     link, out container, out targetZdo, out identityFailure))
-            {
-                ZNetView legacyView = ValheimAccess.View(container);
-                if (legacyView != null && legacyView.IsValid() && legacyView.IsOwner() &&
-                    ProductionEndpointIdentity.TryGetOrEnsureToken(
-                        legacyView, out string token) &&
-                    ProductionLinkStore.TryUpgradeResolvedTarget(
-                        ValheimAccess.Zdo(station),
-                        link,
-                        targetZdo,
-                        token,
-                        targetZdo.GetPrefab(),
-                        out StoredProductionLink upgraded))
-                {
-                    link = upgraded;
-                    status = ProductionEndpointIdentity.ResolveStable(
-                        link, out container, out targetZdo,
-                        out identityFailure);
-                }
-            }
+                status = ProductionIdentityStatus.Ready;
             if (status != ProductionIdentityStatus.Ready || container == null ||
                 targetZdo == null)
                 return Fail(identityFailure, out failure);
 
             ZNetView targetView = ValheimAccess.View(container);
             ZDO stationZdo = ValheimAccess.Zdo(station);
-            if (targetView == null || !targetView.IsValid() || !targetView.IsOwner() ||
+            if (targetView == null || !targetView.IsValid() ||
                 stationZdo == null)
                 return Fail(
-                    "The exact chest is not a native local owner.", out failure);
+                    "The exact chest or station is unavailable.", out failure);
             Vector3 stationPosition = stationZdo.GetPosition();
             Vector3 currentPosition = targetZdo.GetPosition();
             float tolerance = Mathf.Clamp(
@@ -1893,18 +1933,51 @@ namespace RunicProduction.Integration
                 !ValheimAccess.WardAllows(stationPosition, link.OwnerId) ||
                 !ValheimAccess.WardAllows(currentPosition, link.OwnerId))
                 return Fail("Current vanilla chest or ward access denies automation.", out failure);
-            if (!NearbyIngredientContainerIndex.IsStaticNonWagon(container) ||
-                !ValheimAccess.TrySynchronizeLocallyOwnedContainer(
-                    container, out Inventory inventory))
-                return Fail("The exact chest is busy or not synchronized.", out failure);
-            endpoint = new ProductionEndpoint
-            {
-                Link = link,
-                Container = container,
-                Zdo = targetZdo,
-                Inventory = inventory
-            };
-            return true;
+            return NearbyIngredientContainerIndex.IsStaticNonWagon(container);
+        }
+
+        internal static Component FindStation(ZDOID id)
+        {
+            GameObject root = ZNetScene.instance?.FindInstance(id);
+            if (root == null) return null;
+            foreach (Component candidate in root.GetComponentsInChildren<Component>())
+                if ((candidate is Smelter || candidate is CookingStation ||
+                     candidate is CraftingStation || candidate is Fermenter || candidate is Fireplace) &&
+                    ValheimAccess.Zdo(candidate)?.m_uid == id) return candidate;
+            return null;
+        }
+
+        internal static bool AuthorizesChest(Component station, Container chest, long principal)
+        {
+            if (station == null || chest == null || principal == 0L ||
+                !station.gameObject.activeInHierarchy || !chest.isActiveAndEnabled ||
+                !NearbyIngredientContainerIndex.IsStaticNonWagon(chest)) return false;
+            foreach (ProductionLinkRole role in new[] { ProductionLinkRole.Input,
+                         ProductionLinkRole.Fuel, ProductionLinkRole.Output, ProductionLinkRole.Replenishment })
+                foreach (StoredProductionLink link in RoleLinks(station, role))
+                    if (link.OwnerId == principal &&
+                        TryReadAuthorizedEndpoint(station, link, true, out Container target, out _, out _) &&
+                        ReferenceEquals(target, chest)) return true;
+
+            // Nearby recipe inputs use an existing input/replenishment link's principal;
+            // they cannot invent an authorization or borrow an unrelated output/fuel link.
+            if (!(ProductionConfig.RecipeNearbyIngredientsEnabled?.Value ?? false) ||
+                !(station is CraftingStation || station is CookingStation || station is Fermenter)) return false;
+            ZDO stationZdo = ValheimAccess.Zdo(station);
+            ZDO chestZdo = ValheimAccess.Zdo(chest);
+            if (stationZdo == null || chestZdo == null ||
+                ProtectedDestinationIds(station).Contains(chestZdo.m_uid)) return false;
+            bool authorized = false;
+            foreach (ProductionLinkRole role in new[] { ProductionLinkRole.Input, ProductionLinkRole.Replenishment })
+                foreach (StoredProductionLink link in RoleLinks(station, role))
+                    if (link.OwnerId == principal && TryReadAuthorizedEndpoint(
+                            station, link, true, out _, out _, out _)) authorized = true;
+            Vector3 source = stationZdo.GetPosition();
+            Vector3 targetPosition = chestZdo.GetPosition();
+            return authorized && ValheimAccess.IsFinite(source) && ValheimAccess.IsFinite(targetPosition) &&
+                (source - targetPosition).sqrMagnitude <= LinkRange * LinkRange &&
+                ValheimAccess.ContainerAllows(chest, principal) &&
+                ValheimAccess.WardAllows(source, principal) && ValheimAccess.WardAllows(targetPosition, principal);
         }
 
         private static bool TrySelectPlannedDestination(
@@ -2447,18 +2520,20 @@ namespace RunicProduction.Integration
         {
             ValheimAccess.GetCookingSlot(
                 station, slot, out string item, out float elapsed,
-                out CookingSlotStatus status);
+                out CookingSlotStatus status, out bool cheated);
             return string.IsNullOrEmpty(item) && elapsed == 0f &&
-                   status == CookingSlotStatus.NotDone;
+                   status == CookingSlotStatus.NotDone && !cheated;
         }
 
         private static bool CookingSlotMatches(
             CookingStation station,
             int slot,
             string item,
-            CookingSlotStatus expected)
+            CookingSlotStatus expected,
+            bool expectedCheated = false)
         {
-            return CookingSlotMatches(station, slot, item, 0f, expected);
+            return CookingSlotMatches(
+                station, slot, item, 0f, expected, expectedCheated);
         }
 
         private static bool CookingSlotMatches(
@@ -2466,25 +2541,29 @@ namespace RunicProduction.Integration
             int slot,
             string item,
             float expectedElapsed,
-            CookingSlotStatus expected)
+            CookingSlotStatus expected,
+            bool expectedCheated = false)
         {
             ValheimAccess.GetCookingSlot(
                 station, slot, out string current, out float elapsed,
-                out CookingSlotStatus status);
+                out CookingSlotStatus status, out bool cheated);
             return string.Equals(current, item, StringComparison.Ordinal) &&
-                   elapsed == expectedElapsed && status == expected;
+                   elapsed == expectedElapsed && status == expected &&
+                   cheated == expectedCheated;
         }
 
         private static bool FermenterStateMatches(
             Fermenter station,
             string expectedContent,
-            long expectedStartTicks)
+            long expectedStartTicks,
+            bool expectedCheated = false)
         {
             return string.Equals(
                        ValheimAccess.FermenterContent(station),
                        expectedContent,
                        StringComparison.Ordinal) &&
-                   ValheimAccess.FermenterStartTicks(station) == expectedStartTicks;
+                   ValheimAccess.FermenterStartTicks(station) == expectedStartTicks &&
+                   ValheimAccess.FermenterCheated(station) == expectedCheated;
         }
 
         private static bool ValidateStation(

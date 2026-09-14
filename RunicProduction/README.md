@@ -1,11 +1,32 @@
-# Runic Production 1.0.0
+# Runic Production 1.0.7
 
-Runic Production adds explicit chest automation for Valheim smelters, cooking stations, supported
-recipe stations, fermenters, refillable fires, and fuel-burning lamps. It keeps Valheim's normal
-station state and container inventories as the gameplay owners of that data.
+Automate your base without replacing Valheim's machines. Link chests to smelters, ovens,
+fermenters, production stations, fires, and lamps for automatic ingredients, fuel, output
+collection, and stock replenishment. Chain stations together to create complete production
+workflows using the containers and machines already in your base.
 
-The mod is independently installable. Its only runtime requirement is BepInExPack Valheim
-5.4.2333. It does not require another Runic mod or a shared Runic library.
+Your stations still do the work and consume the normal materials. Runic Production simply moves
+eligible resources through explicit links you create, letting an ore chest feed a smelter, a fuel
+chest keep it running, and an output chest supply the next stage of your production line.
+
+## Highlights
+
+- Link multiple Input, Fuel Input, Output, or Replenishment chests to supported stations.
+- Build connected workflows such as a mead ketill feeding a chest that supplies fermenters.
+- Keep fires and lamps fueled from linked containers using their normal fuel items.
+- Stock chosen food, mead-base, cooking, or fermentation outputs by placing physical examples in a
+  Replenishment chest.
+- Let supported cooking and recipe stations draw ingredients from eligible nearby storage.
+
+## Safety and compatibility
+
+Runic Production keeps Valheim's normal station state and container inventories as the gameplay
+owners of that data. The mod is independently installable; its only runtime requirement is
+BepInExPack Valheim 5.4.2350, with no shared Runic library required.
+
+For multiplayer, install the same version on the server/host and every player's client. Existing
+links remain in place; the player who configured them does not need to remain nearby or online.
+Keep Production enabled on the machines participating in the session.
 
 ## Supported links
 
@@ -42,7 +63,7 @@ does not copy, rename, or guess an item.
 ## Linking controls
 
 Start a link while pointing anywhere at the station. Hold Alt and click the role's mouse button,
-then point at the desired chest and repeat that exact Alt+mouse gesture within 30 seconds. Either
+release the mouse button, then point at the desired chest and repeat that exact Alt+mouse gesture within 30 seconds. Either
 Alt key works; Ctrl is deliberately excluded. The accepted click is consumed so it cannot also
 attack, block, open the build menu, remove a piece, or perform a secondary attack.
 
@@ -78,10 +99,10 @@ count below `Replenishment Stock.DefaultReserve` triggers production; exact-pref
 available in `PrefabReserves`. The single default soft limit is eight chests per station role and
 the hard limit is sixteen, with at most thirty-two authorized target types.
 
-A link is accepted only when the station and chest are loaded and currently owned by the same local
-process, the player can reach the chest, both endpoints are inside the configured link range,
-Valheim chest and ward access allow the player, and the target is a static non-wagon container.
-The same checks are repeated before use.
+A link requires loaded endpoints, player reach, the configured link range, Valheim chest and ward
+access, and a static non-wagon container. During explicit link setup, the mod requests native
+ownership when needed and verifies that both endpoints are locally owned before committing the link.
+Background automation does not claim ownership; it repeats the access and ownership checks before use.
 
 ## Replenishment behavior
 
@@ -117,11 +138,18 @@ operation cap. Unloaded time never creates catch-up recipe batches or fuel servi
 
 ## Ownership and failure behavior
 
-Production acts only while the exact loaded station and every participating chest are native local
-owners. It never claims or transfers ownership and has no custom network RPC. This works in solo,
-on a listen host, and on a dedicated-server client or server whenever Valheim has colocated current
-ownership of the required objects. If ownership is split, a chest is open or unsynchronized, an
-endpoint is unloaded, access changes, or a proof no longer matches, that station simply pauses.
+Any player with normal chest and ward access can create or remove Production links; being the
+builder, an administrator, or the existing network owner is not required. Select the station,
+then repeat the matching gesture on a closed chest within range. Completing the link uses native
+ownership claims for that selected station and chest, rechecks access, and reloads the chest's
+saved contents before publishing the link. Selecting a station alone does not claim it.
+
+Background production follows the station's current network owner. When its linked chests belong
+to another peer, Production requests a handoff from that chest's current owner, rechecks the saved
+link and current chest/ward access, and waits for the synchronized inventory before moving items.
+Shared chests are serviced in turn. Open chests are left alone and service resumes after they close.
+Unloaded stations do not run automation; a loaded station may also pause while access is denied or
+its chest is unavailable. No new link setup is needed after a normal ownership handoff.
 
 Ordinary transfers have no persistent operation journal, global inventory lock, account state, or
 recovery loop. A multi-object mutation uses exact before/after snapshots, publishes each chest's
@@ -155,9 +183,12 @@ documents link distance, moved-target tolerance, reserves, exact prefab allow/de
 nearby discovery, the single per-role chest limit, scheduler bounds, UI hints, and diagnostics. Deny entries override
 allow entries. Lowering a bound does not erase existing links.
 
-Install BepInExPack Valheim 5.4.2333, then place `RunicProduction.dll` under
-`BepInEx/plugins/RunicProduction/`. Version 1.0.0 is audited against Valheim 0.221.12.
+Install BepInExPack Valheim 5.4.2350, then place `RunicProduction.dll` under
+`BepInEx/plugins/RunicProduction/`. Version 1.0.6 supports Valheim 1.0.7 and 1.0.12.
 
-Community: https://discord.gg/7HKHTCdFqY
+When updating manually, replace the existing DLL instead of keeping multiple copies. Restart
+Valheim after updating; existing configuration and saved links are retained.
+
+Community: [Runic Mods Discord](https://discord.gg/7HKHTCdFqY)
 
 Runic Production is an independent mod and is not affiliated with Iron Gate Studio.

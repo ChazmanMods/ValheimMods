@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
+using RunicProduction.Core;
 using UnityEngine;
 
 namespace RunicProduction.Integration
@@ -23,6 +24,10 @@ namespace RunicProduction.Integration
 
     internal static class ValheimAccess
     {
+        private static readonly Func<bool> ReadBypassCheatChecks =
+            NativeCheatChecks.CreateReader(typeof(PlayerProfile));
+        internal static bool BypassCheatChecks => ReadBypassCheatChecks();
+
         private delegate bool PlayerInputDelegate(Player player);
 
         private static readonly AccessTools.FieldRef<Smelter, ZNetView> SmelterView =
@@ -43,7 +48,7 @@ namespace RunicProduction.Integration
         private static readonly MethodInfo QueueSizeMethod =
             RequiredMethod(typeof(Smelter), "GetQueueSize");
         private static readonly MethodInfo QueueOreMethod =
-            RequiredMethod(typeof(Smelter), "QueueOre", typeof(string));
+            RequiredMethod(typeof(Smelter), "QueueOre", typeof(string), typeof(bool));
         private static readonly MethodInfo FuelMethod =
             RequiredMethod(typeof(Smelter), "GetFuel");
         private static readonly MethodInfo SetFuelMethod =
@@ -57,10 +62,10 @@ namespace RunicProduction.Integration
         private static readonly MethodInfo CookingGetSlotMethod = RequiredMethod(
             typeof(CookingStation), "GetSlot", typeof(int),
             typeof(string).MakeByRefType(), typeof(float).MakeByRefType(),
-            CookingStatusType.MakeByRefType());
+            CookingStatusType.MakeByRefType(), typeof(bool).MakeByRefType());
         private static readonly MethodInfo CookingSetSlotMethod = RequiredMethod(
             typeof(CookingStation), "SetSlot", typeof(int), typeof(string),
-            typeof(float), CookingStatusType);
+            typeof(float), CookingStatusType, typeof(bool));
         private static readonly MethodInfo CookingGetFuelMethod =
             RequiredMethod(typeof(CookingStation), "GetFuel");
         private static readonly MethodInfo CookingSetFuelMethod =
@@ -209,8 +214,23 @@ namespace RunicProduction.Integration
         internal static int QueueSize(Smelter station) =>
             (int)QueueSizeMethod.Invoke(station, null);
 
-        internal static void QueueOre(Smelter station, string prefabName) =>
-            QueueOreMethod.Invoke(station, new object[] { prefabName });
+        internal static void QueueOre(
+            Smelter station,
+            string prefabName,
+            bool cheated) =>
+            QueueOreMethod.Invoke(station, new object[] { prefabName, cheated });
+
+        internal static bool SmelterQueuedCheated(Smelter station) =>
+            Zdo(station)?.GetBool(ZDOVars.s_cheatedQueued, false) ?? false;
+
+        internal static bool SmelterOutputCheated(Smelter station)
+        {
+            ZDO zdo = Zdo(station);
+            return zdo != null &&
+                   (zdo.GetBool(ZDOVars.s_cheatedQueued, false) ||
+                    zdo.GetBool(ZDOVars.s_cheated, false)) &&
+                   !BypassCheatChecks;
+        }
 
         internal static float Fuel(Smelter station) =>
             (float)FuelMethod.Invoke(station, null);
@@ -230,12 +250,14 @@ namespace RunicProduction.Integration
         internal static void RestoreQueueTail(
             Smelter station,
             int previousCount,
-            string previousValue)
+            string previousValue,
+            bool previousCheated)
         {
             ZDO zdo = Zdo(station) ??
                       throw new InvalidOperationException("Smelter ZDO is unavailable.");
             zdo.Set("item" + previousCount, previousValue ?? string.Empty);
             zdo.Set(ZDOVars.s_queued, Math.Max(0, previousCount), false);
+            zdo.Set(ZDOVars.s_cheatedQueued, previousCheated);
         }
 
         internal static void GetCookingSlot(
@@ -245,14 +267,27 @@ namespace RunicProduction.Integration
             out float elapsed,
             out CookingSlotStatus status)
         {
+            GetCookingSlot(
+                station, slot, out item, out elapsed, out status, out _);
+        }
+
+        internal static void GetCookingSlot(
+            CookingStation station,
+            int slot,
+            out string item,
+            out float elapsed,
+            out CookingSlotStatus status,
+            out bool cheated)
+        {
             object[] values =
             {
-                slot, string.Empty, 0f, Enum.ToObject(CookingStatusType, 0)
+                slot, string.Empty, 0f, Enum.ToObject(CookingStatusType, 0), false
             };
             CookingGetSlotMethod.Invoke(station, values);
             item = values[1] as string ?? string.Empty;
             elapsed = (float)values[2];
             status = (CookingSlotStatus)Convert.ToInt32(values[3]);
+            cheated = (bool)values[4];
         }
 
         internal static void SetCookingSlot(
@@ -260,14 +295,16 @@ namespace RunicProduction.Integration
             int slot,
             string item,
             float elapsed,
-            CookingSlotStatus status)
+            CookingSlotStatus status,
+            bool cheated = false)
         {
             CookingSetSlotMethod.Invoke(station, new[]
             {
                 (object)slot,
                 item ?? string.Empty,
                 elapsed,
-                Enum.ToObject(CookingStatusType, (int)status)
+                Enum.ToObject(CookingStatusType, (int)status),
+                cheated
             });
             ZNetView view = View(station);
             if (view != null && view.IsValid())
@@ -290,10 +327,23 @@ namespace RunicProduction.Integration
         internal static long FermenterStartTicks(Fermenter station) =>
             Zdo(station)?.GetLong(ZDOVars.s_startTime, 0L) ?? 0L;
 
+        internal static bool FermenterCheated(Fermenter station) =>
+            Zdo(station)?.GetBool(ZDOVars.s_cheatedQueued, false) ?? false;
+
+        internal static bool FermenterOutputCheated(Fermenter station)
+        {
+            ZDO zdo = Zdo(station);
+            return zdo != null &&
+                   (zdo.GetBool(ZDOVars.s_cheatedQueued, false) ||
+                    zdo.GetBool(ZDOVars.s_cheated, false)) &&
+                   !BypassCheatChecks;
+        }
+
         internal static void SetFermenterState(
             Fermenter station,
             string content,
-            long startTicks)
+            long startTicks,
+            bool cheated = false)
         {
             ZDO zdo = Zdo(station) ??
                       throw new InvalidOperationException("Fermenter ZDO is unavailable.");
@@ -302,11 +352,13 @@ namespace RunicProduction.Integration
             {
                 zdo.Set(ZDOVars.s_content, string.Empty);
                 zdo.Set(ZDOVars.s_startTime, 0L);
+                zdo.Set(ZDOVars.s_cheatedQueued, false);
                 return;
             }
             if (startTicks <= 0L) throw new ArgumentOutOfRangeException(nameof(startTicks));
             zdo.Set(ZDOVars.s_content, exact);
             zdo.Set(ZDOVars.s_startTime, startTicks);
+            zdo.Set(ZDOVars.s_cheatedQueued, cheated);
         }
 
         internal static bool FermenterCovered(Fermenter station) =>
@@ -379,6 +431,54 @@ namespace RunicProduction.Integration
             return container != null;
         }
 
+        internal static bool TryPrepareLinkOwnership(
+            Player player, Component station, ZDO stationZdo,
+            Container chest, ZDO chestZdo, float linkRange, out string detail)
+        {
+            detail = "Production setup could not synchronize the selected station and chest; try again.";
+            ZNetView stationView = View(station);
+            ZNetView chestView = View(chest);
+            bool AccessStillValid()
+            {
+                if (player == null || player != Player.m_localPlayer || !player.IsOwner() ||
+                    player.GetPlayerID() == 0L || ZNet.instance == null ||
+                    station == null || chest == null || !station.gameObject.activeInHierarchy ||
+                    stationView == null || chestView == null || !stationView.IsValid() ||
+                    !chestView.IsValid() || stationZdo == null || chestZdo == null ||
+                    !ReferenceEquals(stationView.GetZDO(), stationZdo) ||
+                    !ReferenceEquals(chestView.GetZDO(), chestZdo) ||
+                    stationZdo.m_uid.IsNone() || chestZdo.m_uid.IsNone() ||
+                    stationZdo.m_uid == chestZdo.m_uid ||
+                    !NearbyIngredientContainerIndex.IsStaticNonWagon(chest) ||
+                    !ContainerWritable(chest) || (bool)ContainerLoadingField.GetValue(chest)) return false;
+                long actorId = player.GetPlayerID();
+                Vector3 source = stationZdo.GetPosition();
+                Vector3 target = chestZdo.GetPosition();
+                return IsFinite(source) && IsFinite(target) && linkRange > 0f &&
+                       (source - target).sqrMagnitude <= linkRange * linkRange &&
+                       ContainerWithinReach(chest, player.transform.position,
+                           Mathf.Clamp(player.m_maxInteractDistance, 1f, 10f)) &&
+                       ContainerAllows(chest, actorId) && WardAllows(source, actorId) &&
+                       WardAllows(target, actorId);
+            }
+            if (!AccessStillValid())
+            {
+                detail = "Production setup needs an accessible, closed chest within range; check chest and ward access.";
+                return false;
+            }
+            bool OwnsStation() => stationView.IsValid() &&
+                ReferenceEquals(stationView.GetZDO(), stationZdo) && stationView.IsOwner() &&
+                stationZdo.GetOwner() == ZNet.GetUID();
+            bool OwnsChest() => chestView.IsValid() &&
+                ReferenceEquals(chestView.GetZDO(), chestZdo) && chestView.IsOwner() &&
+                chestZdo.GetOwner() == ZNet.GetUID();
+            if (!ProductionSetupOwnership.TryAcquire(AccessStillValid,
+                    OwnsStation, () => stationView.ClaimOwnership(),
+                    OwnsChest, () => chestView.ClaimOwnership())) return false;
+            detail = string.Empty;
+            return true;
+        }
+
         internal static bool TrySynchronizeLocallyOwnedContainer(
             Container container,
             out Inventory inventory)
@@ -396,15 +496,15 @@ namespace RunicProduction.Integration
             ZNetView current = View(container);
             if (current == null || !current.IsValid() || !current.IsOwner() ||
                 current.GetZDO() == null || current.GetZDO().m_uid != exactId ||
-                (bool)ContainerLoadingField.GetValue(container)) return false;
+                (bool)ContainerLoadingField.GetValue(container) || !ContainerWritable(container)) return false;
             inventory = container.GetInventory();
             if (inventory == null) return false;
-            string persisted = current.GetZDO().GetString(ZDOVars.s_items, string.Empty);
-            if (string.IsNullOrEmpty(persisted))
+            byte[] persisted = current.GetZDO().GetByteArray(ZDOVars.s_items);
+            if (persisted == null || persisted.Length == 0)
                 return inventory.GetAllItems().Count == 0;
             var snapshot = new ZPackage();
             inventory.Save(snapshot);
-            return string.Equals(snapshot.GetBase64(), persisted, StringComparison.Ordinal);
+            return ProductionInventoryPayloadComparison.MatchesLoaded(persisted, snapshot.GetArray());
         }
 
         internal static bool ContainerAllows(Container container, long playerId)
@@ -419,11 +519,17 @@ namespace RunicProduction.Integration
         }
 
         internal static bool ContainerWritable(Container container) =>
-            container != null && !container.IsInUse() &&
+            container != null && container.isActiveAndEnabled && !container.IsInUse() &&
+            Zdo(container) != null && Zdo(container).GetInt(ZDOVars.s_inUse, 0) == 0 &&
             (container.m_wagon == null || !container.m_wagon.InUse());
 
         internal static bool ContainerWithinReach(
             Container container,
+            Vector3 actorPosition,
+            float interactionRange) => ComponentWithinReach(container, actorPosition, interactionRange);
+
+        internal static bool ComponentWithinReach(
+            Component container,
             Vector3 actorPosition,
             float interactionRange)
         {

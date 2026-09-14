@@ -1,0 +1,170 @@
+[
+  {
+    "name": "RunicAgriculture",
+    "package_version": "1.0.3",
+    "source_version": "1.0.3",
+    "file": "Chazman-RunicAgriculture-1.0.3.zip",
+    "sha256": "20E996AB380C57AC757390F40B5836035BD461CDB401CBF4681581F6687431B2"
+  },
+  {
+    "name": "RunicAwareness",
+    "package_version": "1.0.2",
+    "source_version": "1.0.2",
+    "file": "Chazman-RunicAwareness-1.0.2.zip",
+    "sha256": "BDB1F07B8085843EAAECB44601770A637DA333391FF7E3A99C43E72A352775A2"
+  },
+  {
+    "name": "RunicBuildCamera",
+    "package_version": "1.0.3",
+    "source_version": "1.0.3",
+    "file": "Chazman-RunicBuildCamera-1.0.3.zip",
+    "sha256": "602B59122FAB2BB076E74C5946691E4E64164C6EF5B4A3845B593B0D98EB72C9"
+  },
+  {
+    "name": "RunicCharacterVault",
+    "package_version": "1.0.2",
+    "source_version": "1.0.2",
+    "file": "Chazman-RunicCharacterVault-1.0.2.zip",
+    "sha256": "0F58B6EE591BC0C2C7CCC72A795DDDB53A34544DDC2EC74CEFFB7CC27502D9D8"
+  },
+  {
+    "name": "RunicClock",
+    "package_version": "1.0.1",
+    "source_version": "1.0.1",
+    "file": "Chazman-RunicClock-1.0.1.zip",
+    "sha256": "EB7047FFE50DB55FA89DD67A835BAF85BE3CC97FAD9313FE58FB58355737EEA3"
+  },
+  {
+    "name": "RunicCrafting",
+    "package_version": "1.1.0",
+    "source_version": "1.1.0",
+    "file": "Chazman-RunicCrafting-1.1.0.zip",
+    "sha256": "873BB31910D6E0E5FEEA65D88F332C9E7A42232BC590914413F062F6BAE4BB86"
+  },
+  {
+    "name": "RunicDisplayStands",
+    "package_version": "1.3.8",
+    "source_version": "1.3.8",
+    "file": "Chazman-RunicDisplayStands-1.3.8.zip",
+    "sha256": "BA1A33D4A9A70DF4E9F9CCD2FB4B117FE7EE44F1C4EC783BC3048BEFD37BBAE1"
+  },
+  {
+    "name": "RunicExploration",
+    "package_version": "1.0.2",
+    "source_version": "1.0.2",
+    "file": "Chazman-RunicExploration-1.0.2.zip",
+    "sha256": "C9A1EDEECC55A2DF736025EB02B1F2B66C98B5A0F66A506334FA67B7B6772593"
+  },
+  {
+    "name": "RunicInteraction",
+    "package_version": "1.0.4",
+    "source_version": "1.0.4",
+    "file": "Chazman-RunicInteraction-1.0.4.zip",
+    "sha256": "044C32F3F83DCEFD27D808D68A0E19C8832A6F19BE11A999DFE5AFF0D925665E"
+  },
+  {
+    "name": "RunicInventory",
+    "package_version": "1.1.5",
+    "source_version": "1.1.5",
+    "file": "Chazman-RunicInventory-1.1.5.zip",
+    "sha256": "0B42767B4316614DC7D091DF037EFC6376F265A0B5FA82570B1B191839E7C4A0"
+  },
+  {
+    "name": "RunicModClientSuite",
+    "package_version": "1.0.24",
+    "source_version": "1.0.24",
+    "file": "Chazman-RunicModClientSuite-1.0.24.zip",
+    "sha256": "59CAFB7014F332A628740D7F2AE8E7AA144CF07D7DDB80F7592513135CEFBF57"
+  },
+  {
+    "name": "RunicModServerSuite",
+    "package_version": "1.0.16",
+    "source_version": "1.0.16",
+    "file": "Chazman-RunicModServerSuite-1.0.16.zip",
+    "sha256": "63FEBE883B9C4CA41F217CE516FB1F25D4C5A5EC40924959A09B0C205445E84B"
+  },
+  {
+    "name": "RunicModSuite",
+    "package_version": "1.2.34",
+    "source_version": "1.2.34",
+    "file": "Chazman-RunicModSuite-1.2.34.zip",
+    "sha256": "24AB4BB83B996CBE38814B37E039C5AB0B607CBE1889C91337169EA85EE926EB"
+  },
+  {
+    "name": "RunicPortals",
+    "package_version": "1.2.4",
+    "source_version": "1.2.4",
+    "file": "Chazman-RunicPortals-1.2.4.zip",
+    "sha256": "B8003F4383641EF7C7A4F55DEF9239B243AE30F99E296E7D8BD89B8A9D7AA15F"
+  },
+  {
+    "name": "RunicPrecisionBuildTool",
+    "package_version": "2.0.4",
+    "source_version": "2.0.4",
+    "file": "Chazman-RunicPrecisionBuildTool-2.0.4.zip",
+    "sha256": "7A7AACB0B61B60545C9D1CCED7EAB32584B8D9921104F7C5EDA686FF61CF14FA"
+  },
+  {
+    "name": "RunicProduction",
+    "package_version": "1.0.6",
+    "source_version": "1.0.7",
+    "file": "Chazman-RunicProduction-1.0.6.zip",
+    "sha256": "180DFC7C4448EB0B32608742E15928BD36C5243057EF14D76435BE10F610983E"
+  },
+  {
+    "name": "RunicSafety",
+    "package_version": "1.0.5",
+    "source_version": "1.0.5",
+    "file": "Chazman-RunicSafety-1.0.5.zip",
+    "sha256": "F44112415E76B72B9E66643EC4F890CCE9EFE6CB0A916AFA7A4B172267F25325"
+  },
+  {
+    "name": "RunicSentinel",
+    "package_version": "1.4.0",
+    "source_version": "1.4.2",
+    "file": "Chazman-RunicSentinel-1.4.0.zip",
+    "sha256": "DFE68B3FBAD18DE6C9DA0C8105530CF887545B5DF42FF275D152D2DE8CB71967"
+  },
+  {
+    "name": "RunicSentinelClient",
+    "package_version": "1.0.1",
+    "source_version": "1.0.1",
+    "file": "Chazman-RunicSentinelClient-1.0.1.zip",
+    "sha256": "B8CA6E2D72E27ECDBF8BD8F2387C4BDA42B844D48A44FAC82E686244052D66C4"
+  },
+  {
+    "name": "RunicSentinelServer",
+    "package_version": "1.1.0",
+    "source_version": "1.1.2",
+    "file": "Chazman-RunicSentinelServer-1.1.0.zip",
+    "sha256": "69779646A9A81334AC54682F281945FE0B5AF8DF6371CBD2DE33A1AC72344057"
+  },
+  {
+    "name": "RunicSigns",
+    "package_version": "1.0.3",
+    "source_version": "1.0.3",
+    "file": "Chazman-RunicSigns-1.0.3.zip",
+    "sha256": "5E9B72D2C7010251D9F6FB14E6A84E7BF73FD8A75117B8FE3ED03F0B30C12802"
+  },
+  {
+    "name": "RunicStorage",
+    "package_version": "1.2.4",
+    "source_version": "1.2.4",
+    "file": "Chazman-RunicStorage-1.2.4.zip",
+    "sha256": "9942D0DF21D2E6F3BA31B5A3E000C2F9794631ED5CBA673BC70EEE94E13421B9"
+  },
+  {
+    "name": "RunicVelocity",
+    "package_version": "1.0.2",
+    "source_version": "1.0.2",
+    "file": "Chazman-RunicVelocity-1.0.2.zip",
+    "sha256": "0A8BC74FD8DD118B702D5EC018DFF94DACF3451758008ABC278BF646639AC69F"
+  },
+  {
+    "name": "RunicWorldEngine",
+    "package_version": "1.2.0",
+    "source_version": "1.2.0",
+    "file": "Chazman-RunicWorldEngine-1.2.0.zip",
+    "sha256": "A4F876EDEF01B5B3601CF846F972DF52752D128847FF6B69E9FC34266326DA48"
+  }
+]

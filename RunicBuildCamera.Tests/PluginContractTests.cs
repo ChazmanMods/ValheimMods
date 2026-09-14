@@ -28,14 +28,14 @@ namespace RunicBuildCamera.Tests
                 plugin.GetCustomAttribute<BepInPlugin>(), "Plugin lacks BepInPlugin identity.");
             TestAssert.Equal("chazman.RunicBuildCamera", Plugin.Guid);
             TestAssert.Equal("Runic Build Camera", Plugin.Name);
-            TestAssert.Equal("1.0.0", Plugin.Version);
+            TestAssert.Equal("1.0.3", Plugin.Version);
             TestAssert.Equal(Plugin.Guid, identity.GUID);
             TestAssert.Equal(Plugin.Name, identity.Name);
             TestAssert.Equal(Plugin.Version, identity.Version.ToString());
 
             AssemblyName assemblyName = plugin.Assembly.GetName();
             TestAssert.Equal("RunicBuildCamera", assemblyName.Name);
-            TestAssert.Equal(new Version(1, 0, 0, 0), assemblyName.Version);
+            TestAssert.Equal(new System.Version(1, 0, 3, 0), assemblyName.Version);
             AssemblyInformationalVersionAttribute informational = TestAssert.NotNull(
                 plugin.Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>(),
                 "Assembly informational version is missing.");

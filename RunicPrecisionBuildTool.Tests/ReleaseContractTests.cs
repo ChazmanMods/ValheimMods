@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using HarmonyLib;
+using Splatform;
 
 namespace QuietBuildRotation.Tests
 {
@@ -11,8 +12,8 @@ namespace QuietBuildRotation.Tests
     {
         internal static void Register()
         {
-            TestRunner.Run("Precision Build keeps its published GUID and exact 2.0.1 identity", VersionIdentityIsExact);
-            TestRunner.Run("startup reports the audited Valheim build instead of Unity product version", StartupVersionIsExact);
+            TestRunner.Run("Precision Build runtime and package are 2.0.4", VersionIdentityIsExact);
+            TestRunner.Run("startup reports the actual Valheim build instead of a fixed label", StartupVersionIsExact);
             TestRunner.Run("manifest has BepInEx as its only dependency", ManifestDependenciesAreExact);
             TestRunner.Run("module has no Runic runtime assembly references", FoundationReferencesAreExact);
             TestRunner.Run("placement patch ordering composes with Camera, Crafting, and Agriculture", PatchOrderingIsExact);
@@ -23,35 +24,37 @@ namespace QuietBuildRotation.Tests
             TestRunner.Run("Runic info augments the native panel without breaking the piece menu", BuildInfoAugmentationPreservesMenu);
             TestRunner.Run("repeat and undo history clear at the hammer-session boundary", HistoryScopeIsBounded);
             TestRunner.Run("native-owner mutation code retains capacity, range, durability, and one-shot guards", MutationRuntimeIsConservative);
+            TestRunner.Run("area repair binds and invokes the Valheim 1.0 inventory notification exactly", InventoryNotificationBindingIsExact);
             TestRunner.Run("safe utilities contain no remote or durable operation surface", RemoteUndoBoundaryIsDurable);
             TestRunner.Run("catalog localization uses bounded direct Translate only", CatalogLocalizationIsBounded);
             TestRunner.Run("release documentation states native-owner utility behavior truthfully", DocumentationIsTruthful);
-            TestRunner.Run("configuration example exposes every 2.0.1 release control", ConfigurationExampleIsComplete);
+            TestRunner.Run("configuration example exposes every 2.0.4 release control", ConfigurationExampleIsComplete);
             TestRunner.Run("published icon is an exact 256 by 256 PNG", IconDimensionsAreExact);
         }
 
         private static void VersionIdentityIsExact()
         {
             TestAssert.Equal("chazman.RunicPrecisionBuildTool", Plugin.Guid);
-            TestAssert.Equal("2.0.1", Plugin.Version);
+            TestAssert.Equal("2.0.4", Plugin.Version);
             Assembly assembly = typeof(Plugin).Assembly;
-            TestAssert.Equal(new Version(2, 0, 1, 0), assembly.GetName().Version);
+            TestAssert.Equal(new System.Version(2, 0, 4, 0), assembly.GetName().Version);
             TestAssert.Equal("Runic Precision Build Tool",
                 assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product);
-            TestAssert.Equal("2.0.1",
+            TestAssert.Equal("2.0.4",
                 assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
             using JsonDocument json = JsonDocument.Parse(File.ReadAllText(Module("manifest.json")));
             TestAssert.Equal("RunicPrecisionBuildTool", json.RootElement.GetProperty("name").GetString());
-            TestAssert.Equal("2.0.1", json.RootElement.GetProperty("version_number").GetString());
+            TestAssert.Equal("2.0.4", json.RootElement.GetProperty("version_number").GetString());
         }
 
         private static void StartupVersionIsExact()
         {
-            TestAssert.Equal("0.221.12", Diagnostics.GetValheimVersion());
+            TestAssert.Equal("1.0.12", Diagnostics.GetValheimVersion());
             string plugin = File.ReadAllText(Module("Plugin.cs"));
             string diagnostics = File.ReadAllText(Module("Diagnostics.cs"));
             TestAssert.True(plugin.Contains(
-                "ready for audited Valheim", StringComparison.Ordinal));
+                "ready on Valheim", StringComparison.Ordinal));
+            TestAssert.True(diagnostics.Contains("global::Version.CurrentVersion.ToString()", StringComparison.Ordinal));
             TestAssert.False(diagnostics.Contains(
                 "Application.version", StringComparison.Ordinal));
         }
@@ -62,7 +65,7 @@ namespace QuietBuildRotation.Tests
             string[] dependencies = json.RootElement.GetProperty("dependencies")
                 .EnumerateArray().Select(item => item.GetString()).ToArray();
             TestAssert.Equal(1, dependencies.Length);
-            TestAssert.Equal("denikson-BepInExPack_Valheim-5.4.2333", dependencies[0]);
+            TestAssert.Equal("denikson-BepInExPack_Valheim-5.4.2350", dependencies[0]);
         }
 
         private static void FoundationReferencesAreExact()
@@ -91,6 +94,18 @@ namespace QuietBuildRotation.Tests
             AssertPriority(updatePrefix, Priority.Normal);
             AssertPriority(ghostPrefix, Priority.Normal);
             AssertPriority(ghostPostfix, Priority.Normal);
+
+            HarmonyPatch creatorTarget = typeof(PieceSetCreatorPlacementObserverPatch)
+                .GetCustomAttributes<HarmonyPatch>().Single();
+            TestAssert.Equal(typeof(Piece), creatorTarget.info.declaringType);
+            TestAssert.Equal(nameof(Piece.SetCreator), creatorTarget.info.methodName);
+            TestAssert.True(creatorTarget.info.argumentTypes.SequenceEqual(
+                new[] { typeof(long), typeof(PlatformUserID) }));
+            string adapter = File.ReadAllText(Module(
+                Path.Combine("Integration", "PlacementAdapter.cs")));
+            TestAssert.True(adapter.Contains(
+                "new[] { typeof(long), typeof(PlatformUserID) }",
+                StringComparison.Ordinal));
         }
 
         private static void NativeMutationBoundariesRemainUnpatched()
@@ -197,7 +212,7 @@ namespace QuietBuildRotation.Tests
                 "OrientationPresenter.Attach(hud)",
                 StringComparison.Ordinal));
             TestAssert.True(runtime.Contains(
-                "hud.m_pieceSelectionWindow && hud.m_pieceSelectionWindow.activeSelf",
+                "Hud.IsPieceSelectionVisible()",
                 StringComparison.Ordinal));
             TestAssert.False(runtime.Contains("m_buildHud.SetActive", StringComparison.Ordinal));
             TestAssert.False(runtime.Contains("buildHud.SetActive", StringComparison.Ordinal));
@@ -276,6 +291,21 @@ namespace QuietBuildRotation.Tests
             TestAssert.False(source.Contains("ClaimOwnership(", StringComparison.Ordinal));
         }
 
+        private static void InventoryNotificationBindingIsExact()
+        {
+            string source = File.ReadAllText(Module(
+                Path.Combine("Integration", "BuildingMutationRuntime.cs")));
+            TestAssert.True(source.Contains(
+                "typeof(Inventory), \"Changed\", new[] { typeof(bool), typeof(bool) }",
+                StringComparison.Ordinal));
+            TestAssert.True(source.Contains(
+                "_inventoryChanged?.Invoke(inventory, false, false)",
+                StringComparison.Ordinal));
+            TestAssert.False(source.Contains(
+                "typeof(Inventory), \"Changed\", Type.EmptyTypes",
+                StringComparison.Ordinal));
+        }
+
         private static void RemoteUndoBoundaryIsDurable()
         {
             string project = File.ReadAllText(Module("RunicPrecisionBuildTool.csproj"));
@@ -316,9 +346,9 @@ namespace QuietBuildRotation.Tests
             });
             foreach (string required in new[]
                      {
-                         "2.0.1", "bounded", "dedicated", "native", "vanilla",
+                         "2.0.4", "bounded", "dedicated", "native", "vanilla",
                          "undo", "area repair", "favorites", "recent", "snap",
-                         "current owner", "BepInEx", "independently installable"
+                         "current owner", "BepInEx", "standalone"
                      })
                 TestAssert.True(combined.IndexOf(required, StringComparison.OrdinalIgnoreCase) >= 0,
                     "Release documentation omits: " + required);

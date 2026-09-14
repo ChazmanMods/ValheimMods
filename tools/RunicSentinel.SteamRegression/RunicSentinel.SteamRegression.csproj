@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <BepInExCore>C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx\core</BepInExCore>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\RunicSentinel\Core\SteamSessionEvidence.cs" Link="SteamSessionEvidence.cs" />
+    <Compile Include="..\..\RunicSentinel\Runtime\SentinelSteamSessions.cs" Link="SentinelSteamSessions.cs" />
+    <Compile Include="..\..\RunicSentinel\Runtime\SentinelTransportIdentity.cs" Link="SentinelTransportIdentity.cs" />
+    <Compile Include="..\..\RunicSentinel\Runtime\SentinelSocketTransport.cs" Link="SentinelSocketTransport.cs" />
+    <Reference Include="0Harmony" HintPath="$(BepInExCore)\0Harmony.dll" />
+    <Reference Include="Mono.Cecil" HintPath="$(BepInExCore)\Mono.Cecil.dll" />
+    <Reference Include="MonoMod.RuntimeDetour" HintPath="$(BepInExCore)\MonoMod.RuntimeDetour.dll" />
+    <Reference Include="MonoMod.Utils" HintPath="$(BepInExCore)\MonoMod.Utils.dll" />
+  </ItemGroup>
+</Project>

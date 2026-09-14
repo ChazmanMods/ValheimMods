@@ -6,9 +6,16 @@ namespace RunicInventory.Tests
     {
         private static int Main()
         {
+            PlatformVersionTests.Register();
+            ProtectionLifecycleTests.Register();
+            SlotLockUseTests.Register();
+            BetterArcheryCompatibilityTests.Register();
+            QuiverPanelLayoutTests.Register();
             TopologyTests.Register();
             PersistenceTests.Register();
             CharacterProfileReadbackTests.Register();
+            NativeInventoryResizePlanTests.Register();
+            DedicatedRowTests.Register();
             SortPlannerTests.Register();
             AtomicPositionTests.Register();
             PickupPolicyTests.Register();

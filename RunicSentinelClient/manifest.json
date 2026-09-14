@@ -1,0 +1,9 @@
+{
+  "name": "RunicSentinelClient",
+  "version_number": "1.0.1",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Minimal client profile reporting for servers that use Runic Sentinel admission, without server administration, signing keys, backups, enforcement, reports, or UI.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2350"
+  ]
+}

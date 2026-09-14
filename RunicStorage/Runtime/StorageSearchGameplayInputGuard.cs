@@ -22,7 +22,7 @@ namespace RunicStorage.Runtime
             _pollingPickerEscape = true;
             try
             {
-                bool pressed = ZInput.GetKeyDown(KeyCode.Escape, false);
+                bool pressed = ZInput.GetKeyDown(KeyCode.Escape, false) || ZInput.GetButtonDown("JoyButtonB");
                 if (pressed) _pickerEscapeFrame = Time.frameCount;
                 return pressed;
             }
@@ -49,6 +49,11 @@ namespace RunicStorage.Runtime
 
         internal static bool ShouldSuppressPrimaryAttack(string actionName)
         {
+            if (actionName == "JoyButtonB") return !_pollingPickerEscape &&
+                (Plugin.SearchPanelOpen || Time.frameCount == _pickerEscapeFrame);
+            if (Plugin.SearchPanelOpen && actionName == "JoyButtonY") return true;
+            if (Plugin.RulesPanelOpen && (actionName == "Inventory" || actionName == "JoyInventory" ||
+                actionName == "Chat" || actionName == "Console")) return true;
             if (!StorageSearchAttackSuppression.IsPrimaryAttack(actionName)) return false;
 
             bool held = false;

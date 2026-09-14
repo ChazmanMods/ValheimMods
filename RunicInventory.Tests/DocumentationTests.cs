@@ -9,10 +9,11 @@ namespace RunicInventory.Tests
         internal static void Register()
         {
             TestRunner.Run("manifest identity version and dependencies are truthful", ManifestIsTruthful);
-            TestRunner.Run("README states native-row capacity and dedicated-client ownership", ReadmeIsTruthful);
+            TestRunner.Run("README states role-row safety and dedicated-client ownership", ReadmeIsTruthful);
             TestRunner.Run("config example documents all exact keyboard and controller defaults", ConfigIsComplete);
             TestRunner.Run("testing guide records installed target and lossless boundaries", TestingGuideIsComplete);
             TestRunner.Run("changelog records compatibility and uninstall behavior", ChangelogIsComplete);
+            TestRunner.Run("compatibility failures report the current plugin version", CompatibilityFailureUsesCurrentVersion);
             TestRunner.Run("icon is exactly 256 by 256 pixels", IconIsExactSize);
         }
 
@@ -21,12 +22,12 @@ namespace RunicInventory.Tests
             using JsonDocument document = JsonDocument.Parse(File.ReadAllText(TestPaths.Module("manifest.json")));
             JsonElement root = document.RootElement;
             TestAssert.Equal("RunicInventory", root.GetProperty("name").GetString());
-            TestAssert.Equal("1.0.0", root.GetProperty("version_number").GetString());
+            TestAssert.Equal(Plugin.Version, root.GetProperty("version_number").GetString());
             string[] dependencies = new string[root.GetProperty("dependencies").GetArrayLength()];
             int index = 0;
             foreach (JsonElement dependency in root.GetProperty("dependencies").EnumerateArray())
                 dependencies[index++] = dependency.GetString();
-            TestAssert.Equal("denikson-BepInExPack_Valheim-5.4.2333", dependencies[0]);
+            TestAssert.Equal("denikson-BepInExPack_Valheim-5.4.2350", dependencies[0]);
             TestAssert.Equal(1, dependencies.Length);
         }
 
@@ -35,11 +36,12 @@ namespace RunicInventory.Tests
             string text = File.ReadAllText(TestPaths.Module("README.md"));
             foreach (string expected in new[]
                      {
-                         "native 8×4", "bottom row", "five equipment", "three quick",
-                         "does not add carrying capacity", "abrupt uninstall", "full item metadata",
+                         "existing inventory", "clearly labeled role row", "bottom row",
+                         "helmet, chest, legs, cape, and utility", "Three quick-access",
+                         "not additional carry weight", "abrupt uninstall", "full item metadata",
                          "InventoryIntegrationApi", "optional reflection", "short-lived mutation scope",
-                         "subtly outlined", "There is no gameplay HUD", "Picking up or crafting",
-                         "swaps the previous occupant", "no Foundation runtime dependency"
+                         "death, tombstones, saving, and loading", "connected dedicated-server client",
+                         "Install only BepInEx and Runic Inventory"
                      })
                 TestAssert.Contains(text, expected);
             TestAssert.False(text.Contains("durable journal", StringComparison.OrdinalIgnoreCase));
@@ -67,7 +69,7 @@ namespace RunicInventory.Tests
             string text = File.ReadAllText(TestPaths.Module("TESTING.md"));
             foreach (string expected in new[]
                      {
-                         "0.221.12", "death", "tombstone", "logout", "disable", "uninstall",
+                         "1.0.7", "death", "tombstone", "logout", "disable", "uninstall",
                          "dedicated", "no item loss", "independently installed", "optional reflection API",
                          "Foundation DLLs absent"
                      })
@@ -77,7 +79,8 @@ namespace RunicInventory.Tests
         private static void ChangelogIsComplete()
         {
             string text = File.ReadAllText(TestPaths.Module("CHANGELOG.md"));
-            TestAssert.Contains(text, "1.0.0");
+            TestAssert.Contains(text, "1.0.5");
+            TestAssert.Contains(text, "stable inactive modes as NotApplicable");
             TestAssert.Contains(text, "native bottom row");
             TestAssert.Contains(text, "remote dedicated");
             TestAssert.Contains(text, "migration-safe");
@@ -87,6 +90,13 @@ namespace RunicInventory.Tests
                          "optional reflection API", "native owner-local"
                      })
                 TestAssert.Contains(text, expected);
+        }
+
+        private static void CompatibilityFailureUsesCurrentVersion()
+        {
+            string text = File.ReadAllText(TestPaths.Module(Path.Combine("Integration", "ValheimContracts.cs")));
+            TestAssert.Contains(text, "\"Runic Inventory \" + Plugin.Version");
+            TestAssert.False(text.Contains("Runic Inventory 1.0.0 is audited", StringComparison.Ordinal));
         }
 
         private static void IconIsExactSize()

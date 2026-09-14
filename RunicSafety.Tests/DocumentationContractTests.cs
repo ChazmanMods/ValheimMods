@@ -49,9 +49,9 @@ namespace RunicSafety.Tests
                 File.ReadAllText(TestPaths.Safety("manifest.json")));
             JsonElement root = document.RootElement;
             TestAssert.Equal("RunicSafety", root.GetProperty("name").GetString());
-            TestAssert.Equal(Plugin.Version, root.GetProperty("version_number").GetString());
+            TestAssert.Equal("1.0.5", root.GetProperty("version_number").GetString());
             TestAssert.SequenceEqual(
-                new[] { "denikson-BepInExPack_Valheim-5.4.2333" },
+                new[] { "denikson-BepInExPack_Valheim-5.4.2350" },
                 root.GetProperty("dependencies").EnumerateArray().Select(item => item.GetString()));
         }
 
@@ -126,7 +126,7 @@ namespace RunicSafety.Tests
         private static void ChangelogAligned()
         {
             string changelog = File.ReadAllText(TestPaths.Safety("CHANGELOG.md"));
-            TestAssert.Contains("## 1.0.0", changelog);
+            TestAssert.Contains("## 1.0.4", changelog);
             TestAssert.Contains("Removed Runic Core, Persistence, and Transactions", changelog);
             TestAssert.Contains("Reduced the Thunderstore manifest to BepInEx only", changelog);
         }

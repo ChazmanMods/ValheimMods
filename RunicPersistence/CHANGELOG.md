@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 - 2026-08-31
+
+- Added the client-visible admission-rejection event used by Raven's Gate denial explanations.
+- Added central reporting of server-observed Runic RPC denials, replay conflicts, and protocol
+  violations to Sentinel's bounded enforcement service.
+- Signed Sentinel administrators now override the vanilla admin list while Sentinel is active.
+
 ## 1.0.0 - 2026-08-25
 
 - Normalized the coordinated Thunderstore release identity and Core dependency to 1.0.0.

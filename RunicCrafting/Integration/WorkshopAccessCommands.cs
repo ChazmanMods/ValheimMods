@@ -34,14 +34,8 @@ namespace RunicCrafting.Integration
                 args.Context.AddString("Runic Crafting: stand at or use the station you want to configure.");
                 return;
             }
-            Piece piece = station.GetComponent<Piece>();
-            if (piece == null || piece.GetCreator() != player.GetPlayerID())
-            {
-                args.Context.AddString("Runic Crafting: only the station owner can change Workshop Access.");
-                return;
-            }
             ZNetView view = ValheimReflection.GetView(station);
-            ZDO zdo = view != null && view.IsValid() && view.IsOwner() ? view.GetZDO() : null;
+            ZDO zdo = view != null && view.IsValid() ? view.GetZDO() : null;
             if (zdo == null)
             {
                 args.Context.AddString("Runic Crafting: the authoritative station record is unavailable.");
@@ -52,6 +46,17 @@ namespace RunicCrafting.Integration
             if (verb == "show")
             {
                 Show(args.Context, zdo);
+                return;
+            }
+            Piece piece = station.GetComponent<Piece>();
+            if (piece == null || piece.GetCreator() != player.GetPlayerID())
+            {
+                args.Context.AddString("Runic Crafting: only the station creator can change Workshop Access.");
+                return;
+            }
+            if (!view.IsOwner())
+            {
+                args.Context.AddString("Runic Crafting: this station is controlled by another peer. Its access settings were not changed; try again when ownership settles.");
                 return;
             }
             if (verb == "station" || verb == "materials")
