@@ -44,3 +44,16 @@ in [RUNIC_GAMEPLAY_WAVE1.md](./RUNIC_GAMEPLAY_WAVE1.md).
 Join the **Chazman Mods Discord** for support, bug reports, screenshots, and mod discussion:
 
 https://discord.gg/7HKHTCdFqY
+
+## License
+
+Original Runic source code and accompanying documentation are licensed under the
+[MIT License](./LICENSE), copyright (c) 2026 Charles Sammons (Chazman).
+You may use, modify and redistribute that code, including commercially, provided
+you retain the copyright and license notices.
+
+Third-party code and assets retain their original licenses and copyright notices.
+Any component-specific LICENSE or NOTICE files must be preserved; the root license
+does not replace them. Valheim, Unity and other third-party game or runtime assets
+are not licensed by this repository. Logos and artwork are not covered by the MIT
+code license unless explicitly stated otherwise.
