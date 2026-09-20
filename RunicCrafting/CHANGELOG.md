@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+- Added opt-in automatic repair of eligible worn inventory equipment after a successful crafting-station open.
+- Added opt-in area repair after a successful vanilla hammer repair while preserving the existing hotkey.
+- Kept both features owner-directed, guarded against repeated interaction and area-repair recursion, and disabled by default.
+
 ## 1.1.0 - 2026-09-12
 
 - Fixed hammer-building chest searches to use the player's position and configured material range, including station-required pieces such as the forge.

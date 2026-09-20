@@ -13,7 +13,7 @@ namespace RunicCrafting
     {
         public const string Guid = "chazman.RunicCrafting";
         public const string Name = "Runic Crafting";
-        public const string Version = "1.1.0";
+        public const string Version = "1.1.1";
 
         internal static ManualLogSource Log { get; private set; }
 

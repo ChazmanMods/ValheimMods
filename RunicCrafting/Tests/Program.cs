@@ -12,6 +12,7 @@ namespace RunicCrafting.Tests
                 (nameof(AreaRepairTests.RadiusAndAccessAreBounded), AreaRepairTests.RadiusAndAccessAreBounded),
                 (nameof(AreaRepairTests.BatchesAreBoundedAndCancelable), AreaRepairTests.BatchesAreBoundedAndCancelable),
                 (nameof(AreaRepairTests.RuntimeUsesNativeRepairAndDisablesCleanly), AreaRepairTests.RuntimeUsesNativeRepairAndDisablesCleanly),
+                (nameof(AreaRepairTests.OptionalRepairTriggersAreSeparateAndGuarded), AreaRepairTests.OptionalRepairTriggersAreSeparateAndGuarded),
                 (nameof(AreaRepairTests.HammerPreviewRowsAndConsumptionUsePlayerRange), AreaRepairTests.HammerPreviewRowsAndConsumptionUsePlayerRange),
                 (nameof(AreaRepairTests.ForgeCostsCommitOnceAndRollbackExactly), AreaRepairTests.ForgeCostsCommitOnceAndRollbackExactly),
                 (nameof(AreaRepairTests.InstalledRepairContractIsOwnerDirected), AreaRepairTests.InstalledRepairContractIsOwnerDirected),

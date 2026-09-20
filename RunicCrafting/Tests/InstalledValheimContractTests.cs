@@ -80,7 +80,11 @@ namespace RunicCrafting.Tests
             AssertMethod("Smelter", "OnAddFuel", "Switch", "Humanoid", "ItemDrop/ItemData");
             AssertMethod("Smelter", "GetFuel");
             AssertMethod("Fireplace", "Interact", "Humanoid", "System.Boolean", "System.Boolean");
+            AssertMethod("WearNTear", "Repair");
             AssertMethod("Inventory", "CanAddItem", "ItemDrop/ItemData", "System.Int32");
+            string patch = ReadSource("Patches.cs");
+            TestAssert.True(patch.Contains("WearNTear.Repair", StringComparison.Ordinal));
+            TestAssert.True(patch.Contains("bool __result", StringComparison.Ordinal));
             AssertMethod("Inventory", "AddItem", "ItemDrop/ItemData");
             using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(ValheimAssemblyPath());
             AssertField(assembly,"Fireplace","m_lastUseTime","System.Single");

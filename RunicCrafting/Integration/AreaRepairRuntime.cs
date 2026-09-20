@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 using RunicCrafting.Domain;
 using UnityEngine;
@@ -13,16 +14,34 @@ namespace RunicCrafting.Integration
         private static bool _inputResolved;
         private static readonly AreaRepairBatch<Piece> Pending = new AreaRepairBatch<Piece>();
         private static readonly HashSet<string> HammerPieces = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly FieldInfo PlayerRightItemField = AccessTools.Field(typeof(Player), "m_rightItem");
+        private static readonly MethodInfo PlayerRightItemMethod =
+            AccessTools.Method(typeof(Player), "GetRightItem", Type.EmptyTypes);
         private static Player _player;
         private static ZNet _network;
         private static Vector3 _origin;
         private static float _radius, _nextPulse, _nextStart;
         private static int _submitted;
+        private static bool _hammerRepairRequested;
+        private static bool _repairingArea;
 
         internal static void Reset()
         {
             Pending.Clear(); HammerPieces.Clear(); _player = null; _network = null;
-            _submitted = 0; _nextPulse = _nextStart = 0f;
+            _submitted = 0; _hammerRepairRequested = false; _repairingArea = false;
+            _nextPulse = _nextStart = 0f;
+        }
+
+        // WearNTear.Repair is also used by this runtime. Queue the follow-up for the next
+        // Update instead of starting it from the repair postfix, which prevents recursion and
+        // leaves the successful vanilla hammer repair as the first request in the sequence.
+        internal static void OnVanillaHammerRepair(WearNTear piece)
+        {
+            if (_repairingArea || piece == null || !Configuration.Enabled.Value ||
+                !Configuration.AreaRepairEnabled.Value || !Configuration.AreaRepairOnHammerRepair.Value ||
+                !ValheimReflection.CanMutateLocalPlayer(Player.m_localPlayer) || ZNet.instance == null ||
+                !IsHoldingHammer(Player.m_localPlayer)) return;
+            if (Pending.Count == 0) _hammerRepairRequested = true;
         }
 
         internal static void Tick()
@@ -36,8 +55,12 @@ namespace RunicCrafting.Integration
                     player.IsDead() || player.IsTeleporting()) { Reset(); return; }
                 if (Pending.Count > 0 && (!ReferenceEquals(_player, player) || !ReferenceEquals(_network, ZNet.instance))) Reset();
                 if (!TakesGameplayInput(player)) return;
-                if (Pending.Count == 0 && Configuration.AreaRepairKey.Value.IsDown() && Time.unscaledTime >= _nextStart)
+                if (Pending.Count == 0 && Time.unscaledTime >= _nextStart &&
+                    (_hammerRepairRequested || Configuration.AreaRepairKey.Value.IsDown()))
+                {
+                    _hammerRepairRequested = false;
                     Start(player);
+                }
                 if (Pending.Count == 0 || Time.unscaledTime < _nextPulse) return;
                 // Moving out of the starting area cannot expand a queued request's repair reach.
                 if ((player.transform.position - _origin).sqrMagnitude > 4f ||
@@ -132,7 +155,23 @@ namespace RunicCrafting.Integration
             if (!AreaRepairPolicy.Eligible(HammerPieces.Contains(ValheimReflection.PiecePrefabId(piece)),
                     true, true, true, containerAccess, stationAccess)) return false;
             // Native owner-directed RPC: no health/ZDO writes, ownership claims, or inventory mutations.
-            return wear.Repair();
+            _repairingArea = true;
+            try { return wear.Repair(); }
+            finally { _repairingArea = false; }
+        }
+
+        private static bool IsHoldingHammer(Player player)
+        {
+            if (ObjectDB.instance == null) return false;
+            object heldValue = PlayerRightItemField?.GetValue(player) ??
+                PlayerRightItemMethod?.Invoke(player, Array.Empty<object>());
+            var held = heldValue as ItemDrop.ItemData;
+            ItemDrop hammer = ObjectDB.instance.GetItemPrefab("Hammer")?.GetComponent<ItemDrop>();
+            if (held == null || hammer?.m_itemData == null) return false;
+            return ReferenceEquals(held.m_shared, hammer.m_itemData.m_shared) ||
+                (held.m_dropPrefab != null && hammer.m_itemData.m_dropPrefab != null &&
+                 string.Equals(held.m_dropPrefab.name, hammer.m_itemData.m_dropPrefab.name,
+                     StringComparison.Ordinal));
         }
 
         private static void Message(Player player, string message) =>

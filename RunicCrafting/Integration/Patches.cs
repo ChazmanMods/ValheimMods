@@ -68,17 +68,43 @@ namespace RunicCrafting.Integration
             }
         }
 
-        private static void Postfix(CraftingStation __instance, Humanoid user, bool repeat)
+        private static void Postfix(CraftingStation __instance, Humanoid user, bool repeat, bool __result)
         {
+            if (repeat || !__result || !(user is Player player)) return;
             try
             {
-                if (!repeat && user is Player player &&
-                    ReferenceEquals(player.GetCurrentCraftingStation(), __instance))
-                    CraftingRuntime.ShowStationStatus(__instance, player);
+                if (!ReferenceEquals(player.GetCurrentCraftingStation(), __instance)) return;
             }
             catch (Exception exception)
             {
+                Plugin.Log?.LogWarning("Could not verify the crafting station interaction: " + exception.Message);
+                return;
+            }
+            try { CraftingRuntime.ShowStationStatus(__instance, player); }
+            catch (Exception exception)
+            {
                 Plugin.Log?.LogWarning("Could not show the crafting station status: " + exception.Message);
+            }
+            try { RepairAllRuntime.TryHandleStationOpen(__instance, player); }
+            catch (Exception exception)
+            {
+                Plugin.Log?.LogWarning("Could not complete the crafting station repair follow-up: " + exception.Message);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Repair))]
+    internal static class WearNTearRepairPatch
+    {
+        private static void Postfix(WearNTear __instance, bool __result)
+        {
+            try
+            {
+                if (__result) AreaRepairRuntime.OnVanillaHammerRepair(__instance);
+            }
+            catch (Exception exception)
+            {
+                Plugin.Log?.LogWarning("Could not start area repair after the hammer repair: " + exception.Message);
             }
         }
     }

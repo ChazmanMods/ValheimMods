@@ -19,7 +19,9 @@ namespace RunicCrafting
         internal static ConfigEntry<string> StationlessPieceAllowList { get; private set; }
         internal static ConfigEntry<string> StationlessPieceDenyList { get; private set; }
         internal static ConfigEntry<bool> RepairAll { get; private set; }
+        internal static ConfigEntry<bool> AutoRepairOnStationOpen { get; private set; }
         internal static ConfigEntry<bool> AreaRepairEnabled { get; private set; }
+        internal static ConfigEntry<bool> AreaRepairOnHammerRepair { get; private set; }
         internal static ConfigEntry<KeyboardShortcut> AreaRepairKey { get; private set; }
         internal static ConfigEntry<float> AreaRepairRadius { get; private set; }
         internal static ConfigEntry<float> RangeCapMeters { get; private set; }
@@ -61,8 +63,12 @@ namespace RunicCrafting
                 "Comma/semicolon-separated exact Piece prefab IDs denied from the stationless path. Deny rules win over allow rules; * denies all.");
             RepairAll = config.Bind("Repair", "RepairAll", true,
                 "One repair-button press repairs every item that vanilla currently considers repairable.");
+            AutoRepairOnStationOpen = config.Bind("Repair", "AutoRepairOnStationOpen", false,
+                "After successfully opening a crafting station, repair every eligible worn inventory item without another button press.");
             AreaRepairEnabled = config.Bind("Area Repair", "Enabled", true,
                 "Enable hotkey repair of loaded hammer-buildable structures. Disable to ignore the hotkey and cancel pending repairs. Does not repair inventory equipment.");
+            AreaRepairOnHammerRepair = config.Bind("Area Repair", "OnHammerRepair", false,
+                "After a vanilla hammer repair succeeds, also repair eligible nearby hammer structures. The hotkey remains available.");
             AreaRepairKey = config.Bind("Area Repair", "Hotkey", new KeyboardShortcut(KeyCode.Semicolon),
                 "Repair nearby structures (default semicolon). Ignored while typing or in menus. No hammer needs to be equipped.");
             AreaRepairRadius = config.Bind("Area Repair", "RadiusMeters", 50f,
@@ -123,7 +129,8 @@ namespace RunicCrafting
                 : StationlessPolicy.AllowedRuleCount.ToString(CultureInfo.InvariantCulture)) +
             "; stationless deny=" + StationlessPolicy.DeniedRuleCount.ToString(CultureInfo.InvariantCulture) +
             "; Repair All=" + OnOff(RepairAll.Value) +
-            "; area repair=" + OnOff(AreaRepairEnabled.Value) + " (" + AreaRepairKey.Value + ")" +
+            "; station-open repair=" + OnOff(AutoRepairOnStationOpen.Value) +
+            "; area repair=" + OnOff(AreaRepairEnabled.Value) + " (" + AreaRepairKey.Value + ", hammer=" + OnOff(AreaRepairOnHammerRepair.Value) + ")" +
             "; station HUD=" + OnOff(ShowStatusMessages.Value) +
             "; range cap=" + SafeRangeCap.ToString("0.#", CultureInfo.InvariantCulture) + "m" +
             "; local-material default=" + DefaultLocalMaterialUse.Value +
