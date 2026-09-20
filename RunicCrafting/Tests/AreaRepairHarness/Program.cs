@@ -20,6 +20,7 @@ internal static class Program
         AreaRepairRuntime.Reset(); Piece.Loaded.Clear(); Time.unscaledTime=10;
         Player.m_localPlayer=new GameObject().Add(new Player()); ZNet.instance=new ZNet();
         Configuration.Enabled.Value=Configuration.AreaRepairEnabled.Value=true;
+        Configuration.AreaRepairOnHammerRepair.Value=false;
         Configuration.AreaRepairRadius.Value=50; Configuration.AreaRepairKey.Value.Down=true;
         Chat.instance=null; InventoryGui.Visible=false; Game.Paused=false;
         Cursor.lockState=CursorLockMode.Locked; PrivateArea.Allows=_=>true; CraftingStation.Nearby=null;
@@ -40,6 +41,11 @@ internal static class Program
         Reset(); near=Add("wood_wall"); near.m_craftingStation=new CraftingStation(); AreaRepairRuntime.Tick(); Check(Sent(near)==0,"required station missing");
         Reset(); near=Add("wood_wall"); near.m_craftingStation=new CraftingStation(); CraftingStation.Nearby=new CraftingStation { Allowed=false }; AreaRepairRuntime.Tick(); Check(Sent(near)==0,"station access denied");
         Reset(); near=Add("wood_wall"); near.m_craftingStation=new CraftingStation(); CraftingStation.Nearby=new CraftingStation(); AreaRepairRuntime.Tick(); Check(Sent(near)==1,"station-covered structure repaired");
+        Reset(); Configuration.AreaRepairKey.Value.Down=false; Configuration.AreaRepairOnHammerRepair.Value=true;
+        near=Add("wood_wall");
+        Player.m_localPlayer.m_rightItem=new ItemDrop.ItemData { m_shared=ObjectDB.instance.Hammer.GetComponent<ItemDrop>().m_itemData.m_shared };
+        AreaRepairRuntime.OnVanillaHammerRepair(near.GetComponent<WearNTear>());
+        AreaRepairRuntime.Tick(); Check(Sent(near)==1,"successful hammer repair starts area repair");
         Reset(); near=Add("wood_wall"); Configuration.AreaRepairEnabled.Value=false; AreaRepairRuntime.Tick(); Check(Sent(near)==0,"disabled hotkey inert");
         Reset(); near=Add("wood_wall"); Configuration.Enabled.Value=false; AreaRepairRuntime.Tick(); Check(Sent(near)==0,"master disable inert");
         Reset(); near=Add("wood_wall"); Chat.instance=new Chat { Focus=true }; AreaRepairRuntime.Tick(); Check(Sent(near)==0,"chat typing inert");

@@ -1,4 +1,4 @@
-## Settings file was created by plugin Runic Crafting v1.1.0
+## Settings file was created by plugin Runic Crafting v1.1.1
 ## Plugin GUID: chazman.RunicCrafting
 
 [General]
@@ -36,11 +36,16 @@ DefaultLocalMaterialUse = Everyone
 [Repair]
 
 RepairAll = true
+# Repair worn inventory equipment automatically after a successful station open.
+AutoRepairOnStationOpen = false
 
 [Area Repair]
 
 # Disable independently of inventory-equipment RepairAll. Cancels any pending area repairs.
 Enabled = true
+# After a successful vanilla hammer repair, also start the nearby area repair.
+# The hotkey remains available and no hammer is required for the hotkey path.
+OnHammerRepair = false
 # BepInEx KeyboardShortcut; Semicolon is the ; key.
 Hotkey = Semicolon
 # 1–100m, independent of the chest search range.

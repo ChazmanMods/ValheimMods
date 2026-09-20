@@ -64,6 +64,29 @@ namespace RunicCrafting.Tests
             TestAssert.True(plugin.Contains("AreaRepairRuntime.Reset();"));
         }
 
+        internal static void OptionalRepairTriggersAreSeparateAndGuarded()
+        {
+            string config = File.ReadAllText(Path.Combine(Root, "Configuration.cs"));
+            TestAssert.True(config.Contains("AutoRepairOnStationOpen", StringComparison.Ordinal));
+            TestAssert.True(config.Contains("AutoRepairOnStationOpen\", false", StringComparison.Ordinal));
+            TestAssert.True(config.Contains("\"OnHammerRepair\", false", StringComparison.Ordinal));
+
+            string patch = File.ReadAllText(Path.Combine(Root, "Integration", "Patches.cs"));
+            TestAssert.True(patch.Contains("!__result || !(user is Player player)", StringComparison.Ordinal));
+            TestAssert.True(patch.Contains("RepairAllRuntime.TryHandleStationOpen", StringComparison.Ordinal));
+            TestAssert.True(patch.Contains("WearNTear.Repair", StringComparison.Ordinal));
+            TestAssert.True(patch.Contains("AreaRepairRuntime.OnVanillaHammerRepair", StringComparison.Ordinal));
+
+            string repair = File.ReadAllText(Path.Combine(Root, "Integration", "RepairAllRuntime.cs"));
+            TestAssert.True(repair.Contains("FindObjectOfType<InventoryGui>", StringComparison.Ordinal));
+            TestAssert.True(repair.Contains("TryRepair(player, gui, station, false, false)", StringComparison.Ordinal));
+            string area = File.ReadAllText(Path.Combine(Root, "Integration", "AreaRepairRuntime.cs"));
+            TestAssert.True(area.Contains("_repairingArea", StringComparison.Ordinal));
+            TestAssert.True(area.Contains("if (Pending.Count == 0) _hammerRepairRequested = true", StringComparison.Ordinal));
+            TestAssert.True(area.Contains("try { return wear.Repair(); }", StringComparison.Ordinal));
+            TestAssert.True(area.Contains("IsHoldingHammer", StringComparison.Ordinal));
+        }
+
         internal static void HammerPreviewRowsAndConsumptionUsePlayerRange()
         {
             string source = File.ReadAllText(Path.Combine(Root, "Integration", "CraftingRuntime.cs"));

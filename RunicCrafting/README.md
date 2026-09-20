@@ -1,4 +1,4 @@
-# Runic Crafting 1.1.0
+# Runic Crafting 1.1.1
 
 Your workshop already contains the wood, stone, metal, and components you need. Moving those materials from a nearby chest into your pockets—and back again—does not make crafting more meaningful; it makes the workshop feel disconnected from its own supplies.
 
@@ -12,8 +12,8 @@ Your workshop already contains the wood, stone, metal, and components you need. 
 - See combined carried and nearby material availability.
 - Reuse verified chest material counts, share queries within menu refreshes, and briefly reuse UI availability answers to reduce repeated work in well-stocked bases. Crafting and placement still check fresh materials.
 - Configure who may use a station and who may use its nearby supplies.
-- Repair all eligible inventory equipment in one action.
-- Repair nearby hammer structures with a configurable hotkey, radius, and independent enable switch.
+- Repair all eligible inventory equipment in one action, with optional automatic repair when a station successfully opens.
+- Repair nearby hammer structures with a configurable hotkey, radius, and independent enable switch; optionally start the same area repair after a vanilla hammer repair.
 
 ## How it feels in-game
 
@@ -116,7 +116,9 @@ boundary. A rejected placement restores every earlier removal.
 Press **`;` (semicolon)** to repair damaged, loaded hammer-buildable structures within **50 meters**:
 walls, roofs, floors, fences, and other hammer pieces. No hammer needs to be equipped. This shortcut
 does **not** repair tools, weapons, or armor, and does not consume equipment durability or stamina.
-The existing inventory **Repair All** feature remains separate.
+The existing inventory **Repair All** feature remains separate. Optionally enable **Repair → AutoRepairOnStationOpen** to repair all eligible worn equipment automatically after a successful station open; it is off by default. This uses the same native eligibility and owner checks as Repair All and needs no extra button.
+
+To have a normal vanilla hammer repair start the same area operation, enable **Area Repair → OnHammerRepair**. It is off by default; the semicolon hotkey remains unchanged and still works. The completed vanilla repair is not repeated by the area queue.
 
 In Configuration Manager (F1, if installed), open **Runic Crafting → Area Repair**:
 

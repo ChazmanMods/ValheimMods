@@ -36,6 +36,8 @@ namespace HarmonyLib
     public static class AccessTools
     {
         public static MethodInfo Method(Type type, string name, Type[] args) => type.GetMethod(name);
+        public static MethodInfo Method(Type type, string name) => type.GetMethod(name);
+        public static FieldInfo Field(Type type, string name) => type.GetField(name);
         public static T MethodDelegate<T>(MethodInfo method) where T : Delegate => method.CreateDelegate<T>();
     }
 }
@@ -67,6 +69,8 @@ public class CraftingStation : UnityEngine.Component
 public class Player : UnityEngine.Component
 {
     public static Player m_localPlayer; public bool Input = true, Dead, Teleporting, Owner = true;
+    public ItemDrop.ItemData m_rightItem;
+    public ItemDrop.ItemData GetRightItem() => m_rightItem;
     public List<string> Messages = new List<string>();
     public bool TakeInput() => Input;
     public bool IsDead() => Dead; public bool IsTeleporting() => Teleporting;
@@ -90,7 +94,7 @@ public class ObjectDB
 public class ItemDrop : UnityEngine.Component
 {
     public ItemData m_itemData = new ItemData();
-    public class ItemData { public Shared m_shared = new Shared(); }
+    public class ItemData { public UnityEngine.GameObject m_dropPrefab; public Shared m_shared = new Shared(); }
     public class Shared { public PieceTable m_buildPieces = new PieceTable(); }
 }
 public class PieceTable { public List<UnityEngine.GameObject> m_pieces = new List<UnityEngine.GameObject>(); }
@@ -109,7 +113,7 @@ namespace RunicCrafting
     public class Shortcut { public bool Down; public bool IsDown() { bool result = Down; Down = false; return result; } }
     internal static class Configuration
     {
-        internal static Setting<bool> Enabled = new Setting<bool>(true), AreaRepairEnabled = new Setting<bool>(true);
+        internal static Setting<bool> Enabled = new Setting<bool>(true), AreaRepairEnabled = new Setting<bool>(true), AreaRepairOnHammerRepair = new Setting<bool>(false);
         internal static Setting<float> AreaRepairRadius = new Setting<float>(50);
         internal static Setting<Shortcut> AreaRepairKey = new Setting<Shortcut>(new Shortcut());
     }
