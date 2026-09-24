@@ -75,3 +75,11 @@ SearchAction = JoyDPadRight
 [Diagnostics]
 
 DebugTransfers = false
+
+[Modded Containers]
+
+## Exact internal prefab IDs, separated by commas or semicolons. Empty disables custom adapters.
+## Makail ItemDrawers uses piece_drawer. Ordinary Container inventories already work automatically.
+QuickStackPrefabIds = piece_drawer
+## Restock pulls. RunicCrafting 1.1.3+ has its own independent PullPrefabIds setting.
+PullPrefabIds = piece_drawer

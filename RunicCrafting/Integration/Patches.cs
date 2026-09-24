@@ -50,7 +50,7 @@ namespace RunicCrafting.Integration
             {
                 if (!(user is Player player) || !ValheimReflection.CanMutateLocalPlayer(player)) return true;
                 if (CraftingRuntime.CanUseStation(__instance, player, out string reason)) return true;
-                player.Message(MessageHud.MessageType.Center, "Station use denied: " + reason);
+                player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_e69081d93656") + reason);
                 __result = false;
                 return false;
             }
@@ -60,7 +60,7 @@ namespace RunicCrafting.Integration
                 if (user is Player player && ValheimReflection.CanMutateLocalPlayer(player) &&
                     Configuration.Enabled.Value && CraftingRuntime.IsInitialized)
                 {
-                    player.Message(MessageHud.MessageType.Center, "Station permissions are temporarily unavailable");
+                    player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_e13857626883"));
                     __result = false;
                     return false;
                 }
@@ -94,8 +94,13 @@ namespace RunicCrafting.Integration
             Recipe ___m_craftRecipe,
             ItemDrop.ItemData ___m_craftUpgradeItem,
             bool ___m_multiCrafting,
-            int ___m_multiCraftAmount)
+            int ___m_multiCraftAmount,
+            out bool __state)
         {
+            // Only reject calls synchronously caused by our own deferred UI refresh.
+            // No frame-wide suppression of player input and no cleanup of another lease.
+            __state = !PostCraftRefreshRuntime.Refreshing;
+            if (!__state) return false;
             try
             {
                 return CraftingRuntime.BeforeCraft(
@@ -114,9 +119,9 @@ namespace RunicCrafting.Integration
             }
         }
 
-        private static Exception Finalizer(Exception __exception)
+        private static Exception Finalizer(Exception __exception, bool __state)
         {
-            CraftingRuntime.FinishCraft(__exception);
+            if (__state) CraftingRuntime.FinishCraft(__exception);
             return __exception;
         }
     }
@@ -321,7 +326,7 @@ namespace RunicCrafting.Integration
             {
                 if (CraftingRuntime.BeforePlacePiece(__instance, piece, out string reason)) return true;
                 __instance.Message(
-                    MessageHud.MessageType.Center, "Nearby building cancelled: " + reason);
+                    MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_b642674f3672") + reason);
                 __result = false;
                 return false;
             }
@@ -350,7 +355,7 @@ namespace RunicCrafting.Integration
                     player.IsOwner() && Configuration.Enabled.Value &&
                     CraftingRuntime.IsInitialized)
                 {
-                    player.Message(MessageHud.MessageType.Center, "Repair is temporarily unavailable");
+                    player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_2b0c7b3b4b7c"));
                     return false;
                 }
                 return true;

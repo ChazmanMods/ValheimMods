@@ -64,21 +64,21 @@ namespace RunicSentinelClient.Runtime
                 if (!TryReadInviteSecretKey(out string inviteSecretKey))
                 {
                     BlockLocked(network, peer, rpc);
-                    Notify(_warning, "Sentinel Client could not capture Valheim's invite secret.");
+                    Notify(_warning, global::Runic.Localization.RunicText.Get("text_fa3bfcf34dd5"));
                     return false;
                 }
                 int rpcKey = StableHash(AdmissionProtocolV2.DirectRpcName);
                 if (!TryGetFunctionMap(rpc, out IDictionary functions))
                 {
                     BlockLocked(network, peer, rpc);
-                    Notify(_warning, "Sentinel Client could not access the direct RPC registry.");
+                    Notify(_warning, global::Runic.Localization.RunicText.Get("text_965172dfe6a8"));
                     return false;
                 }
                 if (functions.Contains(rpcKey))
                 {
                     BlockLocked(network, peer, rpc);
                     Notify(_warning,
-                        "Sentinel Client left the direct RPC with its existing Sentinel responder.");
+                        global::Runic.Localization.RunicText.Get("text_47ce59380df7"));
                     return false;
                 }
                 try
@@ -90,7 +90,7 @@ namespace RunicSentinelClient.Runtime
                         rpc.Unregister(AdmissionProtocolV2.DirectRpcName);
                         BlockLocked(network, peer, rpc);
                         Notify(_warning,
-                            "Sentinel Client could not verify its direct RPC registration.");
+                            global::Runic.Localization.RunicText.Get("text_80678fbd62f4"));
                         return false;
                     }
                     _network = network;
@@ -100,7 +100,7 @@ namespace RunicSentinelClient.Runtime
                     _nativeHandshakeSecret = inviteSecretKey;
                     ResetExchangeLocked();
                     Notify(_information,
-                        "Sentinel Client bound its admission handler before native peer admission.");
+                        global::Runic.Localization.RunicText.Get("text_256802b36bf6"));
                     return true;
                 }
                 catch (Exception exception)
@@ -113,7 +113,7 @@ namespace RunicSentinelClient.Runtime
                     catch { }
                     BlockLocked(network, peer, rpc);
                     Notify(_warning,
-                        "Sentinel Client direct RPC registration failed safely (" +
+                        global::Runic.Localization.RunicText.Get("text_f5547dddf418") +
                         exception.GetType().Name + ").");
                     return false;
                 }
@@ -166,7 +166,7 @@ namespace RunicSentinelClient.Runtime
             {
                 lock (_gate)
                     if (ReferenceEquals(_challenge, challenge)) _challenge = null;
-                Notify(_warning, "Sentinel admission challenge was rejected: " + challengeFailure + ".");
+                Notify(_warning, global::Runic.Localization.RunicText.Get("text_3154b686bf87") + challengeFailure + ".");
                 return;
             }
             if (!_profiles.TryGet(out AdmissionClientProfile profile, out string profileStatus))
@@ -185,7 +185,7 @@ namespace RunicSentinelClient.Runtime
                 }
                 if (reportFailure)
                     Notify(_warning,
-                        "Sentinel Client could not answer the admission challenge (" +
+                        global::Runic.Localization.RunicText.Get("text_4b41a28d971b") +
                         profileStatus + ").");
                 return;
             }
@@ -201,7 +201,7 @@ namespace RunicSentinelClient.Runtime
             catch (Exception exception)
             {
                 Notify(_warning,
-                    "Sentinel admission report creation failed safely (" +
+                    global::Runic.Localization.RunicText.Get("text_6bb69ccb1357") +
                     exception.GetType().Name + ").");
                 return;
             }
@@ -227,8 +227,8 @@ namespace RunicSentinelClient.Runtime
                     AdmissionProtocolV2.DirectRpcName,
                     new object[] { new ZPackage(encoded) });
                 Notify(_information,
-                    "Sentinel Client submitted an admission profile report (" +
-                    profile.Plugins.Count + " plugins).");
+                    global::Runic.Localization.RunicText.Get("text_7e3fa6436397") +
+                    profile.Plugins.Count + global::Runic.Localization.RunicText.Get("text_24c65f4c73bd"));
             }
             catch (Exception exception)
             {
@@ -236,7 +236,7 @@ namespace RunicSentinelClient.Runtime
                     if (string.Equals(_sentRequestId, challenge.RequestId, StringComparison.Ordinal))
                         _sentRequestId = string.Empty;
                 Notify(_warning,
-                    "Sentinel admission report send failed safely (" +
+                    global::Runic.Localization.RunicText.Get("text_f441b5e60c09") +
                     exception.GetType().Name + ").");
             }
         }
@@ -279,7 +279,7 @@ namespace RunicSentinelClient.Runtime
                 !AdmissionProtocolV2.IsChallengeCurrent(
                     challenge, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), out failure))
             {
-                Notify(_warning, "Sentinel admission challenge was rejected: " + failure + ".");
+                Notify(_warning, global::Runic.Localization.RunicText.Get("text_3154b686bf87") + failure + ".");
                 return;
             }
             bool newRequest;
@@ -293,7 +293,7 @@ namespace RunicSentinelClient.Runtime
                 _sentRequestId = string.Empty;
             }
             if (newRequest)
-                Notify(_information, "Sentinel Client received an admission challenge.");
+                Notify(_information, global::Runic.Localization.RunicText.Get("text_77a95578092e"));
         }
 
         private void ReceiveDecision(ZRpc rpc, byte[] bytes)
@@ -303,7 +303,7 @@ namespace RunicSentinelClient.Runtime
                 !AdmissionProtocolV2.IsDecisionFresh(
                     decision, DateTimeOffset.UtcNow.ToUnixTimeSeconds()))
             {
-                Notify(_warning, "Sentinel admission decision was rejected: " + failure + ".");
+                Notify(_warning, global::Runic.Localization.RunicText.Get("text_862b290fb35b") + failure + ".");
                 return;
             }
 
@@ -331,10 +331,10 @@ namespace RunicSentinelClient.Runtime
 
             if (decision.Accepted)
                 Notify(_information,
-                    "Sentinel admission accepted (" + decision.ReasonCode + ").");
+                    global::Runic.Localization.RunicText.Get("text_cfad5f821987") + decision.ReasonCode + ").");
             else
                 Notify(_warning,
-                    "Sentinel admission denied (" + decision.ReasonCode + ").");
+                    global::Runic.Localization.RunicText.Get("text_2d3f4fc3053f") + decision.ReasonCode + ").");
 
             if (!resume) return;
             try
@@ -358,7 +358,7 @@ namespace RunicSentinelClient.Runtime
             catch (Exception exception)
             {
                 Notify(_warning,
-                    "Sentinel could not resume the native handshake (" +
+                    global::Runic.Localization.RunicText.Get("text_66337c067689") +
                     exception.GetType().Name + ").");
             }
         }

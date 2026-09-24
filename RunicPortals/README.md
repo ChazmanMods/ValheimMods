@@ -15,7 +15,7 @@ Older servers continue using the existing chat workflow.
 
 A few paired portals are convenient. A large world turns them into a switchboard of duplicated frames, temporary tags, and rooms built mainly to hold transportation infrastructure.
 
-**Runic Portals lets explicitly configured portals join named travel networks.** Choose a destination from the network you are using, control who may travel, and decide whether an endpoint handles arrivals, departures, or both.
+**Runic Portals lets explicitly configured portals join named travel networks.** Choose any destination your portal permissions allow, control who may travel, and decide whether an endpoint handles arrivals, departures, or both.
 
 ## Major features
 
@@ -46,7 +46,19 @@ the local ward. Public/private/Group travel policy is evaluated independently fr
 a ward or stale route is not reported as an owner or Group permission failure.
 
 Arrival and departure are independent. A network endpoint may be `both`, `arrive`, or `depart`.
-Routing always stays inside the exact case-sensitive NetworkName.
+The destination picker includes all Runic destinations you can access: Public portals, your Private
+portals, and portals for your current Groups, across network names. It also includes vanilla
+Standard Pair portals, subject to the destination ward checks. Standard Pair destinations are
+marked as one-way Runic routes: walking into them still follows their normal vanilla tag pairing.
+They are never converted into Runic portals.
+
+You are protected from incoming hits and ongoing damage while the Runic picker is open, including
+its directory-loading wait. Canceling ends protection immediately. Selecting a destination hands
+off to Valheim's normal teleport protection. Opening the ordinary map does not grant protection.
+The picker holds movement as before. Native teleport starts after selection because it needs a
+destination; the mod does not start a teleport with a temporary or guessed destination.
+
+Install RunicPortals **1.2.9 on the server/host and participating clients** for these changes.
 
 ## Use
 
@@ -81,7 +93,7 @@ confirmation protects established routes from accidental replacement while keepi
 the form.
 
 Walking into an authorized `depart` or `both` endpoint opens a map picker containing authorized,
-online `arrive` or `both` endpoints in the same NetworkName. The local player is held in place while
+online `arrive` or `both` endpoints across accessible networks plus Standard Pair destinations. The local player is held in place while
 the picker is open. Clicking a marker selects the destination and acknowledges a one-way route; Esc
 cancels. The final action rechecks the source, destination, permissions, wards, revisions, and
 Valheim's native teleportability rule before calling the local player's native teleport path.
@@ -147,3 +159,19 @@ may query local membership through optional reflection. No mod is required to co
 Malformed, stale, unknown-schema, disabled, destroyed, offline, or unauthorized endpoints are
 excluded. Standard Pair discovery remains Standard-to-Standard and never routes through a Runic
 network.
+
+## Game compatibility
+
+Verified against Valheim 1.0.15. Startup checks required APIs directly; an unfamiliar game version alone does not disable the mod.
+
+Compatibility: startup validates required game APIs rather than rejecting an unfamiliar game version. Actual API incompatibilities still disable safely.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicPortals` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

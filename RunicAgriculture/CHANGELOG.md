@@ -1,4 +1,15 @@
+## 1.0.5
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
+
+## 1.0.4 - 2026-09-14
+
+- Added automatic snapping to nearby existing crop rows. Planting cells now align to the existing lattice instead of only rotating toward two crops.
+- Match measured crop spacing and, where a parallel row is present, its separate row spacing. Both seedlings and matching mature crops can provide row references.
+- Handle rotated rows, missing crops with additional spacing evidence, and even-sized grids without half-cell offsets. Keep terrain, spacing, access, and resource checks in the planting path.
+- Show snapped spacing in the HUD. Hold Ctrl for free placement or disable SnapToExistingRows; ExistingCropRow alignment explicitly enables snapping. Replant positions remain exact.
 
 ## 1.0.3 - 2026-09-10
 
@@ -9,8 +20,6 @@
 ## 1.0.2 - 2026-09-09
 
 - Updated the native placement call and inventory-change notification to Valheim 1.0's exact method signatures.
-- Re-audited the installed Valheim 1.0.7 client assemblies and updated the BepInEx dependency to 5.4.2350.
-
 ## 1.0.1 - 2026-09-05
 
 - Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
@@ -53,7 +62,6 @@
   path; no Agriculture-owned networking or persistent request state remains.
 - Replaced the suite-wide mutation lease with a small Agriculture-owned in-memory batch scope that
   always releases on return, exception, or plugin shutdown.
-- Reduced the Thunderstore manifest to BepInEx only and added focused independence/native-path tests.
 - Changed cultivator pattern planting to ordinary left-click and reserved 1×1 rows/columns for a
   single plant; migrated the former Alt+P binding to Mouse0.
 - Made bare wheel rotate the whole ground-plane pattern, while Alt/Shift wheel continue to edit

@@ -82,7 +82,7 @@ namespace RunicCharacterVault
         {
             if (!_sessions.TryGetValue(rpc, out VaultSession session))
             {
-                Reject(rpc, "Character verification did not complete. Please try again.");
+                Reject(rpc, global::Runic.Localization.RunicText.Get("text_61c64500b935"));
                 return false;
             }
 
@@ -111,7 +111,7 @@ namespace RunicCharacterVault
             if (restored?.Status == CharacterRestoreStatus.Failed)
             {
                 _sessions.Remove(rpc);
-                Reject(rpc, "Your saved character could not be restored right now. Please try again in a moment.");
+                Reject(rpc, global::Runic.Localization.RunicText.Get("text_375a0a56d618"));
                 return false;
             }
 
@@ -159,14 +159,14 @@ namespace RunicCharacterVault
             bool pendingSave = server
                 ? CharacterVaultPlugin.ServerDisconnects?.HasPendingSave(rpc) == true
                 : CharacterVaultPlugin.DisconnectCoordinator?.HasPendingSave == true;
-            return $"side={(server ? "server" : "client")}, peerReady={peer?.IsReady() == true}, " +
-                $"sessionTracked={tracked}, verified={state?.Verified == true}, " +
-                $"admitted={state?.Admitted == true}, permissionChecked={state?.PermissionChecked == true}, " +
-                $"permitted={state?.Permitted == true}, canSave={state?.CanSave == true}, " +
-                $"clientActive={_clientLifecycle.IsActive}, enrolling={_clientLifecycle.IsEnrolling}, " +
-                $"spawned={_clientLifecycle.HasSpawned}, uploadBusy={_clientUploadBusy}, " +
+            return global::Runic.Localization.RunicText.Format("text_b1fab7769201", (server ? "server" : "client"), peer?.IsReady() == true) +
+                global::Runic.Localization.RunicText.Format("text_adfbf221e4c4", tracked, state?.Verified == true) +
+                global::Runic.Localization.RunicText.Format("text_3f23f65911bb", state?.Admitted == true, state?.PermissionChecked == true) +
+                global::Runic.Localization.RunicText.Format("text_9bb2ff594060", state?.Permitted == true, state?.CanSave == true) +
+                global::Runic.Localization.RunicText.Format("text_154964a5398a", _clientLifecycle.IsActive, _clientLifecycle.IsEnrolling) +
+                global::Runic.Localization.RunicText.Format("text_46b015aabed8", _clientLifecycle.HasSpawned, _clientUploadBusy) +
                 $"incomingUpload={rpc != null && _uploads.ContainsKey(rpc)}, " +
-                $"incomingDownload={_download != null}, pendingSave={pendingSave}";
+                global::Runic.Localization.RunicText.Format("text_1abebbbbe6c1", _download != null, pendingSave);
         }
 
         private static CharacterRestoreResult TryRestore(VaultSession session)
@@ -412,9 +412,12 @@ namespace RunicCharacterVault
         private bool AdmitEnrollment(ZRpc rpc, VaultSession session)
         {
             bool allowMultiple = CharacterVaultPlugin.Settings.AllowMultipleCharacters;
+            // Use the authenticated socket identity, never a client-supplied admin flag.
+            ZNet network = ZNet.instance;
+            bool isServerAdmin = network != null && network.IsServer() && network.IsAdmin(session.AccountId);
             CharacterAdmission admission = _admission.Decide(false, session.AccountId,
                 session.NewCharacter, allowMultiple, true,
-                CharacterVaultPlugin.Settings.AllowExistingCharacters);
+                CharacterVaultPlugin.Settings.AllowExistingCharacters, isServerAdmin);
             if (admission == CharacterAdmission.NewEnrollment && !ReserveEnrollment(rpc, session))
             {
                 admission = CharacterAdmission.RejectConcurrentEnrollment;
@@ -707,7 +710,7 @@ namespace RunicCharacterVault
                 _uploads.Remove(rpc);
                 ReleaseEnrollment(rpc);
                 CharacterVaultRejection.Reject(rpc,
-                    "Your character data could not be validated. Please restart the game and try again.",
+                    global::Runic.Localization.RunicText.Get("text_b00f6fb0efd0"),
                     exception.Message);
                 return false;
             }

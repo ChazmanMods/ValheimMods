@@ -29,25 +29,25 @@ namespace RunicProduction.Integration
                 views.Length != 1 || !ReferenceEquals(stations[0].gameObject, registeredPrefab) ||
                 !ReferenceEquals(views[0].gameObject, registeredPrefab) ||
                 registeredPrefab.GetComponent<WearNTear>() == null)
-                return Fail("CookingStation, ZNetView, and WearNTear require one registered root.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_83029d0196d3"), out failure);
             station = stations[0];
             if (registeredPrefab.GetComponentsInChildren<Smelter>(true).Length != 0 ||
                 registeredPrefab.GetComponentsInChildren<Fermenter>(true).Length != 0 ||
                 registeredPrefab.GetComponentsInChildren<CraftingStation>(true).Length != 0 ||
                 registeredPrefab.GetComponentsInChildren<Container>(true).Length != 0)
-                return Fail("Hybrid registered CookingStation prefabs are unsupported.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_7e32b115c0e4"), out failure);
             if (requireAllowed && (policy == null || !policy.Allows(prefabId)))
-                return Fail("This exact CookingStation prefab ID is not enabled.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_40cb432c298e"), out failure);
             if (station.m_slots == null || station.m_slots.Length < 1 ||
                 station.m_slots.Length > 64)
-                return Fail("CookingStation slot capacity is outside 1-64.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_38da285cb2e0"), out failure);
             var slots = new HashSet<int>();
             foreach (Transform slot in station.m_slots)
                 if (slot == null || !slots.Add(slot.GetInstanceID()) ||
                     !(ReferenceEquals(slot, station.transform) || slot.IsChildOf(station.transform)) ||
                     slot.GetComponent<ParticleSystem>() == null ||
                     slot.GetComponent<AudioSource>() == null)
-                    return Fail("CookingStation slot transforms are incomplete or ambiguous.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_87bb10a8e106"), out failure);
             if (station.m_donePS == null || station.m_burntPS == null ||
                 station.m_donePS.Length > 0 &&
                 (station.m_donePS.Length < station.m_slots.Length ||
@@ -55,10 +55,10 @@ namespace RunicProduction.Integration
                 station.m_burntPS.Length > 0 &&
                 (station.m_burntPS.Length < station.m_slots.Length ||
                  station.m_burntPS.Any(value => value == null)))
-                return Fail("CookingStation visual arrays do not cover every slot.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_a97f1b03235f"), out failure);
             if (station.m_conversion == null || station.m_conversion.Count < 1 ||
                 station.m_conversion.Count > 256 || station.m_overCookedItem == null)
-                return Fail("CookingStation conversion metadata is unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_9c6ea015cfc6"), out failure);
             var inputs = new HashSet<string>(StringComparer.Ordinal);
             var outputs = new HashSet<string>(StringComparer.Ordinal);
             foreach (CookingStation.ItemConversion conversion in station.m_conversion)
@@ -75,7 +75,7 @@ namespace RunicProduction.Integration
                     ValheimAccess.RegisteredItemPrefab(to)?.GetComponent<ItemDrop>() == null ||
                     ValheimAccess.RegisteredItemPrefab(from).transform.Find("attach") == null ||
                     ValheimAccess.RegisteredItemPrefab(to).transform.Find("attach") == null)
-                    return Fail("CookingStation conversion metadata is invalid or ambiguous.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_a0f05c52eee3"), out failure);
                 outputs.Add(to);
             }
             string burnt = ValheimAccess.PrefabName(station.m_overCookedItem.gameObject);
@@ -84,11 +84,11 @@ namespace RunicProduction.Integration
                 ValheimAccess.RegisteredItemPrefab(burnt)?.GetComponent<ItemDrop>() == null ||
                 ValheimAccess.RegisteredItemPrefab(burnt).transform.Find("attach") == null ||
                 station.m_requireFire == station.m_useFuel)
-                return Fail("CookingStation output/heat metadata is ambiguous.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_68198ee9ad9e"), out failure);
             if (station.m_useFuel &&
                 (station.m_fuelItem == null || station.m_maxFuel <= 0 ||
                  station.m_maxFuel > 100000 || !IsFinitePositive(station.m_secPerFuel)))
-                return Fail("CookingStation fuel metadata is invalid.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_cbd19d35a2f9"), out failure);
             failure = "ok";
             return true;
         }
@@ -104,7 +104,7 @@ namespace RunicProduction.Integration
             failure = string.Empty;
             if (station == null || !ValheimAccess.TryGetCookingStationPrefab(
                     station, out prefabId, out GameObject registeredPrefab))
-                return Fail("The exact CookingStation prefab identity is unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_0b1aa3175a03"), out failure);
             if (station.gameObject.GetComponent<CookingStation>() != station ||
                 station.gameObject.GetComponents<CookingStation>().Length != 1 ||
                 station.gameObject.GetComponent<ZNetView>() != ValheimAccess.View(station) ||
@@ -112,7 +112,7 @@ namespace RunicProduction.Integration
                 registeredPrefab.GetComponents<CookingStation>().Length != 1 ||
                 registeredPrefab.GetComponent<ZNetView>() == null ||
                 registeredPrefab.GetComponent<WearNTear>() == null)
-                return Fail("CookingStation, ZNetView, and WearNTear must share one unambiguous registered prefab root.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_dc52f2f31ced"), out failure);
             if (station.GetComponentsInChildren<Smelter>(true).Length != 0 ||
                 registeredPrefab.GetComponentsInChildren<Smelter>(true).Length != 0 ||
                 station.GetComponentsInChildren<Fermenter>(true).Length != 0 ||
@@ -120,32 +120,32 @@ namespace RunicProduction.Integration
                 station.GetComponentsInChildren<CraftingStation>(true).Length != 0 ||
                 registeredPrefab.GetComponentsInChildren<CraftingStation>(true).Length != 0)
                 return Fail(
-                    "Hybrid Smelter, Fermenter, CraftingStation, or CookingStation prefabs are ambiguous and unsupported.",
+                    global::Runic.Localization.RunicText.Get("text_1e2ee20d8969"),
                     out failure);
             if (station.GetComponentsInChildren<Container>(true).Length != 0 ||
                 registeredPrefab.GetComponentsInChildren<Container>(true).Length != 0)
-                return Fail("Hybrid Container/CookingStation prefabs make explicit link gestures ambiguous.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_736f46179b72"), out failure);
             if (requireAllowed && (policy == null || !policy.Allows(prefabId)))
-                return Fail("This exact CookingStation prefab ID is not enabled by the allow list.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_251cbb36b389"), out failure);
             ZNetView view = ValheimAccess.View(station);
             if (view == null || !view.IsValid() || ValheimAccess.Zdo(station) == null)
-                return Fail("CookingStation network state is unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_b04e8d7b888d"), out failure);
             if (station.m_slots == null || station.m_slots.Length == 0 || station.m_slots.Length > 64)
-                return Fail("CookingStation slot capacity is outside the supported 1-64 range.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_7014f3de58b7"), out failure);
             var slots = new HashSet<int>();
             foreach (Transform slot in station.m_slots)
                 if (slot == null || !slots.Add(slot.GetInstanceID()) ||
                     !(ReferenceEquals(slot, station.transform) || slot.IsChildOf(station.transform)) ||
                     slot.GetComponent<ParticleSystem>() == null || slot.GetComponent<AudioSource>() == null)
-                    return Fail("CookingStation slot transforms are missing or ambiguous.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_fea665ebe752"), out failure);
             if (station.m_donePS == null || station.m_burntPS == null ||
                 (station.m_donePS.Length > 0 &&
                  (station.m_donePS.Length < station.m_slots.Length || station.m_donePS.Any(value => value == null))) ||
                 (station.m_burntPS.Length > 0 &&
                  (station.m_burntPS.Length < station.m_slots.Length || station.m_burntPS.Any(value => value == null))))
-                return Fail("CookingStation done/burnt visual arrays do not safely cover every slot.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_068febd4228a"), out failure);
             if (station.m_conversion == null || station.m_conversion.Count == 0 || station.m_conversion.Count > 256)
-                return Fail("CookingStation conversion count is outside the supported 1-256 range.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_de48c607837a"), out failure);
             var inputs = new HashSet<string>(StringComparer.Ordinal);
             var outputs = new HashSet<string>(StringComparer.Ordinal);
             foreach (CookingStation.ItemConversion conversion in station.m_conversion)
@@ -160,43 +160,43 @@ namespace RunicProduction.Integration
                     !IsFinitePositive(conversion.m_cookTime) || !inputs.Add(from) ||
                     ValheimAccess.RegisteredItemPrefab(from)?.GetComponent<ItemDrop>() == null ||
                     ValheimAccess.RegisteredItemPrefab(to)?.GetComponent<ItemDrop>() == null)
-                    return Fail("CookingStation conversions contain a missing, invalid, or ambiguous input mapping.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_eaa23a7432be"), out failure);
                 if (ValheimAccess.RegisteredItemPrefab(from).transform.Find("attach") == null ||
                     ValheimAccess.RegisteredItemPrefab(to).transform.Find("attach") == null)
-                    return Fail("CookingStation item prefabs require vanilla attach visuals.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_e66d1a36a8df"), out failure);
                 outputs.Add(to);
             }
             if (inputs.Overlaps(outputs))
-                return Fail("CookingStation input/output prefab names collide and make vanilla conversion order ambiguous.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_9b6c84b2d14f"), out failure);
             string burnt = station.m_overCookedItem == null
                 ? string.Empty
                 : ValheimAccess.PrefabName(station.m_overCookedItem.gameObject);
             if (string.IsNullOrEmpty(burnt) ||
                 ValheimAccess.RegisteredItemPrefab(burnt)?.GetComponent<ItemDrop>() == null ||
                 ValheimAccess.RegisteredItemPrefab(burnt).transform.Find("attach") == null)
-                return Fail("CookingStation has no valid vanilla overcooked item.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_af73904ff410"), out failure);
             if (inputs.Contains(burnt) || outputs.Contains(burnt))
-                return Fail("CookingStation overcooked prefab collides with its conversion table.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_b9860f47713f"), out failure);
             if (station.m_requireFire == station.m_useFuel)
-                return Fail("CookingStation must use exactly one vanilla heat model: external fire XOR internal fuel.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_477eaf9a6f4a"), out failure);
             if (station.m_requireFire &&
                 (station.m_fireCheckPoints == null || station.m_fireCheckPoints.Length == 0 ||
                  station.m_fireCheckPoints.Length > 64 || !IsFinitePositive(station.m_fireCheckRadius)))
-                return Fail("Fire-gated CookingStation fields are incomplete or out of bounds.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_700b68743320"), out failure);
             if (station.m_requireFire)
                 foreach (Transform firePoint in station.m_fireCheckPoints)
                     if (firePoint == null ||
                         !(ReferenceEquals(firePoint, station.transform) || firePoint.IsChildOf(station.transform)))
-                        return Fail("CookingStation fire points must remain inside the registered station root.", out failure);
+                        return Fail(global::Runic.Localization.RunicText.Get("text_9083073e469c"), out failure);
             if (station.m_useFuel &&
                 (station.m_fuelItem == null || station.m_maxFuel <= 0 || station.m_maxFuel > 100000 ||
                  station.m_secPerFuel <= 0 || station.m_addFuelSwitch == null ||
                  ValheimAccess.RegisteredItemPrefab(
                      ValheimAccess.PrefabName(station.m_fuelItem.gameObject))?.GetComponent<ItemDrop>() == null))
-                return Fail("Fuelled CookingStation fields are incomplete or out of bounds.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_976004c92a8f"), out failure);
             if (!ControlInside(station, station.m_addFoodSwitch) ||
                 !ControlInside(station, station.m_addFuelSwitch))
-                return Fail("CookingStation controls must remain inside the registered station root.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_1ed85b29f5ab"), out failure);
             return true;
         }
 
@@ -204,7 +204,7 @@ namespace RunicProduction.Integration
         {
             failure = string.Empty;
             if (station == null || station.m_slots == null)
-                return Fail("CookingStation state is unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_16d68dc5a320"), out failure);
             var inputs = new HashSet<string>(station.m_conversion.Select(conversion =>
                 ValheimAccess.PrefabName(conversion.m_from.gameObject)), StringComparer.Ordinal);
             var outputs = new HashSet<string>(station.m_conversion.Select(conversion =>
@@ -216,11 +216,11 @@ namespace RunicProduction.Integration
                     out CookingSlotStatus status);
                 if (float.IsNaN(elapsed) || float.IsInfinity(elapsed) || elapsed < 0f ||
                     !Enum.IsDefined(typeof(CookingSlotStatus), status))
-                    return Fail("CookingStation contains non-finite or invalid slot state.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_0564406ad194"), out failure);
                 if (string.IsNullOrEmpty(item))
                 {
                     if (elapsed != 0f || status != CookingSlotStatus.NotDone)
-                        return Fail("CookingStation contains a non-canonical empty slot.", out failure);
+                        return Fail(global::Runic.Localization.RunicText.Get("text_5a5f5219b433"), out failure);
                     continue;
                 }
                 bool valid = status == CookingSlotStatus.NotDone && inputs.Contains(item) ||
@@ -228,7 +228,7 @@ namespace RunicProduction.Integration
                              status == CookingSlotStatus.Burnt &&
                              string.Equals(item, burnt, StringComparison.Ordinal);
                 if (!valid)
-                    return Fail("CookingStation slot item/status does not match its exact vanilla conversion table.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_fe889fbfdfe2"), out failure);
             }
             if (station.m_useFuel)
             {
@@ -238,7 +238,7 @@ namespace RunicProduction.Integration
                 // capacity. That state still cooks normally; automation must simply refrain
                 // from adding more fuel instead of disabling all slot input/output handling.
                 if (float.IsNaN(fuel) || float.IsInfinity(fuel) || fuel < 0f)
-                    return Fail("CookingStation fuel state is non-finite or negative.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_31dbf03bdbb8"), out failure);
             }
             return true;
         }

@@ -13,6 +13,7 @@ namespace RunicInteraction.Integration
             new List<PendingDoorTimer>(MaximumTimers);
         private static readonly Collider[] Obstructions = new Collider[32];
         private static int _cursor;
+        private static bool _closing;
 
         internal readonly struct DoorOpenCapture
         {
@@ -40,11 +41,40 @@ namespace RunicInteraction.Integration
 
         internal static void Initialize() => Shutdown();
 
+        internal static void ObserveState(Door door)
+        {
+            Player actor = Player.m_localPlayer;
+            if (_closing || !FeatureOn() || !door || !actor || !actor.IsOwner() || actor.IsDead() ||
+                !IsPlayerBuilt(door)) return;
+            ZNetView view = door.GetComponent<ZNetView>();
+            ZDO zdo = view && view.IsValid() ? view.GetZDO() : null;
+            if (zdo == null || !zdo.IsValid() || zdo.m_uid.IsNone()) return;
+            int state = zdo.GetInt(ZDOVars.s_state);
+            for (int index = 0; index < Timers.Count; index++)
+            {
+                if (Timers[index].Id != zdo.m_uid) continue;
+                if (state == 0) Timers.RemoveAt(index);
+                // Repeated UpdateState calls must not postpone the closing deadline.
+                else if (Timers[index].OpenState != state)
+                {
+                    Timers[index].OpenState = state;
+                    Timers[index].DueRealtime = Time.realtimeSinceStartup + EffectiveDelaySeconds();
+                }
+                return;
+            }
+            if (state == 0 || door.m_canNotBeClosed || door.m_keyItem || Timers.Count >= MaximumTimers ||
+                !PrivateArea.CheckAccess(door.transform.position, 0f, false, false)) return;
+            var capture = new DoorOpenCapture(door, actor, zdo.m_uid, zdo.DataRevision, zdo.GetPrefab());
+            var timer = NewTimer(capture, Time.realtimeSinceStartup);
+            timer.OpenState = state;
+            Timers.Add(timer);
+        }
+
         internal static DoorOpenCapture BeforeInteract(Door door, Humanoid character, bool hold)
         {
             if (!FeatureOn() || !door || hold || !(character is Player actor) ||
                 actor != Player.m_localPlayer || !actor.IsOwner() || door.m_canNotBeClosed ||
-                door.m_keyItem)
+                door.m_keyItem || !IsPlayerBuilt(door))
                 return default;
             ZNetView view = door.GetComponent<ZNetView>();
             ZDO zdo = view && view.IsValid() ? view.GetZDO() : null;
@@ -56,7 +86,7 @@ namespace RunicInteraction.Integration
 
         internal static void AfterInteract(DoorOpenCapture capture, bool vanillaAccepted)
         {
-            if (!capture.Eligible || !vanillaAccepted || !FeatureOn()) return;
+            if (!capture.Eligible || !vanillaAccepted || !FeatureOn() || !IsPlayerBuilt(capture.Door)) return;
             float now = Time.realtimeSinceStartup;
             for (int index = 0; index < Timers.Count; index++)
             {
@@ -128,15 +158,17 @@ namespace RunicInteraction.Integration
             float now = Time.realtimeSinceStartup;
             if (timer == null || now >= timer.ExpiresRealtime || !timer.Door || !timer.Actor)
                 return true;
+            if (timer.Actor != Player.m_localPlayer || !timer.Actor.IsOwner() || timer.Actor.IsDead() ||
+                !IsPlayerBuilt(timer.Door)) return true;
             ZNetView view = timer.Door.GetComponent<ZNetView>();
             ZDO zdo = view && view.IsValid() ? view.GetZDO() : null;
             if (zdo == null || !zdo.IsValid() || zdo.m_uid != timer.Id ||
                 zdo.GetPrefab() != timer.ExpectedPrefabHash || zdo.GetInt(ZDOVars.s_state) == 0)
                 return true;
             if (now < timer.DueRealtime) return false;
-            if (timer.Door.m_canNotBeClosed || timer.Door.m_keyItem ||
-                !ValheimAccess.DoorCanInteract(timer.Door))
+            if (timer.Door.m_canNotBeClosed || timer.Door.m_keyItem)
                 return true;
+            if (!ValheimAccess.DoorCanInteract(timer.Door)) return false;
             if (!PrivateArea.CheckAccess(timer.Door.transform.position, 0f, false, false))
                 return true;
             if (IsObstructed(timer.Door))
@@ -152,6 +184,7 @@ namespace RunicInteraction.Integration
             }
             try
             {
+                _closing = true;
                 ValheimAccess.CloseDoor(timer.Door, ZNet.GetUID());
                 return zdo.GetInt(ZDOVars.s_state) == 0;
             }
@@ -160,6 +193,14 @@ namespace RunicInteraction.Integration
                 Diagnostics.Warn("Door auto-close stopped: " + exception.GetType().Name + ".");
                 return true;
             }
+            finally { _closing = false; }
+        }
+
+        private static bool IsPlayerBuilt(Door door)
+        {
+            // Network ownership and interaction do not imply player construction.
+            Piece piece = door.GetComponent<Piece>();
+            return piece && piece.IsPlacedByPlayer();
         }
 
         private static bool IsObstructed(Door door)
@@ -200,6 +241,7 @@ namespace RunicInteraction.Integration
             internal Player Actor;
             internal ZDOID Id;
             internal int ExpectedPrefabHash;
+            internal int OpenState;
             internal float DueRealtime;
             internal float ExpiresRealtime;
         }

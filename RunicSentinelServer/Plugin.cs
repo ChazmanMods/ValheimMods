@@ -10,6 +10,7 @@ using RunicSentinel.Runtime;
 namespace RunicSentinel
 {
     [BepInPlugin(Guid, Name, Version)]
+    [BepInIncompatibility("server_devcommands")]
     [BepInDependency("chazman.RunicSafety", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("chazman.RunicWorldEngine", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInIncompatibility("chazman.RunicSentinel")]
@@ -286,6 +287,7 @@ namespace RunicSentinel
                     _managedPolicy,
                     _operatorCommands);
                 _authorityHarmony = new Harmony(Guid + ".authority");
+                RunicSentinel.Devcommands.Engine.Init(Config,Logger);
                 _authorityHarmony.PatchAll(typeof(Plugin).Assembly);
                 SentinelConfig.Changed += Refresh;
                 _runtime.Start(Paths.ConfigPath);
@@ -397,7 +399,7 @@ namespace RunicSentinel
             {
                 Logger.LogWarning("Sentinel server integrity check failed closed: " + exception.Message);
             }
-            try { _adminControl?.Tick(); }
+            try { _adminControl?.Tick(); if(_adminControl!=null)RunicSentinel.Devcommands.Engine.Tick(); }
             catch (Exception exception)
             {
                 Logger.LogWarning("Sentinel server administrator transport stopped safely: " + exception.Message);
@@ -431,6 +433,7 @@ namespace RunicSentinel
 
         private void ShutdownAuthority()
         {
+            try { RunicSentinel.Devcommands.Engine.Stop(); } catch { }
             SentinelConfig.Changed -= Refresh;
             Interlocked.Exchange(ref _refreshRequested, 0);
             _authorityStarted = false;

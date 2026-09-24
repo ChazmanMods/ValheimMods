@@ -9,13 +9,13 @@ namespace RunicCharacterVault
             string code = error?.Error.ToString() ?? HttpCode(error);
             if (IsRateLimited(error))
             {
-                return "Too many attempts. Please wait and try again. (Code 429)";
+                return global::Runic.Localization.RunicText.Get("text_af7dad45d13b");
             }
             if (error?.Error == PlayFabErrorCode.LobbyNotJoinable)
             {
-                return $"The server is not accepting connections. (Code {code})";
+                return global::Runic.Localization.RunicText.Format("text_bd2c40124b83", code);
             }
-            return $"A PlayFab connection error occurred. Please try again. (Code {code})";
+            return global::Runic.Localization.RunicText.Format("text_c174578e11cc", code);
         }
 
         internal static string ForMatchmaking(ZPLayFabMatchmakingFailReason reason)
@@ -23,19 +23,19 @@ namespace RunicCharacterVault
             switch (reason)
             {
                 case ZPLayFabMatchmakingFailReason.InvalidServerData:
-                    return "The server information is invalid. (Code InvalidServerData)";
+                    return global::Runic.Localization.RunicText.Get("text_8fce283a2663");
                 case ZPLayFabMatchmakingFailReason.ServerFull:
-                    return "The server is full. (Code ServerFull)";
+                    return global::Runic.Localization.RunicText.Get("text_4d0dafcf90be");
                 case ZPLayFabMatchmakingFailReason.NotLoggedIn:
-                    return "PlayFab sign-in failed. Please try again. (Code NotLoggedIn)";
+                    return global::Runic.Localization.RunicText.Get("text_69013a159f3b");
                 case ZPLayFabMatchmakingFailReason.APIRequestLimitExceeded:
-                    return "Too many attempts. Please wait and try again. (Code 429)";
+                    return global::Runic.Localization.RunicText.Get("text_af7dad45d13b");
                 case ZPLayFabMatchmakingFailReason.EndPointNotOnInternet:
-                    return "The server is not reachable. (Code EndPointNotOnInternet)";
+                    return global::Runic.Localization.RunicText.Get("text_d657442d1a93");
                 case ZPLayFabMatchmakingFailReason.InvalidParameter:
-                    return "The connection request is invalid. (Code InvalidParameter)";
+                    return global::Runic.Localization.RunicText.Get("text_aae954706453");
                 default:
-                    return $"A PlayFab connection error occurred. Please try again. (Code {reason})";
+                    return global::Runic.Localization.RunicText.Format("text_c174578e11cc", reason);
             }
         }
 
@@ -44,11 +44,11 @@ namespace RunicCharacterVault
             switch (code)
             {
                 case 11:
-                    return "PlayFab is not ready. Please try again. (Code 11)";
+                    return global::Runic.Localization.RunicText.Get("text_179e37eda9e9");
                 case 4098:
-                    return "The PlayFab connection expired. Please try again. (Code 4098)";
+                    return global::Runic.Localization.RunicText.Get("text_519ef9b193e3");
                 default:
-                    return $"A PlayFab connection error occurred. Please try again. (Code {code})";
+                    return global::Runic.Localization.RunicText.Format("text_c174578e11cc", code);
             }
         }
 
@@ -62,7 +62,7 @@ namespace RunicCharacterVault
 
         private static string HttpCode(PlayFabError error)
         {
-            return error == null || error.HttpCode <= 0 ? "Unknown" : error.HttpCode.ToString();
+            return error == null || error.HttpCode <= 0 ? global::Runic.Localization.RunicText.Get("text_b764cdc0eab7") : error.HttpCode.ToString();
         }
     }
 }

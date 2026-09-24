@@ -48,7 +48,7 @@ namespace RunicCrafting.Integration
             {
                 if (!CraftingRuntime.CanUseStation(station, player, out string accessReason))
                 {
-                    player.Message(MessageHud.MessageType.Center, "Station use denied: " + accessReason);
+                    player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_e69081d93656") + accessReason);
                     CraftingDiagnostics.TraceAction("repair-all-cancelled", "station-use-denied:" + accessReason);
                     return true;
                 }
@@ -79,7 +79,7 @@ namespace RunicCrafting.Integration
 
             if (repaired == 0)
             {
-                player.Message(MessageHud.MessageType.Center, "No more item to repair");
+                player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_aadc4395f6c2"));
                 CraftingDiagnostics.TraceAction("repair-all", "nothing-repairable");
                 return true;
             }
@@ -92,7 +92,7 @@ namespace RunicCrafting.Integration
                     null,
                     1f,
                     -1);
-            player.Message(MessageHud.MessageType.Center, $"Repaired {repaired} items");
+            player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Format("text_fed7032e1f9c", repaired));
             CraftingDiagnostics.TraceAction("repair-all", "completed", "items=" + repaired);
             return true;
         }

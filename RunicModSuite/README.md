@@ -1,8 +1,17 @@
 # Runic Mod Suite
 
+## Release 1.2.43 - September 20, 2026
+
+- Updated RunicProduction to 1.0.12 to fix fermenter content storage on current Valheim.
+- Updated RunicInteraction to 1.0.9: auto-close only affects player-built doors, excluding generated dungeon, cave, and ruin doors.
+- Existing stranded fermenter batches may need recovery; the update does not automatically recover them.
+- All other dependency versions and the client/server module split are retained.
+
+Update participating clients and servers together and restart.
+
 **Build smarter. Store faster. Automate the chores. Keep Valheim feeling like Valheim.**
 
-Runic Mod Suite is a collection of 18 independently installable Valheim mods focused on building,
+Runic Mod Suite is a collection of 19 independently installable Valheim mods focused on building,
 storage, crafting, farming, production, exploration, server administration, and quality-of-life
 improvements. Install the entire suite with one click, or use only the Runic mods you want.
 
@@ -38,6 +47,7 @@ Suite** on player profiles and **Runic Mod Server Suite** on the authoritative s
 | **Runic Safety** | Protect valuable inventory and world state with contextual confirmations, protected-item rules, recovery safeguards, verified backups, and compatibility checks. |
 | **Runic Sentinel** | Control a modded server with approved mod profiles, authenticated administrators, bans, admission enforcement, backups, reports, and a secure F3 panel with server-cap administration. |
 | **Runic Storage** | Preview chest contents, quick-stack nearby storage, store all, restock, search, sort, and consolidate partial stacks. |
+| **Runic Signs** | Design signs live with selected-text styling, emojis, precise colors, text effects, curves, offsets, and scaled placement previews. |
 | **Runic Velocity** | Measure modded startup milestones and maintain a validated plugin cache so changed files and loading costs are easier to diagnose. |
 | **Runic World Engine** | Configure a validated host player cap, monitor peers, latency, traffic, ownership transfers and backlog warnings, and smooth asynchronous world saves. |
 
@@ -73,8 +83,7 @@ Manager is included as a convenience; the Runic plugins themselves remain indepe
 4. Launch the game with **Start modded**.
 
 For a dedicated multiplayer deployment, install **Runic Mod Server Suite** on the server and
-**Runic Mod Client Suite** on ordinary player profiles. A listen host can either use this complete
-suite or install both split suites.
+**Runic Mod Client Suite** on ordinary player profiles. A listen host should use this complete suite, which includes full Sentinel and its F3 panel.
 
 The individual Runic mods remain independently configurable in the included Configuration Manager.
 Because this pack does not ship configuration files, existing settings are preserved.
@@ -89,22 +98,54 @@ combine the vault with another server-character mod.
 Update this modpack through the mod manager. A new suite version may update one or more exact
 dependency versions while leaving the remaining components unchanged.
 
-## Support
+## Installation compatibility
 
-Questions, bug reports, and test logs: [Runic Mods Discord](https://discord.gg/7HKHTCdFqY)
+Use **RunicModServerSuite** only on the dedicated server. Ordinary players use **RunicModClientSuite**; administrators add full **RunicSentinel 1.4.2** to that client profile for F3. Listen hosts use **RunicModSuite**.
 
-## Release 1.2.34
+**Never combine full Sentinel and SentinelServer in one profile.** When switching packs, remove the previous pack and its unwanted Sentinel variant; mod managers may retain old dependencies. Fully restart Valheim after changing plugins. SentinelClient may coexist with full Sentinel.
 
-This release updates RunicStorage to 1.2.3: remembered chest contents, exact-item and group rules,
-biome filters including Deep North, reusable custom groups, exclusions and routing priorities.
-Chest labels support named colors, optional backgrounds and all five faces, with corrected lid
-placement. Rules and Search block background movement and camera input while allowing typing and
-UI scrolling. Vanilla chest stacking remains accessible beside the separate Rules control.
-Existing Storage settings are preserved; update participating installations to 1.2.3.
+Signs must be installed at the same version on every player and the server. Disable BetterSigns because it replaces the same editor. The server pack includes Storage so chest learning covers server-owned Production automation.
 
-This release includes RunicInventory 1.1.5 with Better Archery 1.9.99 compatibility,
-inventory-resize safeguards, and the compact quiver layout. Better Archery is optional and
-is not installed by this suite; its 2.0.0 build is not covered by the adapter.
-RunicProduction 1.0.6 remains included. RunicDisplayStands 1.3.8 keeps your worn cape when the stand has none, equips the stand cape when you are wearing none, and swaps when both have one.
-Restart the game after updating. Existing configuration files are preserved.
-For multiplayer, keep RunicDisplayStands updated to 1.3.8 on participating clients and the server.
+RunicDeathPenalty remains planned for a future suite release and is not included.
+
+## Release 1.2.35
+
+Updated package versions:
+
+- Chazman-RunicAgriculture-1.0.5
+- Chazman-RunicCrafting-1.1.7
+- Chazman-RunicInteraction-1.0.10
+- Chazman-RunicInventory-1.1.10
+- Chazman-RunicPortals-1.2.10
+- Chazman-RunicProduction-1.0.15
+- Chazman-RunicSentinel-1.5.0
+- Chazman-RunicSigns-1.2.7
+- Chazman-RunicStorage-1.3.7
+
+Update client and server packages together for Portals, Production, Signs, and Storage. Inventory 1.1.6 and Storage 1.2.5 provide Quick Stack-only slot exclusions. Existing configuration is preserved.
+
+## Release 1.2.37
+
+Includes RunicStorage 1.3.0 and RunicSigns 1.1.0 with full-color emoji pickers, retained Quick Stack protection, and sign placement sizing. Includes RunicPrecisionBuildTool 2.0.6 with the F4 Local/World rotation toggle. These mod versions were confirmed working in-game by the author. Existing configuration and all other dependency versions are retained.
+
+## Release 1.2.38
+
+Includes the Valheim 1.0.14 compatibility fixes, retaining the current emoji and precision-building releases.
+
+## Release 1.2.39
+
+Includes RunicBuildCamera 1.0.4 with activation focus recovery and visible toggle feedback, confirmed working in-game by the author. All other dependency versions are unchanged.
+
+## Release 1.2.40
+
+Includes RunicWorldEngine 1.2.1, fixing the optional player-cap override on Valheim 1.0.14 while retaining existing patch-integrity checks.
+
+## September 18, 2026 update
+
+Compatible game updates are accepted through API checks in the updated modules; incompatible APIs still disable safely.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

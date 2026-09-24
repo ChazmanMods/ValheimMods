@@ -1,0 +1,19 @@
+{
+  "text_01ab013c2d3d": "Hold this while interacting with a stand to take a single item instead of opening it.",
+  "text_14736a2eb9f4": "Role",
+  "text_1620e1d4e059": "Runic Display Stands: ",
+  "text_1710782c5d15": "Weapon",
+  "text_378d83808237": "Chest",
+  "text_38557594d0fc": "Legs",
+  "text_480d4be7d61f": "Shield",
+  "text_4f646b9c50e7": "Cape",
+  "text_58fec321de23": "Enable controller-friendly interact prompts and alt-take binding.",
+  "text_5ca5b8e793be": "Left hand",
+  "text_9450d833fa77": "Utility",
+  "text_97fb8f940687": "Right hand",
+  "text_a424e33d9093": "Locked",
+  "text_a47fdf6415fc": "Helmet",
+  "text_a5f39c09729f": "Comma separated list of prefab names that should be treated as item/armor stands.",
+  "text_bdc10f09365d": "Coordinate",
+  "text_c25337055464": "Roles"
+}

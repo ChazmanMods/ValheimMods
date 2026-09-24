@@ -1,6 +1,6 @@
 {
   "name": "RunicSentinel",
-  "version_number": "1.4.2",
+  "version_number": "1.5.0",
   "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicSentinel",
   "description": "Secure a modded server with approved mod profiles, admission enforcement, authenticated admins, bans, backups, reports, and an in-game F3 panel.",
   "dependencies": [

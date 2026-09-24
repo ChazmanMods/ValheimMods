@@ -13,7 +13,7 @@ namespace RunicBuildCamera
     {
         public const string Guid = "chazman.RunicBuildCamera";
         public const string Name = "Runic Build Camera";
-        public const string Version = "1.0.3";
+        public const string Version = "1.0.5";
 
         private Harmony _harmony;
         private bool _runtimeReady;
@@ -51,7 +51,7 @@ namespace RunicBuildCamera
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Runic Build Camera startup failed; vanilla camera behavior was preserved.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_8ea2ea6caed3"));
                 DisableRuntime();
             }
         }
@@ -74,7 +74,7 @@ namespace RunicBuildCamera
                 _runtimeFailureReported = true;
                 Diagnostics.Error(
                     exception,
-                    "Runic Build Camera stopped after an update failure; normal Valheim camera controls remain available.");
+                    global::Runic.Localization.RunicText.Get("text_2f17ce857460"));
             }
         }
 
@@ -99,7 +99,7 @@ namespace RunicBuildCamera
             catch (Exception exception)
             {
                 BuildCameraRuntime.ForceStop();
-                Diagnostics.Error(exception, "A configuration change stopped the detached camera safely.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_888408df9d8b"));
             }
         }
 
@@ -115,10 +115,10 @@ namespace RunicBuildCamera
 
             // Cleanup remains best-effort per subsystem. In particular, a presentation-effect
             // failure must never prevent restoration of the player's scoped placement range.
-            TryCleanup(RemotePickupRuntime.Shutdown, "remote pickup cleanup");
-            TryCleanup(DemisterRuntime.Shutdown, "mist-effect cleanup");
-            TryCleanup(BuildCameraRuntime.Shutdown, "camera-session cleanup");
-            TryCleanup(ValheimAdapter.Shutdown, "Valheim adapter cleanup");
+            TryCleanup(RemotePickupRuntime.Shutdown, global::Runic.Localization.RunicText.Get("text_d53b70e83194"));
+            TryCleanup(DemisterRuntime.Shutdown, global::Runic.Localization.RunicText.Get("text_480ad81fe2bf"));
+            TryCleanup(BuildCameraRuntime.Shutdown, global::Runic.Localization.RunicText.Get("text_e7e1616b5b33"));
+            TryCleanup(ValheimAdapter.Shutdown, global::Runic.Localization.RunicText.Get("text_3dad311a77e5"));
 
             if (_harmony == null) return;
             try
@@ -127,7 +127,7 @@ namespace RunicBuildCamera
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Runic Build Camera could not remove every Harmony patch during cleanup.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_a907974ac55d"));
             }
             finally
             {
@@ -143,7 +143,7 @@ namespace RunicBuildCamera
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, $"Runic Build Camera {label} encountered an error.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Format("text_35b8f9a59ccc", label));
             }
         }
     }

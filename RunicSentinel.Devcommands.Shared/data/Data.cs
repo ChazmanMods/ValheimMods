@@ -1,0 +1,201 @@
+#nullable enable
+
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using RunicSentinel.Devcommands.Service;
+using System.Linq;
+using BepInEx;
+using YamlDotNet.Core;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.EventEmitters;
+using YamlDotNet.Serialization.NamingConventions;
+
+namespace RunicSentinel.Devcommands;
+
+public class Yaml
+{
+  private static readonly List<FileSystemWatcher> Watchers=new();
+  public static void StopWatchers(){foreach(var watcher in Watchers)watcher.Dispose();Watchers.Clear();}
+  public static void SetupWatcher(string pattern, Action action) => SetupWatcher(Paths.ConfigPath, pattern, action);
+  public static void SetupWatcher(string path, string pattern, string folder, Action action)
+  {
+    SetupWatcher(path, pattern, action);
+    if (string.IsNullOrEmpty(folder)) return;
+    var folderPath = Path.Combine(path, folder);
+    if (Directory.Exists(folderPath))
+      SetupWatcher(folderPath, "*", action);
+  }
+  public static void SetupWatcher(string path, string pattern, Action action)
+  {
+    FileSystemWatcher watcher = new(path, pattern);
+    watcher.Created += (s, e) => action();
+    watcher.Changed += (s, e) => action();
+    watcher.Renamed += (s, e) => action();
+    watcher.Deleted += (s, e) => action();
+    watcher.IncludeSubdirectories = true;
+    watcher.SynchronizingObject = ThreadingHelper.SynchronizingObject;
+    Watchers.Add(watcher);
+    watcher.EnableRaisingEvents = true;
+  }
+  public static IDeserializer Deserializer() => new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance).Build();
+  public static IDeserializer DeserializerUnSafe() => new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance)
+  .IgnoreUnmatchedProperties().Build();
+  public static ISerializer Serializer() => new SerializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance).DisableAliases()
+    .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).WithTypeConverter(new FloatConverter()).WithEventEmitter(nextEmitter => new MultilineScalarFlowStyleEmitter(nextEmitter)).Build();
+
+  public static T Deserialize<T>(string raw, string fileName) where T : new()
+  {
+    try
+    {
+      return Deserializer().Deserialize<T>(raw);
+    }
+    catch (Exception ex1)
+    {
+      Log.Error($"{fileName}: {ex1.Message}");
+      try
+      {
+        return DeserializerUnSafe().Deserialize<T>(raw);
+      }
+      catch (Exception)
+      {
+        return new();
+      }
+    }
+  }
+
+  private static IEnumerable<string> GetPaths(string directory, string pattern, string folder)
+  {
+    if (!Directory.Exists(directory)) return [];
+    // Full search on top config directory could be really slow if some mod adds lots of files.
+    // So just use it when operating inside some other folder.
+    var search = directory == Paths.ConfigPath ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories;
+    var paths = Directory.GetFiles(directory, pattern, search).AsEnumerable();
+    if (!string.IsNullOrEmpty(folder))
+    {
+      var folderPath = Path.Combine(directory, folder);
+      if (Directory.Exists(folderPath))
+        paths = paths.Concat(Directory.GetFiles(folderPath, "*", SearchOption.AllDirectories)).Distinct();
+    }
+    return paths;
+  }
+
+  ///<summary>Path relative to directory, since the folder is searched recursively and a nested file could otherwise share a filename with the top-level one.</summary>
+  private static string GetRelativePath(string directory, string path) =>
+    path.StartsWith(directory, StringComparison.OrdinalIgnoreCase) ? path.Substring(directory.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) : Path.GetFileName(path);
+
+  ///<summary>True if any matching file has actual content, ignoring empty placeholder files created by ConsolidateDefaultFile.</summary>
+  public static bool AnyFileExists(string directory, string pattern, string folder) =>
+    GetPaths(directory, pattern, folder).Any(path => File.ReadAllText(path).Trim().Length > 0);
+
+  public static void LoadDictFromDirectory<T>(string directory, string pattern, Action<string, string, T> action) =>
+    LoadDictFromDirectory(directory, pattern, "", action);
+
+  public static void LoadDictFromDirectory<T>(string directory, string pattern, string folder, Action<string, string, T> action)
+  {
+    foreach (var path in GetPaths(directory, pattern, folder))
+    {
+      var file = GetRelativePath(directory, path);
+      var data = Deserialize<Dictionary<string, T>>(File.ReadAllText(path), Path.GetFileName(path));
+      if (data == null) continue;
+      foreach (var kvp in data)
+      {
+        if (kvp.Key == null || kvp.Value == null) continue;
+        action(file, kvp.Key, kvp.Value);
+      }
+    }
+  }
+
+  public static void LoadListsFromDirectory<T>(string directory, string pattern, Action<string, T> action) where T : new() =>
+    LoadListsFromDirectory(directory, pattern, "", action);
+
+  public static void LoadListsFromDirectory<T>(string directory, string pattern, string folder, Action<string, T> action) where T : new()
+  {
+    foreach (var path in GetPaths(directory, pattern, folder))
+    {
+      var file = GetRelativePath(directory, path);
+      var data = Deserialize<List<T>>(File.ReadAllText(path), Path.GetFileName(path));
+      if (data == null) continue;
+      foreach (var item in data)
+      {
+        if (item == null) continue;
+        action(file, item);
+      }
+    }
+  }
+
+  ///<summary>True if the relative path is the default file, at the config root or directly inside the folder.</summary>
+  public static bool IsDefaultFile(string file, string folder, string fileName) =>
+    file == fileName || file == Path.Combine(folder, fileName);
+
+  ///<summary>Moves a stray default file from the config root into the folder (so only one default file remains), creating an empty one if missing entirely.</summary>
+  public static void ConsolidateDefaultFile(string directory, string folder, string fileName)
+  {
+    var folderPath = Path.Combine(directory, folder);
+    var useFolder = Directory.Exists(folderPath);
+    var innerPath = Path.Combine(folderPath, fileName);
+    var outerPath = Path.Combine(directory, fileName);
+    if (!useFolder)
+    {
+      if (!File.Exists(outerPath)) File.WriteAllText(outerPath, "");
+      return;
+    }
+    if (!File.Exists(outerPath))
+    {
+      if (!File.Exists(innerPath)) File.WriteAllText(innerPath, "");
+      return;
+    }
+    if (File.Exists(innerPath))
+    {
+      Log.Warning($"Both {outerPath} and {innerPath} exist, keeping the one in the folder.");
+      File.Delete(outerPath);
+      return;
+    }
+    File.Move(outerPath, innerPath);
+  }
+}
+
+#nullable disable
+public class FloatConverter : IYamlTypeConverter
+{
+  public bool Accepts(Type type) => type == typeof(float);
+
+  public object ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
+  {
+    var scalar = (YamlDotNet.Core.Events.Scalar)parser.Current;
+    var number = float.Parse(scalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+    parser.MoveNext();
+    return number;
+  }
+
+  public void WriteYaml(IEmitter emitter, object value, Type type, ObjectSerializer serializer)
+  {
+    var number = (float)value;
+    emitter.Emit(new YamlDotNet.Core.Events.Scalar(number.ToString("0.###", CultureInfo.InvariantCulture)));
+  }
+}
+
+public class MultilineScalarFlowStyleEmitter(IEventEmitter nextEmitter) : ChainedEventEmitter(nextEmitter)
+{
+  public override void Emit(ScalarEventInfo eventInfo, IEmitter emitter)
+  {
+
+    if (typeof(string).IsAssignableFrom(eventInfo.Source.Type))
+    {
+      string value = eventInfo.Source.Value as string;
+      if (!string.IsNullOrEmpty(value))
+      {
+        bool isMultiLine = value.IndexOfAny(['\r', '\n', '\x85', '\x2028', '\x2029']) >= 0;
+        if (isMultiLine)
+          eventInfo = new ScalarEventInfo(eventInfo.Source)
+          {
+            Style = ScalarStyle.Literal
+          };
+      }
+    }
+
+    nextEmitter.Emit(eventInfo, emitter);
+  }
+}
+#nullable enable

@@ -11,7 +11,7 @@ namespace RunicClock
     {
         public const string Guid = "chazman.RunicClock";
         public const string Name = "Runic Clock";
-        public const string Version = "1.0.1";
+        public const string Version = "1.0.2";
         private ClockConfig _settings;
         private ClockView _view;
         private Player _player;
@@ -60,8 +60,8 @@ namespace RunicClock
                 int day = _environment.GetDay();
                 if (day < 0) { _ready = false; return; }
                 DateTime local = DateTime.Now;
-                _view.SetText(gameTime, "Day " + day.ToString(CultureInfo.InvariantCulture),
-                    "Local " + ClockModel.FormatTime(local.Hour, local.Minute, _settings.RealTime24Hour.Value), EnvMan.IsDay());
+                _view.SetText(gameTime, global::Runic.Localization.RunicText.Get("text_df2441a485d2") + day.ToString(CultureInfo.InvariantCulture),
+                    global::Runic.Localization.RunicText.Get("text_a15ca5cd809e") + ClockModel.FormatTime(local.Hour, local.Minute, _settings.RealTime24Hour.Value), EnvMan.IsDay());
             }
             catch (Exception error) { Fail(error); }
         }

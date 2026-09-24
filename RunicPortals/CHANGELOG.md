@@ -1,4 +1,38 @@
+## 1.2.10
+
+- Keep input binding identifiers stable when translated language files are installed.
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+- Destination pins no longer force a delayed map zoom-out or recenter while choosing a portal.
+
 # Changelog
+
+## 1.2.9 - 2026-09-18
+
+- Replaced the exact game-version allowlist with startup API validation. Compatible future patches no longer require a version-only update.
+- Incompatible APIs still fail closed; World Engine retains its exact method-body audit.
+
+## 1.2.8 - 2026-09-18
+
+- Added Valheim 1.0.15 support while retaining exact API checks and support for 1.0.7, 1.0.12, and 1.0.14.
+
+## 1.2.7 - 2026-09-17
+
+- Added Valheim 1.0.14 support while retaining compatibility with 1.0.7 and 1.0.12.
+- Retained exact game API checks and rejection of unknown versions.
+## 1.2.6 - 2026-09-14
+
+- Include vanilla Standard Pair destinations in the Runic picker, dedicated-server directory, and final travel validation. Vanilla portals retain their normal tag pairing when entered.
+- Show all authorized Public, owned Private, and current-member Group destinations across network names.
+- Protect the local player from incoming hits and ongoing damage throughout an authorized Runic picker session, including directory loading; cancel restores normal damage and travel uses native teleport protection.
+- Expand directory capacity to the graph's 2,048 endpoint ceiling rather than truncating at 128 destinations (the configured graph limit still applies).
+- Recheck source discovery and departure access before opening the protected picker.
+
+## 1.2.5 - 2026-09-14
+
+- Include Public Runic destinations from every network alongside authorized destinations in the entry portal's network.
+- Apply the same destination scope to the picker, dedicated-server directory, name lookup, and travel validation.
+- Warn when crossing to a public destination leaves no reverse route to the original private or group network.
+- Keep permission, ward, availability, revision, and native travel restrictions in place.
 
 ## 1.2.4 - 2026-09-11
 
@@ -22,8 +56,6 @@
 ## 1.2.1 - 2026-09-09
 
 - Updated dialog, statistics, map-coordinate, pin-removal, and portal-registry integration for Valheim 1.0.
-- Re-audited the installed Valheim 1.0.7 client and dedicated-server assemblies and updated the BepInEx dependency to 5.4.2350.
-
 ## 1.2.0 - 2026-09-08
 
 - Added a native in-game portal editor with a Standard Pair checkbox, separate Network and Portal
@@ -104,12 +136,9 @@
 - Kept Standard Pair routing separate from public, private, and Group named networks.
 - Kept permission-filtered map directories, walk-in destination selection, direction rules,
   one-way acknowledgement, return routes, setup UI, and bounded diagnostics.
-- Compiled the limited group domain code needed by this mod into `RunicPortals.dll`; no shared Runic
-  runtime assembly is produced.
+
 - Added one bounded, namespaced Group request/response channel. The server authenticates its actor
   from the current peer's owned Player character ZDO and keeps request/replay state only in memory.
 - Preserved existing portal ZDO keys and record schemas plus the prior world-scoped group catalog and
   active-selection file formats and locations.
 - Added an optional reflection-friendly Group membership API for other gameplay mods.
-- Replaced the obsolete durability and remote-owner harness with 19 focused format, routing,
-  ownership, RPC-authentication, and architecture tests.

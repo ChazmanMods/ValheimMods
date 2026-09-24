@@ -13,6 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\ModdedContainerCompatibility.cs" Link="Shared\ModdedContainerCompatibility.cs" />
     <Compile Remove="Tests\**\*.cs" />
     <None Remove="Tests\**\*" />
   </ItemGroup>
@@ -30,5 +31,11 @@
     <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GAME_MANAGED)\UnityEngine.PhysicsModule.dll" Private="false" />
     <Reference Include="UnityEngine.AudioModule" HintPath="$(GAME_MANAGED)\UnityEngine.AudioModule.dll" Private="false" />
     <Reference Include="UnityEngine.ParticleSystemModule" HintPath="$(GAME_MANAGED)\UnityEngine.ParticleSystemModule.dll" Private="false" />
+  </ItemGroup>
+  <ItemGroup><Compile Include="..\Shared\InventorySafety\*.cs" Link="InventorySafety\%(Filename)%(Extension)" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Translations/RunicProduction/English.json" LogicalName="Runic.Localization.English.json" />
+    <None Update="Translations/**/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

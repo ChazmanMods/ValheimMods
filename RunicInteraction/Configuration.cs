@@ -35,58 +35,58 @@ namespace RunicInteraction
         internal static void Bind(ConfigFile config)
         {
             Enabled = Bind(config, "General", "Enabled", true,
-                "Master switch. When false every patch yields to vanilla behavior.");
+                global::Runic.Localization.RunicText.Get("text_969a2758a6e8"));
             HoldToRepeat = Bind(config, "Features", "HoldToRepeat", true,
-                "Let vanilla fuel/input interactions repeat at Valheim's installed 0.2 second hold cadence.");
+                global::Runic.Localization.RunicText.Get("text_1c5b71cb56c5"));
             TransferGestures = Bind(config, "Features", "TransferGestures", true,
-                "Add Alt-click full-stack transfer while retaining vanilla Ctrl-click and controller transfer.");
+                global::Runic.Localization.RunicText.Get("text_d349ca13adb4"));
             DragTransfer = Bind(config, "Features", "DragTransfer", false,
-                "Reserved fail-closed gate. Valheim 1.0.7 has no authority-safe drag-sweep transaction boundary.");
+                global::Runic.Localization.RunicText.Get("text_1caa13a20179"));
             AutoCloseDoors = Bind(config, "Features", "AutoCloseDoors", false,
-                "Session-only delayed close for doors opened by the native local player. Off by default.");
+                global::Runic.Localization.RunicText.Get("text_15ff80582fc6"));
             EquipmentRestore = Bind(config, "Features", "EquipmentRestore", true,
-                "Restore the previously selected legal weapon/shield after a temporary Tool is put away.");
+                global::Runic.Localization.RunicText.Get("text_da01cc78d2db"));
             MenuMemory = Bind(config, "Features", "MenuMemory", true,
-                "Remember crafting selection and active group per station/mode for the current game session.");
+                global::Runic.Localization.RunicText.Get("text_004aab945c86"));
             TextEntryPolish = Bind(config, "Features", "TextEntryPolish", true,
-                "Validate portal, sign, and tame text immediately before vanilla commit.");
+                global::Runic.Localization.RunicText.Get("text_57eb2c40e975"));
             PickupFilters = Bind(config, "Features", "PickupFilters", true,
-                "Decline configured world drops before ownership or inventory mutation. Alt+Use bypasses the filter.");
+                global::Runic.Localization.RunicText.Get("text_c59edfb36499"));
 
             DoorDelaySeconds = Bind(config, "Door Auto-Close", "DelaySeconds", 4f,
-                new ConfigDescription("Delay after the last door use.", new AcceptableValueRange<float>(1f, 60f)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_c31d1b556390"), new AcceptableValueRange<float>(1f, 60f)));
             DoorRecentUseSeconds = Bind(config, "Door Auto-Close", "RecentUseSafetySeconds", 1.5f,
-                new ConfigDescription("Minimum quiet time before closing.", new AcceptableValueRange<float>(0.5f, 10f)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_01d5f8ff074b"), new AcceptableValueRange<float>(0.5f, 10f)));
             DoorObstructionRadius = Bind(config, "Door Auto-Close", "ObstructionRadiusMeters", 0.9f,
-                new ConfigDescription("Non-alloc character/movable-body check around the doorway.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_621cf88ff9fd"),
                     new AcceptableValueRange<float>(0.35f, 2f)));
 
             PortalTextLimit = Bind(config, "Text Entry", "PortalCharacterLimit", 10,
-                new ConfigDescription("Cannot exceed vanilla's portal limit.", new AcceptableValueRange<int>(1, 10)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_80bdb7a5e105"), new AcceptableValueRange<int>(1, 10)));
             SignTextLimit = Bind(config, "Text Entry", "SignCharacterLimit", 50,
-                new ConfigDescription("Upper bound; a sign's smaller prefab limit still wins.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_efb7940f6a02"),
                     new AcceptableValueRange<int>(1, 200)));
             TameTextLimit = Bind(config, "Text Entry", "TameCharacterLimit", 10,
-                new ConfigDescription("Cannot exceed vanilla's tame-name limit.", new AcceptableValueRange<int>(1, 10)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_1d1774e82937"), new AcceptableValueRange<int>(1, 10)));
             TextCommitRange = Bind(config, "Text Entry", "CommitRangeMeters", 6f,
-                new ConfigDescription("Maximum portal/sign commit distance; tame naming keeps its vanilla 15 m bound.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_23091f7a28ae"),
                     new AcceptableValueRange<float>(2f, 15f)));
 
             FilteredPickupItems = Bind(config, "Pickup Filter", "Items", string.Empty,
-                "Comma/semicolon/newline-separated prefab IDs or localized item tokens, maximum 128 exact entries.");
+                global::Runic.Localization.RunicText.Get("text_70899a5a16d4"));
             FilterQuestItems = Bind(config, "Pickup Filter", "AllowQuestItemFiltering", false,
-                "Dangerous option. False guarantees quest items bypass pickup filters.");
+                global::Runic.Localization.RunicText.Get("text_79f444c62fdd"));
             PickupBypassControllerModifier = Bind(
                 config,
                 "Controller",
                 "PickupBypassModifierAction",
                 InteractionInputBindings.DefaultPickupBypassControllerModifier,
                 new ConfigDescription(
-                    "Generic Valheim controller action held while JoyUse intentionally bypasses a pickup filter.",
+                    global::Runic.Localization.RunicText.Get("text_53992ef4d815"),
                     new AcceptableValueList<string>(
                         InteractionInputBindings.CreateControllerModifierOptions())));
             VerboseLogging = Bind(config, "Diagnostics", "VerboseLogging", false,
-                "Log bounded feature decisions without logging inventory contents or text-entry content.");
+                global::Runic.Localization.RunicText.Get("text_e4ef5138e21c"));
 
             config.SettingChanged += (_, arguments) =>
                 Changed?.Invoke(arguments?.ChangedSetting?.Definition);

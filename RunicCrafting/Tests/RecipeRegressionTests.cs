@@ -73,6 +73,51 @@ namespace RunicCrafting.Tests
             TestAssert.False(denied.TryTake("1",1,out _));
         }
 
+        internal static void WorkbenchSplitMaterialsCommitAndRestore()
+        {
+            // Phoenixf's report: workbench costs 10 wood, with 5 carried and 50 stored.
+            foreach (bool commit in new[] { false, true })
+            {
+                var carried=Stack(1,5,0);
+                var backpack=Bag(carried);
+                var chest=Bag(Stack(1,50,0));
+                var playerSource=new ValheimMaterialSource("player",backpack,
+                    MaterialSourceKind.PlayerInventory,0,new[]{"1"},()=>true);
+                var chestSource=new ValheimMaterialSource("chest",chest,
+                    MaterialSourceKind.NearbyContainer,1,new[]{"1"},()=>true);
+                var engine=new ExactMaterialTransactionEngine();
+                TestAssert.True(engine.TryBegin(new[]{new MaterialRequirement("1",10)},
+                    new[]{playerSource,chestSource},out var lease,out var reason),reason);
+                TestAssert.Equal(2,lease.Plan.Lines.Count);
+                TestAssert.Equal("player",lease.Plan.Lines[0].SourceId);
+                TestAssert.Equal(5,lease.Plan.Lines[0].Quantity);
+                TestAssert.Equal(5,lease.Plan.Lines[1].Quantity);
+                TestAssert.Equal(0,ValheimReflection.CountRequirementItems(backpack,"1"));
+                TestAssert.Equal(45,ValheimReflection.CountRequirementItems(chest,"1"));
+                if(commit) lease.Commit(); else TestAssert.True(lease.Rollback());
+                TestAssert.Equal(commit?0:5,ValheimReflection.CountRequirementItems(backpack,"1"));
+                TestAssert.Equal(commit?45:50,ValheimReflection.CountRequirementItems(chest,"1"));
+                if(!commit) TestAssert.True(ReferenceEquals(carried,backpack.GetAllItems()[0]));
+            }
+        }
+
+        internal static void SplitMaterialsFailSafelyWhenChestChanges()
+        {
+            var backpack=Bag(Stack(1,5,0));
+            var chest=Bag(Stack(1,50,0));
+            bool allowed=true;
+            backpack.m_onChanged=()=>allowed=false;
+            var playerSource=new ValheimMaterialSource("player",backpack,
+                MaterialSourceKind.PlayerInventory,0,new[]{"1"},()=>true);
+            var chestSource=new ValheimMaterialSource("chest",chest,
+                MaterialSourceKind.NearbyContainer,1,new[]{"1"},()=>allowed);
+            TestAssert.False(new ExactMaterialTransactionEngine().TryBegin(
+                new[]{new MaterialRequirement("1",10)},new[]{playerSource,chestSource},out _,out var reason));
+            TestAssert.Equal("source-changed:chest",reason);
+            TestAssert.Equal(5,ValheimReflection.CountRequirementItems(backpack,"1"));
+            TestAssert.Equal(50,ValheimReflection.CountRequirementItems(chest,"1"));
+        }
+
         internal static void ChestPayloadOnlyAllowsNativeDurabilityConversion()
         {
             var bag=Bag(Stack(4,1,0,10.029f),Stack(1,79,1));var before=Bytes(bag);var loaded=Bag();loaded.Load(new ZPackage(before));

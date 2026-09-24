@@ -29,7 +29,7 @@ namespace RunicProduction.Tests
                 Case("legacy stable token fields remain format-compatible", TokenFieldsAreCompatible),
                 Case("stable tokens are canonical lowercase nonempty GUIDs", TokensAreCanonical),
                 Case("link and catalog storage keys preserve their namespace", StorageKeysAreCompatible),
-                Case("runtime and package are 1.0.7", VersionsMatchPublishedPackage),
+                Case("runtime and package are 1.0.15", VersionsMatchPublishedPackage),
                 Case("station role matrix matches supported gameplay", RoleMatrixIsExact),
                 Case("mouse gestures map exactly to input output and replenish", MouseGesturesAreExact),
                 Case("output gestures arm from the station without a physical output sub-target", StationLevelOutputControlsAreExact),
@@ -84,6 +84,7 @@ namespace RunicProduction.Tests
             FieldInfo cheated = typeof(ItemDrop.ItemData).GetField(
                 "m_cheated", BindingFlags.Instance | BindingFlags.Public);
             Require(cheated != null && cheated.FieldType == typeof(bool));
+            Require(FermenterContentStorage.ResolveUsesHash(typeof(Fermenter)));
             MethodInfo changed = typeof(Inventory).GetMethod(
                 "Changed",
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
@@ -109,7 +110,7 @@ namespace RunicProduction.Tests
 
         private static void ManifestIsStandalone()
         {
-            string source = File.ReadAllText(PathInMod("manifest.json"));
+            string source = Runic.Tests.LocalizedSource.ReadAllText(PathInMod("manifest.json"));
             Contains(source, "denikson-BepInExPack_Valheim-5.4.2350");
             NotContains(source, "Chazman-RunicCore");
             NotContains(source, "Chazman-RunicPersistence");
@@ -119,7 +120,8 @@ namespace RunicProduction.Tests
 
         private static void ProjectIsStandalone()
         {
-            string source = File.ReadAllText(PathInMod("RunicProduction.csproj"));
+            string source = Runic.Tests.LocalizedSource.ReadAllText(PathInMod("RunicProduction.csproj"));
+            Contains(source, "InventorySafety");
             NotContains(source, "ProjectReference");
             NotContains(source, "RunicCore");
             NotContains(source, "RunicPersistence");
@@ -129,7 +131,7 @@ namespace RunicProduction.Tests
 
         private static void PluginIsStandalone()
         {
-            string source = File.ReadAllText(PathInMod("Plugin.cs"));
+            string source = Runic.Tests.LocalizedSource.ReadAllText(PathInMod("Plugin.cs"));
             NotContains(source, "BepInDependency");
             NotContains(source, "RunicRegistry");
             NotContains(source, "RegisterService");
@@ -191,11 +193,11 @@ namespace RunicProduction.Tests
 
         private static void RuntimeNeverTransfersOwnership()
         {
-            string source = File.ReadAllText(PathInMod(
+            string source = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
             Contains(source, "IsOwner()");
             Contains(source, "TrySynchronizeLocallyOwnedContainer");
-            string access = File.ReadAllText(PathInMod("Integration", "ValheimAccess.cs"));
+            string access = Runic.Tests.LocalizedSource.ReadAllText(PathInMod("Integration", "ValheimAccess.cs"));
             Contains(access, "GetByteArray(ZDOVars.s_items)");
             NotContains(access, "GetString(ZDOVars.s_items");
             Contains(access, "ProductionInventoryPayloadComparison.MatchesLoaded");
@@ -220,15 +222,18 @@ namespace RunicProduction.Tests
             NotContains(source, "ZRoutedRpc");
             NotContains(source, "Register<ZPackage>");
             NotContains(source, "ProductionDirectRpc");
-            string access = File.ReadAllText(PathInMod(
+            string access = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ValheimAccess.cs"));
             Contains(access, "RPC_SetSlotVisual");
-            string handoff = File.ReadAllText(PathInMod("Integration", "ProductionChestHandoff.cs"));
-            Contains(handoff, "Register<ZDOID, long, string>");
-            Contains(handoff, "stationZdo.GetOwner() != sender");
+            string handoff = Runic.Tests.LocalizedSource.ReadAllText(PathInMod("Integration", "ProductionChestHandoff.cs"));
+            Contains(handoff, "RunicAutomation.ContainerAuthority.TryAcquire");
+            Contains(handoff, "ValheimAccess.Zdo(station)?.GetOwner() == sender");
             Contains(handoff, "TrySynchronizeLocallyOwnedContainer");
-            Contains(handoff, "zdo.Set(ReceiptKey, nonce)");
-            Contains(handoff, "zdo.SetOwner(sender)");
+            string shared = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(ModRoot(), "..", "Shared", "InventorySafety", "ContainerAuthority.cs"));
+            Contains(shared, "Register<string, ZDOID, long, string>");
+            Contains(shared, "zdo.Set(Receipt, nonce)");
+            Contains(shared, "zdo.SetOwner(sender)");
+            NotContains(shared, "RemoveItem");
             NotContains(handoff, "ClaimOwnership");
             NotContains(handoff, "Player.m_localPlayer");
             NotContains(handoff, "ZPackage");
@@ -236,7 +241,7 @@ namespace RunicProduction.Tests
 
         private static void HandoffAuthorizationIsExact()
         {
-            string source = File.ReadAllText(PathInMod("Integration", "ProductionRuntime.cs"));
+            string source = Runic.Tests.LocalizedSource.ReadAllText(PathInMod("Integration", "ProductionRuntime.cs"));
             string pending = source.Substring(source.IndexOf("private static void TryActivatePendingReplenishment",
                 StringComparison.Ordinal));
             pending = pending.Substring(0, pending.IndexOf("private static bool SameTargetSet", StringComparison.Ordinal));
@@ -292,11 +297,11 @@ namespace RunicProduction.Tests
 
         private static void StorageKeysAreCompatible()
         {
-            string links = File.ReadAllText(PathInMod(
+            string links = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionLinkStore.cs"));
-            string plans = File.ReadAllText(PathInMod(
+            string plans = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ReplenishmentPlanStore.cs"));
-            string catalogs = File.ReadAllText(PathInMod(
+            string catalogs = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "MultiReplenishmentCatalogStore.cs"));
             Contains(links, "Plugin.ModuleId + \".\" + localName");
             Contains(plans, "Plugin.ModuleId + \".stock.plan.record\"");
@@ -308,12 +313,12 @@ namespace RunicProduction.Tests
 
         private static void VersionsMatchPublishedPackage()
         {
-            Equal("1.0.7", Plugin.Version);
-            Contains(File.ReadAllText(PathInMod("manifest.json")),
-                "\"version_number\": \"1.0.7\"");
-            Contains(File.ReadAllText(PathInMod(
+            Equal("1.0.15", Plugin.Version);
+            Contains(Runic.Tests.LocalizedSource.ReadAllText(PathInMod("manifest.json")),
+                "\"version_number\": \"1.0.15\"");
+            Contains(Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Properties", "AssemblyInfo.cs")),
-                "AssemblyInformationalVersion(\"1.0.7\")");
+                "AssemblyInformationalVersion(\"1.0.15\")");
         }
 
         private static void RoleMatrixIsExact()
@@ -324,6 +329,10 @@ namespace RunicProduction.Tests
             Require(method != null);
             bool Allows(ProductionStationKind station, ProductionLinkRole role) =>
                 (bool)method.Invoke(null, new object[] { station, role });
+            Require(Allows(ProductionStationKind.Beehive, ProductionLinkRole.Output));
+            Require(!Allows(ProductionStationKind.Beehive, ProductionLinkRole.Input));
+            Require(!Allows(ProductionStationKind.Beehive, ProductionLinkRole.Fuel));
+            Require(!Allows(ProductionStationKind.Beehive, ProductionLinkRole.Replenishment));
             Require(Allows(ProductionStationKind.Smelter, ProductionLinkRole.Input));
             Require(Allows(ProductionStationKind.Smelter, ProductionLinkRole.Fuel));
             Require(Allows(ProductionStationKind.Smelter, ProductionLinkRole.Output));
@@ -371,9 +380,9 @@ namespace RunicProduction.Tests
                     0),
                 "Fuel Input");
 
-            string input = File.ReadAllText(PathInMod(
+            string input = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionLinkInput.cs"));
-            string runtime = File.ReadAllText(PathInMod(
+            string runtime = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
             Contains(input, "KeyCode.LeftAlt");
             Contains(input, "KeyCode.RightAlt");
@@ -398,7 +407,7 @@ namespace RunicProduction.Tests
 
         private static void StationLevelOutputControlsAreExact()
         {
-            string runtime = File.ReadAllText(PathInMod(
+            string runtime = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
             Contains(runtime, "TryBeginLinkSelection(");
             Contains(runtime, "ProductionLinkGesturePolicy.RequestedRole(button)");
@@ -433,7 +442,7 @@ namespace RunicProduction.Tests
                 bounded, RoleLink(ProductionLinkRole.Output, 12), 2,
                 out _, out _, out _));
 
-            string runtime = File.ReadAllText(PathInMod(
+            string runtime = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
             Contains(runtime, "ResolveRoleEndpoints(");
             Contains(runtime, "ProductionRoleLinkCatalogStore.Publish");
@@ -442,13 +451,13 @@ namespace RunicProduction.Tests
 
         private static void RelayChestRolesAreIndependent()
         {
-            string runtime = File.ReadAllText(PathInMod(
+            string runtime = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
             NotContains(runtime, "TargetConflictsWithOtherRole");
             NotContains(runtime, "already used by an incompatible role");
             Contains(runtime, "ProtectedDestinationIds(station)");
             Contains(runtime, "protectedDestinations.Remove(linked.Zdo.m_uid)");
-            string readme = File.ReadAllText(PathInMod("README.md"));
+            string readme = Runic.Tests.LocalizedSource.ReadAllText(PathInMod("README.md"));
             Contains(readme, "Output of one station and the Input of another");
         }
 
@@ -472,9 +481,9 @@ namespace RunicProduction.Tests
             Require(!ProductionLinkInput.ShouldSuppress("Block", 12));
             ProductionLinkInput.Reset();
 
-            string patches = File.ReadAllText(PathInMod(
+            string patches = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "HarmonyPatches.cs"));
-            string input = File.ReadAllText(PathInMod(
+            string input = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionLinkInput.cs"));
             Contains(patches, "ProductionPlayerUpdateInputPatch");
             Contains(patches, "ProductionConsumedButtonPatch");
@@ -531,9 +540,9 @@ namespace RunicProduction.Tests
             Require(output.r > 0.95f && output.g > 0.7f && output.b < 0.1f);
             Require(replenish.g > 0.95f && replenish.b > 0.75f && replenish.r < 0.1f);
 
-            string highlight = File.ReadAllText(PathInMod(
+            string highlight = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionLinkHighlight.cs"));
-            string runtime = File.ReadAllText(PathInMod(
+            string runtime = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
             Contains(highlight, "LineRenderer");
             Contains(highlight,
@@ -560,11 +569,11 @@ namespace RunicProduction.Tests
 
         private static void FireplaceFuelIsExact()
         {
-            string runtime = File.ReadAllText(PathInMod(
+            string runtime = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
-            string access = File.ReadAllText(PathInMod(
+            string access = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ValheimAccess.cs"));
-            string patches = File.ReadAllText(PathInMod(
+            string patches = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "HarmonyPatches.cs"));
             Contains(runtime, "RunFireplace(Fireplace station)");
             Contains(runtime, "station.m_fuelItem.gameObject");
@@ -577,11 +586,11 @@ namespace RunicProduction.Tests
 
         private static void RequestedStockWorkflowsAreExplicit()
         {
-            string runtime = File.ReadAllText(PathInMod(
+            string runtime = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
-            string configuration = File.ReadAllText(PathInMod("Configuration.cs"));
-            string example = File.ReadAllText(PathInMod("RunicProduction.cfg.example"));
-            string mutation = File.ReadAllText(PathInMod(
+            string configuration = Runic.Tests.LocalizedSource.ReadAllText(PathInMod("Configuration.cs"));
+            string example = Runic.Tests.LocalizedSource.ReadAllText(PathInMod("RunicProduction.cfg.example"));
+            string mutation = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ExactStockInventoryMutation.cs"));
             Contains(runtime, "TryPrepareCompositeSources(");
             Contains(runtime, "ApplyCompositeSourcesToDestination(");
@@ -823,7 +832,7 @@ namespace RunicProduction.Tests
 
         private static void PlannedInputsFailClosed()
         {
-            string source = File.ReadAllText(PathInMod(
+            string source = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
             Equal(2, Count(source, "else if (HasReplenishmentRecord("));
             Contains(source, "state == StoredRecordState.Invalid");
@@ -831,7 +840,7 @@ namespace RunicProduction.Tests
 
         private static void RuntimeHasLocalRollback()
         {
-            string source = File.ReadAllText(PathInMod(
+            string source = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "ProductionRuntime.cs"));
             Contains(source, "ApplyBefore(source.Inventory)");
             Contains(source, "ApplyBefore(destination.Inventory)");
@@ -841,7 +850,7 @@ namespace RunicProduction.Tests
 
         private static void OutputHookHasVanillaFallback()
         {
-            string source = File.ReadAllText(PathInMod(
+            string source = Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Integration", "HarmonyPatches.cs"));
             Contains(source, "return !ProductionRuntime.TryDepositProducedOutput");
             Contains(source, "return true;");

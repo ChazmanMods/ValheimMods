@@ -31,7 +31,7 @@ public static class Game { public static int m_worldLevel; }
 public sealed class ObjectDB { public static ObjectDB instance = new ObjectDB(); }
 public sealed class ZNet { public static ZNet instance = new ZNet(); public static long GetUID() => 1; }
 public static class ZDOVars { public static int s_inUse; }
-public sealed class ZDO { public bool Busy; public bool IsValid() => true; public int GetInt(int key,int fallback) => Busy?1:0; public long GetOwner() => 1; }
+public sealed class ZDO { public ushort OwnerRevision; public bool Busy; public bool IsValid() => true; public int GetInt(int key,int fallback) => Busy?1:0; public long GetOwner() => 1; }
 public sealed class ZNetView
 {
     public readonly ZDO Data = new ZDO(); public bool Valid = true, Owner = true;
@@ -45,6 +45,8 @@ public sealed class Container
 {
     public enum PrivacySetting { Public, Private }
     public string Id;
+    public bool Drawer;
+    public string PrefabId = "piece_drawer";
     public bool isActiveAndEnabled = true, Busy, Access = true, m_checkGuardStone;
     public Wagon m_wagon;
     public PrivacySetting m_privacy;
@@ -57,6 +59,8 @@ public sealed class Container
 public sealed class CraftingStation { public bool Access = true; public ZDO Data = new ZDO(); }
 public sealed class Player
 {
+    public CraftingStation Station;
+    public CraftingStation GetCurrentCraftingStation() => Station;
     public static Player m_localPlayer;
     public bool Owner = true;
     public Inventory Inventory = new Inventory();
@@ -73,9 +77,23 @@ namespace RunicCrafting
     internal sealed class Setting<T> { internal T Value; internal Setting(T v) { Value=v; } }
     internal static class Configuration
     {
+        internal static Setting<bool> Enabled = new Setting<bool>(true);
+        internal static Setting<string> PullPrefabIds = new Setting<string>("piece_drawer");
         internal static float SafeRangeCap = 20;
         internal static int SafeMaximumCandidates = 64, SafeMaximumReturned = 32;
         internal static Setting<bool> ExcludePersonalContainers = new Setting<bool>(true), RequireWardAccess = new Setting<bool>(true);
+    }
+}
+namespace Runic.Compatibility
+{
+    internal static class ModdedContainerCompatibility
+    {
+        // Simulate the former cross-mod resolver to catch accidental reintroduction.
+        internal static string StoragePullIds;
+        internal static string PullIds(string fallback) => StoragePullIds ?? fallback;
+        internal static bool IsDrawer(Container container) => container.Drawer;
+        internal static bool Listed(Container container, string ids) =>
+            Array.Exists((ids ?? "").Split(new[] { ',', ';' }), id => id.Trim() == container.PrefabId);
     }
 }
 namespace RunicCrafting.Integration
@@ -122,10 +140,21 @@ namespace RunicCrafting.Integration
         private readonly Inventory _inventory; private readonly MaterialSourceKind _kind;
         private readonly float _distance; private readonly Func<bool> _eligible;
         internal ValheimMaterialSource(string id,Inventory inventory,MaterialSourceKind kind,float distance,
-            IEnumerable<string> resources,Func<bool> eligible)
+            IEnumerable<string> resources,Func<bool> eligible,Func<bool> stillWritable=null)
         { SourceId=id; _inventory=inventory; _kind=kind; _distance=distance; _eligible=eligible; }
         public string SourceId { get; }
         public MaterialSourceSnapshot Snapshot() => new PreviewMaterialCounts(_eligible()?_inventory:new Inventory(),Game.m_worldLevel).ToSnapshot(SourceId,_kind,_distance);
         public bool TryTake(string id,int count,out IMaterialRestoreToken token) { token=null; return false; }
+    }
+}
+
+namespace RunicAutomation
+{
+    // This UI harness substitutes the authority transport; the source-linked transport harness tests its protocol.
+    public static class ContainerAuthority
+    {
+        public static int PlayerContext(Player player)=>1;
+        public static bool TryAcquire(Container chest,string policy,int context,long principal)
+        { return chest.View.IsOwner(); }
     }
 }

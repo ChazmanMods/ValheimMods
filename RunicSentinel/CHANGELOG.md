@@ -1,3 +1,40 @@
+## 1.5.0
+- Integrated Server Devcommands 1.109 command and feature baseline into Sentinel; no separate Server Devcommands plugin is required.
+- Added status-effect duration and intensity, command aliases/chains/waits, bindings, parameter autocomplete, command permissions and gameplay options.
+- Preserved Sentinel backend administrator checks and connection-bound command requests; expanded chains authorize each executable command separately.
+- Adapted Valheim 1.0 API changes; YAML configuration support is embedded in the shipped DLL.
+- Command configuration files use RunicSentinel-prefixed names. Automatic devcommands is available but defaults off.
+
+## 1.4.7
+- People now owns account grants/bans, activity and reports; Players lists online characters and contains gameplay actions and Kick only.
+- Added magnifier search controls and administrator name suffixes.
+- Left-aligned command guide with per-item, repaint-only hover help and accurate native argument limits.
+- Replaced catalog tiles with a one-third list and two-thirds detail/recipe panel, editable argument builder, amount/quality/radius controls, inventory qualifier dropdown and append-to-console action.
+- Catalog actions no longer execute spawn immediately. Empty console displays No command is selected.
+
+## 1.4.6
+
+- Add selected-player actions through a bounded, exact-server/character RPC receiver: raise/reset skills, heal, clear food/status, adrenaline and registered status effects.
+- Preserve affected-player cheat confirmation, reject replays and show acknowledged completion or failure.
+- Add inline player-screen teleport, bring, coordinate/player destination and skill/status selectors.
+
+## 1.4.5
+
+- Repair the player roster transport with Valheim's bundled JSON serializer.
+- Add authenticated native administrator/ban file changes, exact-peer kicking, file backups and role-source visibility.
+- Add actual server/world metadata and recent enforcement findings.
+- Generate distinct readable health/network reports and authenticated chunked downloads.
+- Resizable vanilla-styled dashboard, pinned command actions, argument browsing/tooltips, live completion hints and resilient catalog indexing.
+- People combines observed players with offline server access-list entries.
+
+## 1.4.3
+
+- Choose mods by name and move them between Required, Allowed, Greylisted and Blocked categories. Existing version and file restrictions are retained.
+- Added the F3 Commands tab with a live command guide, console output, and permission-checked Server Devcommands integration.
+- Browse loaded items, food, ingredients, potions, creatures and building pieces with icons, filters and recipe details. Spawn actions are explicit; supported pieces use normal build-tool placement.
+- Added Players with server observations, last-known positions, creator-attributed object lists, security evidence and JSON/CSV/text report exports.
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
 
 ## 1.4.2 - 2026-09-14

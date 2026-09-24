@@ -1,6 +1,6 @@
 {
   "name": "RunicInventory",
-  "version_number": "1.1.5",
+  "version_number": "1.1.10",
   "website_url": "https://discord.gg/7HKHTCdFqY",
   "description": "Adds an automatic extra row with five equipment-only slots and three quick-use slots, preserving normal backpack space with locks, sorting, and pickup controls.",
   "dependencies": [

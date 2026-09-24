@@ -5,12 +5,14 @@ using System.Threading;
 namespace RunicCrafting.Domain
 {
     // Aedis identified the repeated source queries within a single native UI refresh.
-    // Nested refreshes share evidence; no results survive the outer call or a mutation.
+    // Optionally retain read-only evidence across refresh calls in the same frame.
+    // Mutations invalidate even between calls; every new frame/session starts fresh.
     internal sealed class RefreshQueryCache<TKey, TValue> where TValue : class
     {
         private readonly Dictionary<TKey, TValue> _values = new Dictionary<TKey, TValue>();
         private readonly object _gate = new object();
         private readonly int _maximumEntries;
+        private readonly bool _retainForFrame;
         private object _network, _player, _database;
         private int _depth, _frame;
         private long _scope, _epoch;
@@ -18,17 +20,18 @@ namespace RunicCrafting.Domain
         internal long Epoch { get { lock (_gate) return _epoch; } }
         internal int Count { get { lock (_gate) return _values.Count; } }
 
-        internal RefreshQueryCache(int maximumEntries = 32)
+        internal RefreshQueryCache(int maximumEntries = 32, bool retainForFrame = false)
         {
             if (maximumEntries < 1) throw new ArgumentOutOfRangeException(nameof(maximumEntries));
             _maximumEntries = maximumEntries;
+            _retainForFrame = retainForFrame;
         }
 
         internal long Begin(int frame, object network, object player, object database)
         {
             lock (_gate)
             {
-                if (!Active || frame != _frame || !ReferenceEquals(network, _network) ||
+                if ((!Active && !_retainForFrame) || frame != _frame || !ReferenceEquals(network, _network) ||
                     !ReferenceEquals(player, _player) || !ReferenceEquals(database, _database))
                 {
                     Reset();
@@ -45,16 +48,18 @@ namespace RunicCrafting.Domain
             lock (_gate)
             {
                 if (scope != _scope || !Active) return;
-                if (--_depth == 0) Reset();
+                if (--_depth == 0)
+                {
+                    if (!_retainForFrame) Reset();
+                    else _scope++; // A completed scope must not close a later call.
+                }
             }
         }
 
         internal void Invalidate()
         {
-            if (!Active) return;
             lock (_gate)
             {
-                if (!Active) return;
                 _values.Clear();
                 _epoch++;
             }

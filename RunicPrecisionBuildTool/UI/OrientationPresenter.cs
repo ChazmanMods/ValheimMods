@@ -451,7 +451,8 @@ namespace QuietBuildRotation.UI
             bool matched)
         {
             OrientationAngles angles = OrientationAngles.FromQuaternion(rotation);
-            string text = "<b>PRECISION</b>    " +
+            string text = "<b>PRECISION " + RotationFrameLabel + "</b>    " +
+                          ShortcutLabel(PluginConfig.RotationFrameToggle) + " AXES\n" +
                           AngleValue("PITCH", angles.Pitch) + "    " +
                           AngleValue("ROLL", angles.Roll) + "    " +
                           AngleValue("YAW", angles.Yaw) + "\n";
@@ -537,13 +538,16 @@ namespace QuietBuildRotation.UI
                 ? OrientationAngles.FormatValue(value) + "m"
                 : "--";
 
+        private static string RotationFrameLabel =>
+            PlacementRuntime.CurrentRotationFrame == PlacementReferenceFrame.Local ? "LOCAL" : "WORLD";
+
         private static string BuildAxisGuideLegend() =>
-            "<b>PIECE AXES</b>    " +
-            "<color=" + AxisGuidePalette.PitchHex + "><b>PITCH X</b></color>" +
+            "<b>" + RotationFrameLabel + " AXES</b>    " +
+            "<color=" + AxisGuidePalette.PitchHex + global::Runic.Localization.RunicText.Get("text_37e614ae0aa0") +
             "    |    " +
-            "<color=" + AxisGuidePalette.RollHex + "><b>ROLL Z</b></color>" +
+            "<color=" + AxisGuidePalette.RollHex + global::Runic.Localization.RunicText.Get("text_d2453c2a1958") +
             "    |    " +
-            "<color=" + AxisGuidePalette.YawHex + "><b>YAW Y</b></color>";
+            "<color=" + AxisGuidePalette.YawHex + global::Runic.Localization.RunicText.Get("text_14a5a5d1c855");
 
         private static string BuildMatchHint()
         {
@@ -552,7 +556,7 @@ namespace QuietBuildRotation.UI
             AppendMatchHint(ref hint, PluginConfig.MatchPitch, "PITCH");
             AppendMatchHint(ref hint, PluginConfig.MatchRoll, "ROLL");
             AppendMatchHint(ref hint, PluginConfig.MatchYaw, "YAW");
-            return string.IsNullOrEmpty(hint) ? "MATCH ORIENTATION" : hint;
+            return string.IsNullOrEmpty(hint) ? global::Runic.Localization.RunicText.Get("text_03d9b77bd890") : hint;
         }
 
         private static void AppendMatchHint(
@@ -620,9 +624,9 @@ namespace QuietBuildRotation.UI
                 case OrientationAxis.Yaw: return "YAW";
                 case OrientationAxis.Pitch: return "PITCH";
                 case OrientationAxis.Roll: return "ROLL";
-                case OrientationAxis.Sway: return "SWAY X";
-                case OrientationAxis.Heave: return "HEAVE Y";
-                case OrientationAxis.Surge: return "SURGE Z";
+                case OrientationAxis.Sway: return global::Runic.Localization.RunicText.Get("text_dd2fd124fc28");
+                case OrientationAxis.Heave: return global::Runic.Localization.RunicText.Get("text_641516508fe1");
+                case OrientationAxis.Surge: return global::Runic.Localization.RunicText.Get("text_7dbdab3f924e");
                 default: return string.Empty;
             }
         }

@@ -1,4 +1,4 @@
-# Runic Velocity 1.0.2
+# Runic Velocity 1.0.3
 
 A heavily modded Valheim profile can spend a long time between pressing Play and reaching the world, with little indication of what happened or what changed since the previous launch.
 
@@ -63,3 +63,13 @@ No client UI or asset bundle is loaded, so the same DLL is safe for a dedicated 
 Startup settings are sampled once when the plugin begins; change them before the next launch rather
 than starting competing scans during an active boot.
 `Enabled = false` is startup-inert: Runic Velocity creates no timeline or worker.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicVelocity` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

@@ -1,4 +1,20 @@
+## 2.0.7
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
+
+## 2.0.6 - 2026-09-16
+
+- Press F4 once to switch between Local and World rotation axes. No holding or modifier keys required. The choice is saved, and Local is the default.
+- Switching modes leaves the piece exactly where it is and only changes the axes used by subsequent rotation. Movement settings remain independent.
+- All three guides now follow the selected rotation frame, with LOCAL/WORLD and the toggle shortcut displayed in the HUD.
+- Documented matching and bending beams for arches, including the horizontal wood beam's local roll control.
+
+## 2.0.5
+
+- Fixed horizontal wheel rotation changing direction after pitching or rolling a piece. Yaw now stays aligned with world vertical; pitch and roll remain piece-local, and the placement pivot stays fixed.
+- Updated the yaw axis guide to show the actual world-vertical rotation axis.
 
 ## 2.0.4 - 2026-09-11
 
@@ -8,8 +24,6 @@
 
 - Updated build categories, piece-selection visibility, placement, and zone contracts to Valheim 1.0.
 - Updated area-repair inventory notifications to Valheim 1.0's exact two-flag `Inventory.Changed` contract.
-- Re-audited the installed Valheim 1.0.7 client assemblies and updated the BepInEx dependency to 5.4.2350.
-
 ## 2.0.2 - 2026-09-05
 
 - Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.

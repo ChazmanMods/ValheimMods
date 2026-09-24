@@ -13,6 +13,13 @@ namespace RunicStorage.Tests
         {
             var tests = new (string Name, Action Run)[]
             {
+                ("LabelBendPersistenceAndMigration", ChestLabelTests.BendPersistenceAndMigration),
+                ("DrawerConfigAndSynchronization", DrawerCompatibilityTests.ConfigAndSynchronization),
+                ("DrawerDepositAndRestock", DrawerCompatibilityTests.DepositAndRestockConserveItems),
+                ("DrawerMetadataAndRollback", DrawerCompatibilityTests.MetadataAndRollback),
+                ("SpawnedItemsFollowNativeDrawerBehavior", DrawerCompatibilityTests.SpawnedItemsFollowNativeDrawerBehavior),
+                ("EmojiSelectionAndUnicodeBoundaries", EmojiRegressionTests.Run),
+                ("EmojiLabelsSurviveEncodingAndRejectBrokenPairs", ChestLabelTests.EmojiRoundTrip),
                 ("PaletteAndApproximation", ChestLabelTests.PaletteAndApproximation),
                 ("BiomeAutomaticLabel", ChestLabelTests.BiomeAutomaticLabel),
                 ("LabelFacesReadFromChestFront", ChestLabelTests.LabelFacesReadFromChestFront),
@@ -31,6 +38,8 @@ namespace RunicStorage.Tests
                 ("LabelAndRulesRoundTrip", ChestRulesTests.LabelAndRulesRoundTrip),
                 ("RejectMalformedAndBoundMemory", ChestRulesTests.RejectMalformedAndBoundMemory),
                 ("EmptyChestRuleUsesGuardedTransfer", ChestRulesTests.EmptyChestRuleUsesGuardedTransfer),
+                ("ForeignCallbackEditBlocksFurtherTransfers", TransferRegressionTests.ForeignCallbackEditBlocksFurtherTransfers),
+                ("CallbackCannotStartNestedTransfer", TransferRegressionTests.CallbackCannotStartNestedTransfer),
                 ("DetachedStacksCannotMoveAgain", TransferRegressionTests.DetachedStacksCannotMoveAgain),
                 ("WornToolDoesNotBlockTransfer", TransferRegressionTests.WornToolDoesNotBlockTransfer),
                 ("RollbackPreservesReferencesAndMetadata", TransferRegressionTests.RollbackPreservesReferencesAndMetadata),
@@ -264,10 +273,10 @@ namespace RunicStorage.Tests
 
         private static void SearchDoesNotDescribeUnsynchronizedContainersAsEmpty()
         {
-            string actions = File.ReadAllText(Path.Combine(
-                Root(), "Runtime", "StorageActions.cs"));
+            string actions = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
+                Root(), "Runtime", "StorageActions.cs")).Replace("\r\n", "\n");
             True(actions.Contains("inventory.synchronization-unavailable", StringComparison.Ordinal));
-            True(actions.Contains("could not be synchronized", StringComparison.Ordinal));
+            True(Runic.Localization.RunicText.English("text_15bfeaf3d177").Contains("could not be synchronized", StringComparison.Ordinal));
             True(actions.Contains("else\n\t\t\t{\n\t\t\t\tMessage(player, \"Runic Storage: the nearby synchronized containers are empty.\")", StringComparison.Ordinal));
         }
 
@@ -283,8 +292,8 @@ namespace RunicStorage.Tests
             }
 
             string root = Root();
-            string actions = File.ReadAllText(Path.Combine(root, "Runtime", "StorageActions.cs"));
-            string panel = File.ReadAllText(Path.Combine(root, "Runtime", "StorageSearchPanel.cs"));
+            string actions = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "Runtime", "StorageActions.cs"));
+            string panel = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "Runtime", "StorageSearchPanel.cs"));
             True(actions.Contains("TryGetExactOpenedLocalOwnerInventory", StringComparison.Ordinal));
             True(actions.Contains("StorageSearchEntry", StringComparison.Ordinal));
             True(panel.Contains("StorageSearchHighlight", StringComparison.Ordinal));
@@ -294,9 +303,9 @@ namespace RunicStorage.Tests
         private static void SearchPanelKeepsCursorAndKeyboardFocus()
         {
             string root = Root();
-            string panel = File.ReadAllText(Path.Combine(
+            string panel = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "StorageSearchPanel.cs"));
-            string patches = File.ReadAllText(Path.Combine(
+            string patches = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "ContainerPatches.cs"));
             True(panel.Contains("RenewCursorLease", StringComparison.Ordinal));
             True(panel.Contains("_filterInput.Select()", StringComparison.Ordinal));
@@ -330,9 +339,9 @@ namespace RunicStorage.Tests
             False(noPointerClick.ShouldSuppress("Attack", false, false, 21));
 
             string root = Root();
-            string panel = File.ReadAllText(Path.Combine(
+            string panel = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "StorageSearchPanel.cs"));
-            string patches = File.ReadAllText(Path.Combine(
+            string patches = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "ControllerInputPatches.cs"));
             True(patches.Contains("StorageSearchEscapeKeyPatch", StringComparison.Ordinal));
             True(patches.Contains("ShouldSuppressEscape(key)", StringComparison.Ordinal));
@@ -373,8 +382,8 @@ namespace RunicStorage.Tests
             True(large.PreferredWindowHeight > normal.PreferredWindowHeight);
 
             string root = Root();
-            string config = File.ReadAllText(Path.Combine(root, "PluginConfig.cs"));
-            string panel = File.ReadAllText(Path.Combine(
+            string config = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "PluginConfig.cs"));
+            string panel = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "StorageSearchPanel.cs"));
             True(config.Contains("SearchMenuFontSize", StringComparison.Ordinal));
             True(config.Contains(
@@ -413,7 +422,7 @@ namespace RunicStorage.Tests
 
         private static void SearchHighlightUsesIndependentFailClosedRingVisuals()
         {
-            string panel = File.ReadAllText(Path.Combine(
+            string panel = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 Root(), "Runtime", "StorageSearchPanel.cs"));
             True(panel.Contains(
                 "new GameObject(\"RunicStorageSearchRing\" + index)",
@@ -437,11 +446,11 @@ namespace RunicStorage.Tests
         private static void SearchMenuUsesNativeValheimCanvasWithoutAtlasRasterization()
         {
             string root = Root();
-            string theme = File.ReadAllText(Path.Combine(
+            string theme = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "StorageSearchVanillaTheme.cs"));
-            string panel = File.ReadAllText(Path.Combine(
+            string panel = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "StorageSearchPanel.cs"));
-            string project = File.ReadAllText(Path.Combine(root, "RunicStorage.csproj"));
+            string project = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "RunicStorage.csproj"));
 
             foreach (string vanillaContract in new[]
                      {
@@ -528,9 +537,9 @@ namespace RunicStorage.Tests
 		private static void FirstUseReconcilesLoadedContainers()
 		{
 			string root = Root();
-			string index = File.ReadAllText(Path.Combine(
+			string index = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
 				root, "Runtime", "ContainerIndex.cs"));
-			string actions = File.ReadAllText(Path.Combine(
+			string actions = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
 				root, "Runtime", "StorageActions.cs"));
 			True(index.Contains("RefreshLoadedContainers()", StringComparison.Ordinal));
 			True(index.Contains("FindObjectsByType<Container>", StringComparison.Ordinal));
@@ -551,9 +560,9 @@ namespace RunicStorage.Tests
 				FirstUseDiscoveryRetryPolicy.MaximumRetries, 0, 0, 0));
 
 			string root = Root();
-			string actions = File.ReadAllText(Path.Combine(
+			string actions = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
 				root, "Runtime", "StorageActions.cs"));
-			string plugin = File.ReadAllText(Path.Combine(root, "Plugin.cs"));
+			string plugin = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "Plugin.cs"));
 			True(actions.Contains("discovery.pending", StringComparison.Ordinal));
 			True(actions.Contains("TickDeferredActions", StringComparison.Ordinal));
 			True(plugin.Contains("_actions.TickDeferredActions(context)", StringComparison.Ordinal));
@@ -570,11 +579,11 @@ namespace RunicStorage.Tests
         private static void HoverReadsValheimOneRawInventoryPayload()
         {
             string root = Root();
-            string hover = File.ReadAllText(Path.Combine(
+            string hover = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root,
                 "Runtime",
                 "ContainerHoverContents.cs"));
-            string authority = File.ReadAllText(Path.Combine(
+            string authority = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root,
                 "Runtime",
                 "StorageContainerAuthority.cs"));
@@ -607,13 +616,15 @@ namespace RunicStorage.Tests
         private static void PackageHasNoRuntimeFoundationDependency()
         {
             string root = Root();
-            string project = File.ReadAllText(Path.Combine(root, "RunicStorage.csproj"));
-            string manifest = File.ReadAllText(Path.Combine(root, "manifest.json"));
-            string plugin = File.ReadAllText(Path.Combine(root, "Plugin.cs"));
-            Reject(project, "ProjectReference", "RunicPersistence.csproj",
+            string project = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "RunicStorage.csproj"));
+            string manifest = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "manifest.json"));
+            string plugin = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "Plugin.cs"));
+            True(project.Contains("InventorySafety"));
+            Reject(project + manifest + plugin, "RunicAutomation.csproj", "Chazman-RunicAutomation", "BepInDependency");
+            Reject(project, "RunicPersistence.csproj",
                 "RunicTransactions.csproj", "RunicInventory.csproj");
             Reject(manifest, "RunicCore", "RunicPersistence", "RunicTransactions", "RunicInventory");
-            Reject(plugin, "BepInDependency", "RunicRegistry", "RunicCoreApi");
+            Reject(plugin, "RunicRegistry", "RunicCoreApi");
         }
 
         private static void RuntimeHasNoDurableOrGlobalMutationLayer()
@@ -627,15 +638,15 @@ namespace RunicStorage.Tests
         private static void MutationsRequireNativeOwnership()
         {
             string root = Root();
-            string authority = File.ReadAllText(Path.Combine(
+            string authority = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "StorageContainerAuthority.cs"));
-            string service = File.ReadAllText(Path.Combine(
+            string service = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "ValheimContainerService.cs"));
-            True(authority.Contains("view.ClaimOwnership()", StringComparison.Ordinal));
+            True(authority.Contains("RunicAutomation.ContainerAuthority.TryAcquire", StringComparison.Ordinal));
             True(authority.Contains("zdo.GetInt(ZDOVars.s_inUse, 0)", StringComparison.Ordinal));
             True(service.Contains("TryClaimWritableInventory", StringComparison.Ordinal));
             True(service.Contains("StorageMutationLease", StringComparison.Ordinal));
-            string actions = File.ReadAllText(Path.Combine(root, "Runtime", "StorageActions.cs"));
+            string actions = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "Runtime", "StorageActions.cs"));
             True(actions.Contains("if ((int)item.m_privacy == 0)", StringComparison.Ordinal),
                 "Personal chests must remain excluded.");
             True(actions.Contains("discovery.UnavailableContainers", StringComparison.Ordinal),

@@ -70,9 +70,14 @@ internal sealed class ChestExteriorLabel : MonoBehaviour
                 return;
             }
         }
+        if (!TryBodyBounds(out var body)) throw new InvalidOperationException("No stable chest body geometry was found.");
+        CreateLabel(rules, body, transform);
+    }
+    private bool TryBodyBounds(out Bounds body)
+    {
         // Use physical body geometry, never the currently-open lid, snow caps, particles,
         // neighboring containers, or labels created during a previous save.
-        Bounds body = default;
+        body = default;
         bool found = false;
         foreach (var collider in _chest.GetComponentsInChildren<Collider>(true)) {
             if (collider.isTrigger || !BodyTransform(collider.transform)) continue;
@@ -84,8 +89,21 @@ internal sealed class ChestExteriorLabel : MonoBehaviour
         if (!found) foreach (var mesh in _chest.GetComponentsInChildren<MeshFilter>(true))
             if (UsableMesh(mesh) && BodyTransform(mesh.transform))
                 Include(ref body, ref found, TransformBounds(mesh.sharedMesh.bounds, mesh.transform));
-        if (!found) throw new InvalidOperationException("No stable chest body geometry was found.");
-        CreateLabel(rules, body, transform);
+        return found;
+    }
+    internal static Vector2 WrapRadii(Container chest, int side)
+    {
+        var label = chest ? chest.GetComponent<ChestExteriorLabel>() : null;
+        if (!label || side == 4 || !label.TryBodyBounds(out var bounds)) return Vector2.zero;
+        return WrapRadii(bounds, side);
+    }
+    private static Vector2 WrapRadii(Bounds bounds, int side)
+    {
+        float radius = side == 2 || side == 3 ? bounds.extents.z : bounds.extents.x;
+        float depth = side == 2 || side == 3 ? bounds.extents.x : bounds.extents.z;
+        // Match the 2.5 cm clearance used by ChestLabelFaces.Position.
+        return new Vector2((radius + .025f) * ChestLabelLayout.UnitsPerMetre,
+            (depth + .025f) * ChestLabelLayout.UnitsPerMetre);
     }
     private bool UsableMesh(MeshFilter mesh) => mesh && mesh.sharedMesh &&
         mesh.GetComponentInParent<Container>() == _chest && !mesh.GetComponentInParent<Canvas>() &&
@@ -136,12 +154,13 @@ internal sealed class ChestExteriorLabel : MonoBehaviour
         area.sizeDelta = new Vector2(ChestLabelLayout.Width(width), rules.Side == 4 ? 45 : 30);
         // Draw the backing first, then uGUI text on the same world-space canvas. A 3D TMP
         // component has an additional font-unit scale and made this label nearly microscopic.
+        Image labelBackground = null;
         if (rules.Background != 0) {
             var backing = new GameObject("Background", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             backing.transform.SetParent(area, false);
             var rect = (RectTransform)backing.transform; rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
             rect.offsetMin = new Vector2(-2, -2); rect.offsetMax = new Vector2(2, 2);
-            var image = backing.GetComponent<Image>(); image.color = rules.Background == 1 ? Color.white : Color.black;
+            var image = backing.GetComponent<Image>(); labelBackground = image; image.color = rules.Background == 1 ? Color.white : Color.black;
             image.raycastTarget = false;
         }
         var textObject = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
@@ -154,6 +173,7 @@ internal sealed class ChestExteriorLabel : MonoBehaviour
         var font = signText ? signText.font : TMP_Settings.defaultFontAsset;
         if (!font) font = StorageSearchVanillaTheme.Create().Font;
         text.font = font;
+        Runic.Shared.EmojiRenderer.Attach(text);
         text.alignment = TextAlignmentOptions.Center;
         text.fontSize = ChestLabelLayout.FontSize(rules.Size);
         text.enableAutoSizing = true; text.fontSizeMin = 8f; text.fontSizeMax = Mathf.Max(8f, ChestLabelLayout.FontSize(rules.Size));
@@ -163,6 +183,12 @@ internal sealed class ChestExteriorLabel : MonoBehaviour
         text.text = ChestLabelColors.Markup(string.IsNullOrWhiteSpace(rules.Label) ? AutomaticText(rules) : rules.Label, rules.Color);
         text.color = Color.white;
         text.raycastTarget = false;
+        var bend = Runic.Shared.CaptionBend.Attach(text, labelBackground);
+        if (rules.WrapAround && rules.Side != 4) {
+            var radii = WrapRadii(bounds, rules.Side);
+            bend.SetSurfaceWrap(radii.x, radii.y);
+        }
+        bend.Set(rules.CurveVertical, rules.CurveDepth);
         return label;
     }
     private void SetVisible(bool visible) { foreach (var label in _labels) if (label) label.SetActive(visible); }

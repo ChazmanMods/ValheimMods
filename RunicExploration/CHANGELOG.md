@@ -1,10 +1,12 @@
+## 1.0.3
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
 
 ## 1.0.2 - 2026-09-09
 
 - Updated explored-map storage, rounding, and pin-removal integration to Valheim 1.0's exact APIs.
-- Re-audited the installed Valheim 1.0.7 client assemblies and updated the BepInEx dependency to 5.4.2350.
-
 ## 1.0.1 - 2026-09-05
 
 - Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.

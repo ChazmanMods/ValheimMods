@@ -60,11 +60,11 @@ namespace RunicAwareness.Integration
 
                 ConfigFile config = plugin.Config;
                 if (config == null ||
-                    !config.TryGetEntry("General", "Enabled", out ConfigEntry<bool> enabled) ||
+                    !config.TryGetEntry(global::Runic.Localization.RunicText.Get("text_c910d474dcd7"), global::Runic.Localization.RunicText.Get("text_92c1cdfdf4cb"), out ConfigEntry<bool> enabled) ||
                     !config.TryGetEntry(
-                        "Features", "UniversalRouting", out ConfigEntry<bool> universalRouting) ||
+                        global::Runic.Localization.RunicText.Get("text_5697d03daef4"), "UniversalRouting", out ConfigEntry<bool> universalRouting) ||
                     !config.TryGetEntry(
-                        "Display", "ShowSetupPanel", out ConfigEntry<bool> showSetupPanel))
+                        global::Runic.Localization.RunicText.Get("text_34e108c0896d"), "ShowSetupPanel", out ConfigEntry<bool> showSetupPanel))
                 {
                     Clear();
                     return false;

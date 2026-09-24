@@ -28,65 +28,65 @@ namespace RunicExploration
                 "General",
                 "Enabled",
                 true,
-                "Enable the known-world navigation overlay. It never changes map/world data.");
+                global::Runic.Localization.RunicText.Get("text_27bfcb5e763d"));
             ShowKnownPinBrowser = config.Bind(
                 "Panels",
                 "KnownPinBrowser",
                 true,
-                "Show bounded search/filter results for saved pins on already explored map cells.");
+                global::Runic.Localization.RunicText.Get("text_fb8648ff1e68"));
             ShowNavigationReadout = config.Bind(
                 "Panels",
                 "SelectedPinNavigation",
                 true,
-                "Show straight-line distance and direction to the selected known pin.");
+                global::Runic.Localization.RunicText.Get("text_40f42942c4d7"));
             ShowSailingReadout = config.Bind(
                 "Panels",
                 "SailingReadout",
                 true,
-                "Show current local ship, wind, current biome, and selected-known-pin distance.");
+                global::Runic.Localization.RunicText.Get("text_813459b949ca"));
             IncludeSharedPins = config.Bind(
                 "KnownMap",
                 "IncludeSharedPins",
                 true,
-                "Include saved shared pins only when their map cell is already explored locally/shared.");
+                global::Runic.Localization.RunicText.Get("text_847e9c7181e0"));
             RefreshInterval = config.Bind(
                 "Performance",
                 "RefreshIntervalSeconds",
                 0.5f,
                 new ConfigDescription(
-                    "Bounded known-pin fingerprint and local navigation refresh interval.",
+                    global::Runic.Localization.RunicText.Get("text_2bb460dc2ad7"),
                     new AcceptableValueRange<float>(0.25f, 3f)));
             MaximumResults = config.Bind(
                 "Display",
                 "MaximumVisibleResults",
                 12,
                 new ConfigDescription(
-                    "Maximum visible search results. The hard ceiling is 24.",
+                    global::Runic.Localization.RunicText.Get("text_6578e81e9ffd"),
                     new AcceptableValueRange<int>(5, 24)));
             UiScale = config.Bind(
                 "Display",
                 "UiScale",
                 1f,
                 new ConfigDescription(
-                    "Known-map panel scale.",
+                    global::Runic.Localization.RunicText.Get("text_8f2e776ef455"),
                     new AcceptableValueRange<float>(0.75f, 1.75f)));
             ControllerScaleMultiplier = config.Bind(
                 "Display",
                 "ControllerScaleMultiplier",
                 1.15f,
                 new ConfigDescription(
-                    "Additional readability scale while Valheim reports a gamepad active.",
+                    global::Runic.Localization.RunicText.Get("text_86922a678733"),
                     new AcceptableValueRange<float>(1f, 1.5f)));
             PanelSide = config.Bind(
                 "Display",
                 "PanelSide",
                 ExplorationPanelSide.Left,
-                "Place the panel on the left or right safe-area edge.");
+                global::Runic.Localization.RunicText.Get("text_2dd15eee2fe1"));
             VerboseLogging = config.Bind(
                 "Diagnostics",
                 "VerboseLogging",
                 false,
-                "Log index rebuild counts only; never logs pin names, coordinates, or hidden state.");
+                global::Runic.Localization.RunicText.Get("text_997211976d79"));
         }
     }
 }

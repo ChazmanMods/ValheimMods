@@ -326,7 +326,7 @@ namespace RunicDisplayStands
         internal void Warn(string message)
         {
             Plugin.Log?.LogWarning(message);
-            _user?.Message(MessageHud.MessageType.Center, "Runic Display Stands: " + message);
+            _user?.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_1620e1d4e059") + message);
         }
 
         internal static void SetUseEquipButton(bool useEquip)

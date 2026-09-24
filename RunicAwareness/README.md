@@ -125,3 +125,15 @@ On the first run containing the left-middle change, a one-time marker migrates o
 are preserved. After that marker is recorded, it never rewrites the anchor again, so you may choose
 any anchor—including `TopRight`—and that later choice remains in effect. The `Migrations` marker is
 internal bookkeeping and should normally be left unchanged.
+
+The overlay hides while modal panels block gameplay input (including RunicSigns and RunicStorage), and returns when they close.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicAwareness` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

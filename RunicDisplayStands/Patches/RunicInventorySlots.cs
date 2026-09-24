@@ -26,13 +26,13 @@ namespace RunicDisplayStands
                 if (Convert.ToInt32(type.GetProperty("AuthorityMode").GetValue(snapshot)) != 1 ||
                     (int)type.GetProperty("Width").GetValue(snapshot) != player.GetInventory().GetWidth() ||
                     (int)type.GetProperty("Height").GetValue(snapshot) != player.GetInventory().GetHeight()) return result;
-                foreach (var role in (IEnumerable)type.GetProperty("Roles").GetValue(snapshot))
+                foreach (var role in (IEnumerable)type.GetProperty(global::Runic.Localization.RunicText.Get("text_c25337055464")).GetValue(snapshot))
                 {
                     var roleType = role.GetType();
-                    int index = Convert.ToInt32(roleType.GetProperty("Role").GetValue(role)) - 1;
+                    int index = Convert.ToInt32(roleType.GetProperty(global::Runic.Localization.RunicText.Get("text_14736a2eb9f4")).GetValue(role)) - 1;
                     if (index < ArmorStandSlots.Helmet || index > ArmorStandSlots.Utility ||
-                        (bool)roleType.GetProperty("Locked").GetValue(role)) continue;
-                    var coordinate = roleType.GetProperty("Coordinate").GetValue(role);
+                        (bool)roleType.GetProperty(global::Runic.Localization.RunicText.Get("text_a424e33d9093")).GetValue(role)) continue;
+                    var coordinate = roleType.GetProperty(global::Runic.Localization.RunicText.Get("text_bdc10f09365d")).GetValue(role);
                     int x = (int)coordinate.GetType().GetProperty("X").GetValue(coordinate);
                     int y = (int)coordinate.GetType().GetProperty("Y").GetValue(coordinate);
                     if (x >= 0 && x < player.GetInventory().GetWidth() && y >= 0 && y < player.GetInventory().GetHeight())

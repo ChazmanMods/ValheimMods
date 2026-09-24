@@ -1,3 +1,7 @@
+## 1.0.2
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
 
 ## 1.0.1

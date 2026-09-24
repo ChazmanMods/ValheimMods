@@ -22,6 +22,11 @@ namespace RunicAwareness.Integration
         private static FieldInfo _ammoItem;
         private static FieldInfo _comfortPieces;
         private static bool _verified;
+        private static Func<Player, bool> _takeInput;
+
+        // Calls the patched game method, so optional mod panels participate too.
+        internal static bool GameplayInputBlocked(Player player) =>
+            player == null || _takeInput == null || !_takeInput(player);
 
         internal static FieldInfo ComfortPiecesField =>
             _comfortPieces ?? throw new InvalidOperationException("Valheim contracts are not initialized.");
@@ -29,6 +34,8 @@ namespace RunicAwareness.Integration
         internal static void VerifyInstalledSignatures()
         {
             if (_verified) return;
+            _takeInput = AccessTools.MethodDelegate<Func<Player, bool>>(
+                RequireMethod(typeof(Player), "TakeInput", typeof(bool), false));
             RequireMethod(typeof(Player), nameof(Player.GetFoods), typeof(List<Player.Food>), false);
             RequireMethod(typeof(Player), nameof(Player.GetComfortLevel), typeof(int), false);
             RequireMethod(typeof(Player), nameof(Player.GetHoverObject), typeof(GameObject), false);

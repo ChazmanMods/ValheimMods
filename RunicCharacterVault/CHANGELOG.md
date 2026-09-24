@@ -1,3 +1,8 @@
+## 1.0.3
+
+- Server administrators in adminlist.txt can enroll multiple characters while normal players retain the configured character limit. Other enrollment validation still applies.
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
 
 ## 1.0.2 - 2026-09-10
@@ -7,7 +12,6 @@
 - First enrollment preserves the complete validated profile bytes in the vault and a permanent enrollment backup; it cannot overwrite an existing vault profile.
 - Concurrent enrollment for the same account is serialized, including when multiple character names are allowed.
 - Existing-character joins create and verify a local safety backup. Backup failure now stops profile replacement.
-- Added regressions covering existing accounts, duplicate enrollment, starter-item exclusion, and a real character file's byte-for-byte transfer and storage.
 
 ## 1.0.1 - 2026-09-10
 

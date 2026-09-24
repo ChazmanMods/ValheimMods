@@ -1,4 +1,4 @@
-## Runic Precision Build Tool v2.0.4 example configuration
+## Runic Precision Build Tool v2.0.6 example configuration
 ## Copy to BepInEx/config/chazman.RunicPrecisionBuildTool.cfg while Valheim is closed.
 
 [General]
@@ -22,6 +22,8 @@ FineRollWheelChord = V + LeftShift
 [Controls - Actions]
 ## P is accepted only while the exact Hammer build table is active.
 PrecisionModeToggle = P
+## Press once to toggle; the choice persists.
+RotationFrameToggle = F4
 MatchRotation = Keypad0
 MatchPitch = Keypad1
 MatchRoll = Keypad2
@@ -71,6 +73,8 @@ UndoLastPlacement = F11
 AreaRepair = F12
 
 [Rotation]
+## Local = piece axes; World = fixed world axes. Independent of movement.
+ReferenceFrame = Local
 ## Equal divisions of 360 degrees. 16 = 22.5 degrees; 360 = 1 degree.
 IncrementsPerCircle = 16
 FineIncrementsPerCircle = 360

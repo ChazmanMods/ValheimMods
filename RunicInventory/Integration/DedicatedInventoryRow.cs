@@ -15,10 +15,10 @@ namespace RunicInventory.Integration
         {
             message = string.Empty;
             if (_player && _player == Player.m_localPlayer && _playerLoadInProgress)
-            { message = "Cannot disable RunicInventory while your inventory is loading."; return false; }
+            { message = global::Runic.Localization.RunicText.Get("text_66b7c7710d67"); return false; }
             if (!_player || _player != Player.m_localPlayer ||
                 _player.m_customData?.ContainsKey(DedicatedRowPlan.MetadataKey) != true) return true;
-            message = "Cannot disable RunicInventory while your inventory is loading or unavailable.";
+            message = global::Runic.Localization.RunicText.Get("text_76aa803deabb");
             if (_playerLoadInProgress || _rowMigration || !IsAuthoritativeLocal(_player) || _inventory == null) return false;
             if (!int.TryParse(_player.m_customData[DedicatedRowPlan.MetadataKey], NumberStyles.None,
                     CultureInfo.InvariantCulture, out int rows) || rows < 4 || rows > 9) return false;
@@ -34,8 +34,8 @@ namespace RunicInventory.Integration
                     out _, out _, out string reason, quiver, quiver ? rows + 1 : -1))
             { message = string.Empty; return true; }
             message = reason == "extra-row.clear-space-before-shrinking"
-                ? "Cannot disable RunicInventory: there is no room to move the items in the extra row. Free normal inventory slots first."
-                : "Cannot disable RunicInventory until the inventory layout is valid.";
+                ? global::Runic.Localization.RunicText.Get("text_6c143e4755b6")
+                : global::Runic.Localization.RunicText.Get("text_9a609316cd7a");
             return false;
         }
 
@@ -209,7 +209,7 @@ namespace RunicInventory.Integration
                 else data.Remove(DedicatedRowPlan.QuiverMetadataKey);
                 if (quiver) BetterArcheryCompatibility.SetQuiverRow(originalQuiverRow);
                 reason = "extra-row.migration-failed";
-                Diagnostics.Error(exception, "Dedicated row migration rolled back without removing items.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_7506f8257cce"));
                 return false;
             }
             finally

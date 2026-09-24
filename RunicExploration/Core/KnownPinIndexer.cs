@@ -143,15 +143,15 @@ namespace RunicExploration.Core
         {
             switch (type)
             {
-                case 0: return "Icon 0";
-                case 1: return "Icon 1";
-                case 2: return "Icon 2";
-                case 3: return "Icon 3";
-                case 4: return "Tombstone";
-                case 5: return "Bed";
-                case 6: return "Icon 4";
-                case 9: return "Boss";
-                default: return "Pin type " + type.ToString(CultureInfo.InvariantCulture);
+                case 0: return global::Runic.Localization.RunicText.Get("text_3c1d449a0297");
+                case 1: return global::Runic.Localization.RunicText.Get("text_ed5fda7a2770");
+                case 2: return global::Runic.Localization.RunicText.Get("text_2d7fa7ade399");
+                case 3: return global::Runic.Localization.RunicText.Get("text_f7e614a86f42");
+                case 4: return global::Runic.Localization.RunicText.Get("text_e5a78c9b6d81");
+                case 5: return global::Runic.Localization.RunicText.Get("text_f816a74c2310");
+                case 6: return global::Runic.Localization.RunicText.Get("text_0dd7f0c63885");
+                case 9: return global::Runic.Localization.RunicText.Get("text_6a6ac8386005");
+                default: return global::Runic.Localization.RunicText.Get("text_6f78dc9b2b28") + type.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -159,11 +159,11 @@ namespace RunicExploration.Core
         {
             switch (category)
             {
-                case KnownPinCategory.TaggedAsset: return "tagged asset";
+                case KnownPinCategory.TaggedAsset: return global::Runic.Localization.RunicText.Get("text_15de57a26cde");
                 case KnownPinCategory.Tombstone: return "tombstone";
                 case KnownPinCategory.Bed: return "bed";
                 case KnownPinCategory.Boss: return "boss";
-                default: return "custom pin";
+                default: return global::Runic.Localization.RunicText.Get("text_851ff3574a01");
             }
         }
 
@@ -173,7 +173,7 @@ namespace RunicExploration.Core
             {
                 case KnownAssetKind.Boat: return "boat";
                 case KnownAssetKind.Cart: return "cart";
-                case KnownAssetKind.TamedAnimal: return "tamed animal";
+                case KnownAssetKind.TamedAnimal: return global::Runic.Localization.RunicText.Get("text_352fd7f0412a");
                 case KnownAssetKind.Portal: return "portal";
                 case KnownAssetKind.Bed: return "bed";
                 case KnownAssetKind.Tombstone: return "tombstone";
@@ -222,11 +222,11 @@ namespace RunicExploration.Core
                 : AssetLabel(asset);
             string source = scope == KnownPinScope.Personal
                 ? "personal"
-                : scope == KnownPinScope.Shared ? "shared" : "personal + shared";
-            return label + "  |  " + kind + "  |  LAST KNOWN, " + source +
+                : scope == KnownPinScope.Shared ? "shared" : global::Runic.Localization.RunicText.Get("text_19e5cd05b8e6");
+            return label + "  |  " + kind + global::Runic.Localization.RunicText.Get("text_f2db189f3670") + source +
                    (sources > 1 ? ", " + sources.ToString(CultureInfo.InvariantCulture) +
-                                  " merged sources" : string.Empty) +
-                   (isChecked ? ", checked" : string.Empty);
+                                  global::Runic.Localization.RunicText.Get("text_15b425c43941") : string.Empty) +
+                   (isChecked ? global::Runic.Localization.RunicText.Get("text_82d43a450079") : string.Empty);
         }
 
         private static bool SameKnownPin(Candidate left, Candidate right) =>

@@ -6,16 +6,19 @@ namespace QuietBuildRotation.Tests
     {
         internal static void Register()
         {
-            TestRunner.Run("Compound commands compose in piece-local yaw, pitch, and roll", ComposeOrder);
+            TestRunner.Run("Compound commands compose in world yaw and local pitch and roll", ComposeOrder);
             TestRunner.Run("Pitch follows a yawed piece's local X axis", LocalPitchAfterYaw);
             TestRunner.Run("Roll follows the piece-local Z axis after yaw and pitch", LocalRollAfterCompound);
-            TestRunner.Run("Yaw follows the piece-local Y axis after pitch and roll", LocalYawAfterCompound);
-            TestRunner.Run("Pitch, yaw, and roll remain piece-local after exact match", LocalAxesAfterMatch);
+            TestRunner.Run("Yaw stays world-up after pitch and roll", WorldYawAfterCompound);
+            TestRunner.Run("World yaw and local pitch and roll persist after exact match", LocalAxesAfterMatch);
             TestRunner.Run("Piece-local compound order produces the expected physical basis", LocalCompoundBasis);
             TestRunner.Run("Local-axis rotation leaves the placement pivot unchanged", RotationPreservesPivot);
             TestRunner.Run("Rotation after translation cannot orbit the placement position", RotationAfterTranslationPreservesPosition);
             TestRunner.Run("Untouched and translation-only sessions follow exact vanilla rotation", VanillaFirstUntilRunicRotation);
             TestRunner.Run("Explicit Runic rotation locks the world pose against candidate drift", ExplicitRotationLocksWorldPose);
+            TestRunner.Run("Flat rotation preserves tilted beam elevation and pivot", FlatRotationAfterTilt);
+            TestRunner.Run("Both rotation frames use their selected axes and toggle without moving", RotationFrames);
+            TestRunner.Run("Matched beam bends in its existing plane in local mode", ArchBend);
             TestRunner.Run("Pose remains normalized after accumulated increments", NormalizesAccumulation);
             TestRunner.Run("Quaternion angle metric resolves hundredth-degree differences", QuaternionAnglePrecision);
             TestRunner.Run("Sway, heave, and surge use independent fixed-world axes", FixedWorldTranslation);
@@ -87,21 +90,85 @@ namespace QuietBuildRotation.Tests
                 0.001f);
         }
 
-        private static void LocalYawAfterCompound()
+        private static void WorldYawAfterCompound()
         {
             PoseController controller = NewController(Quaternion.identity);
             controller.Apply(SemanticCommand.Rotation(RotationAxis.Pitch, 31f));
             controller.Apply(SemanticCommand.Rotation(RotationAxis.Roll, -19f));
             Quaternion before = controller.Session.DesiredRotation;
 
+            controller.RotationReferenceFrame = PlacementReferenceFrame.World;
             controller.Apply(SemanticCommand.Rotation(RotationAxis.Yaw, 47f));
 
-            Quaternion localDelta = QuaternionMath.NormalizeSafe(
-                QuaternionMath.InverseSafe(before) * controller.Session.DesiredRotation);
+            Quaternion worldDelta = QuaternionMath.NormalizeSafe(
+                controller.Session.DesiredRotation * QuaternionMath.InverseSafe(before));
             TestAssert.QuaternionNear(
                 QuaternionMath.AngleAxis(47f, 0f, 1f, 0f),
-                localDelta,
+                worldDelta,
                 0.001f);
+        }
+
+        private static void FlatRotationAfterTilt()
+        {
+            foreach (float pitch in new[] { 1f, 22.5f, 89f, 90f, 135f, -22.5f })
+            foreach (float yawStep in new[] { 1f, 22.5f, -22.5f })
+            {
+                PoseController controller = NewController(Quaternion.identity);
+                controller.Apply(SemanticCommand.Rotation(RotationAxis.Pitch, pitch));
+                controller.Apply(SemanticCommand.Translation(SemanticCommandKind.MoveSway, 0.25f));
+                Vector3 pivot = controller.ComposePosition(new Vector3(4f, 5f, 6f));
+                Quaternion before = controller.Session.DesiredRotation;
+                for (int step = 0; step < 16; step++)
+                {
+                    controller.RotationReferenceFrame = PlacementReferenceFrame.World;
+                    controller.Apply(SemanticCommand.Rotation(RotationAxis.Yaw, yawStep));
+                    Quaternion after = controller.Session.DesiredRotation;
+                    // A horizontal turn preserves the height of every basis vector, including
+                    // beam endpoints, even at vertical pitch and after repeated wheel input.
+                    foreach (Vector3 basis in new[] { Vector3.right, Vector3.up, Vector3.forward })
+                        TestAssert.Near((before * basis).y, (after * basis).y, 0.00001f);
+                    TestAssert.VectorNear(pivot, controller.ComposePosition(new Vector3(4f, 5f, 6f)), 0f);
+                }
+            }
+        }
+
+        private static void RotationFrames()
+        {
+            foreach (PlacementReferenceFrame frame in new[] { PlacementReferenceFrame.Local, PlacementReferenceFrame.World })
+            foreach (RotationAxis axis in new[] { RotationAxis.Pitch, RotationAxis.Yaw, RotationAxis.Roll })
+            {
+                Quaternion matched = ComposeYxz(67f, 31f, -23f);
+                PoseController controller = NewController(Quaternion.identity);
+                controller.MatchOrientation(matched, 0f);
+                controller.Apply(SemanticCommand.Translation(SemanticCommandKind.MoveHeave, 0.5f));
+                Vector3 pivot = controller.ComposePosition(new Vector3(2f, 4f, 6f));
+                controller.RotationReferenceFrame = frame;
+                TestAssert.QuaternionNear(matched, controller.Session.DesiredRotation, 0.001f);
+                Vector3 basis = axis == RotationAxis.Pitch ? Vector3.right : axis == RotationAxis.Yaw ? Vector3.up : Vector3.forward;
+                Vector3 fixedAxis = frame == PlacementReferenceFrame.Local ? matched * basis : basis;
+                controller.Apply(SemanticCommand.Rotation(axis, 22.5f));
+                Quaternion relative = controller.Session.DesiredRotation * QuaternionMath.InverseSafe(matched);
+                TestAssert.VectorNear(fixedAxis, relative * fixedAxis, 0.00001f);
+                TestAssert.QuaternionNear(QuaternionMath.AngleAxis(22.5f, fixedAxis.x, fixedAxis.y, fixedAxis.z), relative, 0.001f);
+                TestAssert.VectorNear(pivot, controller.ComposePosition(new Vector3(2f, 4f, 6f)), 0f);
+                controller.Apply(SemanticCommand.Reset);
+                TestAssert.Equal(frame, controller.RotationReferenceFrame);
+                controller.ObserveSelection(678, Quaternion.identity, 0);
+                TestAssert.Equal(frame, controller.RotationReferenceFrame);
+            }
+        }
+
+        private static void ArchBend()
+        {
+            PoseController controller = NewController(Quaternion.identity);
+            Quaternion beam = ComposeYxz(67f, 31f, -23f);
+            controller.MatchOrientation(beam, 0f);
+            controller.RotationReferenceFrame = PlacementReferenceFrame.Local;
+            Vector3 planeNormal = beam * Vector3.forward;
+            controller.Apply(SemanticCommand.Rotation(RotationAxis.Roll, 5f));
+            Quaternion bent = controller.Session.DesiredRotation;
+            TestAssert.VectorNear(planeNormal, bent * Vector3.forward, 0.00001f);
+            TestAssert.QuaternionNear(beam * QuaternionMath.AngleAxis(5f, 0f, 0f, 1f), bent, 0.001f);
         }
 
         private static void LocalAxesAfterMatch()
@@ -115,8 +182,14 @@ namespace QuietBuildRotation.Tests
 
             AssertNextLocalRotation(controller, RotationAxis.Pitch, 13f, 1f, 0f, 0f);
             TestAssert.VectorNear(fixedPosition, controller.ComposePosition(candidate), 0f);
-            AssertNextLocalRotation(controller, RotationAxis.Yaw, -29f, 0f, 1f, 0f);
+            controller.RotationReferenceFrame = PlacementReferenceFrame.World;
+            Quaternion beforeYaw = controller.Session.DesiredRotation;
+            controller.Apply(SemanticCommand.Rotation(RotationAxis.Yaw, -29f));
+            TestAssert.QuaternionNear(
+                QuaternionMath.AngleAxis(-29f, 0f, 1f, 0f) * beforeYaw,
+                controller.Session.DesiredRotation, 0.001f);
             TestAssert.VectorNear(fixedPosition, controller.ComposePosition(candidate), 0f);
+            controller.RotationReferenceFrame = PlacementReferenceFrame.Local;
             AssertNextLocalRotation(controller, RotationAxis.Roll, 47f, 0f, 0f, 1f);
             TestAssert.VectorNear(fixedPosition, controller.ComposePosition(candidate), 0f);
             TestAssert.True(controller.Session.HasAbsoluteRotation);

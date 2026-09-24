@@ -40,7 +40,7 @@ namespace RunicSentinel.Runtime
                 "reports");
             _command = new Terminal.ConsoleCommand(
                 "runic_sentinel",
-                "Raven's Gate: status | report | networks | bootstrap <authority> <subject>",
+                "Runic Sentinel: status | report | networks | bootstrap <authority> <subject>",
                 OnCommand);
             if (Application.isBatchMode) StartDedicatedConsoleInput();
         }
@@ -82,7 +82,7 @@ namespace RunicSentinel.Runtime
             {
                 SentinelIntegritySnapshot integrity = _runtime.GetIntegritySnapshot();
                 output(
-                    "Raven's Gate: " + integrity.State +
+                    "Runic Sentinel: " + integrity.State +
                     "; profile=" + (_runtime.PolicyProfile.Length == 0 ? "none" : _runtime.PolicyProfile) +
                     "; sequence=" + _runtime.PolicySequence.ToString(CultureInfo.InvariantCulture) +
                     "; admission=" + (_runtime.AuthoritativeTransportReady ? "direct-pre-handshake" : "unavailable") +
@@ -184,6 +184,7 @@ namespace RunicSentinel.Runtime
             SentinelIntegritySnapshot integrity = _runtime.GetIntegritySnapshot();
             builder.Append("RUNIC-SENTINEL-SUPPORT/1\n")
                 .Append("created-utc=").Append(DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)).Append('\n')
+                .Append("world=").Append(ZNet.instance?.GetWorldName()??"Unknown").Append('\n')
                 .Append("integrity=").Append(integrity.State).Append('\n')
                 .Append("integrity-reason=").Append(integrity.ReasonCode).Append('\n')
                 .Append("policy-profile=").Append(_runtime.PolicyProfile).Append('\n')
@@ -218,13 +219,13 @@ namespace RunicSentinel.Runtime
             if (includeNetworks && !SentinelNetworkMapWriter.TryAppend(builder, out string mapFailure))
                 throw new InvalidOperationException(mapFailure);
 
-            byte[] bytes = new UTF8Encoding(false).GetBytes(builder.ToString());
+            byte[] bytes = new UTF8Encoding(false).GetBytes(SentinelReadableReport.Format(builder.ToString(),includeNetworks));
             if (bytes.Length > MaximumReportBytes)
                 throw new InvalidDataException("The bounded support report exceeded 512 KiB.");
             Directory.CreateDirectory(_reportRoot);
             string path = Path.Combine(
                 _reportRoot,
-                "sentinel-report-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".txt");
+                (includeNetworks?"sentinel-networks-":"sentinel-health-") + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)+"-"+Guid.NewGuid().ToString("N").Substring(0,8) + ".txt");
             using (var stream = new FileStream(
                        path,
                        FileMode.CreateNew,
@@ -237,6 +238,19 @@ namespace RunicSentinel.Runtime
                 stream.Flush(true);
             }
             return path;
+        }
+        internal string ReadReportChunk(string request)
+        {
+            var fields=request.Split('\n');
+            if(fields.Length!=2||fields[0]!=Path.GetFileName(fields[0])||!fields[0].EndsWith(".txt",StringComparison.Ordinal)||!(fields[0].StartsWith("sentinel-health-",StringComparison.Ordinal)||fields[0].StartsWith("sentinel-networks-",StringComparison.Ordinal))||!int.TryParse(fields[1],out int offset)||offset<0)
+                throw new InvalidDataException("Invalid report download request.");
+            string path=Path.Combine(_reportRoot,fields[0]);
+            using(var stream=File.OpenRead(path))
+            {
+                if(stream.Length>MaximumReportBytes||offset>stream.Length)throw new InvalidDataException("Report is outside download bounds.");
+                stream.Position=offset;var buffer=new byte[Math.Min(32768,(int)stream.Length-offset)];int count=stream.Read(buffer,0,buffer.Length);
+                return SentinelJson.Write(new SentinelReportChunk{data=Convert.ToBase64String(buffer,0,count),offset=offset,total=(int)stream.Length});
+            }
         }
 
         public void Dispose()

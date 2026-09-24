@@ -5,14 +5,16 @@ namespace RunicStorage.Runtime
 {
     internal sealed class StorageMutationLease : IDisposable
     {
-        private static int _active;
+        private readonly RunicAutomation.MutationLease _shared;
         private int _owned;
 
-        private StorageMutationLease(Player player)
+        private StorageMutationLease(Player player, RunicAutomation.MutationLease shared)
         {
+            _shared = shared;
             Player = player;
             Inventory = player.GetInventory();
             _owned = 1;
+            _shared.Track(Inventory);
         }
 
         internal Player Player { get; }
@@ -22,9 +24,10 @@ namespace RunicStorage.Runtime
         {
             lease = null;
             if (player == null || !ReferenceEquals(player, Player.m_localPlayer) ||
-                !player.IsOwner() || Interlocked.CompareExchange(ref _active, 1, 0) != 0)
+                !player.IsOwner() || RunicAutomation.MutationGate.IsBlocked(player.GetInventory()) ||
+                !RunicAutomation.MutationGate.TryBegin("storage", out var shared))
                 return false;
-            lease = new StorageMutationLease(player);
+            lease = new StorageMutationLease(player, shared);
             return true;
         }
 
@@ -35,7 +38,7 @@ namespace RunicStorage.Runtime
         public void Dispose()
         {
             if (Interlocked.Exchange(ref _owned, 0) != 1) return;
-            Volatile.Write(ref _active, 0);
+            _shared.Dispose();
         }
     }
 }

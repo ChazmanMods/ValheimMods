@@ -1,6 +1,6 @@
 {
   "name": "RunicCharacterVault",
-  "version_number": "1.0.2",
+  "version_number": "1.0.3",
   "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicCharacterVault",
   "description": "Store each player's authoritative Valheim 1.0 character on the server with validated transfers, durable saves, backups, and protected disconnects.",
   "dependencies": [

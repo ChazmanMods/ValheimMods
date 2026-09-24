@@ -107,7 +107,7 @@ namespace RunicSentinel.Tests
             Contains(bridge, "!ZNet.instance.IsServer()"); Contains(bridge, "config.ConfigFilePath");
             Contains(bridge, "config.SaveOnConfigSet = false");
             foreach (string forbidden in new[] { "Process.Start", ".Initialize(", "MaximumPlayers.Value", ".Disconnect(", "Config.Reload(", "File.WriteAllText" }) False(bridge.Contains(forbidden));
-            string panel = Read("RunicSentinel", "Runtime", "SentinelAdminPanel.cs");
+            string panel = ReadLocalizedPanel();
             Contains(panel, "\"Server Cap\""); Contains(panel, "Save for Next Restart"); Contains(panel, "!_document.CapacitySupported");
             Contains(panel, "CapacityRestartRequired"); Contains(panel, "!_requesting && valid && changed");
         }

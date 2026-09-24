@@ -90,7 +90,7 @@ namespace RunicProduction.Core
             failure = string.Empty;
             if (catalog == null || candidate == null || candidate.Role != catalog.Role ||
                 softMaximum < 1 || softMaximum > ProductionRoleLinkCatalog.HardMaximumLinks)
-                return Fail("The role-link change is invalid.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_0abe7906f9a0"), out failure);
 
             var links = new List<StoredProductionLink>(catalog.Links.Count + 1);
             int match = -1;
@@ -109,14 +109,14 @@ namespace RunicProduction.Core
             if (match < 0)
             {
                 if (links.Count >= ProductionRoleLinkCatalog.HardMaximumLinks)
-                    return Fail("The hard 16-link role limit was reached.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_5b89cb300aab"), out failure);
                 if (links.Count >= softMaximum)
-                    return Fail("The configured per-role link limit was reached.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_21786220baae"), out failure);
                 published = ReplenishmentDestinationRecord.CopyLink(candidate);
                 links.Add(published);
             }
             if (catalog.Revision == int.MaxValue)
-                return Fail("The role-link revision is exhausted.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_23a3b3bb192a"), out failure);
             updated = new ProductionRoleLinkCatalog(
                 catalog.Role,
                 catalog.Revision + 1,
@@ -135,7 +135,7 @@ namespace RunicProduction.Core
             failure = string.Empty;
             if (catalog == null || !ProductionEndpointIdentity.IsCanonicalToken(token) ||
                 prefabHash == 0)
-                return Fail("The role-link removal is invalid.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_6e705b2619f5"), out failure);
             var links = new List<StoredProductionLink>();
             bool removed = false;
             foreach (StoredProductionLink link in catalog.Links)
@@ -148,9 +148,9 @@ namespace RunicProduction.Core
                 }
                 links.Add(ReplenishmentDestinationRecord.CopyLink(link));
             }
-            if (!removed) return Fail("That chest is not linked for the selected role.", out failure);
+            if (!removed) return Fail(global::Runic.Localization.RunicText.Get("text_8b5023be621f"), out failure);
             if (catalog.Revision == int.MaxValue)
-                return Fail("The role-link revision is exhausted.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_23a3b3bb192a"), out failure);
             updated = new ProductionRoleLinkCatalog(
                 catalog.Role,
                 catalog.Revision + 1,

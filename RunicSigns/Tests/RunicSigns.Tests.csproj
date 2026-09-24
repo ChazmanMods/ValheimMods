@@ -5,7 +5,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Core/*.cs" />
+    <Compile Include="../../Shared/CaptionCurve.cs" />
+    <Compile Include="../../Shared/CaptionMeshCurve.cs" />
+    <Compile Include="../../Shared/CaptionBend.cs" />
+    <Compile Include="CaptionCurveTests.cs" />
+    <Compile Include="../../Shared/Emoji/EmojiText.cs" />
+    <Compile Include="../../Shared/Emoji/EmojiCatalog.Generated.cs" />
+    <Compile Include="../../Shared/Emoji/Tests/EmojiRegressionTests.cs" />
     <Compile Include="../Runtime/SignRuntime.cs" />
+    <Compile Include="../Runtime/SignAppearance.cs" />
+    <Compile Include="../Runtime/SignPlacement.cs" />
     <Compile Include="GameStubs.cs" /><Compile Include="Program.cs" />
   </ItemGroup>
 </Project>

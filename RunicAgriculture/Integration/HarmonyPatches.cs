@@ -153,13 +153,13 @@ namespace RunicAgriculture.Integration
             switch (status)
             {
                 case Plant.Status.Healthy: return "healthy";
-                case Plant.Status.NoSun: return "needs sunlight / no roof";
-                case Plant.Status.NoSpace: return "needs more spacing";
-                case Plant.Status.WrongBiome: return "wrong biome";
-                case Plant.Status.NotCultivated: return "ground is not cultivated";
-                case Plant.Status.NoAttachPiece: return "missing attachment";
-                case Plant.Status.TooHot: return "too hot";
-                case Plant.Status.TooCold: return "too cold";
+                case Plant.Status.NoSun: return global::Runic.Localization.RunicText.Get("text_6734c4c664b0");
+                case Plant.Status.NoSpace: return global::Runic.Localization.RunicText.Get("text_52fdd9c6a0e0");
+                case Plant.Status.WrongBiome: return global::Runic.Localization.RunicText.Get("text_b2f3314ac35c");
+                case Plant.Status.NotCultivated: return global::Runic.Localization.RunicText.Get("text_0ec94147c6f6");
+                case Plant.Status.NoAttachPiece: return global::Runic.Localization.RunicText.Get("text_4b14a5e69d87");
+                case Plant.Status.TooHot: return global::Runic.Localization.RunicText.Get("text_1070aa4c5f46");
+                case Plant.Status.TooCold: return global::Runic.Localization.RunicText.Get("text_1b68768db506");
                 default: return status.ToString();
             }
         }
@@ -182,7 +182,7 @@ namespace RunicAgriculture.Integration
                         : "happy";
                 __result += "\n<color=#f4c95d>[Runic]</color> Honey " +
                             ValheimAccess.BeeHoney(__instance) + "/" + __instance.m_maxHoney +
-                            " - bees " + happiness;
+                            global::Runic.Localization.RunicText.Get("text_d64450916899") + happiness;
             }
             catch (Exception)
             {
@@ -205,13 +205,13 @@ namespace RunicAgriculture.Integration
                 bool ready = AgricultureRuntime.IsPickableReady(__instance, out _);
                 if (AgricultureConfig.ShowHoverStatus?.Value ?? false)
                     __result += ready
-                        ? "\n<color=#8fd694>[Runic]</color> Ready for area harvest"
-                        : "\n<color=#d7d7d7>[Runic]</color> Currently unavailable";
+                        ? global::Runic.Localization.RunicText.Get("text_4c20c99ce5b2")
+                        : global::Runic.Localization.RunicText.Get("text_1463627b2b40");
                 if (ready && (AgricultureConfig.ShowContextualControls?.Value ?? false))
                 {
                     string hint = Plugin.Instance?.Runtime?.HarvestControlHint();
                     if (!string.IsNullOrEmpty(hint))
-                        __result += "\n<color=#8fd694>[Runic]</color> Area harvest: " + hint;
+                        __result += global::Runic.Localization.RunicText.Get("text_ed914c31e9f7") + hint;
                 }
             }
             catch (Exception)

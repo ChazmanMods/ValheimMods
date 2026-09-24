@@ -73,13 +73,13 @@ namespace RunicProduction.Integration
             failure = string.Empty;
             if (station == null || !ValheimAccess.TryGetFermenterPrefab(
                     station, out string prefabId, out GameObject registeredPrefab))
-                return Fail("The exact registered Fermenter prefab identity is unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_f925ceda2235"), out failure);
             if (requireAllowed && (policy == null || !policy.Allows(prefabId)))
-                return Fail("This exact Fermenter prefab ID is not enabled by the local allow list.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_1a3c654de568"), out failure);
             if (!RootIsExact(station.gameObject, station, ValheimAccess.View(station)) ||
                 !RegisteredRootIsExact(registeredPrefab))
                 return Fail(
-                    "Fermenter, ZNetView, and WearNTear must be unique components on one registered prefab root.",
+                    global::Runic.Localization.RunicText.Get("text_4188f535edf9"),
                     out failure);
             if (station.gameObject.GetComponent<Smelter>() != null ||
                 station.gameObject.GetComponent<CookingStation>() != null ||
@@ -87,22 +87,22 @@ namespace RunicProduction.Integration
                 registeredPrefab.GetComponentsInChildren<CraftingStation>(true).Length != 0 ||
                 station.GetComponentsInChildren<Container>(true).Length != 0 ||
                 registeredPrefab.GetComponentsInChildren<Container>(true).Length != 0)
-                return Fail("Hybrid production/container Fermenter roots are ambiguous and unsupported.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_3924d23c568e"), out failure);
             ZNetView view = ValheimAccess.View(station);
             if (view == null || !view.IsValid() || ValheimAccess.Zdo(station) == null)
-                return Fail("Fermenter network state is unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_c09b7d512030"), out failure);
             if (!IsFinite(station.m_fermentationDuration) ||
                 Math.Abs(station.m_fermentationDuration - VanillaFermentationSeconds) > DurationTolerance)
-                return Fail("Fermenter duration must retain vanilla's exact 2400-second model.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_caed6e85369e"), out failure);
             if (!IsFinite(station.m_tapDelay) || station.m_tapDelay < 0f || station.m_tapDelay > 30f)
-                return Fail("Fermenter tap delay is non-finite or outside the supported vanilla range.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_e521bf240032"), out failure);
             if (!ControlInside(station, station.m_addSwitch) ||
                 !ControlInside(station, station.m_tapSwitch) ||
                 !TransformInside(station, station.m_outputPoint) ||
                 !TransformInside(station, station.m_roofCheckPoint) ||
                 station.m_addSwitch == null || station.m_tapSwitch == null ||
                 station.m_outputPoint == null || station.m_roofCheckPoint == null)
-                return Fail("Fermenter controls, output, and cover points must remain inside its exact root.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_d86a646ee11c"), out failure);
             if (!TryReadConversions(station.m_conversion, out List<FermenterConversionDescriptor> conversions,
                     out failure))
                 return false;
@@ -121,7 +121,7 @@ namespace RunicProduction.Integration
                     out List<FermenterConversionDescriptor> registeredConversions, out failure) ||
                 !SameConversions(conversions, registeredConversions))
                 return Fail(
-                    "The live Fermenter no longer matches its exact registered vanilla-compatible definition.",
+                    global::Runic.Localization.RunicText.Get("text_c0b48ab6fb23"),
                     out failure);
             descriptor = new FermenterDescriptor(prefabId, conversions);
             return true;
@@ -137,11 +137,11 @@ namespace RunicProduction.Integration
             failure = string.Empty;
             if (station == null || descriptor == null ||
                 !FermenterStationState.TryCapture(station, out state))
-                return Fail("Fermenter content/start state is non-canonical.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_93d43bc6922d"), out failure);
             if (!state.IsEmpty && !descriptor.TryFromInput(state.InputPrefabId, out _))
-                return Fail("Fermenter content does not match its exact conversion table.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_54a0b542fd9b"), out failure);
             if (ValheimAccess.FermenterDelayedTapActive(station))
-                return Fail("A vanilla DelayedTap is active; links and refresh must wait for it to complete.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_d8bba0e200eb"), out failure);
             return true;
         }
 
@@ -166,7 +166,7 @@ namespace RunicProduction.Integration
                 registered.GetComponentsInChildren<CraftingStation>(true).Length != 0 ||
                 registered.GetComponentsInChildren<Container>(true).Length != 0)
                 return Fail(
-                    "The registered Fermenter producer root is structurally ambiguous.",
+                    global::Runic.Localization.RunicText.Get("text_0ad53d0aa4fb"),
                     out failure);
             if (!IsFinite(registered.m_fermentationDuration) ||
                 Math.Abs(registered.m_fermentationDuration - VanillaFermentationSeconds) >
@@ -197,7 +197,7 @@ namespace RunicProduction.Integration
             descriptors = new List<FermenterConversionDescriptor>();
             failure = string.Empty;
             if (source == null || source.Count == 0 || source.Count > MaximumConversions)
-                return Fail("Fermenter conversion count is outside the supported 1-256 range.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_6586c7afb117"), out failure);
             var inputs = new HashSet<string>(StringComparer.Ordinal);
             var outputs = new HashSet<string>(StringComparer.Ordinal);
             foreach (Fermenter.ItemConversion conversion in source)
@@ -216,12 +216,12 @@ namespace RunicProduction.Integration
                     ValheimAccess.RegisteredItemPrefab(input)?.GetComponent<ItemDrop>() == null ||
                     ValheimAccess.RegisteredItemPrefab(output)?.GetComponent<ItemDrop>() == null)
                     return Fail(
-                        "Fermenter conversions require unique exact inputs/outputs and complete vanilla 3/6-item batches.",
+                        global::Runic.Localization.RunicText.Get("text_d682c998bec4"),
                         out failure);
                 descriptors.Add(new FermenterConversionDescriptor(input, output, amount));
             }
             if (inputs.Overlaps(outputs))
-                return Fail("Fermenter input/output prefab IDs collide and are ambiguous.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_bd16b50627e4"), out failure);
             return true;
         }
 

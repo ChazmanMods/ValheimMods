@@ -218,26 +218,26 @@ namespace RunicAgriculture.Core
         {
             switch (action)
             {
-                case ValheimControllerAction.JoyAltKeys: return "Controller Alt";
-                case ValheimControllerAction.JoyPlace: return "Place";
-                case ValheimControllerAction.JoyRotate: return "Rotate";
-                case ValheimControllerAction.JoyUse: return "Use";
-                case ValheimControllerAction.JoyRemove: return "Remove";
-                case ValheimControllerAction.JoyButtonA: return "A / Cross";
-                case ValheimControllerAction.JoyButtonB: return "B / Circle";
-                case ValheimControllerAction.JoyButtonX: return "X / Square";
-                case ValheimControllerAction.JoyButtonY: return "Y / Triangle";
-                case ValheimControllerAction.JoyDPadUp: return "D-pad Up";
-                case ValheimControllerAction.JoyDPadDown: return "D-pad Down";
-                case ValheimControllerAction.JoyDPadLeft: return "D-pad Left";
-                case ValheimControllerAction.JoyDPadRight: return "D-pad Right";
-                case ValheimControllerAction.JoyLBumper: return "Left Bumper";
-                case ValheimControllerAction.JoyRBumper: return "Right Bumper";
-                case ValheimControllerAction.JoyLTrigger: return "Left Trigger";
-                case ValheimControllerAction.JoyRTrigger: return "Right Trigger";
-                case ValheimControllerAction.JoyLStick: return "Left Stick Click";
-                case ValheimControllerAction.JoyRStick: return "Right Stick Click";
-                case ValheimControllerAction.JoyPrevSnap: return "Left Stick Click";
+                case ValheimControllerAction.JoyAltKeys: return global::Runic.Localization.RunicText.Get("text_8f425f2e1d7b");
+                case ValheimControllerAction.JoyPlace: return global::Runic.Localization.RunicText.Get("text_e9463dccf054");
+                case ValheimControllerAction.JoyRotate: return global::Runic.Localization.RunicText.Get("text_c3613b1704f5");
+                case ValheimControllerAction.JoyUse: return global::Runic.Localization.RunicText.Get("text_c36d819e7bc6");
+                case ValheimControllerAction.JoyRemove: return global::Runic.Localization.RunicText.Get("text_c3812fc4acb8");
+                case ValheimControllerAction.JoyButtonA: return global::Runic.Localization.RunicText.Get("text_b81cc6f28763");
+                case ValheimControllerAction.JoyButtonB: return global::Runic.Localization.RunicText.Get("text_7df3fba69cfe");
+                case ValheimControllerAction.JoyButtonX: return global::Runic.Localization.RunicText.Get("text_9affb90082db");
+                case ValheimControllerAction.JoyButtonY: return global::Runic.Localization.RunicText.Get("text_7c3f8373297f");
+                case ValheimControllerAction.JoyDPadUp: return global::Runic.Localization.RunicText.Get("text_1f85615c359b");
+                case ValheimControllerAction.JoyDPadDown: return global::Runic.Localization.RunicText.Get("text_6e47237e9353");
+                case ValheimControllerAction.JoyDPadLeft: return global::Runic.Localization.RunicText.Get("text_321cd19f454a");
+                case ValheimControllerAction.JoyDPadRight: return global::Runic.Localization.RunicText.Get("text_89cbe5b197bb");
+                case ValheimControllerAction.JoyLBumper: return global::Runic.Localization.RunicText.Get("text_2bbd2670e952");
+                case ValheimControllerAction.JoyRBumper: return global::Runic.Localization.RunicText.Get("text_b238567f2f82");
+                case ValheimControllerAction.JoyLTrigger: return global::Runic.Localization.RunicText.Get("text_3ba65231b54a");
+                case ValheimControllerAction.JoyRTrigger: return global::Runic.Localization.RunicText.Get("text_eb5168025c81");
+                case ValheimControllerAction.JoyLStick: return global::Runic.Localization.RunicText.Get("text_c3a92a975036");
+                case ValheimControllerAction.JoyRStick: return global::Runic.Localization.RunicText.Get("text_50b1892d38b2");
+                case ValheimControllerAction.JoyPrevSnap: return global::Runic.Localization.RunicText.Get("text_c3a92a975036");
                 default: throw new ArgumentOutOfRangeException(nameof(action));
             }
         }
@@ -290,12 +290,12 @@ namespace RunicAgriculture.Core
             string primary = Normalize(primaryPath);
             if (modifier.Length == 0 || primary.Length == 0 || Same(modifier, primary))
             {
-                problem = "the accepted controller chord no longer has two distinct effective paths";
+                problem = global::Runic.Localization.RunicText.Get("text_d4fe43fba23e");
                 return false;
             }
             if (IsActive && !Same(_modifierPath, modifier))
             {
-                problem = "the controller modifier changed while an accepted gesture is being released";
+                problem = global::Runic.Localization.RunicText.Get("text_76bedf30c430");
                 return false;
             }
 
@@ -308,7 +308,7 @@ namespace RunicAgriculture.Core
             }
             if (_primaries.Count >= MaximumPrimaryPaths)
             {
-                problem = "too many controller primaries are still being released";
+                problem = global::Runic.Localization.RunicText.Get("text_ae7fea6f9779");
                 return false;
             }
 
@@ -410,7 +410,7 @@ namespace RunicAgriculture.Core
             string normalized = Normalize(path);
             if (normalized.Length == 0)
             {
-                problem = "the accepted unmodified editor control has no effective path";
+                problem = global::Runic.Localization.RunicText.Get("text_7cbeccde3982");
                 return false;
             }
             for (int index = 0; index < _paths.Count; index++)
@@ -422,7 +422,7 @@ namespace RunicAgriculture.Core
             }
             if (_paths.Count >= MaximumPaths)
             {
-                problem = "too many unmodified editor controls are still being released";
+                problem = global::Runic.Localization.RunicText.Get("text_71f764aace72");
                 return false;
             }
             _paths.Add(new PrimaryLatch(normalized));
@@ -547,7 +547,7 @@ namespace RunicAgriculture.Core
                             " positions ready | Confirm " + Require(confirmControl, nameof(confirmControl));
             return replant
                 ? result
-                : result + " | Cycle " + Require(cycleControl, nameof(cycleControl));
+                : result + global::Runic.Localization.RunicText.Get("text_255bf042feab") + Require(cycleControl, nameof(cycleControl));
         }
 
         public static string Configuration(
@@ -562,12 +562,12 @@ namespace RunicAgriculture.Core
         {
             if (rows < 1 || columns < 1 || maximumPreview < 1 || maximumHarvest < 1)
                 throw new ArgumentOutOfRangeException(nameof(rows));
-            return (enabled ? "enabled" : "disabled") + "; pattern " + pattern + " " +
-                   rows + "x" + columns + " at " +
+            return (enabled ? "enabled" : "disabled") + global::Runic.Localization.RunicText.Get("text_3cc9201929ec") + pattern + " " +
+                   rows + "x" + columns + global::Runic.Localization.RunicText.Get("text_086a519fdeed") +
                    spacing.ToString("0.##", CultureInfo.InvariantCulture) +
-                   "m; preview cap " + maximumPreview + "; harvest " +
+                   global::Runic.Localization.RunicText.Get("text_bbfdfbb35b51") + maximumPreview + global::Runic.Localization.RunicText.Get("text_d1fdb3a00f2a") +
                    harvestRadius.ToString("0.##", CultureInfo.InvariantCulture) +
-                   "m / " + maximumHarvest + " plants";
+                   global::Runic.Localization.RunicText.Get("text_634868185181") + maximumHarvest + global::Runic.Localization.RunicText.Get("text_f6027d02cdbb");
         }
 
         public static string PatternEditing(

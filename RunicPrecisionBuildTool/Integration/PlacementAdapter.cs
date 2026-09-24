@@ -145,7 +145,7 @@ namespace QuietBuildRotation
             }
             catch (Exception exception)
             {
-                error = $"placement adapter initialization failed: {exception.GetType().Name}: {exception.Message}";
+                error = global::Runic.Localization.RunicText.Format("text_72f7576af8fa", exception.GetType().Name, exception.Message);
                 ClearDelegates();
                 return false;
             }
@@ -239,7 +239,7 @@ namespace QuietBuildRotation
             }
             catch (Exception exception)
             {
-                error = $"runtime patch self-test failed: {exception.GetType().Name}: {exception.Message}";
+                error = global::Runic.Localization.RunicText.Format("text_31206b75eb09", exception.GetType().Name, exception.Message);
                 return false;
             }
         }

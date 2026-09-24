@@ -23,7 +23,7 @@ internal static class ChestLabelLayout
         }
         if (names.Count == 0 && rules.Remember)
             foreach (string id in rules.Memory) names.Add(itemName(id));
-        if (names.Count == 0) return "Storage";
+        if (names.Count == 0) return global::Runic.Localization.RunicText.Get("text_a69c4dece144");
         return string.Join(" / ", names.Take(3)) + (names.Count > 3 ? " / …" : "");
     }
 }

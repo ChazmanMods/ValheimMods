@@ -1,6 +1,8 @@
 # Runic Storage
 
-**Version 1.2.4**
+This release improves how Runic mods share chest supplies. No extra Runic mod is required. Update the server/host and participating clients together for the multiplayer improvements.
+
+**Version 1.3.6**
 
 A large Valheim base eventually contains enough identical chests that storing loot becomes its own memory game. You know the item exists somewhere; finding it, distributing a new haul, and rebuilding your carried supplies are the tedious parts.
 
@@ -23,7 +25,7 @@ Returning from an expedition becomes unload, restock, and go. You spend less tim
 ## Safety and compatibility
 
 Storage acts only on loaded, accessible, synchronized containers. For mutations it uses Valheim's
-native ownership claim only after both the local state and synchronized ZDO state prove the chest is
+cooperative ownership handoff after the current owner confirms access and that the chest is
 unused; a chest another player is actively editing is never claimed or changed. Read-only hover and
 Search can still display its synchronized persisted contents. Wards and ordinary chest access remain
 authoritative, protected or locked items are respected when optional integrations are present, and
@@ -42,7 +44,7 @@ ambiguous state aborts the enhanced action. The mod is independently installable
   seconds. The picker takes a renewable cursor lease, opens with keyboard focus in the filter, and
   owns its left-mouse clicks so selecting, filtering, or closing it cannot also punch, swing, or use
   the equipped tool. It yields control back to Valheim after the captured click is fully released.
-  The complete window's font size (`Search.MenuFontSize`, 10–32) and named color
+  The complete window's font size (`Search.MenuFontSize`, 10â€“32) and named color
   (`Search.MenuFontColor`) are live Configuration Manager settings. Color is a dropdown containing
   Light Gray, White, Gold, Yellow, Orange, Red, Pink, Purple, Blue, Cyan, Turquoise, Green, and
   Lime; no color code is required. Larger sizes also enlarge the window, fields, action buttons,
@@ -65,51 +67,17 @@ Consolidate, or `JoyRStick` to sort the opened container. Invalid or ambiguous b
 
 ## Multiplayer behavior
 
-Storage uses Valheim's native ownership model. A mutation is allowed only when the active player is
-the local native owner and every container being changed is locally owned, accessible, synchronized,
-not loading, and not otherwise in use. This same rule applies in solo, listen-server, and dedicated-
-server client sessions. Storage claims accessible idle containers through Valheim's native ownership
-mechanism before changing them. An open or unsynchronized chest is skipped; other eligible chests
-can still be used. Native network ownership is not the same as the player who built a chest.
+Storage only moves items through loaded, accessible chests whose contents are ready to use. A chest another player is using is skipped. When multiplayer ownership changes, Storage waits for the chest to synchronize before moving items.
 
-Actions use a small process-local Storage lease so two Storage actions cannot interleave. Each move
-preflights exact shadow inventories, captures exact backups, saves both endpoints, and attempts exact
-rollback on an ordinary synchronous failure. Storage does not provide cross-process or crash-atomic
-transactions, RPC transfer protocols, journals, global suite locks, quarantine records, or recovery
-sagas.
+Crafting, Storage and Production coordinate their transfers when installed together. If an action fails, recovery avoids overwriting unrelated inventory changes. If the result cannot be confirmed, the affected storage is blocked for that session. Inspect the items and share the log when reporting the problem; restarting alone does not repair it.
 
-Search and hover do not mutate container contents. They require vanilla access and verified inventory
-data. Hover accepts Valheim's single load/save durability rounding, but not changed item quantities
-or unrelated payload differences.
-Hover remains bounded by physical player reach, strict ward access, snapshot size, stack count,
-label length, output length, retry, and cache ceilings. It never opens a container or takes ownership.
-
-Each animated search ring uses its own Unity child object. If a chest or another mod invalidates a
-ring, light, or visual root during its lifetime, the visual-only marker disables and removes itself
-once instead of throwing on every frame.
-
-Nearby discovery uses an event-maintained 10 m spatial-cell index with a hard 50 m radius and
-256-candidate ceiling. Personal, denied, busy, invalid, and unverifiable containers are excluded.
-
-Store All and Consolidate accept freshly returned native inventory item lists as long as every item
-reference still matches exactly. With Runic Inventory installed, a belt/equipment transition that
-temporarily invalidates the special row recovers after the next valid snapshot instead of leaving
-Storage permanently unable to prove carried-item protection.
+Search and hover never move items or open chests. Personal-chest and ward restrictions still apply. Search markers disappear safely if their chest is removed.
 
 ## Optional Runic Inventory integration
 
-If Runic Inventory is installed, Storage discovers its public item-protection API by reflection and
-honors locked or protected carried items. If Inventory is absent, Storage continues with its own
-equipped-item, quest-item, and hotbar protections. A present but incompatible or indeterminate
-Inventory provider fails closed for the affected action. Neither plugin loads the other at runtime.
+When Runic Inventory is installed, Storage honors its locked and protected items. Without it, Storage still protects equipped items, quest items and the hotbar according to your settings. If item protection cannot be checked, the affected action is stopped.
 
-Configuration Manager is optional. All settings are regular BepInEx configuration entries.
-
-The search picker uses native uGUI controls (`Image`, `Button`, `TMP_InputField`, `ScrollRect`, and
-`Scrollbar`) on its own scaled Canvas. The original Valheim Sprites render through their authored
-atlas rectangles and sliced borders, preventing the wrong atlas region from becoming the window
-background. A small raw-pointer observer remains in `OnGUI` only to maintain the proven attack-
-suppression latch; it does not draw the menu.
+Configuration Manager is optional. Settings are available in the normal BepInEx configuration file.
 
 ## Quick Stack Rules and chest labels
 
@@ -170,3 +138,49 @@ The reusable library is stored in this mod profile's configuration. Applying a g
 Each library/chest supports up to 16 custom groups, with 128 exact members per group, within a total bounded metadata size. Each chest also supports 128 Always accept entries, 128 Never accept entries, and 128 remembered item types. Duplicate/oversized data is rejected without overwriting existing chest rules.
 
 Existing 1.1.0 and 1.2.0 rules, memory, custom groups, and label settings migrate automatically, with Transparent backgrounds. Settings from 1.2.1 and 1.2.2 are retained. Update participating installations to 1.2.4; versions before 1.2.1 do not understand the background-enabled saved format.
+
+## Label emojis
+
+Click **Emojis** beside the caption/label field, choose Food, Materials, Equipment or Places, then choose one of 64 icons. The icon replaces selected text or inserts at the cursor. Close or Escape dismisses the picker without discarding the editor draft; save the editor to apply changes. Supported emojis can also be pasted. The preview and world label use the same bundled artwork, retaining its colors when text color changes.
+
+Limits remain 256 UTF-16 units for signs and 96 for chest labels; each bundled emoji uses two units. Flags, skin tones, joined sequences and emojis outside the picker are not included in this release. Players need the updated mod to display the bundled artwork; captions remain ordinary Unicode text in existing saves.
+
+Emoji artwork: Twemoji, copyright Twitter, Inc. and other contributors, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), from [jdecked/twemoji](https://github.com/jdecked/twemoji). Images are arranged in a padded atlas without changing the artwork. The graphics license is embedded in the DLL.
+
+## Modded containers and ItemDrawers
+
+Makail's [ItemDrawers 0.5.8](https://thunderstore.io/c/valheim/p/makail/ItemDrawers/) uses the internal prefab ID `piece_drawer`. Its custom save format requires an adapter; the optional adapter is included and enabled by default.
+
+When RunicStorage is installed, edit `BepInEx/config/chazman.RunicStorage.cfg`:
+
+```ini
+[Modded Containers]
+QuickStackPrefabIds = piece_drawer
+PullPrefabIds = piece_drawer
+```
+
+`QuickStackPrefabIds` enables deposits through QuickStack. Storage's `PullPrefabIds` enables Restock. RunicCrafting 1.1.3 and later use their own `PullPrefabIds` configuration for crafting, building, cooking and refueling, independently of Storage. Older Storage setting descriptions may still mention shared Crafting pulls; that applies only to Crafting 1.1.2. RunicInventory provides carried-slot protections.
+
+Use exact internal prefab names separated by commas or semicolons. Blank lists disable the corresponding custom adapters; wildcards are not supported. Ordinary modded containers using Valheim's normal inventory/save format already work automatically. Adding a name cannot supply an adapter for an unknown custom save format. This adapter targets Makail's original mod; KGvalheim and other drawer implementations are not claimed compatible.
+
+Assign an item to a drawer using ItemDrawers first. QuickStack accepts matching assigned drawers, including an assigned drawer at zero quantity, up to the drawer's capacity. A completely unassigned drawer is not automatically assigned by QuickStack. Spawned items can be deposited, matching ItemDrawers' own deposit action: its type/count-only save format does not retain picked-up or spawned flags. Items with non-default quality, durability, custom data, crafter attribution or other incompatible attributes stay in the backpack and receive a specific explanation. Withdrawn items use normal backpack stack limits.
+
+Existing range, access, ward, ownership and protected-slot rules still apply. Both updated RunicStorage and RunicCrafting DLLs are needed for all features. This release passed dedicated-server testing.
+
+## Bend chest labels
+
+Open a chest, choose **Quick Stack Rules**, then **Bend…**. Both **Up / down** and **Forward / backward** have **− / +** buttons, a numeric field, and a shared **Reset bends** button. Each click changes the displayed value by 1; this is equivalent to only 0.01 in the old RunicSigns bend scale. Start at 1 or −1. Type decimal values for smaller changes. Positive values bend the center up/forward; negative values bend down/backward; 0 is flat. Both axes combine, including emoji captions.
+
+For a barrel, turn **Wrap around container: ON** in the Bend window. The label center stays anchored while the ends turn around the rounded sides. **Wrap adjustment = 0** fits the container bounds; minus makes it flatter and plus makes it tighter. Each button changes the curvature by one percent of the initial fit; decimals allow smaller steps. Up/down bending still combines with wrapping. Wrapping is available on Front, Back, Left and Right; Top uses the standard bow. **Reset bends** switches wrapping off and clears both axes.
+
+Choose **Done**, then **Save** in the chest editor to persist the bends. **Cancel** discards the draft. Existing version-1/2/3 labels remain flat, and version-4 bends keep their previous shapes; other settings and item rules are preserved. Version-5 chest-rule records add the wrap toggle, so update all participating clients before saving labels. Existing label styles and saved rules are preserved.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicStorage` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

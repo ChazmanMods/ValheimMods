@@ -1,4 +1,31 @@
+## 1.0.10
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
+
+## 1.0.9 - 2026-09-20
+
+- Auto-close now applies only to player-built doors. World-generated dungeon, cave, and ruin doors are excluded, even when opened or network-owned by a player. Construction eligibility is checked before scheduling and again before closing.
+
+## 1.0.8 - 2026-09-18
+
+- Replaced the exact game-version allowlist with startup API validation. Compatible future patches no longer require a version-only update.
+- Incompatible APIs still fail closed; World Engine retains its exact method-body audit.
+
+## 1.0.7 - 2026-09-18
+
+- Added Valheim 1.0.15 support while retaining exact API checks and support for 1.0.7, 1.0.12, and 1.0.14.
+
+## 1.0.6 - 2026-09-17
+
+- Added Valheim 1.0.14 support while retaining compatibility with 1.0.7 and 1.0.12.
+- Retained exact game API checks and rejection of unknown versions.
+## 1.0.5 - 2026-09-14
+
+- Auto-close now observes synchronized door state, so doors opened by other players receive the same closing delay. Already-open loaded doors are detected too.
+- Repeated state updates keep the original deadline; closing and reopening starts a new delay. Animating and obstructed doors wait safely.
+- Preserved ward access, native ownership, restricted-door exclusions, and bounded session timers. Requires AutoCloseDoors enabled on an active client with the door loaded; visitors need not have the mod.
 
 ## 1.0.4 - 2026-09-11
 
@@ -10,7 +37,6 @@
 
 ## 1.0.2 - 2026-09-09
 
-- Updated ZDO sector and controller contracts to Valheim 1.0 and re-audited the installed 1.0.7 client assemblies.
 - Updated the BepInEx dependency to 5.4.2350 and aligned the package, plugin, and assembly versions.
 
 ## 1.0.1 - 2026-09-05

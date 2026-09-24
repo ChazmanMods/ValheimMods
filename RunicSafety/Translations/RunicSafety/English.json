@@ -1,0 +1,18 @@
+{
+  "text_3194eac00899": "CREATED_UTC\t",
+  "text_5760922ac7e7": "Apply equipped, quest, lock-provider, and configured-rare policy at audited vanilla destination boundaries.",
+  "text_591ed5228a15": "MIGRATION\t",
+  "text_63c9d8a90511": "Require a second hammer removal for a ship or cart piece.",
+  "text_65a8f954ff45": "Maximum source files in one backup transaction.",
+  "text_6d6dc4701ff3": "Master runtime gate. False preserves vanilla behavior while public audit/backup services remain discoverable.",
+  "text_8611e5a3c6d4": "Maximum total source bytes in one backup transaction.",
+  "text_9e4ee92280d6": "CORRELATION\t",
+  "text_a70672868f2a": "Seconds allowed for the identical repeat action.",
+  "text_b26307eac06d": "Default same-volume root offered to migration clients. Safety only removes marked backups within this root.",
+  "text_bd4cbf5571a4": "Comma/semicolon separated exact prefab names. At most 256 bounded entries are accepted.",
+  "text_c3e2c13bb9da": "Committed backups retained after a successful new commit.",
+  "text_db8fc97fcad8": "Require the same rare-item sacrifice action twice inside the confirmation window.",
+  "text_dcaeba799395": "Require a second hammer removal for a piece containing a non-empty container.",
+  "text_e0ae37ad90b0": "Allow a verified host/admin to bypass protected-item policy. Every bypass is recorded without item contents.",
+  "text_ff3cbd217b26": "Require a second commit when replacing an existing portal tag with a different tag."
+}

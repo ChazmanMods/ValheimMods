@@ -34,6 +34,7 @@ namespace RunicCrafting.Integration
 
         internal static void Shutdown()
         {
+            PostCraftRefreshRuntime.Reset();
             _pendingCraft = null;
             _insidePlacementUpdate = false;
             CleanupActive(success: false);
@@ -121,7 +122,7 @@ namespace RunicCrafting.Integration
             if (Configuration.Enabled.Value && IsInitialized && ValheimReflection.CanMutateLocalPlayer(player) &&
                 station != null && !CanUseStation(station, player, out string stationReason))
             {
-                player.Message(MessageHud.MessageType.Center, "Station use denied: " + stationReason);
+                player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_e69081d93656") + stationReason);
                 CraftingDiagnostics.TraceAction("craft-cancelled", "station-use-denied:" + stationReason);
                 return false;
             }
@@ -166,7 +167,7 @@ namespace RunicCrafting.Integration
             {
                 if (_pendingCraft != null || _activeOperation != null)
                 {
-                    player.Message(MessageHud.MessageType.Center, "Nearby crafting cancelled: another material operation is active");
+                    player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_217b3c6bff2a"));
                     CraftingDiagnostics.TraceAction("craft-cancelled", "another-material-operation-is-active");
                     return false;
                 }
@@ -217,7 +218,7 @@ namespace RunicCrafting.Integration
                     null,
                     out string reason))
             {
-                player.Message(MessageHud.MessageType.Center, "Nearby crafting cancelled: " + reason);
+                player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_9fc734120350") + reason);
                 CraftingDiagnostics.TraceAction("craft-cancelled", reason);
                 return false;
             }
@@ -263,7 +264,7 @@ namespace RunicCrafting.Integration
 
             pending.Player.Message(
                 MessageHud.MessageType.Center,
-                "Nearby crafting cancelled: " + reason);
+                global::Runic.Localization.RunicText.Get("text_9fc734120350") + reason);
             CraftingDiagnostics.TraceAction("craft-cancelled", reason);
             return false;
         }
@@ -286,12 +287,16 @@ namespace RunicCrafting.Integration
 
         internal static void FinishCraft(Exception exception)
         {
+            Player affectedPlayer = _activeOperation?.Player;
             _pendingCraft = null;
             if (exception != null)
                 CraftingDiagnostics.TraceAction("craft-finished", "exception:" + exception.GetType().Name);
             CleanupActive(
                 _activeOperation != null &&
                 (_activeOperation.VanillaConsumeReached || _activeOperation.OutputCreated));
+            PreviewRefreshRuntime.Invalidate();
+            UiPreviewCache.Invalidate();
+            if (affectedPlayer != null) PostCraftRefreshRuntime.Schedule(affectedPlayer);
         }
 
         internal static void BeginPlacementScope() => _insidePlacementUpdate = true;
@@ -672,7 +677,7 @@ namespace RunicCrafting.Integration
                 one,
                 queryPurpose,
                 stationlessAccessAuthorized,
-                out string queryReason, allowRefreshCache: !PreviewRefreshRuntime.InAction);
+                out string queryReason, allowRefreshCache: true);
             if (IsBlockingQueryReason(queryReason))
             {
                 state = QueryFailureState(queryReason);
@@ -793,7 +798,7 @@ namespace RunicCrafting.Integration
             long epoch = UiPreviewCache.Epoch;
             bool available = CheckAvailability(player, station, origin, range, requirements,
                 purpose, stationlessAccessAuthorized, out _, out reason,
-                allowRefreshCache: !PreviewRefreshRuntime.InAction);
+                allowRefreshCache: true);
             if (memoize) UiPreviewCache.Store(key, available, reason, epoch);
             return available;
         }
@@ -993,25 +998,25 @@ namespace RunicCrafting.Integration
         private static string ExplainNearbyState(NearbyCraftingFeatureState state)
         {
             string reason = state.ReasonCode;
-            if (reason == "mod-disabled") return "Runic Crafting: gameplay disabled in configuration";
+            if (reason == "mod-disabled") return global::Runic.Localization.RunicText.Get("text_56dae8c47d4d");
             if (reason == "craft-from-containers-disabled")
-                return "Runic Crafting: nearby materials OFF (CraftFromContainers=false)";
-            if (reason == "runtime-unavailable") return "Runic Crafting: nearby materials unavailable; check the BepInEx log";
+                return global::Runic.Localization.RunicText.Get("text_e32a0256aa84");
+            if (reason == "runtime-unavailable") return global::Runic.Localization.RunicText.Get("text_20b364ce36df");
             if (reason == "local-player-owner-required")
-                return "Runic Crafting: nearby materials require the local player owner";
+                return global::Runic.Localization.RunicText.Get("text_b575adaa2bc8");
             if (reason == "special-one-ingredient-recipe")
-                return "Runic Crafting: this special recipe uses vanilla carried materials";
+                return global::Runic.Localization.RunicText.Get("text_3f02dba22db6");
             if (reason == "no-cost-mode")
-                return "Runic Crafting: no-cost mode is active; nearby containers are intentionally unused";
+                return global::Runic.Localization.RunicText.Get("text_9bcb24eced73");
             if (reason == "crafting-station-required")
-                return "Runic Crafting: an active crafting station is required for nearby materials";
+                return global::Runic.Localization.RunicText.Get("text_4b2b02ab6163");
             if (reason.StartsWith("station-use-denied:", StringComparison.Ordinal))
-                return "Runic Crafting: nearby materials OFF because station use is denied (" +
+                return global::Runic.Localization.RunicText.Get("text_9f85ec6d46de") +
                        reason.Substring("station-use-denied:".Length) + ")";
             if (reason.StartsWith("local-material-use-denied:", StringComparison.Ordinal))
-                return "Runic Crafting: nearby materials OFF by this station's Local Material Use policy (" +
+                return global::Runic.Localization.RunicText.Get("text_a42134218e29") +
                        reason.Substring("local-material-use-denied:".Length) + ")";
-            return "Runic Crafting: nearby materials unavailable (" + reason + ")";
+            return global::Runic.Localization.RunicText.Get("text_98fe18eacc20") + reason + ")";
         }
 
         private static bool TryBuildRequirements(

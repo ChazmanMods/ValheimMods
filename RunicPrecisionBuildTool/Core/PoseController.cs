@@ -4,10 +4,8 @@ using UnityEngine;
 namespace QuietBuildRotation
 {
     /// <summary>
-    /// Owns all quaternion/vector manipulation. Runic rotation commands use the pending piece's
-    /// current local axes through the unchanged placement pivot: pitch=X, yaw=Y, and roll=Z.
-    /// Every increment is post-multiplied so a yawed or tilted piece carries its pitch, yaw, and
-    /// roll axes with it. Valheim's ordinary yaw reconciliation remains world-up.
+    /// Owns all quaternion/vector manipulation through the unchanged placement pivot.
+    /// Rotation uses either fixed world axes or the piece's current local axes.
     /// </summary>
     internal sealed class PoseController
     {
@@ -25,6 +23,8 @@ namespace QuietBuildRotation
         }
 
         internal PlacementSession Session => _session;
+
+        internal PlacementReferenceFrame RotationReferenceFrame { get; set; } = PlacementReferenceFrame.Local;
 
         internal bool ObserveSelection(int selectedPrefabId, Quaternion vanillaBaseRotation, int vanillaYawIndex)
         {
@@ -414,9 +414,11 @@ namespace QuietBuildRotation
                     return false;
             }
 
-            // Post-multiplication applies the increment in the piece's current local frame. This
-            // is what makes Alt+Wheel pitch follow a beam after the beam has already been yawed.
-            Quaternion desired = _session.DesiredRotation * increment;
+            // Pre-multiply for fixed world axes; post-multiply for the piece's own axes.
+            // Selecting a frame only affects future increments, never the current pose.
+            Quaternion desired = RotationReferenceFrame == PlacementReferenceFrame.World
+                ? increment * _session.DesiredRotation
+                : _session.DesiredRotation * increment;
             // The resulting orientation is still held as a concrete world pose so the preview
             // cannot drift when Valheim samples a different candidate surface on a later frame.
             ClearPendingVanillaBase();

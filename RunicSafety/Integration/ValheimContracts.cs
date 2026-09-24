@@ -6,10 +6,7 @@ namespace RunicSafety.Integration
 {
     internal static class ValheimContracts
     {
-        internal const string AuditedGameVersion = "1.0.12";
-        internal static bool IsSupportedVersion(string version) =>
-            string.Equals(version, AuditedGameVersion, StringComparison.Ordinal) ||
-            string.Equals(version, "1.0.7", StringComparison.Ordinal);
+        internal const string AuditedGameVersion = "1.0.15";
         private const BindingFlags AllMethods = BindingFlags.Public | BindingFlags.NonPublic |
                                                 BindingFlags.Instance | BindingFlags.Static;
 
@@ -45,13 +42,6 @@ namespace RunicSafety.Integration
                 return false;
             }
             if (!LocalizationBridge.Validate(out problem)) return false;
-            string version = ReadGameVersion();
-            if (!IsSupportedVersion(version))
-            {
-                problem = "Runic Safety was audited for Valheim 1.0.7 or " + AuditedGameVersion +
-                          " but the loaded assembly reports " + (version.Length == 0 ? "unknown" : version) + ".";
-                return false;
-            }
             problem = string.Empty;
             return true;
         }

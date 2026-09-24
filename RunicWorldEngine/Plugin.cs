@@ -14,7 +14,7 @@ namespace RunicWorldEngine
     {
         public const string Guid = "chazman.RunicWorldEngine";
         public const string Name = "Runic World Engine";
-        public const string Version = "1.2.0";
+        public const string Version = "1.2.3";
         private Harmony _harmony;
         private float _nextSummaryAt;
 

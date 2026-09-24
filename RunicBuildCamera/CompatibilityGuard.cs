@@ -20,8 +20,8 @@ namespace RunicBuildCamera
                     string.Equals(name, "Build Camera Custom Hammers Edition", StringComparison.OrdinalIgnoreCase))
                 {
                     reason =
-                        $"{name ?? BuildCameraCheGuid} is installed. Both plugins own the detached " +
-                        "build-camera transform, so Runic Build Camera was disabled. Remove or disable one.";
+                        global::Runic.Localization.RunicText.Format("text_acac6a5e4a61", name ?? BuildCameraCheGuid) +
+                        global::Runic.Localization.RunicText.Get("text_ba927d542b6f");
                     return true;
                 }
             }
@@ -49,8 +49,8 @@ namespace RunicBuildCamera
             if (conflictingRuntimeLoaded)
             {
                 reason =
-                    "Another Build Camera runtime was detected. Runic Build Camera was disabled " +
-                    "to prevent two plugins from controlling the same camera.";
+                    global::Runic.Localization.RunicText.Get("text_a34f6de98a9a") +
+                    global::Runic.Localization.RunicText.Get("text_f57f78aa3dfa");
                 return true;
             }
 

@@ -23,7 +23,7 @@ namespace RunicProduction.Integration
             if (actor == null)
             {
                 plan = null;
-                return Fail("Recipe target authorization inputs are unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_85fc7909b6e8"), out failure);
             }
             return TryBuild(
                 station,
@@ -60,7 +60,7 @@ namespace RunicProduction.Integration
                 string.IsNullOrEmpty(stationPrefabId) || link == null ||
                 destinationInventory == null || actorId == 0L ||
                 string.IsNullOrWhiteSpace(actorName))
-                return Fail("Recipe target authorization inputs are unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_85fc7909b6e8"), out failure);
 
             bool refresh = previous != null &&
                            previous.AdapterKind == ReplenishmentProducerKind.DirectRecipe &&
@@ -72,7 +72,7 @@ namespace RunicProduction.Integration
                                previous, link, stationId);
             if (previous != null && !refresh)
                 return Fail(
-                    "The prior recipe plan is not bound to this exact station and link.",
+                    global::Runic.Localization.RunicText.Get("text_304e999ba5fb"),
                     out failure);
             long authorizedPlayerId = refresh
                 ? previous.AuthorizedPlayerId
@@ -84,7 +84,7 @@ namespace RunicProduction.Integration
                 authorizedPlayerId != link.OwnerId ||
                 string.IsNullOrWhiteSpace(authorizedPlayerName))
                 return Fail(
-                    "The recipe plan principal does not match the exact link owner.",
+                    global::Runic.Localization.RunicText.Get("text_f90aba4a0270"),
                     out failure);
             var targets = new Dictionary<string, ReplenishmentTargetAuthorization>(
                 StringComparer.Ordinal);
@@ -98,7 +98,7 @@ namespace RunicProduction.Integration
                 exemplars.Add(prefab);
                 if (exemplars.Count > ReplenishmentPlan.MaximumTargets)
                     return Fail(
-                        "The chest contains too many distinct exemplar prefabs.",
+                        global::Runic.Localization.RunicText.Get("text_1e85a617bf58"),
                         out failure);
             }
 
@@ -117,7 +117,7 @@ namespace RunicProduction.Integration
                     targets[exemplar] = target;
             }
             if (targets.Count > ReplenishmentPlan.MaximumTargets)
-                return Fail("The authorized target limit was exceeded.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_7b7c510bb45f"), out failure);
 
             List<ReplenishmentTargetAuthorization> ordered = targets.Values
                 .OrderBy(value => value.OutputPrefabId, StringComparer.Ordinal)
@@ -131,7 +131,7 @@ namespace RunicProduction.Integration
                 if (preserved >= 0) cursor = preserved;
             }
             if (refresh && previous.Revision == int.MaxValue)
-                return Fail("The plan revision is exhausted; remove and re-add it.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_afe693828ce7"), out failure);
             plan = new ReplenishmentPlan(
                 refresh ? previous.PlanId : Guid.NewGuid().ToString("N"),
                 refresh ? previous.Revision + 1 : 1,

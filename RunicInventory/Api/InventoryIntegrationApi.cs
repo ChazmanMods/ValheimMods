@@ -12,7 +12,7 @@ namespace RunicInventory.Api
 
     internal interface IItemProtectionQuery
     {
-        bool TryGetProtection(object nativeItem, out ItemProtectionState state);
+        bool TryGetProtection(object nativeItem, out ItemProtectionState state, bool quickStack = false);
     }
 
     /// <summary>
@@ -41,6 +41,13 @@ namespace RunicInventory.Api
         }
 
         public static bool TryGetProtection(object nativeItem, out int state)
+            => TryQuery(nativeItem, out state, quickStack: false);
+
+        /// <summary>Includes player slot exclusions specifically for Runic Quick Stack.</summary>
+        public static bool TryGetQuickStackProtection(object nativeItem, out int state)
+            => TryQuery(nativeItem, out state, quickStack: true);
+
+        private static bool TryQuery(object nativeItem, out int state, bool quickStack)
         {
             state = (int)ItemProtectionState.Unknown;
             IItemProtectionQuery runtime;
@@ -53,7 +60,7 @@ namespace RunicInventory.Api
             try
             {
                 bool governed = runtime.TryGetProtection(
-                    nativeItem, out ItemProtectionState protection);
+                    nativeItem, out ItemProtectionState protection, quickStack);
                 state = (int)protection;
                 return governed;
             }

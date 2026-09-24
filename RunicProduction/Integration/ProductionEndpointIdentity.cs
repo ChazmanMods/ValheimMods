@@ -44,28 +44,28 @@ namespace RunicProduction.Integration
             rootPosition = Vector3.zero;
             failure = string.Empty;
             if (target.IsNone())
-                return Fail("The selected endpoint has no current ZDOID.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_f31985cbb325"), out failure);
 
             GameObject root = ZNetScene.instance?.FindInstance(target);
             if (!ValheimAccess.TryResolveExactContainer(root, target, out Container container))
                 return Fail(
-                    "The selected endpoint does not resolve to one exact loaded Container.",
+                    global::Runic.Localization.RunicText.Get("text_b0617eabebc7"),
                     out failure);
             ZNetView view = ValheimAccess.View(container);
             ZDO zdo = view != null && view.IsValid() ? view.GetZDO() : null;
             if (zdo == null || zdo.m_uid != target || !view.IsOwner())
                 return Fail(
-                    "The selected Container is not owned by this local process.",
+                    global::Runic.Localization.RunicText.Get("text_09f04f89a3e3"),
                     out failure);
             int prefab = zdo.GetPrefab();
             Vector3 position = zdo.GetPosition();
             if (prefab == 0 || !ValheimAccess.IsFinite(position))
                 return Fail(
-                    "The selected Container has invalid prefab or position evidence.",
+                    global::Runic.Localization.RunicText.Get("text_24fa1cdbd109"),
                     out failure);
             if (!TryGetOrEnsureToken(view, out string token))
                 return Fail(
-                    "A stable token could not be read or created on the exact native owner.",
+                    global::Runic.Localization.RunicText.Get("text_84abc5d2da41"),
                     out failure);
 
             targetToken = token;
@@ -85,7 +85,7 @@ namespace RunicProduction.Integration
             failure = string.Empty;
             if (link == null || !IsCanonicalToken(link.TargetToken))
             {
-                failure = "The link has no canonical stable endpoint token.";
+                failure = global::Runic.Localization.RunicText.Get("text_ee539e48c048");
                 return string.IsNullOrEmpty(link?.TargetToken)
                     ? ProductionIdentityStatus.Missing
                     : ProductionIdentityStatus.Invalid;
@@ -93,7 +93,7 @@ namespace RunicProduction.Integration
             if (link.TargetPrefabHash == 0 ||
                 !ValheimAccess.IsFinite(link.ExpectedPosition))
             {
-                failure = "The stable link has incomplete prefab or position evidence.";
+                failure = global::Runic.Localization.RunicText.Get("text_ece49757e1f7");
                 return ProductionIdentityStatus.Invalid;
             }
 
@@ -113,7 +113,7 @@ namespace RunicProduction.Integration
                     NearbyIngredientContainerIndex.HardMaximumSourceChests);
             if (query.Truncated)
             {
-                failure = "Loaded endpoint discovery exceeded its bounded candidate set.";
+                failure = global::Runic.Localization.RunicText.Get("text_3287de6f663c");
                 return ProductionIdentityStatus.Ambiguous;
             }
             foreach (NearbyIngredientContainerCandidate candidate in query.Candidates)
@@ -127,7 +127,7 @@ namespace RunicProduction.Integration
                 {
                     container = null;
                     targetZdo = null;
-                    failure = "More than one loaded Container carries the endpoint token.";
+                    failure = global::Runic.Localization.RunicText.Get("text_444a62597e9e");
                     return ProductionIdentityStatus.Ambiguous;
                 }
                 container = current;
@@ -135,7 +135,7 @@ namespace RunicProduction.Integration
             }
             if (container == null)
             {
-                failure = "The stable endpoint is not currently loaded.";
+                failure = global::Runic.Localization.RunicText.Get("text_efc09579824c");
                 return ProductionIdentityStatus.Unavailable;
             }
             return ProductionIdentityStatus.Ready;
@@ -154,7 +154,7 @@ namespace RunicProduction.Integration
                 !ValheimAccess.IsFinite(link.ExpectedPosition) ||
                 link.TargetOwnerId == 0L)
                 return Fail(
-                    "Legacy link evidence is incomplete or already tokenized.",
+                    global::Runic.Localization.RunicText.Get("text_8dcb7a4f6064"),
                     out failure);
 
             NearbyIngredientContainerQueryResult query =
@@ -164,7 +164,7 @@ namespace RunicProduction.Integration
                     NearbyIngredientContainerIndex.HardMaximumSourceChests);
             if (query.Truncated)
                 return Fail(
-                    "Legacy endpoint discovery exceeded its bounded candidate set.",
+                    global::Runic.Localization.RunicText.Get("text_5f5468ea3474"),
                     out failure);
             float epsilon = LegacyPositionToleranceMeters * LegacyPositionToleranceMeters;
             foreach (NearbyIngredientContainerCandidate candidate in query.Candidates)
@@ -183,7 +183,7 @@ namespace RunicProduction.Integration
                     container = null;
                     targetZdo = null;
                     return Fail(
-                        "More than one Container occupies the legacy root position.",
+                        global::Runic.Localization.RunicText.Get("text_837bbaa73f02"),
                         out failure);
                 }
                 container = current;
@@ -191,7 +191,7 @@ namespace RunicProduction.Integration
             }
             return container != null ||
                    Fail(
-                       "No unique Container occupies the legacy root position.",
+                       global::Runic.Localization.RunicText.Get("text_195f58252ab4"),
                        out failure);
         }
 

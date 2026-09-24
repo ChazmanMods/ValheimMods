@@ -17,16 +17,15 @@ namespace RunicAwareness.Core
 
     internal sealed class PanelCache
     {
-        private static readonly string[] Titles =
-        {
-            "Food",
-            "Effects",
-            "Comfort",
-            "Item comparison",
-            "Production",
-            "Agriculture",
-            "Building",
-            "Tamed animal"
+        private static string[] Titles => new[] {
+            global::Runic.Localization.RunicText.Get("text_e4eb18069d65"),
+            global::Runic.Localization.RunicText.Get("text_358511c8c098"),
+            global::Runic.Localization.RunicText.Get("text_040d4645676f"),
+            global::Runic.Localization.RunicText.Get("text_3bdbe9d40080"),
+            global::Runic.Localization.RunicText.Get("text_13a7c655a7d4"),
+            global::Runic.Localization.RunicText.Get("text_f0b1b07aa8f1"),
+            global::Runic.Localization.RunicText.Get("text_87c5912f2cef"),
+            global::Runic.Localization.RunicText.Get("text_0a7cc2687346")
         };
 
         private readonly string[] _bodies = new string[Titles.Length];

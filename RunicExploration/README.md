@@ -88,11 +88,6 @@ the only requested outcome and remains Valheim's local UI operation—never a wo
   index every 0.25-second sample. Unknown/unsaved pin counts, indices, and coordinates do not enter
   this retained fingerprint. Drawing uses the cached index/search/readout and does not enumerate map pins.
 
-Repeated-change regression profiles over four seconds perform at most two builds: approximately
-0.16 MB at 100 pins, 1.59 MB at 1,000 pins, and 15.91 MB total at 10,000 pins on the audited test
-runtime. A single 10,000-pin build remains about 7.96 MB/12.5 ms; the gate reduces sustained churn
-frequency rather than claiming an allocation-free immutable index.
-
 ## Optional integration
 
 Runic Portals and Runic Awareness are not project, assembly, package, or manifest dependencies.
@@ -117,3 +112,13 @@ panel, the panel hides and the vanilla map remains usable.
 navigation, and sailing readout. `KnownMap.IncludeSharedPins` controls local shared coverage/source
 rows. `Performance.RefreshIntervalSeconds` controls sampling. `Display` controls result count, UI
 scale, controller multiplier, and side. `Diagnostics.VerboseLogging` logs counts/config changes only.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicExploration` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

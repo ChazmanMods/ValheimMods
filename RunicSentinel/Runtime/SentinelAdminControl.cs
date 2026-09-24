@@ -41,6 +41,10 @@ namespace RunicSentinel.Runtime
 #endif
         private long _nextConnectionOrdinal;
         private bool _disposed;
+        private readonly SentinelPlayerCommandService _playerCommands=new SentinelPlayerCommandService();
+#if !RUNIC_SENTINEL_SERVER_ONLY
+        private readonly RunicSentinel.PlayerActions.PlayerActionReceiver _playerReceiver=new RunicSentinel.PlayerActions.PlayerActionReceiver();
+#endif
 
         internal SentinelAdminControl(
             SentinelRuntime runtime,
@@ -50,12 +54,17 @@ namespace RunicSentinel.Runtime
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             _managed = managed ?? throw new ArgumentNullException(nameof(managed));
             _commands = commands ?? throw new ArgumentNullException(nameof(commands));
+            RunicSentinel.Devcommands.SentinelBridge.Control=this;
         }
 
         internal void Tick()
         {
             if (_disposed) return;
             ZNet network = ZNet.instance;
+            _playerCommands.Tick(network);
+#if !RUNIC_SENTINEL_SERVER_ONLY
+            _playerReceiver.Tick();
+#endif
             if (network == null)
             {
                 if (_network != null)
@@ -67,7 +76,7 @@ namespace RunicSentinel.Runtime
             else
             {
                 EnsureNetwork(network);
-                if (network.IsServer()) TickServer(network);
+                if (network.IsServer()) { TickServer(network); SentinelPlayerReports.Tick(network); }
 #if RUNIC_SENTINEL_SERVER_ONLY
                 else
                 {
@@ -201,6 +210,66 @@ namespace RunicSentinel.Runtime
             Submit("tool", bytes, new Pending { Result = callback });
         }
 
+        internal void ChangePerson(string action,string account,bool enabled,Action<bool,string> callback)
+        {
+            byte[] bytes=System.Text.Encoding.UTF8.GetBytes(action+"\n"+account+"\n"+(enabled?"1":"0"));
+            if(bytes.Length>1024){callback(false,"Person action too large.");return;}
+            if(TryExecuteLocal("person",bytes,out bool ok,out byte[] response,out string reason)){callback(ok,ok?SentinelAdminProtocol.DecodeMessage(response):reason);return;}
+            Submit("person",bytes,new Pending{Result=callback});
+        }
+        internal void PlayerAction(string payload,bool result,Action<bool,string> callback)
+        {
+            byte[] bytes=System.Text.Encoding.UTF8.GetBytes(payload);
+            if(bytes.Length>1024){callback(false,"Player action too large.");return;}
+            string action=result?"player-action-result":"player-action";
+            if(TryExecuteLocal(action,bytes,out bool ok,out byte[] response,out string reason)){callback(ok,ok?SentinelAdminProtocol.DecodeMessage(response):reason);return;}
+            Submit(action,bytes,new Pending{Result=callback});
+        }
+        internal void DownloadReport(string file,int offset,Action<bool,string> callback)
+        {
+            byte[] bytes=System.Text.Encoding.UTF8.GetBytes(file+"\n"+offset.ToString(CultureInfo.InvariantCulture));
+            if(bytes.Length>512){callback(false,"Invalid report filename.");return;}
+            if(TryExecuteLocal("report-read",bytes,out bool ok,out byte[] response,out string reason)){callback(ok,ok?SentinelAdminProtocol.DecodeMessage(response):reason);return;}
+            Submit("report-read",bytes,new Pending{Result=callback});
+        }
+        internal void RequestPlayers(Action<bool, string> callback)
+        {
+            if (TryExecuteLocal("players", Array.Empty<byte>(), out bool ok, out byte[] response, out string reason))
+            { callback?.Invoke(ok, ok ? SentinelAdminProtocol.DecodeMessage(response) : reason); return; }
+            Submit("players", Array.Empty<byte>(), new Pending { Result = callback });
+        }
+
+        internal void RequestPlayerReport(string account, Action<bool, string> callback)
+        {
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(account ?? "");
+            if (bytes.Length > 512) { callback?.Invoke(false, "Invalid player identity."); return; }
+            if (TryExecuteLocal("player-report", bytes, out bool ok, out byte[] response, out string reason))
+            { callback?.Invoke(ok, ok ? SentinelAdminProtocol.DecodeMessage(response) : reason); return; }
+            Submit("player-report", bytes, new Pending { Result = callback });
+        }
+
+        internal void RequestPlayerDetail(string account, Action<bool, string> callback)
+        {
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(account ?? "");
+            if (bytes.Length == 0 || bytes.Length > 512) { callback?.Invoke(false, "Invalid player identity."); return; }
+            if (TryExecuteLocal("player-detail", bytes, out bool ok, out byte[] response, out string reason))
+            { callback?.Invoke(ok, ok ? SentinelAdminProtocol.DecodeMessage(response) : reason); return; }
+            Submit("player-detail", bytes, new Pending { Result = callback });
+        }
+
+        internal void AuthorizeCommand(string command, Action<bool, string> callback)
+        {
+            byte[] bytes;
+            try { bytes = SentinelCommandRequest.Encode(command); }
+            catch (Exception error) { callback?.Invoke(false, error.Message); return; }
+            if (TryExecuteLocal("command", bytes, out bool ok, out byte[] response, out string reason))
+            {
+                callback?.Invoke(ok, ok ? SentinelAdminProtocol.DecodeMessage(response) : reason);
+                return;
+            }
+            Submit("command", bytes, new Pending { Result = callback });
+        }
+
         internal void SaveCapacity(string revision, bool enabled, int players, Action<bool, string> callback)
         {
             byte[] bytes;
@@ -223,7 +292,7 @@ namespace RunicSentinel.Runtime
             ZNet network = ZNet.instance;
             if (network == null || !network.IsServer()) return false;
             if (!SentinelTransportIdentity.TryResolveLocal(out string authority, out string subject))
-            { reason = "The host backend identity is unavailable."; return true; }
+            { reason = global::Runic.Localization.RunicText.Get("text_fb030b0d298a"); return true; }
             Execute(authority, subject, action, payload,
                 SentinelServerAdministrator.IsAdministrator(network, null, authority, subject),
                 out accepted, out response, out reason);
@@ -257,6 +326,14 @@ namespace RunicSentinel.Runtime
             }
         }
 #endif
+
+        internal bool AllowsCommandPeer(ZRpc rpc)
+        {
+            if(_disposed||ZNet.instance==null||!ZNet.instance.IsServer()||rpc==null)return false;
+            var peer=FindExactReadyPeer(ZNet.instance,rpc);
+            if(peer==null||!SentinelTransportIdentity.TryResolvePeer(peer,out string authority,out string subject,out _))return false;
+            return SentinelAdministratorRules.Allows(_runtime.IsAdministrator(authority,subject),SentinelServerAdministrator.IsAdministrator(ZNet.instance,peer,authority,subject),_runtime.IsBanned(authority,subject));
+        }
 
         private void ReceiveRequest(ZRpc rpc, ZPackage package)
         {
@@ -301,8 +378,8 @@ namespace RunicSentinel.Runtime
         {
             accepted = false;
             response = Array.Empty<byte>();
-            reason = "Server administrator access required. Ask the owner to add your account ID to the server's adminlist.txt, or grant a signed Sentinel role. Use full Sentinel for F3; SentinelClient only handles admission.";
-            if (_runtime.IsBanned(authority, subject)) { reason = "This account is banned."; return; }
+            reason = global::Runic.Localization.RunicText.Get("text_aa7e5e814e8c");
+            if (_runtime.IsBanned(authority, subject)) { reason = global::Runic.Localization.RunicText.Get("text_1227b2f5325d"); return; }
             if (!SentinelAdministratorRules.Allows(_runtime.IsAdministrator(authority, subject), serverAdministrator, false)) return;
             try
             {
@@ -311,16 +388,52 @@ namespace RunicSentinel.Runtime
                     SentinelAdminDocument status = _managed.CreateDocument(
                         "Authenticated by " + authority + " backend identity.");
                     SentinelCapacityBridge.Populate(status);
-                    status.AdministratorSource = serverAdministrator ? "Server administrator / local host" : "Signed Sentinel role";
+                    // Include the first roster in the already authenticated status response.
+                    // Subsequent updates use the smaller, read-only players request.
+                    status.Players = SentinelPeople.List(_runtime,_managed);
+                    status.ServerName=HarmonyLib.AccessTools.Field(typeof(ZNet),"m_ServerName")?.GetValue(null) as string??"";status.WorldName=ZNet.instance.GetWorldName();
+                    status.OnlinePlayers=ZNet.instance.GetPeers().FindAll(p=>p.IsReady()&&!p.m_server).Count.ToString();
+                    status.ServerUptime=TimeSpan.FromSeconds(UnityEngine.Time.realtimeSinceStartup).ToString(@"d\.hh\:mm\:ss");
+                    var findings=_runtime.Evidence.ReadAfter(0L,256).Entries;
+                    var evidenceText=new System.Text.StringBuilder();
+                    for(int index=Math.Max(0,findings.Count-12);index<findings.Count;index++)
+                    {
+                        var finding=findings[index];string detail=finding.Detail??"";
+                        if(detail.Length>320)detail=detail.Substring(0,320)+"…";
+                        evidenceText.Append(DateTimeOffset.FromUnixTimeSeconds(finding.UnixSeconds).ToString("u")).Append(" | ").Append(finding.ProviderModuleId).Append(" | ").Append(finding.Rule).Append(" | ").Append(finding.Confidence).Append(" | ").Append(finding.EffectiveAction).AppendLine().AppendLine(detail).AppendLine();
+                    }
+                    status.RecentFindings=evidenceText.ToString();
+                    status.AdministratorSource = serverAdministrator ? global::Runic.Localization.RunicText.Get("text_80c92c7139bc") : global::Runic.Localization.RunicText.Get("text_3ef5ba4be378");
                     status.SetupAvailable = serverAdministrator && _managed.CanInitialize;
                     if (status.SetupAvailable)
-                        status.Status = "Server administrator verified. Click Set Up Sentinel to create your server-owned signing key and administrator policy. Admission mode will not change.";
+                        status.Status = global::Runic.Localization.RunicText.Get("text_e8335fddd41c");
                     else if (!status.ManagedSigningKey)
-                        status.Status = "Signing is not ready. Wait for the server snapshot and refresh. If a policy, key, or trust pin already exists, the server owner must repair or import that configuration; first-time setup will not replace it.";
-                    response = SentinelAdminProtocol.Encode(status);
+                        status.Status = global::Runic.Localization.RunicText.Get("text_625e0faa00e5");
+                    try { response = SentinelAdminProtocol.Encode(status); }
+                    catch (System.IO.InvalidDataException) when (!string.IsNullOrEmpty(status.Players))
+                    { status.Players="";response=SentinelAdminProtocol.Encode(status); }
                 }
                 else if (action == "apply" && SentinelAdminProtocol.TryDecode(payload, out SentinelAdminDocument document))
                     response = SentinelAdminProtocol.EncodeMessage(_managed.Apply(document, authority, subject));
+                else if (action == "command" && SentinelCommandRequest.TryDecode(payload, out string command))
+                {
+                    SentinelPlayerReports.Record(authority+":"+subject, "Admin command request", command);
+                    response = SentinelAdminProtocol.EncodeMessage(SentinelCommandProvider.Authorize(command,authority+":"+subject));
+                }
+                else if (action == "players" && payload.Length == 0)
+                    response = SentinelAdminProtocol.EncodeMessage(SentinelPeople.List(_runtime,_managed));
+                else if (action == "person" && payload.Length > 0 && payload.Length<=1024)
+                    response=SentinelAdminProtocol.EncodeMessage(SentinelPeople.Apply(new System.Text.UTF8Encoding(false,true).GetString(payload),authority,subject,_runtime,_managed));
+                else if(action=="player-action"&&payload.Length>0&&payload.Length<=1024)
+                    response=SentinelAdminProtocol.EncodeMessage(_playerCommands.Start(System.Text.Encoding.UTF8.GetString(payload),authority+":"+subject));
+                else if(action=="player-action-result"&&payload.Length==32)
+                    response=SentinelAdminProtocol.EncodeMessage(_playerCommands.Result(System.Text.Encoding.UTF8.GetString(payload),authority+":"+subject));
+                else if(action=="report-read"&&payload.Length>0&&payload.Length<=512)
+                    response=SentinelAdminProtocol.EncodeMessage(_commands.ReadReportChunk(new System.Text.UTF8Encoding(false,true).GetString(payload)));
+                else if (action == "player-detail" && payload.Length > 0 && payload.Length <= 512)
+                    response = SentinelAdminProtocol.EncodeMessage(SentinelPlayerReports.Detail(new System.Text.UTF8Encoding(false, true).GetString(payload), _runtime));
+                else if (action == "player-report" && payload.Length <= 512)
+                    response = SentinelAdminProtocol.EncodeMessage(SentinelPlayerReports.Create(new System.Text.UTF8Encoding(false, true).GetString(payload), _runtime));
                 else if (action == "capacity" && SentinelCapacityProtocol.TryDecode(payload, out string revision, out bool enabled, out int players))
                     response = SentinelAdminProtocol.EncodeMessage(SentinelCapacityBridge.Save(revision, enabled, players));
                 else if (action == "tool" && SentinelAdminProtocol.TryDecodeTool(payload, out string tool))
@@ -328,13 +441,13 @@ namespace RunicSentinel.Runtime
                     if (tool == "bootstrap")
                     {
                         // Never accept a caller-supplied identity or administrator flag.
-                        if (!serverAdministrator) { reason = "First-time setup requires a server administrator or the local host."; return; }
+                        if (!serverAdministrator) { reason = global::Runic.Localization.RunicText.Get("text_b2e487da9365"); return; }
                         response = SentinelAdminProtocol.EncodeMessage(
                             _managed.InitializeFromServerAdministrator(authority, subject));
                     }
                     else response = SentinelAdminProtocol.EncodeMessage(RunToolCore(tool));
                 }
-                else { reason = "Administrator operation is invalid."; return; }
+                else { reason = global::Runic.Localization.RunicText.Get("text_19d7b1fe99f5"); return; }
                 accepted = true;
                 reason = "ok";
             }
@@ -343,9 +456,12 @@ namespace RunicSentinel.Runtime
 
         private string RunToolCore(string tool)
         {
-            if (tool == "report") return "Support report created: " + _commands.WriteReport();
-            if (tool == "networks") return "Network map created: " + _commands.WriteReport(true);
-            if (tool == "backup") return "Verified backup created: " +
+            if (tool == "report"||tool=="networks")
+            {
+                string path=_commands.WriteReport(tool=="networks");
+                return SentinelJson.Write(new SentinelToolReport{path=path,file=System.IO.Path.GetFileName(path),title=tool=="networks"?"Production & portal networks":"Server health & support"});
+            }
+            if (tool == "backup") return global::Runic.Localization.RunicText.Get("text_a5a9bf91e5d5") +
                 SentinelTransitionBackup.CreateVerifiedBackupNow("runic-sentinel-admin-tool");
             throw new InvalidOperationException("Unknown administrator tool.");
         }
@@ -394,7 +510,7 @@ namespace RunicSentinel.Runtime
                     package.ReadInt() != WireSchema) return false;
                 id = package.ReadString(); action = package.ReadString(); issued = package.ReadLong();
                 payload = package.ReadByteArray();
-                return CanonicalId(id) && (action == "status" || action == "apply" || action == "tool" || action == "capacity") &&
+                return CanonicalId(id) && (action == "status" || action == "apply" || action == "tool" || action == "capacity" || action == "command" || action == "player-report" || action == "players" || action == "player-detail" || action == "person" || action=="report-read" || action=="player-action" || action=="player-action-result") &&
                        payload != null && payload.Length <= SentinelAdminProtocol.MaximumWireBytes &&
                        package.ReadInt() == TerminalMarker && package.GetPos() == package.Size();
             }
@@ -572,7 +688,7 @@ namespace RunicSentinel.Runtime
             CryptographicOperations.FixedTimeEquals(left, right);
         private static bool CanonicalId(string id) => id != null && id.Length == 32 && Guid.TryParseExact(id, "N", out _);
         private static string Bounded(string reason) => string.IsNullOrWhiteSpace(reason)
-            ? "Administrator operation failed." : reason.Length <= 512 ? reason : reason.Substring(0, 512);
+            ? global::Runic.Localization.RunicText.Get("text_b4b29205a24e") : reason.Length <= 512 ? reason : reason.Substring(0, 512);
 #if !RUNIC_SENTINEL_SERVER_ONLY
         private static void Fail(Pending pending, string reason)
         { pending?.Status?.Invoke(false, null, reason); pending?.Result?.Invoke(false, reason); }
@@ -580,6 +696,10 @@ namespace RunicSentinel.Runtime
 
         public void Dispose()
         {
+            _playerCommands.Dispose();
+#if !RUNIC_SENTINEL_SERVER_ONLY
+            _playerReceiver.Dispose();
+#endif
             _disposed = true;
             ClearConnections("Administrator control stopped.");
 #if !RUNIC_SENTINEL_SERVER_ONLY

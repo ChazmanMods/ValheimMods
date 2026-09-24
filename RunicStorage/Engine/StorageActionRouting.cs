@@ -290,25 +290,25 @@ namespace RunicStorage.Engine
             switch (reason)
             {
                 case StorageRouteReason.Disabled:
-                    return "Runic Storage is disabled in configuration.";
+                    return global::Runic.Localization.RunicText.Get("text_839798ab8179");
                 case StorageRouteReason.GameplayInputBlocked:
-                    return "Runic Storage: close the current menu, text window, or dialog first.";
+                    return global::Runic.Localization.RunicText.Get("text_be2aec0768fc");
                 case StorageRouteReason.DraggedItem:
-                    return "Runic Storage: place or cancel the item currently attached to the cursor first.";
+                    return global::Runic.Localization.RunicText.Get("text_150b8a2b12e7");
                 case StorageRouteReason.StoreOpen:
-                    return "Runic Storage: close the trader window first.";
+                    return global::Runic.Localization.RunicText.Get("text_cc782b0be253");
                 case StorageRouteReason.MapOpen:
-                    return "Runic Storage: close the map first.";
+                    return global::Runic.Localization.RunicText.Get("text_908d0a0cc1df");
                 case StorageRouteReason.InventoryOpen:
-                    return "Runic Storage: close the opened chest first, or use Sort/Store All for that chest.";
+                    return global::Runic.Localization.RunicText.Get("text_15d407f91048");
                 case StorageRouteReason.SortRequiresOpenedContainer:
-                    return "Runic Storage: open a non-personal container before sorting.";
+                    return global::Runic.Localization.RunicText.Get("text_f734058a6597");
                 case StorageRouteReason.HostAuthorityRequired:
-                    return "Runic Storage: this action requires the owning local player.";
+                    return global::Runic.Localization.RunicText.Get("text_3b64d04833d6");
                 case StorageRouteReason.LocalPlayerOwnershipRequired:
-                    return "Runic Storage: Consolidate requires the owning local player; no carried items were changed.";
+                    return global::Runic.Localization.RunicText.Get("text_10ca89edee47");
                 case StorageRouteReason.StoreAllRequiresOpenedContainer:
-                    return "Runic Storage: open a non-personal container before using Store All.";
+                    return global::Runic.Localization.RunicText.Get("text_a4b29e2cce07");
                 default:
                     return string.Empty;
             }

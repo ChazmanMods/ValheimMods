@@ -8,6 +8,7 @@ namespace RunicCrafting
 {
     internal static class Configuration
     {
+        internal static ConfigEntry<string> PullPrefabIds { get; private set; }
         internal static ConfigEntry<bool> Enabled { get; private set; }
         internal static ConfigEntry<bool> CraftFromContainers { get; private set; }
         internal static ConfigEntry<bool> CookFromContainers { get; private set; }
@@ -36,64 +37,66 @@ namespace RunicCrafting
 
         internal static void Bind(ConfigFile config)
         {
+            PullPrefabIds = config.Bind("Modded Containers", "PullPrefabIds", "piece_drawer",
+                global::Runic.Localization.RunicText.Get("text_77150f752767"));
             CookFromContainers = config.Bind("Manual Interactions", "CookFromContainers", true,
-                "Normal cooking-rack/oven Use can fetch one accepted ingredient from an accessible nearby chest when none is carried. Requires backpack space; vanilla consumes the staged item.");
+                global::Runic.Localization.RunicText.Get("text_e03cbb27645f"));
             RefuelFromContainers = config.Bind("Manual Interactions", "RefuelFromContainers", true,
-                "Normal refueling can fetch one native fuel item for fires, refillable lamps/torches, ovens and smelters when none is carried. No Production links required.");
+                global::Runic.Localization.RunicText.Get("text_90375be5dc8f"));
             InteractionRangeMeters = config.Bind("Manual Interactions", "RangeMeters", 20f,
-                new ConfigDescription("Chest search radius around the object being used, capped by Materials.RangeCapMeters.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_4c4f2dd95083"),
                     new AcceptableValueRange<float>(1f, 50f)));
             Enabled = config.Bind("General", "Enabled", true,
-                "Master switch. False leaves crafting, building, and repair gameplay to vanilla while status UI may report that Runic Crafting is off.");
+                global::Runic.Localization.RunicText.Get("text_6bd156c93a9b"));
             CraftFromContainers = config.Bind("Materials", "CraftFromContainers", true,
-                "Allow a player to satisfy ordinary recipe deficits from eligible nearby containers using Valheim's native ownership rules.");
+                global::Runic.Localization.RunicText.Get("text_f4640532ec20"));
             BuildFromContainers = config.Bind("Materials", "BuildFromContainers", true,
-                "Allow build pieces to satisfy deficits from eligible nearby containers.");
+                global::Runic.Localization.RunicText.Get("text_424db1887435"));
             StationlessBuildFromContainers = config.Bind("Stationless Building", "Enabled", true,
-                "Allow explicitly listed pieces that require no crafting station (for example fires, the basic cooking station, and the workbench itself) to use eligible containers around the player.");
+                global::Runic.Localization.RunicText.Get("text_91f098b85243"));
             StationlessBuildRangeMeters = config.Bind("Stationless Building", "PlayerLocalRangeMeters", 20f,
                 new ConfigDescription(
-                    "Player-centered range for explicitly allowed stationless pieces. Materials.RangeCapMeters remains the global upper bound.",
+                    global::Runic.Localization.RunicText.Get("text_3f7fe2b0efa5"),
                     new AcceptableValueRange<float>(1f, 50f)));
             StationlessPieceAllowList = config.Bind("Stationless Building", "AllowedPrefabIds", StationlessPiecePolicy.DefaultVanillaAllowList,
-                "Comma/semicolon-separated exact Piece prefab IDs allowed to use the stationless path. Add modded prefabs here. Empty allows none; an explicit * allows all stationless prefabs.");
+                global::Runic.Localization.RunicText.Get("text_cb4dd44b5b3e"));
             StationlessPieceDenyList = config.Bind("Stationless Building", "DeniedPrefabIds", string.Empty,
-                "Comma/semicolon-separated exact Piece prefab IDs denied from the stationless path. Deny rules win over allow rules; * denies all.");
+                global::Runic.Localization.RunicText.Get("text_5ade04c4a315"));
             RepairAll = config.Bind("Repair", "RepairAll", true,
-                "One repair-button press repairs every item that vanilla currently considers repairable.");
+                global::Runic.Localization.RunicText.Get("text_5952f0508429"));
             AreaRepairEnabled = config.Bind("Area Repair", "Enabled", true,
-                "Enable hotkey repair of loaded hammer-buildable structures. Disable to ignore the hotkey and cancel pending repairs. Does not repair inventory equipment.");
+                global::Runic.Localization.RunicText.Get("text_384ceeb93847"));
             AreaRepairKey = config.Bind("Area Repair", "Hotkey", new KeyboardShortcut(KeyCode.Semicolon),
-                "Repair nearby structures (default semicolon). Ignored while typing or in menus. No hammer needs to be equipped.");
+                global::Runic.Localization.RunicText.Get("text_d1a1107b1474"));
             AreaRepairRadius = config.Bind("Area Repair", "RadiusMeters", 50f,
-                new ConfigDescription("Player-centered structure repair radius, independent of chest range. Repairs respect wards, personal chests and required station coverage at each structure.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_6475ce6958cb"),
                     new AcceptableValueRange<float>(1f, 100f)));
             RangeCapMeters = config.Bind("Materials", "RangeCapMeters", 20f,
                 new ConfigDescription(
-                    "Player-centered chest radius for station-required hammer building; also caps crafting-station, manual interaction and stationless search ranges.",
+                    global::Runic.Localization.RunicText.Get("text_b9ad29db59e6"),
                     new AcceptableValueRange<float>(1f, 50f)));
             MaximumCandidateContainers = config.Bind("Materials", "MaximumCandidateContainers", 64,
                 new ConfigDescription(
-                    "Maximum loaded containers considered by one event-driven query.",
+                    global::Runic.Localization.RunicText.Get("text_9290eb01abd5"),
                     new AcceptableValueRange<int>(1, 256)));
             MaximumReturnedContainers = config.Bind("Materials", "MaximumReturnedContainers", 32,
                 new ConfigDescription(
-                    "Maximum eligible containers returned to one material plan.",
+                    global::Runic.Localization.RunicText.Get("text_d3516f50ae14"),
                     new AcceptableValueRange<int>(1, 128)));
             ExcludePersonalContainers = config.Bind("Materials", "ExcludePersonalContainers", true,
-                "Exclude Valheim personal/private container types from nearby material use.");
+                global::Runic.Localization.RunicText.Get("text_6e9065fb59e1"));
             RequireWardAccess = config.Bind("Materials", "RequireWardAccess", false,
-                "Require ward access even for containers that do not normally check a guard stone. Native guard-stone checks are always honored.");
+                global::Runic.Localization.RunicText.Get("text_94559666383d"));
             DefaultStationUse = config.Bind("Workshop Access", "DefaultStationUse", WorkshopPolicyKind.Everyone,
-                "Default independent policy for using a station.");
+                global::Runic.Localization.RunicText.Get("text_870bfd90f3b8"));
             DefaultLocalMaterialUse = config.Bind("Workshop Access", "DefaultLocalMaterialUse", WorkshopPolicyKind.Everyone,
-                "Default independent policy for consuming nearby materials through a station.");
+                global::Runic.Localization.RunicText.Get("text_67c02e8de4e4"));
             ShowStatusMessages = config.Bind("Diagnostics", "ShowStatusMessages", true,
-                "Show a short controller-neutral HUD status when opening a station or changing a setting.");
+                global::Runic.Localization.RunicText.Get("text_4f7b727993b5"));
             DetailedLogging = config.Bind("Diagnostics", "DetailedLogging", false,
-                "Log attempts, every important early gate/no-op reason, bounded source plans, and exact denial codes. Repeated UI probes are rate-limited.");
+                global::Runic.Localization.RunicText.Get("text_1bdd0a38f5d9"));
             LogCacheStats = config.Bind("Diagnostics", "LogCacheStats", false,
-                "Log preview-cache hits, source-query counts, chest loads and source-query time once every five seconds for performance testing.");
+                global::Runic.Localization.RunicText.Get("text_14a24eb3ec32"));
             RefreshDerivedSettings();
         }
 
@@ -138,6 +141,6 @@ namespace RunicCrafting
                   ", stationless build " + OnOff(StationlessBuildFromContainers.Value) +
                   ", Repair All " + OnOff(RepairAll.Value);
 
-        private static string OnOff(bool value) => value ? "ON" : "OFF";
+        private static string OnOff(bool value) => value ? global::Runic.Localization.RunicText.Get("text_e8a01133b135") : global::Runic.Localization.RunicText.Get("text_38cca6bea010");
     }
 }

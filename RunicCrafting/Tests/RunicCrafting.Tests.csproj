@@ -13,6 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\Shared\ModdedContainerCompatibility.cs" Link="Compatibility\ModdedContainerCompatibility.cs" />
+    <Compile Include="..\..\Shared\Tests\ModdedContainerStubs.cs" Link="Compatibility\ModdedContainerStubs.cs" />
     <Compile Remove="DedicatedHarness\**\*.cs" />
     <Compile Remove="RefreshHarness\**\*.cs" />
     <Compile Remove="AreaRepairHarness\**\*.cs" />
@@ -27,5 +29,11 @@
     <Compile Include="..\..\RunicProduction\Integration\ProductionInventoryPayloadComparison.cs" Link="Runtime\ProductionInventoryPayloadComparison.cs" />
     <Compile Include="..\..\RunicAgriculture\Integration\AgricultureInventoryPayloadComparison.cs" Link="Runtime\AgricultureInventoryPayloadComparison.cs" />
     <Reference Include="Mono.Cecil" HintPath="$(BEPINEX_PROFILE)\core\Mono.Cecil.dll" Private="true" />
+  </ItemGroup>
+  <ItemGroup><Compile Include="../../Shared/InventorySafety/MutationGate.cs" /><Compile Include="../../Shared/InventorySafety/SharedState.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../Shared/Localization/*.cs" />
+    <Compile Include="../../Shared/Tests/LocalizationStub.cs" />
+    <EmbeddedResource Include="../Translations/RunicCrafting/English.json" LogicalName="Runic.Localization.English.json" />
   </ItemGroup>
 </Project>

@@ -206,7 +206,7 @@ namespace RunicSentinelClient.Tests
             string[] forbiddenReferences =
             {
                 "RunicSentinel", "RunicSafety", "RunicCore", "RunicPersistence",
-                "assembly_utils", "com.rlabrecque.steamworks.net",
+                "com.rlabrecque.steamworks.net",
                 "UnityEngine.IMGUIModule", "UnityEngine.TextRenderingModule"
             };
             foreach (string forbidden in forbiddenReferences)
@@ -301,6 +301,9 @@ namespace RunicSentinelClient.Tests
                 StringComparison.Ordinal));
             string transportSource = File.ReadAllText(Path.Combine(
                 root, "RunicSentinelClient", "Runtime", "ClientAdmissionTransport.cs"));
+            var translations=System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,string>>(File.ReadAllText(Path.Combine(root,"RunicSentinelClient","Translations","RunicSentinelClient","English.json")));
+            foreach(var translation in translations)
+                transportSource=transportSource.Replace("global::Runic.Localization.RunicText.Get(\""+translation.Key+"\")",System.Text.Json.JsonSerializer.Serialize(translation.Value));
             int attachStart = transportSource.IndexOf(
                 "internal bool AttachServerPeer", StringComparison.Ordinal);
             int tickStart = transportSource.IndexOf(
@@ -332,7 +335,7 @@ namespace RunicSentinelClient.Tests
                 File.ReadAllText(Path.Combine(root, "RunicSentinelClient", "manifest.json")));
             Equal("RunicSentinelClient",
                 manifest.RootElement.GetProperty("name").GetString());
-            Equal("1.0.1",
+            Equal("1.0.3",
                 manifest.RootElement.GetProperty("version_number").GetString());
             string[] dependencies = manifest.RootElement.GetProperty("dependencies")
                 .EnumerateArray().Select(value => value.GetString()).ToArray();

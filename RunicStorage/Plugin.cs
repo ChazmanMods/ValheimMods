@@ -13,14 +13,14 @@ using ItemData = ItemDrop.ItemData;
 
 namespace RunicStorage;
 
-[BepInPlugin("chazman.RunicStorage", "Runic Storage", "1.2.4")]
+[BepInPlugin("chazman.RunicStorage", "Runic Storage", "1.3.7")]
 public sealed class Plugin : BaseUnityPlugin
 {
 	public const string Guid = "chazman.RunicStorage";
 
 	public const string Name = "Runic Storage";
 
-	public const string Version = "1.2.4";
+	public const string Version = "1.3.7";
 
 	private readonly List<KeybindingRegistration> _keybindingRegistrations = new List<KeybindingRegistration>();
 
@@ -52,8 +52,10 @@ public sealed class Plugin : BaseUnityPlugin
 
 	private void Awake()
 	{
+            RunicAutomation.MutationGate.Diagnostic = message => { if (message.Contains("Indeterminate")) Logger.LogError(message); else Logger.LogDebug(message); };
 		Log = Logger;
 		PluginConfig.Bind(Config);
+		StorageAuthorityPolicy.Register();
 		ChestGroupRuntime.Bind(Config);
 		try
 		{
@@ -70,7 +72,7 @@ public sealed class Plugin : BaseUnityPlugin
 			RegisterKeybindings();
 			_harmony.PatchAll(typeof(Plugin).Assembly);
 			Index.RefreshLoadedContainers();
-			Logger.LogInfo((object)"Runic Storage v1.2.4 ready: chest hover, Quick Stack, Restock, Search, Sort, Store All, and Consolidate use guarded native ownership.");
+			Logger.LogInfo((object)$"Runic Storage v{Version} ready: chest hover, Quick Stack, Restock, Search, Sort, Store All, and Consolidate use guarded native ownership.");
 			if (!ContainerHoverContents.IsSupported)
 			{
 				Logger.LogWarning((object)"Chest-content hover is unavailable because its installed Container/PrivateArea adapter signatures did not match. Other Storage features remain enabled.");
@@ -152,7 +154,7 @@ public sealed class Plugin : BaseUnityPlugin
 			Player localPlayer2 = Player.m_localPlayer;
 			if (localPlayer2 != null)
 			{
-				((Character)localPlayer2).Message((MessageType)2, "Runic Storage stopped safely; completed moves may remain. Check BepInEx/LogOutput.log.", 0, (Sprite)null);
+				((Character)localPlayer2).Message((MessageType)2, global::Runic.Localization.RunicText.Get("text_02145dcee5cc"), 0, (Sprite)null);
 			}
 		}
 	}
@@ -171,6 +173,7 @@ public sealed class Plugin : BaseUnityPlugin
 	private void OnDestroy()
 	{
 		Shutdown();
+		Runic.Shared.EmojiRenderer.Release();
 	}
 
 	private void RegisterKeybindings()
@@ -340,8 +343,8 @@ public sealed class Plugin : BaseUnityPlugin
 		if (!_readyMessageShown && PluginConfig.Enabled.Value && PluginConfig.ShowReadyMessage.Value && !((Object)(object)Player.m_localPlayer == (Object)null) && !((Object)(object)MessageHud.instance == (Object)null))
 		{
 			_readyMessageShown = true;
-			string text = (PluginConfig.ControllerShortcuts.Value ? (" Controller: hold " + PluginConfig.ControllerModifier.Value + "; see config for routes.") : string.Empty);
-			((Character)Player.m_localPlayer).Message((MessageType)1, "Runic Storage ready — " + ShortcutLabel(PluginConfig.QuickStackKey.Value) + " Quick Stack; " + ShortcutLabel(PluginConfig.RestockKey.Value) + " Restock; " + ShortcutLabel(PluginConfig.SearchKey.Value) + " Search; " + ShortcutLabel(PluginConfig.ConsolidateKey.Value) + " Consolidate; open a chest and use " + ShortcutLabel(PluginConfig.SortOpenedContainerKey.Value) + " to Sort or " + ShortcutLabel(PluginConfig.StoreAllOpenedContainerKey.Value) + " to Store All." + text, 0, (Sprite)null);
+			string text = (PluginConfig.ControllerShortcuts.Value ? (global::Runic.Localization.RunicText.Get("text_979e0a92a738") + PluginConfig.ControllerModifier.Value + global::Runic.Localization.RunicText.Get("text_e16b36ed0f84")) : string.Empty);
+			((Character)Player.m_localPlayer).Message((MessageType)1, global::Runic.Localization.RunicText.Get("text_27e8be9bc6e8") + ShortcutLabel(PluginConfig.QuickStackKey.Value) + global::Runic.Localization.RunicText.Get("text_03d7f9a4040a") + ShortcutLabel(PluginConfig.RestockKey.Value) + global::Runic.Localization.RunicText.Get("text_1811747d8813") + ShortcutLabel(PluginConfig.SearchKey.Value) + global::Runic.Localization.RunicText.Get("text_533f3a4883f8") + ShortcutLabel(PluginConfig.ConsolidateKey.Value) + global::Runic.Localization.RunicText.Get("text_288204a98847") + ShortcutLabel(PluginConfig.SortOpenedContainerKey.Value) + global::Runic.Localization.RunicText.Get("text_c4039b245bde") + ShortcutLabel(PluginConfig.StoreAllOpenedContainerKey.Value) + global::Runic.Localization.RunicText.Get("text_2c8dc963a8f0") + text, 0, (Sprite)null);
 		}
 	}
 
@@ -373,6 +376,7 @@ public sealed class Plugin : BaseUnityPlugin
 
 	private void Shutdown()
 	{
+		RunicAutomation.ContainerAuthority.UnregisterPolicy("storage");
 		Config.SettingChanged -= OnSettingChanged;
 		ZInput.OnInputLayoutChanged -= OnInputLayoutChanged;
 		Localization.OnLanguageChange = (Action)Delegate.Remove(Localization.OnLanguageChange, new Action(ContainerHoverContents.InvalidateConfiguration));

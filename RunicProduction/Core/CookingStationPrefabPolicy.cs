@@ -52,7 +52,7 @@ namespace RunicProduction.Core
                 StringSplitOptions.RemoveEmptyEntries);
             if (entries.Length > MaximumEntries)
             {
-                failure = $"The CookingStation {label} list exceeds {MaximumEntries} entries.";
+                failure = global::Runic.Localization.RunicText.Format("text_cce80544864d", label, MaximumEntries);
                 return false;
             }
             foreach (string entry in entries)
@@ -60,7 +60,7 @@ namespace RunicProduction.Core
                 string value = entry.Trim();
                 if (!IsValidIdentifier(value))
                 {
-                    failure = $"The CookingStation {label} list contains an invalid exact prefab ID.";
+                    failure = global::Runic.Localization.RunicText.Format("text_c6a7a7e76ccc", label);
                     return false;
                 }
                 values.Add(value);

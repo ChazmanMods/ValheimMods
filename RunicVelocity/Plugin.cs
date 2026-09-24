@@ -10,7 +10,7 @@ namespace RunicVelocity
     {
         public const string Guid = "chazman.RunicVelocity";
         public const string Name = "Runic Velocity";
-        public const string Version = "1.0.2";
+        public const string Version = "1.0.3";
         private VelocityRuntime _runtime;
 
         internal static BepInEx.Logging.ManualLogSource Log { get; private set; }

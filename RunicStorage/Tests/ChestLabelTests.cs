@@ -6,6 +6,52 @@ using RunicStorage.Engine;
 
 internal static class ChestLabelTests
 {
+    internal static void BendPersistenceAndMigration()
+    {
+        var rules = new ChestRules { Label = "Wood", ShowLabel = true, Background = 2, Side = 4,
+            CurveVertical = .01f, CurveDepth = -.02f, WrapAround = true };
+        rules.Items.Add("Wood");
+        Check(ChestRules.TryDecode(rules.Encode(), out var copy), "Read both stored bend axes.");
+        Check(copy.WrapAround && copy.CurveVertical == .01f && copy.CurveDepth == -.02f && copy.Side == 4 &&
+            copy.Background == 2 && copy.Items.Single() == "Wood", "Bends must preserve all other label and routing settings.");
+        rules.CurveVertical = rules.CurveDepth = 0;
+        byte[] v3 = Convert.FromBase64String(rules.Encode());
+        Array.Resize(ref v3, v3.Length - 9); v3[0] = 3;
+        Check(ChestRules.TryDecode(Convert.ToBase64String(v3), out var migrated) &&
+            migrated.CurveVertical == 0 && migrated.CurveDepth == 0 && migrated.Background == 2,
+            "Existing version-3 chest labels remain flat and retain their background.");
+        rules.CurveVertical = .01f; rules.CurveDepth = -.02f;
+        var v4 = Convert.FromBase64String(rules.Encode());
+        Array.Resize(ref v4, v4.Length - 1); v4[0] = 4;
+        Check(ChestRules.TryDecode(Convert.ToBase64String(v4), out var oldBend) && !oldBend.WrapAround &&
+            oldBend.CurveVertical == .01f && oldBend.CurveDepth == -.02f,
+            "Version-4 bends retain the original bow mode without turning on surface wrapping.");
+        var invalid = Convert.FromBase64String(rules.Encode());
+        BitConverter.GetBytes(float.NaN).CopyTo(invalid, invalid.Length - 5);
+        Check(!ChestRules.TryDecode(Convert.ToBase64String(invalid), out _), "Reject malformed saved bend values.");
+        foreach (float value in new[] { float.NaN, float.PositiveInfinity, 1.01f, -1.01f }) {
+            rules.CurveVertical = value;
+            bool rejected = false; try { rules.Encode(); } catch (InvalidDataException) { rejected = true; }
+            Check(rejected, "Never write invalid bend values.");
+        }
+    }
+    internal static void EmojiRoundTrip()
+    {
+        foreach (var entry in Runic.Shared.EmojiCatalog.Entries)
+        {
+            var rules = new ChestRules { Label = entry.Text + " Supplies", ShowLabel = true };
+            Check(ChestRules.TryDecode(rules.Encode(), out var decoded) && decoded.Label == rules.Label, "Emoji persists: " + entry.Name);
+            Check(ChestLabelColors.Markup(rules.Label, "#FF0000FF").Contains(entry.Text), "Color wrapper preserves Unicode");
+        }
+        var full = new ChestRules { Label = string.Concat(Enumerable.Repeat("\U0001F525", 48)) };
+        Check(ChestRules.TryDecode(full.Encode(), out var again) && again.Label == full.Label, "96-unit label round-trip");
+        foreach (string broken in new[] { "a\uD800", "\uDC00b" })
+        {
+            bool rejected = false;
+            try { new ChestRules { Label = broken }.Encode(); } catch (InvalidDataException) { rejected = true; }
+            Check(rejected, "No malformed Unicode can be written");
+        }
+    }
     internal static void LabelFacesReadFromChestFront()
     {
         var front = System.Numerics.Vector3.UnitZ;
@@ -89,7 +135,7 @@ internal static class ChestLabelTests
             rules.Background = background;
             Check(ChestRules.TryDecode(rules.Encode(), out var copy), "New labels round trip.");
             Check(copy.Background == background && copy.CustomGroups.Single().Id == groupId && copy.Color == "#12345678" && copy.Label == "Old caption", "Retain group snapshot and label settings.");
-            var payload = Convert.FromBase64String(copy.Encode()); payload[payload.Length - 1] = 3;
+            var payload = Convert.FromBase64String(copy.Encode()); payload[payload.Length - 10] = 3;
             Check(!ChestRules.TryDecode(Convert.ToBase64String(payload), out _), "Reject invalid background without saving.");
         }
         rules.Background = -1;

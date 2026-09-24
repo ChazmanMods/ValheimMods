@@ -12,7 +12,7 @@ internal static class ChestGroupRuntime
     private static int _recipeCount;
     private static readonly HashSet<string> Ingredients = new(StringComparer.Ordinal);
     internal static void Bind(ConfigFile config) => _library = config.Bind("Chest Rules", "CustomGroupLibrary", "",
-        "Reusable custom groups managed by the Quick Stack Rules editor. Selected definitions are copied into each chest so other players use the same rules.");
+        global::Runic.Localization.RunicText.Get("text_43f399366f98"));
     internal static bool LoadLibrary(out ChestRules library) => ChestRules.TryDecode(_library?.Value ?? "", out library);
     internal static void SaveLibrary(ChestRules library)
     { if (_library == null) throw new InvalidOperationException("Custom group library is unavailable."); _library.Value = library.Encode(); _library.ConfigFile.Save(); }

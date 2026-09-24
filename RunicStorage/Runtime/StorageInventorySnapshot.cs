@@ -18,7 +18,7 @@ namespace RunicStorage.Runtime
         internal StorageInventorySnapshot(Inventory inventory)
         {
             _inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
-            _serialized = ValheimContainerService.SaveInventory(inventory).GetBase64();
+            _serialized = ValheimContainerService.Fingerprint(inventory);
             _originals = new List<ItemData>(inventory.GetAllItems());
             foreach (ItemData item in _originals) _copies.Add(item.Clone());
             CreateShadow(); // Verify the snapshot before any live mutation.
@@ -51,7 +51,7 @@ namespace RunicStorage.Runtime
 
         internal void Verify(Inventory inventory)
         {
-            if (!string.Equals(ValheimContainerService.SaveInventory(inventory).GetBase64(),
+            if (!string.Equals(ValheimContainerService.Fingerprint(inventory),
                     _serialized, StringComparison.Ordinal))
                 throw new InvalidOperationException("The exact in-memory Storage snapshot changed.");
         }

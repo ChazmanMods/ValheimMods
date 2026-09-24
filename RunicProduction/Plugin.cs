@@ -7,17 +7,18 @@ using RunicProduction.Integration;
 namespace RunicProduction
 {
     [BepInPlugin(Guid, Name, Version)]
-    public sealed class Plugin : BaseUnityPlugin
+public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "chazman.RunicProduction";
         public const string Name = "Runic Production";
-        public const string Version = "1.0.7";
+        public const string Version = "1.0.15";
         public const string ModuleId = "runic.production";
 
         private Harmony _harmony;
 
         private void Awake()
         {
+            RunicAutomation.MutationGate.Diagnostic = message => { if (message.Contains("Indeterminate")) Logger.LogError(message); else Logger.LogDebug(message); };
             ProductionDiagnostics.Initialize(Logger);
             ProductionConfig.Bind(Config);
             Config.SettingChanged += OnSettingChanged;

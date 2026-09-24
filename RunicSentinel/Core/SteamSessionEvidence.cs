@@ -53,14 +53,14 @@ namespace RunicSentinel.Core
 
         internal bool TryValidate(ulong subject, object connection, uint handle, out string reason)
         {
-            reason = "steam-session-unobserved: reconnect after the server update";
+            reason = global::Runic.Localization.RunicText.Get("text_7b112d24fd29");
             if (!_entries.TryGetValue(subject, out Entry entry)) return false;
             if (!ReferenceEquals(connection, entry.Connection) || handle != entry.Handle)
             { reason = "steam-session-connection-mismatch"; return false; }
             if (entry.Denied)
             { reason = "steam-session-rejected"; return false; }
             if (!entry.Accepted || !entry.Validated)
-            { reason = "steam-session-pending: wait a moment and reopen F3"; return false; }
+            { reason = global::Runic.Localization.RunicText.Get("text_de15d9ce48bc"); return false; }
             reason = string.Empty;
             return true;
         }

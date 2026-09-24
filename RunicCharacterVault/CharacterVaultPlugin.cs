@@ -12,7 +12,7 @@ namespace RunicCharacterVault
     {
         internal const string PluginGuid = "chazman.RunicCharacterVault";
         internal const string PluginName = "Runic Character Vault";
-        internal const string PluginVersion = "1.0.2";
+        internal const string PluginVersion = "1.0.3";
         internal static ModLog Log { get; private set; }
         internal static GracefulShutdownCoordinator Coordinator { get; private set; }
         internal static VoluntaryDisconnectCoordinator DisconnectCoordinator { get; private set; }
@@ -30,7 +30,7 @@ namespace RunicCharacterVault
                 "Diagnostics",
                 "PlayFabVerboseLogging",
                 false,
-                "Enables verbose PlayFab Party logging for local diagnostics.").Value;
+                global::Runic.Localization.RunicText.Get("text_b48af26c8bd0")).Value;
             Log = InitializePlugin(PluginGuid);
             Settings = new CharacterVaultSettings(Config);
             Transfers = new ProfileTransferService(SynchronizationContext.Current);

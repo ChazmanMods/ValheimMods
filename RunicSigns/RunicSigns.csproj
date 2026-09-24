@@ -14,7 +14,13 @@
 
   <ItemGroup>
     <Compile Remove="Tests\**\*.cs" />
+    <Compile Include="..\Shared\CaptionCurve.cs" Link="Shared\CaptionCurve.cs" />
+    <Compile Include="..\Shared\CaptionMeshCurve.cs" Link="Shared\CaptionMeshCurve.cs" />
     <None Remove="Tests\**\*" />
+    <Compile Include="..\Shared\Emoji\*.cs" Link="Shared\Emoji\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\Shared\Emoji\atlas.png" LogicalName="Runic.Emoji.atlas.png" />
+    <EmbeddedResource Include="..\Shared\Emoji\LICENSE-GRAPHICS.txt" LogicalName="Runic.Emoji.LICENSE.txt" />
+    <Reference Include="UnityEngine.ImageConversionModule" HintPath="$(GAME_MANAGED)\UnityEngine.ImageConversionModule.dll" Private="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,5 +40,10 @@
     <Reference Include="UnityEngine.UIModule" HintPath="$(GAME_MANAGED)\UnityEngine.UIModule.dll" Private="false" />
     <Reference Include="UnityEngine.UI" HintPath="$(GAME_MANAGED)\UnityEngine.UI.dll" Private="false" />
     <Reference Include="Unity.TextMeshPro" HintPath="$(GAME_MANAGED)\Unity.TextMeshPro.dll" Private="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Translations/RunicSigns/English.json" LogicalName="Runic.Localization.English.json" />
+    <None Update="Translations/**/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -14,7 +14,8 @@ namespace RunicProduction.Integration
         Cooking = 2,
         Recipe = 3,
         Fermenter = 4,
-        Fireplace = 5
+        Fireplace = 5,
+        Beehive = 6
     }
 
     internal sealed class ProductionStationEntry
@@ -45,6 +46,7 @@ namespace RunicProduction.Integration
         internal Container Container;
         internal ZDO Zdo;
         internal Inventory Inventory;
+        internal ushort OwnerRevision;
     }
 
     internal sealed class ProductionDestination
@@ -74,7 +76,7 @@ namespace RunicProduction.Integration
     /// automation requests owner-approved chest handoff to the current station owner. Mutations
     /// remain synchronous and require native ownership of every participating object.
     /// </summary>
-    internal static class ProductionRuntime
+    internal static partial class ProductionRuntime
     {
         private const int MaximumLoadedStations = 4096;
         private const int MaximumSelections = 16;
@@ -102,13 +104,16 @@ namespace RunicProduction.Integration
         private static int _highlightRefreshStationId;
         private static float _nextQuantum;
         private static int _stationCursor;
+        private static readonly StationSchedule Schedule = new StationSchedule();
 
         internal static void Initialize()
         {
+            ProductionOwnershipDiagnostics.Clear();
             ProductionChestHandoff.Initialize();
             Stations.Clear();
             Selections.Clear();
             SafetyPausedStations.Clear();
+            Schedule.Clear();
             ProductionLinkInput.Reset();
             ProductionLinkHighlight.ClearAll();
             _highlightFailureReported = false;
@@ -122,11 +127,13 @@ namespace RunicProduction.Integration
 
         internal static void Shutdown()
         {
+            ProductionOwnershipDiagnostics.Clear();
             ProductionChestHandoff.Shutdown();
             _initialized = false;
             Stations.Clear();
             Selections.Clear();
             SafetyPausedStations.Clear();
+            Schedule.Clear();
             ProductionLinkInput.Reset();
             ProductionLinkHighlight.ClearAll();
             _highlightFailureReported = false;
@@ -213,8 +220,14 @@ namespace RunicProduction.Integration
         internal static void Register(Fireplace station) =>
             Register(ProductionStationKind.Fireplace, station);
 
+        internal static void Register(Beehive station) =>
+            Register(ProductionStationKind.Beehive, station);
+
         internal static void SeedLoadedStations()
         {
+            foreach (Player player in Player.GetAllPlayers()) CookingExperience.Register(player);
+            foreach (Beehive station in UnityEngine.Object.FindObjectsByType<Beehive>(
+                         FindObjectsSortMode.None)) Register(station);
             foreach (Container chest in UnityEngine.Object.FindObjectsByType<Container>(
                          FindObjectsSortMode.None)) ProductionChestHandoff.Register(chest);
             foreach (Smelter station in UnityEngine.Object.FindObjectsByType<Smelter>(
@@ -267,26 +280,37 @@ namespace RunicProduction.Integration
             if (ids.Length == 0) return;
             Array.Sort(ids);
             int start = Math.Abs(_stationCursor) % ids.Length;
-            int mutations = 0;
-            for (int offset = 0; offset < ids.Length && mutations < budget; offset++)
+            int mutations = 0, examined = 0;
+            int examinationBudget = Mathf.Clamp(ProductionConfig.StockSchedulerMaximumExaminations.Value, 1, 4096);
+            var elapsed = System.Diagnostics.Stopwatch.StartNew();
+            for (int offset = 0; offset < ids.Length && mutations < budget && examined < examinationBudget && elapsed.Elapsed.TotalMilliseconds < ProductionConfig.StockSchedulerMaximumMilliseconds.Value; offset++)
             {
                 int id = ids[(start + offset) % ids.Length];
+                examined++;
+                _stationCursor = (start + offset + 1) % ids.Length;
                 if (!Stations.TryGetValue(id, out ProductionStationEntry entry)) continue;
                 if (entry.Component == null)
                 {
                     Stations.Remove(id);
+                    Schedule.Remove(id);
                     continue;
                 }
+                if (!Schedule.IsDue(id, now)) continue;
                 try
                 {
-                    if (RunOne(entry)) mutations++;
+                    bool changed = RunOne(entry);
+                    Schedule.Observe(id, now, changed, interval);
+                    if (changed) mutations++;
                 }
                 catch (Exception exception)
                 {
+                    Schedule.Observe(id, now, false, interval);
                     FailStation(entry.Component, "scheduler", exception);
                 }
             }
-            _stationCursor = (start + 1) % Math.Max(1, ids.Length);
+            if (ProductionConfig.VerboseLogging.Value)
+                ProductionDiagnostics.Info("scheduler examined=" + examined + " committed=" + mutations +
+                    " elapsedMs=" + elapsed.Elapsed.TotalMilliseconds.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
         }
 
         internal static void TickLocalPlayer(Player player)
@@ -370,6 +394,19 @@ namespace RunicProduction.Integration
 
         private static bool RunOne(ProductionStationEntry entry)
         {
+            if (!RunicAutomation.MutationGate.TryBegin("production", out var operation)) return false;
+            using (operation)
+            {
+                bool changed = RunOneOwned(entry);
+                if (changed) operation.Complete(RunicAutomation.MutationOutcome.Committed);
+                return changed;
+            }
+        }
+
+        private static bool RunOneOwned(ProductionStationEntry entry)
+        {
+            if (entry?.Component != null)
+                ReportOutputOwnership(entry.Component);
             if (entry?.Component == null || !ValheimAccess.IsNativeOwner(entry.Component))
                 return false;
             if (SafetyPausedStations.Contains(entry.Component.GetInstanceID())) return false;
@@ -392,6 +429,8 @@ namespace RunicProduction.Integration
                     return RunRecipe((CraftingStation)entry.Component);
                 case ProductionStationKind.Fermenter:
                     return RunFermenter((Fermenter)entry.Component);
+                case ProductionStationKind.Beehive:
+                    return RunBeehive((Beehive)entry.Component);
                 case ProductionStationKind.Fireplace:
                     return RunFireplace((Fireplace)entry.Component);
                 default:
@@ -623,6 +662,7 @@ namespace RunicProduction.Integration
                               ValheimAccess.SmelterQueuedCheated(station) ==
                               transition.ConsumedCheated))
                     continue;
+                ProductionStationEffects.InputAdded(station);
                 Stop(station, ProductionStopCode.Ready, "pulled " + prefab);
                 return true;
             }
@@ -652,6 +692,7 @@ namespace RunicProduction.Integration
                     () => Math.Abs(ValheimAccess.Fuel(station) - (before + 1f)) < 0.001f);
                 if (applied)
                 {
+                    ProductionStationEffects.FuelAdded(station);
                     Stop(station, ProductionStopCode.Ready, "supplied fuel");
                     return true;
                 }
@@ -676,6 +717,8 @@ namespace RunicProduction.Integration
                         out StockInventoryTransition transition,
                         out _, out _)) continue;
                 float after = Math.Min(station.m_maxFuel, before + 1f);
+                // Native Fireplace.SetFuel already emits the refueling effects through
+                // RPC_SetFuelAmount for fires, torches, and lamps; do not emit them twice.
                 bool applied = ApplySourceToStation(
                     station,
                     source,
@@ -760,6 +803,8 @@ namespace RunicProduction.Integration
                         () => CookingSlotMatches(
                             station, slot, item, elapsed, status, cheated),
                         () => CookingSlotIsEmpty(station, slot))) continue;
+                CookingExperience.Award(station, destination.Endpoint.Link.OwnerId, 0.6f);
+                ProductionStationEffects.OutputCollected(station, slot);
                 AdvanceDestination(ValheimAccess.Zdo(station), destination);
                 Stop(station, ProductionStopCode.Ready, "stored " + item);
                 return true;
@@ -793,7 +838,10 @@ namespace RunicProduction.Integration
                             ValheimAccess.CookingFuel(station) - before) < 0.001f,
                         () => Math.Abs(
                             ValheimAccess.CookingFuel(station) - (before + 1f)) < 0.001f))
+                {
+                    ProductionStationEffects.FuelAdded(station);
                     return true;
+                }
             }
             return false;
         }
@@ -830,6 +878,10 @@ namespace RunicProduction.Integration
             }
             else if (HasReplenishmentRecord(
                          ValheimAccess.Zdo(station), station)) return false;
+            long cookingPlayerId = hasPlannedDestination
+                ? planned.Target.AuthorizedPlayerId
+                : RoleLinks(station, ProductionLinkRole.Input)
+                    .FirstOrDefault(value => value != null && value.OwnerId != 0L)?.OwnerId ?? 0L;
             IEnumerable<ProductionEndpoint> cookingSources;
             if (hasPlannedDestination)
             {
@@ -877,7 +929,13 @@ namespace RunicProduction.Integration
                             () => CookingSlotMatches(
                                 station, slot, prefab,
                                 CookingSlotStatus.NotDone,
-                                transition.ConsumedCheated))) return true;
+                                transition.ConsumedCheated)))
+                    {
+                        CookingExperience.Award(station, hasPlannedDestination
+                            ? cookingPlayerId : source.Link?.OwnerId ?? cookingPlayerId, 0.4f);
+                        ProductionStationEffects.InputAdded(station, slot);
+                        return true;
+                    }
                 }
             }
             return false;
@@ -958,6 +1016,7 @@ namespace RunicProduction.Integration
                         sourcePlan,
                         destination,
                         destinationTransition)) continue;
+                ProductionStationEffects.RecipeCrafted(station);
                 AdvanceDestination(
                     stationZdo,
                     new ProductionDestination
@@ -1018,6 +1077,7 @@ namespace RunicProduction.Integration
                 yield return new ProductionEndpoint
                 {
                     Container = container,
+                    OwnerRevision = zdo.OwnerRevision,
                     Zdo = zdo,
                     Inventory = inventory
                 };
@@ -1097,6 +1157,7 @@ namespace RunicProduction.Integration
                         ValheimAccess.FermenterContent(station)) &&
                           ValheimAccess.FermenterStartTicks(station) == 0L &&
                           !ValheimAccess.FermenterCheated(station))) return false;
+            ProductionStationEffects.OutputCollected(station);
             AdvanceDestination(ValheimAccess.Zdo(station), destination);
             Stop(station, ProductionStopCode.Ready,
                 "stored " + conversion.OutputPrefabId);
@@ -1162,7 +1223,10 @@ namespace RunicProduction.Integration
                                   ValheimAccess.FermenterStartTicks(station) == ticks &&
                                   ValheimAccess.FermenterCheated(station) ==
                                   transition.ConsumedCheated))
+                    {
+                        ProductionStationEffects.InputAdded(station);
                         return true;
+                    }
                 }
             }
             return false;
@@ -1174,8 +1238,12 @@ namespace RunicProduction.Integration
             int amount)
         {
             if (!_initialized || station == null || amount <= 0 ||
-                !(ProductionConfig.Enabled?.Value ?? false) ||
-                !ValheimAccess.IsNativeOwner(station)) return false;
+                !(ProductionConfig.Enabled?.Value ?? false)) return false;
+            if (!RunicAutomation.MutationGate.TryBegin("production-smelter-output", out var operation)) return false;
+            using var operationScope = operation;
+            operation.Track(ValheimAccess.Zdo(station)?.m_uid);
+            ReportOutputOwnership(station);
+            if (!ValheimAccess.IsNativeOwner(station)) return false;
             // An indeterminate current batch is suppressed at the failure site. Later batches
             // bypass Production entirely and use vanilla Spawn until reload reconstructs truth.
             if (SafetyPausedStations.Contains(station.GetInstanceID())) return false;
@@ -1203,19 +1271,28 @@ namespace RunicProduction.Integration
                     transition.ApplyAfter(destination.Inventory);
                     ProductionEndpointMutationState state = ResolveEndpointMutation(
                         destination, transition);
-                    if (state == ProductionEndpointMutationState.After) return true;
+                    if (state == ProductionEndpointMutationState.After)
+                    {
+                        ProductionStationEffects.OutputProduced(station);
+                        return true;
+                    }
                     if (state == ProductionEndpointMutationState.Before) continue;
                     SafetyPausedStations.Add(station.GetInstanceID());
+                    operation.Complete(RunicAutomation.MutationOutcome.Indeterminate);
                     ProductionDiagnostics.Warning(
                         "Smelter output suppressed vanilla fallback after an indeterminate " +
-                        "destination publication; reload to resolve persisted state.");
+                        "destination publication; inspect the affected inventories before reuse.");
                     return true;
                 }
                 catch (Exception exception)
                 {
                     ProductionEndpointMutationState state = ResolveEndpointMutation(
                         destination, transition);
-                    if (state == ProductionEndpointMutationState.After) return true;
+                    if (state == ProductionEndpointMutationState.After)
+                    {
+                        ProductionStationEffects.OutputProduced(station);
+                        return true;
+                    }
                     if (state == ProductionEndpointMutationState.Before)
                     {
                         ProductionDiagnostics.Warning(
@@ -1224,6 +1301,7 @@ namespace RunicProduction.Integration
                         continue;
                     }
                     SafetyPausedStations.Add(station.GetInstanceID());
+                    operation.Complete(RunicAutomation.MutationOutcome.Indeterminate);
                     ProductionDiagnostics.Warning(
                         "Smelter output suppressed vanilla fallback after an indeterminate " +
                         "destination failure: " + exception.GetType().Name + ".");
@@ -1268,12 +1346,12 @@ namespace RunicProduction.Integration
                 !ValheimAccess.ComponentWithinReach(station.Component, player.transform.position,
                     Mathf.Clamp(player.m_maxInteractDistance, 1f, 10f)) ||
                 !ValheimAccess.WardAllows(station.Component.transform.position, playerId))
-                return Fail("The station is out of reach or ward access is denied.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_845c8107e261"), out detail);
             if (!StationSupportsRole(station.Kind, role) ||
                 !ValidateStation(station, out detail))
             {
                 if (string.IsNullOrEmpty(detail))
-                    detail = role + " is not supported by this station.";
+                    detail = role + global::Runic.Localization.RunicText.Get("text_816661d80443");
                 return true;
             }
             if (Selections.TryGetValue(playerId, out ProductionLinkSelection current) &&
@@ -1281,14 +1359,14 @@ namespace RunicProduction.Integration
                 current.Role == role && current.Remove == remove)
             {
                 Selections.Remove(playerId);
-                detail = "Production link selection cancelled.";
+                detail = global::Runic.Localization.RunicText.Get("text_0430efa1a247");
             }
             else
             {
                 if (!Selections.ContainsKey(playerId) &&
                     Selections.Count >= MaximumSelections)
                 {
-                    detail = "Too many link selections are active; try again shortly.";
+                    detail = global::Runic.Localization.RunicText.Get("text_86b8553962de");
                     return true;
                 }
                 Selections[playerId] = new ProductionLinkSelection
@@ -1303,10 +1381,10 @@ namespace RunicProduction.Integration
                 string displayRole = DisplayRole(role);
                 string gesture = GestureName(button, remove);
                 detail = remove
-                    ? "Selected " + displayRole + " unlink. Use " + gesture +
-                      " on a linked chest within 30 seconds."
-                    : "Selected " + displayRole + ". Use " + gesture +
-                      " on a chest within 30 seconds.";
+                    ? global::Runic.Localization.RunicText.Get("text_da5501947399") + displayRole + global::Runic.Localization.RunicText.Get("text_57343e003011") + gesture +
+                      global::Runic.Localization.RunicText.Get("text_3f393ba21e8f")
+                    : global::Runic.Localization.RunicText.Get("text_da5501947399") + displayRole + global::Runic.Localization.RunicText.Get("text_3830a252745d") + gesture +
+                      global::Runic.Localization.RunicText.Get("text_aa6de1dd1949");
             }
             return true;
         }
@@ -1323,38 +1401,38 @@ namespace RunicProduction.Integration
                 selection == null || selection.Station?.Component == null ||
                 selection.ExpiresAt < Time.realtimeSinceStartup ||
                 selection.PlayerId != player.GetPlayerID())
-                return Fail("The production link selection expired.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_42774b96bd70"), out detail);
             Component station = selection.Station.Component;
             ZDO stationZdo = ValheimAccess.Zdo(station);
             ZDO targetZdo = ValheimAccess.Zdo(container);
             if (stationZdo == null || targetZdo == null ||
                 ReferenceEquals(stationZdo, targetZdo) ||
                 !NearbyIngredientContainerIndex.IsStaticNonWagon(container))
-                return Fail("The selected endpoint is not a static exact chest.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_cde89e621b6d"), out detail);
             float interactionRange = Mathf.Clamp(player.m_maxInteractDistance, 1f, 10f);
             if (!ValheimAccess.ContainerWithinReach(
                     container, player.transform.position, interactionRange))
-                return Fail("The chest is outside interaction range.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_d61f5b74b985"), out detail);
             Vector3 stationPosition = stationZdo.GetPosition();
             Vector3 targetPosition = targetZdo.GetPosition();
             if (!ValheimAccess.IsFinite(stationPosition) ||
                 !ValheimAccess.IsFinite(targetPosition) ||
                 (stationPosition - targetPosition).sqrMagnitude > LinkRange * LinkRange)
-                return Fail("The chest is outside the configured link range.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_0129ebc5b79a"), out detail);
             long actorId = player.GetPlayerID();
             if (!ValheimAccess.ContainerAllows(container, actorId) ||
                 !ValheimAccess.WardAllows(stationPosition, actorId) ||
                 !ValheimAccess.WardAllows(targetPosition, actorId))
-                return Fail("Vanilla chest or ward access denied this link.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_63ee68bb1a32"), out detail);
             if (!StationSupportsRole(selection.Station.Kind, selection.Role) ||
                 !ValidateStation(selection.Station, out detail))
-                return Fail("The selected station no longer supports this production role. " + detail, out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_f57b2ed3f914") + detail, out detail);
             if (!ValheimAccess.TryPrepareLinkOwnership(
                     player, station, stationZdo, container, targetZdo, LinkRange, out detail))
                 return false;
             if (!ValheimAccess.TrySynchronizeLocallyOwnedContainer(
                     container, out Inventory inventory))
-                return Fail("The chest is busy or not synchronized.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_99afd154f17a"), out detail);
             if (!ProductionEndpointIdentity.TryCaptureCurrentTarget(
                     targetZdo.m_uid,
                     out string token,
@@ -1374,7 +1452,7 @@ namespace RunicProduction.Integration
                     stationZdo,
                     selection.Role,
                     out ProductionRoleLinkCatalog catalog) != StoredRecordState.Valid)
-                return Fail("The selected role's link catalog is unavailable.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_6cfbd654d40b"), out detail);
             StoredProductionLink previous = catalog.FindTarget(token, prefabHash);
             StoredProductionLink candidate = ProductionLinkStore.CreateDetached(
                 selection.Role,
@@ -1397,7 +1475,7 @@ namespace RunicProduction.Integration
                     out detail))
                 return Fail(
                     string.IsNullOrEmpty(detail)
-                        ? "The role-link catalog rejected the link."
+                        ? global::Runic.Localization.RunicText.Get("text_1ca9a45cead8")
                         : detail,
                     out detail);
 
@@ -1421,7 +1499,7 @@ namespace RunicProduction.Integration
                         out detail))
                     return Fail(
                         string.IsNullOrEmpty(detail)
-                            ? "The Replenishment plan did not publish."
+                            ? global::Runic.Localization.RunicText.Get("text_88594d5ffb22")
                             : detail,
                         out detail);
             }
@@ -1454,10 +1532,10 @@ namespace RunicProduction.Integration
                                 "the role-link publication failed: " + rollback + ".");
                     }
                 }
-                return Fail("The role-link catalog did not publish.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_0e8747f86d48"), out detail);
             }
-            detail = "Linked as " + DisplayRole(selection.Role).ToLowerInvariant() +
-                     " for " + StationName(selection.Station.Component);
+            detail = global::Runic.Localization.RunicText.Get("text_f5e6786847b0") + DisplayRole(selection.Role).ToLowerInvariant() +
+                     global::Runic.Localization.RunicText.Get("text_ccb2f8fb3cff") + StationName(selection.Station.Component);
             return true;
         }
 
@@ -1535,7 +1613,7 @@ namespace RunicProduction.Integration
                     out change);
             if (!changed)
                 return Fail(
-                    "The destination catalog rejected the change: " + change + ".",
+                    global::Runic.Localization.RunicText.Get("text_b865d0c13264") + change + ".",
                     out detail);
             MultiReplenishmentCatalogCommitCode commit =
                 MultiReplenishmentCatalogStore.TryCommit(
@@ -1543,11 +1621,11 @@ namespace RunicProduction.Integration
             if (commit != MultiReplenishmentCatalogCommitCode.Committed &&
                 commit != MultiReplenishmentCatalogCommitCode.NoChange)
                 return Fail(
-                    "The destination catalog did not publish: " + commit + ".",
+                    global::Runic.Localization.RunicText.Get("text_eb8b45f017c6") + commit + ".",
                     out detail);
             detail = refresh
-                ? "Replenishment targets refreshed from the physical exemplars."
-                : "Replenishment destination added from the physical exemplars.";
+                ? global::Runic.Localization.RunicText.Get("text_7653618b3eba")
+                : global::Runic.Localization.RunicText.Get("text_0e2c555bd028");
             return true;
         }
 
@@ -1683,7 +1761,7 @@ namespace RunicProduction.Integration
                 }
                 default:
                     return Fail(
-                        "This station does not support Replenishment destinations.",
+                        global::Runic.Localization.RunicText.Get("text_66896f1be284"),
                         out failure);
             }
         }
@@ -1700,12 +1778,12 @@ namespace RunicProduction.Integration
             StoredRecordState roleState = ProductionRoleLinkCatalogStore.Read(
                 stationZdo, role, out ProductionRoleLinkCatalog roleCatalog);
             if (roleState == StoredRecordState.Invalid)
-                return Fail("The selected role's link catalog is unavailable.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_6cfbd654d40b"), out detail);
             bool roleCatalogWasAbsent = roleState == StoredRecordState.Absent;
             if (roleCatalogWasAbsent &&
                 ProductionRoleLinkCatalogStore.ReadWithLegacy(
                     stationZdo, role, out roleCatalog) != StoredRecordState.Valid)
-                return Fail("The selected role's legacy link is unavailable.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_2d6094a4fdca"), out detail);
 
             ProductionRoleLinkCatalog updatedRoleCatalog = null;
             bool hasRoleLink = roleCatalog.FindTarget(token, prefabHash) != null;
@@ -1719,11 +1797,11 @@ namespace RunicProduction.Integration
             if (role != ProductionLinkRole.Replenishment)
             {
                 if (!hasRoleLink)
-                    return Fail("That chest is not linked for the selected role.", out detail);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_8b5023be621f"), out detail);
                 if (!ProductionRoleLinkCatalogStore.Publish(
                         stationZdo, roleCatalog, updatedRoleCatalog))
-                    return Fail("The link removal did not publish.", out detail);
-                detail = DisplayRole(role) + " Link removed for " +
+                    return Fail(global::Runic.Localization.RunicText.Get("text_7ff72f93c3a5"), out detail);
+                detail = DisplayRole(role) + global::Runic.Localization.RunicText.Get("text_0692f3eb228e") +
                          StationName(station.Component);
                 return true;
             }
@@ -1740,7 +1818,7 @@ namespace RunicProduction.Integration
                     value => SameTarget(value.Link, token, prefabHash))
                 : null;
             if (!hasRoleLink && current == null)
-                return Fail("That chest is not a Replenishment destination.", out detail);
+                return Fail(global::Runic.Localization.RunicText.Get("text_6b90ecb52ad7"), out detail);
             if (hasRoleLink || roleCatalogWasAbsent && current != null)
             {
                 // Publishing even an explicit empty catalog tombstones legacy/plan-only state
@@ -1751,7 +1829,7 @@ namespace RunicProduction.Integration
                 if (!ProductionRoleLinkCatalogStore.Publish(
                         stationZdo, roleCatalog, authoritative))
                     return Fail(
-                        "The Replenishment link removal did not publish.",
+                        global::Runic.Localization.RunicText.Get("text_092a67cf8df9"),
                         out detail);
             }
             if (current != null)
@@ -1775,7 +1853,7 @@ namespace RunicProduction.Integration
                 else ProductionDiagnostics.Warning(
                     "An inert replenishment plan body could not be removed: " + change + ".");
             }
-            detail = "Replenishment Link removed for " + StationName(station.Component);
+            detail = global::Runic.Localization.RunicText.Get("text_ce46fd417d5e") + StationName(station.Component);
             return true;
         }
 
@@ -1791,7 +1869,7 @@ namespace RunicProduction.Integration
                         station, link, true, out endpoint, out failure)) return true;
             }
             endpoint = null;
-            failure = DisplayRole(role) + " link is missing or unavailable.";
+            failure = DisplayRole(role) + global::Runic.Localization.RunicText.Get("text_30b9523f9791");
             return false;
         }
 
@@ -1862,12 +1940,12 @@ namespace RunicProduction.Integration
             failure = string.Empty;
             if (station == null || link == null ||
                 !ValheimAccess.IsNativeOwner(station))
-                return Fail("The station is not a native local owner.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_e6c8cb18e005"), out failure);
 
             if (!TryReadAuthorizedEndpoint(station, link, singleton,
                     out Container container, out ZDO targetZdo, out failure)) return false;
             if (!ProductionChestHandoff.TryAcquire(station, container, link.OwnerId))
-                return Fail("Waiting for the linked chest's current owner to hand it over.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_bc0becfbfdac"), out failure);
             if (string.IsNullOrEmpty(link.TargetToken))
             {
                 if (!ProductionEndpointIdentity.TryGetOrEnsureToken(
@@ -1875,14 +1953,16 @@ namespace RunicProduction.Integration
                     !ProductionLinkStore.TryUpgradeResolvedTarget(
                         ValheimAccess.Zdo(station), link, targetZdo, token, targetZdo.GetPrefab(),
                         out StoredProductionLink upgraded))
-                    return Fail("The legacy chest identity could not be upgraded.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_72948ebd8aff"), out failure);
                 link = upgraded;
             }
             if (!ValheimAccess.TrySynchronizeLocallyOwnedContainer(container, out Inventory inventory))
-                return Fail("The exact chest is busy or not synchronized.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_23aa687c76c5"), out failure);
+            RunicAutomation.MutationGate.Current?.Track(inventory);
+            RunicAutomation.MutationGate.Current?.Track(targetZdo.m_uid);
             endpoint = new ProductionEndpoint
             {
-                Link = link, Container = container, Zdo = targetZdo, Inventory = inventory
+                Link = link, Container = container, Zdo = targetZdo, Inventory = inventory, OwnerRevision = targetZdo.OwnerRevision
             };
             return true;
         }
@@ -1912,7 +1992,7 @@ namespace RunicProduction.Integration
             if (targetView == null || !targetView.IsValid() ||
                 stationZdo == null)
                 return Fail(
-                    "The exact chest or station is unavailable.", out failure);
+                    global::Runic.Localization.RunicText.Get("text_d80d47fcad82"), out failure);
             Vector3 stationPosition = stationZdo.GetPosition();
             Vector3 currentPosition = targetZdo.GetPosition();
             float tolerance = Mathf.Clamp(
@@ -1923,16 +2003,16 @@ namespace RunicProduction.Integration
                 !ValheimAccess.IsFinite(currentPosition) ||
                 (currentPosition - link.ExpectedPosition).sqrMagnitude >
                 tolerance * tolerance)
-                return Fail("The linked chest moved beyond its saved tolerance.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_f99bed40cc38"), out failure);
             if ((currentPosition - stationPosition).sqrMagnitude > LinkRange * LinkRange)
-                return Fail("The linked chest is outside range.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_9215961627f7"), out failure);
             if (ValheimAccess.Creator(station) != link.StationOwnerId ||
                 ValheimAccess.Creator(container) != link.TargetOwnerId)
-                return Fail("A linked piece's creator identity changed.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_97fe02bda627"), out failure);
             if (!ValheimAccess.ContainerAllows(container, link.OwnerId) ||
                 !ValheimAccess.WardAllows(stationPosition, link.OwnerId) ||
                 !ValheimAccess.WardAllows(currentPosition, link.OwnerId))
-                return Fail("Current vanilla chest or ward access denies automation.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_280dfc6e405d"), out failure);
             return NearbyIngredientContainerIndex.IsStaticNonWagon(container);
         }
 
@@ -1942,7 +2022,8 @@ namespace RunicProduction.Integration
             if (root == null) return null;
             foreach (Component candidate in root.GetComponentsInChildren<Component>())
                 if ((candidate is Smelter || candidate is CookingStation ||
-                     candidate is CraftingStation || candidate is Fermenter || candidate is Fireplace) &&
+                     candidate is CraftingStation || candidate is Fermenter || candidate is Fireplace ||
+                     candidate is Beehive) &&
                     ValheimAccess.Zdo(candidate)?.m_uid == id) return candidate;
             return null;
         }
@@ -2093,13 +2174,15 @@ namespace RunicProduction.Integration
                             Target = target,
                             TargetIndex = index
                         };
+                        // Timed cooking and fermentation publish native, unattributed items.
+                        // Preflight the same metadata as the actual completion paths.
                         var completed = new StockOutputDefinition(
                             outputPrefab,
                             Math.Max(1, outputAmount),
                             1,
                             0,
-                            target.AuthorizedPlayerId,
-                            target.AuthorizedPlayerName);
+                            0L,
+                            string.Empty);
                         if (!ExactStockInventoryMutation.TryPrepareDestination(
                                 endpoint.Inventory, completed, out _, out _)) continue;
                         if (completionFallback == null) completionFallback = candidate;
@@ -2277,6 +2360,8 @@ namespace RunicProduction.Integration
             Func<bool> stationRestored,
             Func<bool> stationMatches)
         {
+            RunicAutomation.MutationGate.Current?.Track(source?.Inventory);
+            RunicAutomation.MutationGate.Current?.Track(source?.Zdo?.m_uid);
             if (!ValheimAccess.IsNativeOwner(station) ||
                 !EndpointStillOwned(source) ||
                 !transition.MatchesBefore(source.Inventory)) return false;
@@ -2300,9 +2385,11 @@ namespace RunicProduction.Integration
                 bool stationBefore = false;
                 try
                 {
-                    restoreStation();
-                    stationBefore = ValheimAccess.IsNativeOwner(station) &&
-                                    stationRestored();
+                    if (ValheimAccess.IsNativeOwner(station))
+                    {
+                        if (stationRestored()) stationBefore = true;
+                        else if (stationMatches()) { restoreStation(); stationBefore = stationRestored(); }
+                    }
                 }
                 catch { stationBefore = false; }
                 ProductionEndpointMutationState sourceState =
@@ -2355,9 +2442,11 @@ namespace RunicProduction.Integration
                 bool stationBefore = false;
                 try
                 {
-                    restoreStation();
-                    stationBefore = ValheimAccess.IsNativeOwner(station) &&
-                                    stationRestored();
+                    if (ValheimAccess.IsNativeOwner(station))
+                    {
+                        if (stationRestored()) stationBefore = true;
+                        else if (stationMatches()) { restoreStation(); stationBefore = stationRestored(); }
+                    }
                 }
                 catch { stationBefore = false; }
                 ProductionEndpointMutationState destinationState =
@@ -2397,6 +2486,11 @@ namespace RunicProduction.Integration
                 if (source == null || ReferenceEquals(source.Container, destination.Container) ||
                     !EndpointStillOwned(source) ||
                     !entry.Transition.MatchesBefore(source.Inventory)) return false;
+            }
+            foreach (ProductionEndpoint source in sources)
+            {
+                RunicAutomation.MutationGate.Current?.Track(source?.Inventory);
+                RunicAutomation.MutationGate.Current?.Track(source?.Zdo?.m_uid);
             }
             var applied = new List<ExactStockCompositeSourceEntry>();
             bool destinationApplied = false;
@@ -2468,6 +2562,7 @@ namespace RunicProduction.Integration
             return view != null && view.IsValid() && view.IsOwner() &&
                    view.GetZDO() != null &&
                    view.GetZDO().m_uid == endpoint.Zdo.m_uid &&
+                   view.GetZDO().OwnerRevision == endpoint.OwnerRevision &&
                    ValheimAccess.ContainerWritable(endpoint.Container);
         }
 
@@ -2499,9 +2594,10 @@ namespace RunicProduction.Integration
             string operation)
         {
             if (station != null) SafetyPausedStations.Add(station.GetInstanceID());
+            RunicAutomation.MutationGate.Current?.Complete(RunicAutomation.MutationOutcome.Indeterminate);
             ProductionDiagnostics.Warning(
                 "Production paused this station for the session after an indeterminate " +
-                operation + " mutation. Reloading resolves state from Valheim's persisted inventory.");
+                operation + " mutation. Affected endpoints are blocked for this session; inspect them before reuse. Reloading is not proof of recovery.");
             throw new ProductionMutationIndeterminateException(operation);
         }
 
@@ -2573,6 +2669,9 @@ namespace RunicProduction.Integration
             failure = string.Empty;
             switch (station.Kind)
             {
+                case ProductionStationKind.Beehive:
+                    return ((Beehive)station.Component).m_honeyItem != null ||
+                           Fail(global::Runic.Localization.RunicText.Get("text_86a02d19ba62"), out failure);
                 case ProductionStationKind.Smelter:
                     return true;
                 case ProductionStationKind.Cooking:
@@ -2602,10 +2701,10 @@ namespace RunicProduction.Integration
                         fireplace.m_fuelItem != null && fireplace.m_maxFuel > 0f &&
                         StockDomainValidation.IsExactPrefabId(
                             ValheimAccess.PrefabName(fireplace.m_fuelItem.gameObject))) return true;
-                    return Fail("This fire or lamp has no supported native fuel slot.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_010b8b386590"), out failure);
                 }
                 default:
-                    return Fail("Unsupported production station.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_a334151b384c"), out failure);
             }
         }
 
@@ -2614,6 +2713,12 @@ namespace RunicProduction.Integration
             out ProductionStationEntry station)
         {
             station = null;
+            Beehive hive = target.GetComponentInParent<Beehive>();
+            if (hive != null)
+            {
+                station = new ProductionStationEntry(ProductionStationKind.Beehive, hive);
+                return true;
+            }
             Smelter smelter = target.GetComponentInParent<Smelter>();
             if (smelter != null)
             {
@@ -2658,6 +2763,8 @@ namespace RunicProduction.Integration
         {
             switch (station)
             {
+                case ProductionStationKind.Beehive:
+                    return role == ProductionLinkRole.Output;
                 case ProductionStationKind.Smelter:
                     return role == ProductionLinkRole.Input ||
                            role == ProductionLinkRole.Fuel ||
@@ -2807,34 +2914,76 @@ namespace RunicProduction.Integration
             foreach (long key in expired) Selections.Remove(key);
         }
 
+        private static string OutputOwnershipWarning(Component station)
+        {
+            if (!(ProductionConfig.Enabled?.Value ?? false) ||
+                ZNet.instance == null || !ZNet.instance.IsServer()) return null;
+            IReadOnlyList<StoredProductionLink> links = RoleLinks(station, ProductionLinkRole.Output);
+            if (links.Count == 0) return null;
+            string warning = ProductionOwnershipDiagnostics.OfflineOwnerWarning(
+                ValheimAccess.Zdo(station), "station");
+            if (warning != null) return warning;
+            foreach (StoredProductionLink link in links)
+            {
+                ProductionIdentityStatus status = ProductionEndpointIdentity.ResolveStable(
+                    link, out _, out ZDO target, out _);
+                if (status == ProductionIdentityStatus.Missing &&
+                    ProductionEndpointIdentity.TryResolveUniqueLegacyTarget(
+                        link, out _, out target, out _))
+                    status = ProductionIdentityStatus.Ready;
+                if (status != ProductionIdentityStatus.Ready) continue;
+                warning = ProductionOwnershipDiagnostics.OfflineOwnerWarning(target, "output chest");
+                if (warning != null) return warning;
+            }
+            return null;
+        }
+
+        private static void ReportOutputOwnership(Component station) =>
+            ProductionOwnershipDiagnostics.Report(
+                ValheimAccess.StableId(station), OutputOwnershipWarning(station));
+
         internal static void AppendHover(
             Component station,
             ProductionLinkRole role,
             ref string text)
         {
             if (!_initialized || station == null) return;
+            if (station != null && SafetyPausedStations.Contains(station.GetInstanceID()))
+                text += global::Runic.Localization.RunicText.Get("text_ec2f010e9732");
+            string ownershipWarning = OutputOwnershipWarning(station);
+            if ((ProductionConfig.ShowStatusOverlay?.Value ?? true) && ownershipWarning != null)
+                text += global::Runic.Localization.RunicText.Get("text_1bd66536d17e") + ownershipWarning;
             if ((ProductionConfig.ShowStatusOverlay?.Value ?? true) &&
                 ProductionDiagnostics.TryGetStop(
                     ValheimAccess.StableId(station),
                     out ProductionStopCode stopCode))
-                text += "\nRunic Production: " + stopCode;
+                text += global::Runic.Localization.RunicText.Get("text_1bd66536d17e") + stopCode;
             ZDO zdo = ValheimAccess.Zdo(station);
             int inputCount = DistinctRoleCount(station, ProductionLinkRole.Input);
             int fuelCount = DistinctRoleCount(station, ProductionLinkRole.Fuel);
             int outputCount = DistinctRoleCount(station, ProductionLinkRole.Output);
             int replenishmentCount = ReplenishmentLinkCount(station, zdo);
-            text += "\n<color=#FFD27A><b>Runic Production Links</b></color>" +
-                    "\nInput: " + FormatLinkCount(inputCount) +
-                    "\nFuel Input: " + FormatLinkCount(fuelCount) +
-                    "\nOutput: " + FormatLinkCount(outputCount) +
-                    "\nReplenishment: " + FormatLinkCount(replenishmentCount);
+            if (station is Beehive)
+            {
+                text += global::Runic.Localization.RunicText.Get("text_2c262c788a19") +
+                        global::Runic.Localization.RunicText.Get("text_513135e0ee7e") + FormatLinkCount(outputCount);
+                if (ProductionConfig.ShowControlHints?.Value ?? true)
+                    text += global::Runic.Localization.RunicText.Get("text_da207a589294") +
+                            global::Runic.Localization.RunicText.Get("text_487abd028663");
+                return;
+            }
+            text += global::Runic.Localization.RunicText.Get("text_2c262c788a19") +
+                    global::Runic.Localization.RunicText.Get("text_3805468a3f8a") + FormatLinkCount(inputCount) +
+                    global::Runic.Localization.RunicText.Get("text_7ac12c7748a1") + FormatLinkCount(fuelCount) +
+                    global::Runic.Localization.RunicText.Get("text_513135e0ee7e") + FormatLinkCount(outputCount) +
+                    global::Runic.Localization.RunicText.Get("text_abeade367007") + FormatLinkCount(replenishmentCount);
             if (!(ProductionConfig.ShowControlHints?.Value ?? true)) return;
-            text += "\n[<color=yellow><b>Alt+Left Mouse</b></color>] Input" +
-                    " (aim at the fuel control for Fuel Input)" +
-                    "  [<color=yellow><b>Alt+Right Mouse</b></color>] Output" +
-                    "  [<color=yellow><b>Alt+Middle Mouse</b></color>] Replenishment" +
-                    "\nRepeat the same gesture on a chest within 30 seconds." +
-                    " Add Shift at both steps to remove a link.";
+            text += global::Runic.Localization.RunicText.Get("text_f1905f759422") +
+                    global::Runic.Localization.RunicText.Get("text_3f49322b881c") +
+                    global::Runic.Localization.RunicText.Get("text_cb5139ef93c0") +
+                    global::Runic.Localization.RunicText.Get("text_3465ca200cc4") +
+                    global::Runic.Localization.RunicText.Get("text_d715567b6ab8") +
+                    global::Runic.Localization.RunicText.Get("text_3b2bead5fc06");
         }
 
         private static int DistinctRoleCount(
@@ -2860,10 +3009,10 @@ namespace RunicProduction.Integration
         }
 
         private static string FormatLinkCount(int count) =>
-            count <= 0 ? "empty" : count == 1 ? "1 chest" : count + " chests";
+            count <= 0 ? "empty" : count == 1 ? global::Runic.Localization.RunicText.Get("text_ccf583bdec6c") : count + global::Runic.Localization.RunicText.Get("text_4ed3d6ce7df7");
 
         private static string DisplayRole(ProductionLinkRole role) =>
-            role == ProductionLinkRole.Fuel ? "Fuel Input" : role.ToString();
+            role == ProductionLinkRole.Fuel ? global::Runic.Localization.RunicText.Get("text_1ae97999da6c") : role.ToString();
 
         private static string GestureName(
             ProductionLinkMouseButton button,
@@ -2914,6 +3063,7 @@ namespace RunicProduction.Integration
 
         private static ProductionStationKind KindOf(Component station)
         {
+            if (station is Beehive) return ProductionStationKind.Beehive;
             if (station is Smelter) return ProductionStationKind.Smelter;
             if (station is CookingStation) return ProductionStationKind.Cooking;
             if (station is CraftingStation) return ProductionStationKind.Recipe;

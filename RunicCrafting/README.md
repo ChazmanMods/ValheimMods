@@ -1,148 +1,113 @@
-# Runic Crafting 1.1.0
+# Runic Crafting 1.1.7
 
-Your workshop already contains the wood, stone, metal, and components you need. Moving those materials from a nearby chest into your pockets—and back again—does not make crafting more meaningful; it makes the workshop feel disconnected from its own supplies.
+This release improves how Runic mods share chest supplies. No extra Runic mod is required. Update the server/host and participating clients together for the multiplayer improvements.
 
-**Runic Crafting lets crafting and building use eligible materials stored nearby.** It also improves requirement information, adds configurable workshop policies, supports carefully controlled stationless building, and provides Repair All.
+Craft and build using materials in nearby chests, without hauling every stack into your backpack first. Runic Crafting also adds clearer material counts, workshop access settings, cooking and refueling from chests, Repair All, and area repair.
 
-## Major features
+## Features
 
-- Craft recipes using carried materials first and nearby containers second.
-- Use nearby meat at cooking racks and fetch fuel for fires, refillable lights, ovens and smelters.
-- Build from eligible workshop storage without hauling every stack by hand.
-- See combined carried and nearby material availability.
-- Reuse verified chest material counts, share queries within menu refreshes, and briefly reuse UI availability answers to reduce repeated work in well-stocked bases. Crafting and placement still check fresh materials.
-- Configure who may use a station and who may use its nearby supplies.
-- Repair all eligible inventory equipment in one action.
-- Repair nearby hammer structures with a configurable hotkey, radius, and independent enable switch.
+- Craft and build using carried materials first, then accessible nearby storage.
+- See combined carried and nearby material counts, with a detailed breakdown on hover.
+- Browse crafting and building menus with less repeated work near large storage areas, including Show All.
+- Load cooking racks and ovens, and refuel supported fires, lights, ovens, and smelters from nearby chests.
+- Choose who can use a workshop and its stored materials.
+- Repair eligible tools, weapons, and armor with Repair All.
+- Repair nearby structures with a configurable shortcut.
 
-## How it feels in-game
+## Installation and settings
 
-Your workshop behaves like one connected workspace. You stock the room, approach the bench, and make what those real supplies allow instead of performing an inventory-transfer ritual before every recipe or wall section.
+Requires BepInExPack Valheim. Install Runic Crafting on each player's client and on the dedicated server or game host for cooperative chest access. Solo and multiplayer are supported.
 
-## Cooking and refueling from chests
+Settings are in `BepInEx/config/chazman.RunicCrafting.cfg`. You can also use Configuration Manager if installed. Changes apply without restarting.
 
-Press the object's normal **Use** button. When you are not carrying a suitable item, Runic Crafting
-fetches one accepted ingredient or fuel item from an eligible nearby chest and lets Valheim perform
-the normal action. No Production links or replenishment examples are needed.
+The nearby material range defaults to **20 meters**. Adjust `[Materials] RangeCapMeters` to change the maximum range. Crafting searches around the station; hammer building searches around your character. Required crafting stations must still be within reach.
 
-- Cooking racks/ovens use their native ingredient list. Finished food is collected first; fire and
-  free-slot checks remain in effect.
-- Fires use wood, resin-fueled standing/wall torches use resin, and other supported objects use
-  their own fuel definitions. Normal toggle and hold-repeat behavior is preserved.
-- Keep inventory space for one fetched item. If the native action declines before consuming it,
-  that item stays in your inventory; it is not automatically sent back or refunded after a network request.
-- This is manual loading, not background automation. Ordinary crafting at cauldrons/workbenches
-  still uses the recipe system. Smelter ore loading and handheld torches are not part of this feature.
+Pieces that normally need no station use the settings under `[Stationless Building]`. You can enable the feature separately, adjust its range, and choose which pieces may use nearby materials.
 
-Both features default on. Under `[Manual Interactions]`, configure `CookFromContainers`,
-`RefuelFromContainers`, and `RangeMeters` (default 20 metres around the object, limited by
-`[Materials] RangeCapMeters`). The master Enabled switch disables everything. Accessible chest,
-ward, personal-container, synchronization and item-protection checks still apply.
+## Materials and multiplayer
 
-Install RunicCrafting on each player's client, including a listen host. A dedicated server does
-not need RunicCrafting for this feature. RunicProduction may remain installed; its linked automation
-is independent, while these actions use the normal game interaction.
+Materials are consumed normally, and carried supplies take priority. Nearby chests must be loaded, within range, and accessible to you. Chests currently in use are excluded, and personal-chest and applicable ward restrictions still apply.
 
-## Safety and compatibility
+Browsing a menu does not remove materials. Crafting and placement check the available supplies again before spending them. If an operation fails, the mod restores materials when it can do so safely. If it cannot confirm what happened, it stops further use of the affected supplies for that session. Check the item counts and the log before continuing; restarting alone does not repair a failed transfer.
 
-Materials are still consumed normally. Containers must be loaded, accessible, synchronized, ward-allowed, and locally owned; uncertain containers are skipped. Crafting uses short local rollback scopes rather than global locks or persistent recovery systems. It is standalone, requires only BepInEx, and supports solo, listen-server, and dedicated-server clients under Valheim's native ownership rules.
+The displayed material counts can change when another player uses the same supplies. Having enough materials does not bypass station requirements, workshop permissions, or inventory capacity.
 
-## Material ownership
+## Cooking and refueling
 
-Crafting considers the local player's carried inventory first, then eligible nearby containers in
-stable distance and endpoint order. Recipe previews read synchronized inventory snapshots without
-taking chest ownership or changing contents. Consuming materials additionally requires current
-native ownership. Containers must be loaded, in range, not in use, and accessible to the player
-and ward. These checks apply in solo, listen-server, and dedicated-server client sessions.
+Use the object's normal **Use** button. If you are not carrying a suitable item, the mod fetches one accepted ingredient or fuel item from a nearby chest.
 
-An exact process-local lease removes the selected material stacks before Valheim creates the output.
-The lease commits after Valheim reports output or placement progress and rolls back if the action is
-cancelled or throws. The lease blocks only another Runic Crafting material allocation in the same
-process. Accessible unused chests can be claimed through Valheim's native ownership mechanism when
-another player owns the surrounding zone; synchronized busy chests remain excluded. It never locks
-unrelated inventory, tools, or other mods. There are no RPC sagas, persistent
-journals, join-time recovery checks, or cross-mod transaction records.
+- Cooking racks and ovens still need a free slot and any required fire. Finished food is collected first.
+- Fires and supported lights use their usual fuel, such as wood or resin.
+- Keep backpack space for one fetched item. If the object declines it, the item may remain in your backpack.
+- Smelter ore loading and handheld torches are not included.
 
-Carried-only actions stay on Valheim's normal path. Special one-ingredient recipes and no-cost mode
-also remain vanilla.
+Under `[Manual Interactions]`, use `CookFromContainers`, `RefuelFromContainers`, and `RangeMeters` to configure these features. Both default on. These are manual interactions; Runic Production's automation is separate.
 
-## Workshop Access
+## Workshop access
 
-Station Use and Local Material Use are separate policies stored in the existing station ZDO keys:
+Station use and permission to draw nearby materials can be configured independently. Both default to `everyone` for new configurations; existing restrictions are preserved.
 
-- `everyone`
-- `approved`
-- `owner`
-- `nobody`
-- `ward`
-- `ward.exceptions`
-- `group`
+Stand at a station and use `runiccrafting_access show` to inspect its settings. The station creator can use:
 
-Use `runiccrafting_access show` while standing at a station. The station owner may use:
-
-```
+```text
 runiccrafting_access station <policy>
 runiccrafting_access materials <policy>
 runiccrafting_access approve <playerId>
 runiccrafting_access unapprove <playerId>
-runiccrafting_access group <canonicalGroupUuid>
+runiccrafting_access group <groupId>
 ```
 
-New configurations default both policies to `everyone`. Existing configuration values and saved
-station restrictions are preserved. To open an existing workshop to shared materials, its creator
-can use `runiccrafting_access materials everyone`. For stations without a saved override, set
-`[Workshop Access] DefaultLocalMaterialUse = Everyone` in the mod configuration. Ward and personal
-chest restrictions still apply. Anyone can inspect the nearby station's policy with `show`;
-changing it still requires the station creator and current native ownership.
+Available policies: `everyone`, `approved`, `owner`, `nobody`, `ward`, `ward.exceptions`, and `group`.
 
-Group policy is an optional integration. When Runic Portals exposes the matching preserved group
-record, membership is evaluated through its public reflection seam. If that provider is absent or
-unavailable, a Group policy denies without preventing Crafting from loading.
+To allow shared supplies at an existing workshop, use `runiccrafting_access materials everyone`. For stations without a saved override, change `[Workshop Access] DefaultLocalMaterialUse`.
 
-## Building and UI
-
-Hammer building searches for chests around the player. Station-required pieces use
-`[Materials] RangeCapMeters`; the required station must still be nearby and permit access.
-Explicitly allowed stationless pieces use their configured player-local range, capped by
-`RangeCapMeters`. The preview, requirement rows, and placement use the same search origin and range.
-Requirement rows show combined available/required
-counts and put the carried, nearby, total, and missing breakdown in the tooltip.
-
-Placement costs are committed only after Valheim creates the piece or reaches its native consumption
-boundary. A rejected placement restores every earlier removal.
+Group access requires the optional Runic Portals group integration. If group membership cannot be checked, group access is denied. Ward and personal-chest restrictions still apply.
 
 ## Area repair
 
-Press **`;` (semicolon)** to repair damaged, loaded hammer-buildable structures within **50 meters**:
-walls, roofs, floors, fences, and other hammer pieces. No hammer needs to be equipped. This shortcut
-does **not** repair tools, weapons, or armor, and does not consume equipment durability or stamina.
-The existing inventory **Repair All** feature remains separate.
+Press **`;` (semicolon)** to repair damaged, loaded hammer-built structures within **50 meters**. No hammer needs to be equipped. This does not repair inventory equipment or consume equipment durability or stamina.
 
-In Configuration Manager (F1, if installed), open **Runic Crafting → Area Repair**:
+Under `[Area Repair]`:
 
-- **Enabled**: turn area repair on or off. Off ignores the hotkey and cancels queued repairs.
-- **Hotkey**: choose your preferred key or key combination; default `Semicolon`.
-- **RadiusMeters**: choose **1–100 meters**; default `50`. This is separate from chest range.
+- `Enabled`: turn area repair on or off.
+- `Hotkey`: change the shortcut; the default is `Semicolon`.
+- `RadiusMeters`: choose 1-100 meters. This is separate from the material search range.
 
-The same settings are in `[Area Repair]` in `chazman.RunicCrafting.cfg`.
-Repairs respect wards, personal-chest access, and the required station's coverage and workshop
-permissions at each structure. They use native networked repair requests without claiming ownership.
-Unloaded structures are not brought into memory. Work runs in small batches; stay near the starting
-spot until it finishes. Moving more than two meters, changing the radius, leaving the session, or
-disabling the feature cancels remaining work. The hotkey is ignored while typing or using menus.
+Repairs respect access restrictions and required crafting stations. Stay near your starting position while the repair finishes. Moving more than two meters, changing the radius, leaving the session, or disabling the feature cancels remaining repairs. The shortcut is ignored while typing or using menus.
 
-## Installation
+## Modded containers and ItemDrawers
 
-Install `RunicCrafting.dll` on each client that wants the features. Installing it on a dedicated
-server is harmless and keeps the mod list uniform, but the material feature acts only for a locally
-owned player and locally owned containers.
+Ordinary modded chests that use Valheim's standard inventories are supported automatically. Makail's original ItemDrawers is also supported and enabled by default:
 
-Configuration is in `BepInEx/config/chazman.RunicCrafting.cfg`. Changes apply at runtime.
+```ini
+[Modded Containers]
+PullPrefabIds = piece_drawer
+```
 
-For optional performance diagnostics, set `[Diagnostics] LogCacheStats = true` to log cache
-hits, chest loads, and source-query time every five seconds. Leave it off for normal play.
+This is Runic Crafting's own setting, independent of Runic Storage. If upgrading from 1.1.2 with a customized pull list in Runic Storage, copy that list into Runic Crafting's settings.
+
+Assign an item to a drawer in ItemDrawers before using it. Use exact prefab names separated by commas or semicolons; an empty list disables custom-container support. Adding a name does not make an otherwise unsupported storage mod compatible. Other drawer implementations, including KGvalheim's, are not covered by this integration.
+
+Runic Storage is only needed if you also want its QuickStack and Restock features.
+
+## Troubleshooting
+
+For support, visit the [Runic Mods Discord](https://discord.gg/7HKHTCdFqY).
+
+For performance reports, enable `[Diagnostics] LogCacheStats` and optionally `DetailedLogging`, reproduce the issue, and share your complete `BepInEx/LogOutput.log`. Leave these settings off during normal play.
+
+If you installed a separate Runic Crafting Lag Fix plugin, disable it when using this release so its patches do not overlap the built-in changes.
 
 ## Credits
 
-Thanks to **Megamos** and **Aedis** for their reports, testing, and optimization suggestions
-that helped improve crafting and building performance.
+Thank you to **Megamos** and **Aedis** for reports, testing, and earlier optimization suggestions, and to **Phoenixf** for profiling and reporting the crafting-completion and Show All performance issues.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicCrafting` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

@@ -18,7 +18,7 @@ namespace RunicCrafting.Integration
         internal CraftingInventorySnapshot(Inventory inventory)
         {
             _inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
-            _serialized = ValheimReflection.SaveInventory(inventory).GetBase64();
+            _serialized = ValheimReflection.Fingerprint(inventory);
             _originals = new List<ItemData>(inventory.GetAllItems());
             foreach (ItemData item in _originals) _copies.Add(item.Clone());
             CreateShadow(); // Verify the snapshot before any live mutation.
@@ -51,7 +51,7 @@ namespace RunicCrafting.Integration
 
         internal void Verify(Inventory inventory)
         {
-            if (!string.Equals(ValheimReflection.SaveInventory(inventory).GetBase64(),
+            if (!string.Equals(ValheimReflection.Fingerprint(inventory),
                     _serialized, StringComparison.Ordinal))
                 throw new InvalidOperationException("The exact in-memory Crafting snapshot changed.");
         }

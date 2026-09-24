@@ -16,7 +16,7 @@ namespace RunicAgriculture
     {
         public const string Guid = "chazman.RunicAgriculture";
         public const string Name = "Runic Agriculture";
-        public const string Version = "1.0.3";
+        public const string Version = "1.0.5";
         public const string ModuleId = "runic.agriculture";
         public const string ProtocolVersion = "1.0";
 

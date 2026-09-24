@@ -324,7 +324,7 @@ namespace RunicStorage.Engine
         internal static string NormalizeDisplayLabel(string value, string fallback)
         {
             string source = string.IsNullOrEmpty(value) ? fallback : value;
-            if (string.IsNullOrEmpty(source)) return "Item";
+            if (string.IsNullOrEmpty(source)) return global::Runic.Localization.RunicText.Get("text_652bcc3a4784");
             int inspectionLimit = Math.Min(
                 source.Length,
                 MaximumDisplaySourceInspectionCharacters);
@@ -355,7 +355,7 @@ namespace RunicStorage.Engine
             if (builder.Length != 0) return builder.ToString();
             return !ReferenceEquals(source, fallback)
                 ? NormalizeDisplayLabel(fallback, null)
-                : "Item";
+                : global::Runic.Localization.RunicText.Get("text_652bcc3a4784");
         }
     }
 
@@ -386,7 +386,7 @@ namespace RunicStorage.Engine
 
     internal static class ContainerHoverSummaryFormatter
     {
-        private const string Header = "\n<color=#D8C48A>Contents:</color> ";
+        private static string Header => "\n<color=#D8C48A>Contents:</color> ";
 
         internal static string Format(
             IReadOnlyList<HoverContentEntry> entries,
@@ -407,7 +407,7 @@ namespace RunicStorage.Engine
             builder.Append(Header);
             if (aggregates.Count == 0 && unscannedStacks == 0)
             {
-                builder.Append("Empty");
+                builder.Append(global::Runic.Localization.RunicText.Get("text_c6c094bc0054"));
                 return builder.ToString();
             }
 
@@ -489,19 +489,19 @@ namespace RunicStorage.Engine
         private static string OmissionMarker(int omittedKinds, int unscannedStacks)
         {
             if (unscannedStacks == 0)
-                return "+" + omittedKinds.ToString(CultureInfo.InvariantCulture) + " more";
+                return "+" + omittedKinds.ToString(CultureInfo.InvariantCulture) + global::Runic.Localization.RunicText.Get("text_226ba18bbcdb");
             if (omittedKinds == 0)
-                return "+" + unscannedStacks.ToString(CultureInfo.InvariantCulture) + " unscanned stacks";
-            return "+" + omittedKinds.ToString(CultureInfo.InvariantCulture) + " more kinds; " +
-                   unscannedStacks.ToString(CultureInfo.InvariantCulture) + " unscanned stacks";
+                return "+" + unscannedStacks.ToString(CultureInfo.InvariantCulture) + global::Runic.Localization.RunicText.Get("text_84288fd517ed");
+            return "+" + omittedKinds.ToString(CultureInfo.InvariantCulture) + global::Runic.Localization.RunicText.Get("text_e9fc7213d23a") +
+                   unscannedStacks.ToString(CultureInfo.InvariantCulture) + global::Runic.Localization.RunicText.Get("text_84288fd517ed");
         }
 
         private static string CompactOmissionMarker(int omittedKinds, int unscannedStacks)
         {
             if (unscannedStacks == 0)
-                return "+" + omittedKinds.ToString(CultureInfo.InvariantCulture) + " more";
+                return "+" + omittedKinds.ToString(CultureInfo.InvariantCulture) + global::Runic.Localization.RunicText.Get("text_226ba18bbcdb");
             if (omittedKinds == 0)
-                return "+" + unscannedStacks.ToString(CultureInfo.InvariantCulture) + " stacks";
+                return "+" + unscannedStacks.ToString(CultureInfo.InvariantCulture) + global::Runic.Localization.RunicText.Get("text_e742d5b3f031");
             return "+" + omittedKinds.ToString(CultureInfo.InvariantCulture) + "k/+" +
                    unscannedStacks.ToString(CultureInfo.InvariantCulture) + "s";
         }

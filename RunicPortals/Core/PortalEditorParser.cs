@@ -57,7 +57,7 @@ namespace RunicPortals.Core
             if (!RequiresActiveGroup)
                 return this;
             if (!GroupIdentity.IsCanonicalId(groupId))
-                return Invalid("Select a Runic Group in chat before configuring a Group portal.");
+                return Invalid(global::Runic.Localization.RunicText.Get("text_21787a6f77a6"));
             return new PortalEditCommand(
                 Kind,
                 NetworkId,
@@ -122,12 +122,12 @@ namespace RunicPortals.Core
                 if (networkKind != PortalNetworkKind.Public &&
                     networkKind != PortalNetworkKind.Personal &&
                     networkKind != PortalNetworkKind.Group)
-                    return Invalid("Access must be Public, Private, or Group.");
+                    return Invalid(global::Runic.Localization.RunicText.Get("text_c3b6779ef640"));
                 if (!acceptsArrival && !permitsDeparture)
-                    return Invalid("Choose Both, Arrivals only, or Departures only.");
-                ValidateRawEditorText(networkId, "Network names");
-                ValidateRawEditorText(displayName, "Portal names");
-                ValidateRawEditorText(groupId, "Group selections");
+                    return Invalid(global::Runic.Localization.RunicText.Get("text_63a8e2a4e548"));
+                ValidateRawEditorText(networkId, global::Runic.Localization.RunicText.Get("text_7e748bcfc2a6"));
+                ValidateRawEditorText(displayName, global::Runic.Localization.RunicText.Get("text_c96e533e4059"));
+                ValidateRawEditorText(groupId, global::Runic.Localization.RunicText.Get("text_145d94865974"));
                 string network = PortalText.Require(
                     networkId,
                     PortalContractLimits.MaximumNetworkIdLength,
@@ -137,17 +137,17 @@ namespace RunicPortals.Core
                     PortalContractLimits.MaximumNameLength,
                     nameof(displayName));
                 if (network.IndexOf('|') >= 0 || name.IndexOf('|') >= 0)
-                    return Invalid("Network and portal names cannot contain the | character.");
+                    return Invalid(global::Runic.Localization.RunicText.Get("text_4495d5624170"));
                 string group = (groupId ?? string.Empty).Trim();
                 if (networkKind == PortalNetworkKind.Group)
                 {
                     if (group.Length == 0 && !allowActiveGroupFallback ||
                         group.Length != 0 && !GroupIdentity.IsCanonicalId(group))
-                        return Invalid("Choose one of your current Runic Groups.");
+                        return Invalid(global::Runic.Localization.RunicText.Get("text_fdb905e61a1d"));
                 }
                 else if (group.Length != 0)
                 {
-                    return Invalid("Only Group access may include a Group.");
+                    return Invalid(global::Runic.Localization.RunicText.Get("text_4db03bf329a3"));
                 }
                 return new PortalEditCommand(
                     PortalEditKind.PublicNetwork,
@@ -180,7 +180,7 @@ namespace RunicPortals.Core
             if (normalized.Length == 0 || normalized.Length > 256)
                 return Invalid(Usage());
             for (int index = 0; index < normalized.Length; index++)
-                if (char.IsControl(normalized[index])) return Invalid("Control characters are not allowed.");
+                if (char.IsControl(normalized[index])) return Invalid(global::Runic.Localization.RunicText.Get("text_27b9975ce3fa"));
             string[] parts = normalized.Split('|');
             if (parts.Length < 4 || !string.Equals(parts[0].Trim(), "network",
                     StringComparison.OrdinalIgnoreCase))
@@ -212,7 +212,7 @@ namespace RunicPortals.Core
                     kind = PortalNetworkKind.Group;
                     groupId = parts[2].Trim();
                     if (!GroupIdentity.IsCanonicalId(groupId))
-                        return Invalid("Group portals require the exact lowercase 32-character Group UUID.");
+                        return Invalid(global::Runic.Localization.RunicText.Get("text_f8715ee3ec1e"));
                     networkIndex = 3;
                     nameIndex = 4;
                     directionIndex = 5;
@@ -239,7 +239,7 @@ namespace RunicPortals.Core
                     arrive = false;
                     depart = true;
                 }
-                else return Invalid("Direction must be both, arrive, or depart.");
+                else return Invalid(global::Runic.Localization.RunicText.Get("text_811da12dda2c"));
                 return CreateNetwork(
                     parts[networkIndex],
                     parts[nameIndex],
@@ -274,7 +274,7 @@ namespace RunicPortals.Core
         private static PortalEditCommand Invalid(string error) =>
             new PortalEditCommand(PortalEditKind.Invalid, string.Empty, string.Empty,
                 PortalNetworkKind.Custom, string.Empty, false, false, false, string.Empty,
-                error ?? "Invalid portal command.");
+                error ?? global::Runic.Localization.RunicText.Get("text_3c1eef2a9d4d"));
 
         private static string NormalizeVanillaTag(string value)
         {
@@ -301,15 +301,15 @@ namespace RunicPortals.Core
         private static string EditorError(ArgumentException exception)
         {
             if (exception is ArgumentOutOfRangeException)
-                return "Network and portal names can contain at most 64 characters.";
+                return global::Runic.Localization.RunicText.Get("text_3a7b1bd4e0ef");
             return exception.Message.StartsWith("A value is required", StringComparison.Ordinal)
-                ? "Enter both a network name and a portal name."
+                ? global::Runic.Localization.RunicText.Get("text_4b5f13b744bb")
                 : exception.Message;
         }
 
         private static string Usage() =>
-            "Use network|NETWORK|NAME|DIRECTION, network|public|NETWORK|NAME|DIRECTION, " +
-            "network|private|NETWORK|NAME|DIRECTION, " +
-            "network|group|NETWORK|NAME|DIRECTION, or standard. Select the Group in chat first.";
+            global::Runic.Localization.RunicText.Get("text_9f9dce2d4414") +
+            global::Runic.Localization.RunicText.Get("text_dfce8ba125a4") +
+            global::Runic.Localization.RunicText.Get("text_977cf91f5bdb");
     }
 }

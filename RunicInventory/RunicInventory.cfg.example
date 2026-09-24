@@ -32,6 +32,8 @@ Rows = 1,2
 
 ## Primary lock gesture: hold Left Alt and right-click a player-inventory slot. This shortcut is an
 ## optional fallback for the currently focused slot.
+## Locks exclude the cell from Runic Quick Stack (Alt+Q) only. Stacking, use, swaps, sorting,
+## Store All, Restock, dropping, and processing remain available. Update RunicStorage to 1.2.5+.
 UseQuickSlot1 = Alpha1 + LeftAlt
 UseQuickSlot2 = Alpha2 + LeftAlt
 UseQuickSlot3 = Alpha3 + LeftAlt

@@ -1,4 +1,15 @@
-# Runic Production 1.0.7
+# Runic Production 1.0.15
+
+This release improves how Runic mods share chest supplies. No extra Runic mod is required. Update the server/host and participating clients together for the multiplayer improvements.
+
+## Fermenter fix in 1.0.12
+
+Fixes automatic input consuming a mead base while the fermenter displays **Empty** on current Valheim.
+New batches use the game's native content format. Existing fermenters with stranded old-format
+contents pause to avoid consuming another base and may need batch recovery; this update does not
+automatically recover those batches. Update the server/host and all participating clients together.
+
+Automated stations retain their native action sounds, including when linked chests carry items onward through production chains. Kilns and smelters play loading, fueling, and output effects; cooking stations and ovens play loading, fueling, and collection effects; fermenters play filling, tapping, and output effects; automated crafting plays the station's crafting effects. Fires, torches, and lamps retain native refueling sounds. Normal cooking-done, burning, and ambient effects remain controlled by the game.
 
 Automate your base without replacing Valheim's machines. Link chests to smelters, ovens,
 fermenters, production stations, fires, and lamps for automatic ingredients, fuel, output
@@ -21,12 +32,27 @@ chest keep it running, and an output chest supply the next stage of your product
 ## Safety and compatibility
 
 Runic Production keeps Valheim's normal station state and container inventories as the gameplay
-owners of that data. The mod is independently installable; its only runtime requirement is
-BepInExPack Valheim 5.4.2350, with no shared Runic library required.
+owners of that data. Install BepInExPack Valheim 5.4.2350 only.
+Storage and Crafting are optional gameplay mods.
 
 For multiplayer, install the same version on the server/host and every player's client. Existing
 links remain in place; the player who configured them does not need to remain nearby or online.
 Keep Production enabled on the machines participating in the session.
+
+## Beehives and cooking experience
+
+Link a beehive to an Output chest with **Alt+Right Mouse** on the hive, then the
+same gesture on the chest. Honey is collected only after the bees produce it normally.
+Biome, space requirements, production timing, and world resource scaling stay native.
+If no linked chest can hold the complete harvest, the honey stays in the hive.
+
+Automated ovens and cooking stations grant the native Cooking XP: **0.4 per item
+loaded** to the Input or Replenishment link's configuring player, and **0.6 per item
+collected** to the selected Output or Replenishment link's configuring player.
+XP is granted only after a successful transfer, including native burnt-item collection.
+The player must be online; XP is sent to their client even when the server or another
+player owns the station. Offline production continues without banking XP. This does
+not add skill-based bonus yields.
 
 ## Supported links
 
@@ -36,6 +62,7 @@ Keep Production enabled on the machines participating in the session.
 | Cooking station / oven | Yes | When fuelled | Yes | Yes |
 | Allowed recipe station | Yes | No | Yes | Yes |
 | Fermenter | Yes | No | Yes | Yes |
+| Beehive | No | No | Yes | No |
 | Refillable fire or lamp | No | Yes | No | No |
 
 Input supplies exact accepted ingredients while preserving configured reserves. Fuel Input is a
@@ -119,7 +146,7 @@ at least one matching exemplar.
 
 `Recipe Nearby Ingredients.Enabled=true` is the default. Recipe, cooking, and fermenter
 replenishment may draw from bounded loaded nearby static chests; direct recipes combine split
-ingredients into one exact atomic source plan. Setting it false confines ingredients to linked
+ingredients into one combined ingredient plan. Setting it false confines ingredients to linked
 Input chests. Every donor must be locally owned, accessible, ward-allowed, outside the station's
 Output, Replenishment, and legacy Fuel destination sets (unless explicitly linked as Input), and inside the link range. Search is
 bounded to 64 candidates and aborts rather than using a truncated result. Reserves are enforced
@@ -133,15 +160,14 @@ Repeat Alt+Middle Mouse on the station and then the chest for multiple exemplar
 chests; the bounded catalog chooses a
 matching destination fairly.
 
-The stock scheduler services each loaded station at most once per quantum and applies the global
-operation cap. Unloaded time never creates catch-up recipe batches or fuel service.
+Production spreads its work across updates and checks idle or blocked stations less often. Unloaded stations do not produce catch-up batches or receive fuel service.
 
 ## Ownership and failure behavior
 
 Any player with normal chest and ward access can create or remove Production links; being the
 builder, an administrator, or the existing network owner is not required. Select the station,
 then repeat the matching gesture on a closed chest within range. Completing the link uses native
-ownership claims for that selected station and chest, rechecks access, and reloads the chest's
+ownership for that selected station and cooperative chest handoff, rechecks access, and reloads the chest's
 saved contents before publishing the link. Selecting a station alone does not claim it.
 
 Background production follows the station's current network owner. When its linked chests belong
@@ -151,40 +177,23 @@ Shared chests are serviced in turn. Open chests are left alone and service resum
 Unloaded stations do not run automation; a loaded station may also pause while access is denied or
 its chest is unavailable. No new link setup is needed after a normal ownership handoff.
 
-Ordinary transfers have no persistent operation journal, global inventory lock, account state, or
-recovery loop. A multi-object mutation uses exact before/after snapshots, publishes each chest's
-native persisted inventory, and proves either the full committed state or an exact rollback before
-trying anything else. If Valheim cannot prove either result, automation pauses only that station
-for the current session and suppresses a duplicate retry or vanilla output; reload to resume from
-Valheim's persisted chest state. No unrelated inventory, tool, station, player, or mod is blocked.
+If a transfer fails, Production restores items only when it can do so safely. If it cannot confirm the result, it pauses the station and blocks further Runic transfers involving the affected storage for that session. Inspect the item counts and include the log in a support report. Restarting alone does not repair a failed transfer.
 
-For Replenishment, the exact authorized player identity is stored in an inert plan before the role
-link becomes authoritative, including when the chest is empty. A failed plan or role publication
-does not report a successful link. Signed plan bodies without an exact current Replenishment role
-link remain inert and are neither displayed nor consumed by automation.
-
-Actual feature data remains persistent: explicit links, the bounded Replenishment catalog, signed
-target definitions, and fairness cursors stay in the established `runic.production.*` world keys.
-Existing stable container token keys are preserved. Valid earlier singleton links and plans migrate
-to the catalog when their records agree exactly. A tokenless singleton target may be upgraded only
-when its one exact legacy chest is loaded and locally owned; old tokenless catalog destinations
-require an explicit player refresh. Invalid or ambiguous records pause without guessing or deleting
-the relation.
+Existing links and stock targets are preserved. If an older or damaged link cannot be read safely, automation pauses rather than guessing; review and recreate the affected link if needed.
 
 ## Multiplayer, configuration, and installation
 
-There is no Runic protocol handshake. Install this DLL on each process expected to automate
-objects, and keep gameplay configuration consistent across the server and participating clients.
-A peer without Runic Production does not prevent other Runic gameplay mods from loading; it simply
-does not run Production logic for objects that peer owns.
+If a station stops delivering to storage after a player leaves, check its hover status and the server log. Production may be waiting for the station or chest to become available again. Finished smelter items can drop on the ground instead; collect them. Rebuilding the affected station and relinking its chests has helped in a reported case, but is not a guaranteed fix.
+
+Install the same version on the server/host and participating clients. Keep gameplay settings consistent between them.
 
 Configuration is generated at `BepInEx/config/chazman.RunicProduction.cfg`. The example file
 documents link distance, moved-target tolerance, reserves, exact prefab allow/deny lists, optional
-nearby discovery, the single per-role chest limit, scheduler bounds, UI hints, and diagnostics. Deny entries override
+nearby discovery, linked-chest limits, scheduler bounds, UI hints, and diagnostics. Deny entries override
 allow entries. Lowering a bound does not erase existing links.
 
 Install BepInExPack Valheim 5.4.2350, then place `RunicProduction.dll` under
-`BepInEx/plugins/RunicProduction/`. Version 1.0.6 supports Valheim 1.0.7 and 1.0.12.
+`BepInEx/plugins/RunicProduction/`. Version 1.0.14 passed testing on the author's dedicated server.
 
 When updating manually, replace the existing DLL instead of keeping multiple copies. Restart
 Valheim after updating; existing configuration and saved links are retained.
@@ -192,3 +201,28 @@ Valheim after updating; existing configuration and saved links are retained.
 Community: [Runic Mods Discord](https://discord.gg/7HKHTCdFqY)
 
 Runic Production is an independent mod and is not affiliated with Iron Gate Studio.
+
+## Custom containers and Makail ItemDrawers
+
+RunicProduction has its own container compatibility list in `BepInEx/config/chazman.RunicProduction.cfg`, independent of RunicStorage and RunicCrafting:
+
+```ini
+[Modded Containers]
+AllowedPrefabIds = piece_drawer
+```
+
+Use exact internal container prefab IDs, separated by commas or semicolons. `piece_drawer` enables the included adapter for Makail ItemDrawers 0.5.8. The list applies to Input, Fuel Input, Output, Replenishment, and nearby ingredient discovery. A blank list disables custom adapters. Ordinary modded containers using Valheim's native Container inventory/save format already work automatically. Other custom save formats require an adapter; listing a name alone does not implement one. No ItemDrawers installation is required when using ordinary containers.
+
+Assign an item to each drawer through ItemDrawers before linking it. Assigned drawers remain usable at zero quantity for Input/Fuel/Output; unassigned drawers are skipped. Link them using the existing station-to-container workflow. Ingredient/fuel reserves, range, access, ownership, stock targets and full-container handling still apply. Drawer quantities use its actual capacity, while transfers onward to ordinary chests use normal stack limits. Replenishment still requires a physical exemplar; leave at least one item in its destination.
+
+ItemDrawers saves only item type and count. Production refuses outputs carrying crafter attribution, custom data, quality/variant changes, cheated flags or other metadata the drawer cannot retain. In particular, direct recipe replenishment creates attributed items and therefore needs an ordinary destination chest; drawers can still supply its ingredients. Plain smelter, cooking, fermenter and beehive outputs can use matching assigned drawers.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicProduction` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

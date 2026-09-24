@@ -25,4 +25,10 @@
     <Reference Include="UnityEngine.UIModule" HintPath="$(GAME_MANAGED)\UnityEngine.UIModule.dll" Private="false" />
     <Reference Include="Unity.TextMeshPro" HintPath="$(GAME_MANAGED)\Unity.TextMeshPro.dll" Private="false" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Translations/RunicCharacterVault/English.json" LogicalName="Runic.Localization.English.json" />
+    <None Update="Translations/**/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup><Reference Include="assembly_guiutils" HintPath="$(GAME_MANAGED)/assembly_guiutils.dll" Private="false" /></ItemGroup>
 </Project>

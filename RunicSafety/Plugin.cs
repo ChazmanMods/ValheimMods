@@ -12,7 +12,7 @@ namespace RunicSafety
     {
         public const string Guid = "chazman.RunicSafety";
         public const string Name = "Runic Safety";
-        public const string Version = "1.0.5";
+        public const string Version = "1.0.9";
         public const string ModuleId = "runic.safety";
         public const string ProtocolVersion = "1.0";
 
@@ -46,7 +46,7 @@ namespace RunicSafety
 
                 Logger.LogInfo(
                     Name + " v" + Version + " ready for Valheim " +
-                    ValheimContracts.AuditedGameVersion + ". Confirmations, protected destinations, " +
+                    ValheimContracts.ReadGameVersion() + ". Confirmations, protected destinations, " +
                     "vanilla tombstone audits, and migration backups are standalone.");
             }
             catch (Exception exception)

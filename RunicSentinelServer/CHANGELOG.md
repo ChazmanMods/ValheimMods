@@ -1,3 +1,28 @@
+## 1.2.0
+- Integrated Server Devcommands 1.109 command and feature baseline into Sentinel; no separate Server Devcommands plugin is required.
+- Added status-effect duration and intensity, command aliases/chains/waits, bindings, parameter autocomplete, command permissions and gameplay options.
+- Preserved Sentinel backend administrator checks and connection-bound command requests; expanded chains authorize each executable command separately.
+- Adapted Valheim 1.0 API changes; YAML configuration support is embedded in the shipped DLL.
+- Command configuration files use RunicSentinel-prefixed names. Automatic devcommands is available but defaults off.
+
+## 1.1.6
+
+- Add selected-player actions through a bounded, exact-server/character RPC receiver: raise/reset skills, heal, clear food/status, adrenaline and registered status effects.
+- Preserve affected-player cheat confirmation, reject replays and show acknowledged completion or failure.
+
+## 1.1.5
+
+- Repair the player roster transport with Valheim's bundled JSON serializer.
+- Add authenticated native administrator/ban file changes, exact-peer kicking, file backups and role-source visibility.
+- Add actual server/world metadata and recent enforcement findings.
+- Generate distinct readable health/network reports and authenticated chunked downloads.
+
+## 1.1.3
+
+- Added server authorization for the F3 command dashboard, named server mod metadata, and administrator-only player reports.
+- Added Server Devcommands as an installation dependency. Provider permissions remain required.
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
 
 ## 1.1.2 - 2026-09-14
@@ -40,12 +65,13 @@
 
 - Added a distinct gold-and-ember authority icon with a fortified server-network badge.
 - Added a distinct authority-only Sentinel package for dedicated servers and listen hosts.
-- Reused the full Sentinel policy, admission, enforcement, identity, backup, reporting, and
-  administrator-backend source at compile time without adding a shared runtime DLL.
-- Compiled out client profile reporting, client challenge/decision handling, native client-handshake
-  resume, the F3 administrator GUI, cursor control, and player-input patches.
+
 - Added earliest-role preparation, exact authoritative-network lifetime tracking, and permanent
   Required-mode world-load and native-admission gates for authority-start failures; accidental
   player-only installations remain inert.
 - Kept the v2 direct admission wire name compatible with Runic Sentinel Client and full Sentinel.
 - Made the server-only and full authority packages mutually incompatible.
+
+## Authority package boundary
+
+- Compiled out client profile reporting and administrator GUI code; the dedicated package only contains authority-side handlers.

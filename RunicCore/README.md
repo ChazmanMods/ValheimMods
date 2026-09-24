@@ -262,3 +262,13 @@ Questions, compatibility reports, and feature discussion are welcome in the Chaz
 
 Created by **Chazman**. Runic Core is an independent mod and is not affiliated with Iron Gate
 Studio.
+
+## Support Chazman's Mods
+
+If you enjoy my Valheim mods and want to support continued development, testing, multiplayer compatibility, and new projects, I would appreciate it.
+
+Support is completely optional. Playing the mods, reporting bugs, sharing feedback, and recommending them to other players helps just as much.
+
+Thanks for supporting Chazman's Mods and the continued development of RunicSuite, ArcaneDecor, and other projects!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

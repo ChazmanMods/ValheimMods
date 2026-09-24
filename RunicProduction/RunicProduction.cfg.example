@@ -1,4 +1,4 @@
-## Runic Production 1.0.7 example configuration
+## Runic Production 1.0.11 example configuration
 ## Copy to BepInEx/config/chazman.RunicProduction.cfg while Valheim is closed.
 ## Each process applies its local values to exact objects it currently owns.
 
@@ -170,3 +170,16 @@ ShowControlHints = true
 # Setting type: Boolean
 # Default value: false
 VerboseLogging = false
+
+
+[Modded Containers]
+
+## Independent Production allow list for supported custom-storage adapters in all roles.
+## Exact internal container prefab IDs; comma/semicolon-separated. Blank disables custom adapters.
+## Makail ItemDrawers: piece_drawer. Ordinary native-format containers work automatically.
+AllowedPrefabIds = piece_drawer
+
+# Safety update: [Stock Scheduler] additionally supports:
+# MaximumExaminationsPerQuantum = 128
+# MaximumMillisecondsPerQuantum = 4
+# Blocked/idle stations back off up to 10 seconds. Active mutations finish before yielding.

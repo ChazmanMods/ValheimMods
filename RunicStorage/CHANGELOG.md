@@ -1,4 +1,51 @@
+## 1.3.7
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
+
+## 1.3.6 - 2026-09-23
+
+- Improve coordination with Crafting and Production when they use the same chests.
+- Wait for chest contents to synchronize before moving items; busy or unavailable chests are skipped.
+- Handle interrupted transfers more carefully so recovery does not overwrite unrelated inventory changes. Stop using affected storage when a failed transfer needs inspection.
+- Preserve an ItemDrawer's assigned item after withdrawing the final item.
+- Keep existing chest rules, labels, protected-item settings and normal controls.
+- No extra Runic mod is required.
+## 1.3.4 - 2026-09-19
+
+- Fix QuickStack refusing spawned items in Makail ItemDrawers. Deposits now follow ItemDrawers' native type/count behavior for picked-up and spawned flags; custom item data, quality, crafter attribution and other incompatible attributes remain protected.
+- Report unsupported drawer item data separately from full capacity, including when another matching chest is full.
+
+## 1.3.3 - 2026-09-19
+
+- Added Wrap around container in the Bend window for barrel and other rounded side labels. The earlier bow left the endpoints on a flat plane; wrapping anchors the middle and turns the ends around the container.
+- Default wrap fits the container bounds at adjustment 0. Minus/plus make small one-percent changes to curvature, with decimal input for finer control. Up/down bending remains available.
+- Persist wrapping in version-5 chest rules; preserve older flat labels, version-4 bends and routing rules. Reset restores a flat label.
+- Correct the startup log to report the actual plugin version. Retains ItemDrawers compatibility and the existing fine bend controls.
+
+## 1.3.2 - 2026-09-19
+
+- Added independent up/down and forward/backward chest-label bends under Quick Stack Rules > Bend, with minus/plus buttons, decimal fields and Reset bends.
+- Bend controls use fine units: 1 is the previous RunicSigns 0.01 coefficient. Each button click changes by one fine unit. Glyphs and bundled emojis curve together on every chest face and lid.
+- Keep backward-curved text in front of its own label backing. Version-4 chest rules persist both bends; existing version-1/2/3 labels stay flat with their routing rules intact.
+
+## 1.3.1 - 2026-09-19
+
+- Added configurable ItemDrawers support for QuickStack and Restock. Shared pull configuration also controls RunicCrafting.
+- Preserve drawer capacity, normal backpack stack limits, access checks, protected slots and transfer rollback. Reject deposit metadata the drawer cannot save.
+
+## 1.3.0 - 2026-09-16
+
+- Preserved Quick Stack-only locked-slot protection with RunicInventory 1.1.6.
+- Add a 64-emoji picker with Food, Materials, Equipment and Places categories.
+- Render bundled full-color emojis in the editor and world labels without extra dependencies or runtime downloads.
+- Preserve Unicode in the existing save format, guard insertion limits, and avoid broken surrogate pairs.
+
+## 1.2.5 - 2026-09-14
+
+- Added the Quick Stack-specific protection query for RunicInventory 1.1.6. Player Locked Slots apply only to Alt+Q; Store All, Restock, and consolidation use the general protection view.
+- Retained the legacy protection query when paired with older RunicInventory versions. Update both mods together for Quick Stack-only slot exclusions.
 
 ## 1.2.4 - 2026-09-14
 
@@ -20,7 +67,6 @@
 - Fixed movement while editing Rules or Search. Valheim's PlayerController.TakeInput path is now blocked as well as Player.TakeInput, and controls sampled before the panel opens are neutralized.
 - Fixed typed letters triggering Use, movement bindings or other ZInput keyboard shortcuts behind the editor. Text and pointer input still reach the UI; Escape/controller Cancel remain available.
 - Blocked camera wheel zoom, mouse look, stick input and camera action buttons while a Storage editor is open. Camera input is masked only while camera code is running, so UI scrolling remains available. Closing frames are consumed before gameplay resumes.
-- Added a shared input-guard source for reuse by other Runic editors, plus executable HarmonyX regressions and installed-game signature checks. This release connects the guard to RunicStorage Rules and Search.
 
 ## 1.2.1 - 2026-09-14
 
@@ -72,8 +118,6 @@
 ## 1.0.3 - 2026-09-09
 
 - Updated split-dialog, item insertion, inventory notification, and exact metadata comparison paths for Valheim 1.0.
-- Re-audited the installed Valheim 1.0.7 client and dedicated-server assemblies and updated the BepInEx dependency to 5.4.2350.
-
 ## 1.0.2 - 2026-09-05
 
 - Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
@@ -125,5 +169,3 @@
   nearby chests, and allowed both Search and Restock to route while inventory/chest UI is open.
 - Corrected open-chest mutation ownership selection and carried-item protection proof so Alt+A,
   Alt+C, and Alt+R do not fail solely because Valheim returned a fresh list wrapper.
-- Replaced obsolete protocol tests with focused standalone, ownership, planner, routing, hover,
-  and architecture regressions.

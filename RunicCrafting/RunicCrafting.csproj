@@ -13,6 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\ModdedContainerCompatibility.cs" Link="Shared\ModdedContainerCompatibility.cs" />
     <Compile Remove="Tests\**\*.cs" />
     <None Remove="Tests\**\*" />
   </ItemGroup>
@@ -29,5 +30,11 @@
     <Reference Include="UnityEngine.UI" HintPath="$(GAME_MANAGED)\UnityEngine.UI.dll" Private="false" />
     <Reference Include="Unity.TextMeshPro" HintPath="$(GAME_MANAGED)\Unity.TextMeshPro.dll" Private="false" />
     <Reference Include="System.Net.Http" HintPath="$(GAME_MANAGED)\System.Net.Http.dll" Private="false" />
+  </ItemGroup>
+  <ItemGroup><Compile Include="..\Shared\InventorySafety\*.cs" Link="InventorySafety\%(Filename)%(Extension)" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Translations/RunicCrafting/English.json" LogicalName="Runic.Localization.English.json" />
+    <None Update="Translations/**/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

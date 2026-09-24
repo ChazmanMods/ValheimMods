@@ -196,22 +196,22 @@ namespace RunicAgriculture.Integration
             if (string.IsNullOrWhiteSpace(path)) return fallback;
             string normalized = path.Trim().Replace('\\', '/');
             string lower = normalized.ToLowerInvariant();
-            if (lower.EndsWith("/buttonsouth", StringComparison.Ordinal)) return "A / Cross";
-            if (lower.EndsWith("/buttoneast", StringComparison.Ordinal)) return "B / Circle";
-            if (lower.EndsWith("/buttonwest", StringComparison.Ordinal)) return "X / Square";
-            if (lower.EndsWith("/buttonnorth", StringComparison.Ordinal)) return "Y / Triangle";
-            if (lower.EndsWith("/leftshoulder", StringComparison.Ordinal)) return "LB / L1";
-            if (lower.EndsWith("/rightshoulder", StringComparison.Ordinal)) return "RB / R1";
-            if (lower.EndsWith("/lefttrigger", StringComparison.Ordinal)) return "LT / L2";
-            if (lower.EndsWith("/righttrigger", StringComparison.Ordinal)) return "RT / R2";
-            if (lower.EndsWith("/leftstickpress", StringComparison.Ordinal)) return "LS / L3";
-            if (lower.EndsWith("/rightstickpress", StringComparison.Ordinal)) return "RS / R3";
-            if (lower.EndsWith("/dpad/up", StringComparison.Ordinal)) return "D-pad Up";
-            if (lower.EndsWith("/dpad/down", StringComparison.Ordinal)) return "D-pad Down";
-            if (lower.EndsWith("/dpad/left", StringComparison.Ordinal)) return "D-pad Left";
-            if (lower.EndsWith("/dpad/right", StringComparison.Ordinal)) return "D-pad Right";
-            if (lower.EndsWith("/start", StringComparison.Ordinal)) return "Menu / Options";
-            if (lower.EndsWith("/select", StringComparison.Ordinal)) return "View / Share";
+            if (lower.EndsWith("/buttonsouth", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_b81cc6f28763");
+            if (lower.EndsWith("/buttoneast", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_7df3fba69cfe");
+            if (lower.EndsWith("/buttonwest", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_9affb90082db");
+            if (lower.EndsWith("/buttonnorth", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_7c3f8373297f");
+            if (lower.EndsWith("/leftshoulder", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_056a789f13d6");
+            if (lower.EndsWith("/rightshoulder", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_5dc809519564");
+            if (lower.EndsWith("/lefttrigger", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_b32623c3cbec");
+            if (lower.EndsWith("/righttrigger", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_b4a4bae77812");
+            if (lower.EndsWith("/leftstickpress", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_3c1817d8b64c");
+            if (lower.EndsWith("/rightstickpress", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_ec9d76d1eaab");
+            if (lower.EndsWith("/dpad/up", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_1f85615c359b");
+            if (lower.EndsWith("/dpad/down", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_6e47237e9353");
+            if (lower.EndsWith("/dpad/left", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_321cd19f454a");
+            if (lower.EndsWith("/dpad/right", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_89cbe5b197bb");
+            if (lower.EndsWith("/start", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_ed078579d5a0");
+            if (lower.EndsWith("/select", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_0b2e04edf664");
             return fallback;
         }
 

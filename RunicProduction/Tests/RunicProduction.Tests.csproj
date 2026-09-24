@@ -24,4 +24,4 @@
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="true" />
     <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GAME_MANAGED)\UnityEngine.PhysicsModule.dll" Private="true" />
   </ItemGroup>
-</Project>
+<ItemGroup><Compile Include="../../Shared/Tests/LocalizedSource.cs" /></ItemGroup></Project>

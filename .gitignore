@@ -13,3 +13,6 @@ docs/_render_*/
 *.user
 *.suo
 .vs/
+
+RunicSentinel.Devcommands.Shared/refs/
+**/runtime-smoke*/

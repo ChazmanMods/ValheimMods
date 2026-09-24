@@ -96,6 +96,12 @@ namespace RunicCrafting.Integration
         internal static void NotifyInventoryChanged(Inventory inventory) =>
             InventoryChangedMethod?.Invoke(inventory, new object[] { false, false });
 
+        internal static string Fingerprint(Inventory inventory)
+        {
+            var text = new System.Text.StringBuilder(SaveInventory(inventory).GetBase64());
+            foreach (ItemDrop.ItemData item in inventory.GetAllItems()) text.Append('|').Append(item.m_stack);
+            return text.ToString();
+        }
         internal static ZPackage SaveInventory(Inventory inventory)
         {
             if (inventory == null) throw new ArgumentNullException(nameof(inventory));
@@ -143,6 +149,12 @@ namespace RunicCrafting.Integration
         {
             snapshot = null;
             MaintainPreviewCacheContext();
+            if (Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(container))
+            {
+                if (!Runic.Compatibility.ModdedContainerCompatibility.TryPreview(container, out var preview)) return false;
+                snapshot = new PreviewMaterialCounts(preview, Game.m_worldLevel);
+                return true;
+            }
             ZNetView view = GetView(container);
             ZDO zdo = view != null && view.IsValid() ? view.GetZDO() : null;
             Inventory live = container != null ? container.GetInventory() : null;
@@ -186,13 +198,15 @@ namespace RunicCrafting.Integration
 
         internal static bool RefreshOwnedContainer(Container container, ZDO expectedZdo)
         {
-            if (container == null || expectedZdo == null || ContainerLoadMethod == null) return false;
+            if (container == null || expectedZdo == null || ContainerLoadMethod == null || RunicAutomation.ContainerAuthority.Blocked(container)) return false;
             ZNetView view = GetView(container);
             if (view == null || !view.IsValid() || !view.IsOwner() ||
                 !ReferenceEquals(view.GetZDO(), expectedZdo) ||
                 expectedZdo.GetOwner() != ZNet.GetUID()) return false;
             try
             {
+                if (Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(container))
+                    return Runic.Compatibility.ModdedContainerCompatibility.TryRefresh(container, out _);
                 ContainerLoadMethod.Invoke(container, Array.Empty<object>());
                 Inventory inventory = container.GetInventory();
                 if (inventory == null) return false;

@@ -1,4 +1,30 @@
+## 1.1.10
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
+
+## 1.1.9 - 2026-09-18
+
+- Replaced the exact game-version allowlist with startup API validation. Compatible future patches no longer require a version-only update.
+- Incompatible APIs still fail closed; World Engine retains its exact method-body audit.
+
+## 1.1.8 - 2026-09-18
+
+- Added Valheim 1.0.15 compatibility, including its restored three-argument native stack-search contract.
+- Retained support for 1.0.7, 1.0.12, and 1.0.14 and exact API validation.
+
+## 1.1.7 - 2026-09-17
+
+- Updated the native stack-search contract for the new cheated-item argument; native stacking retains the game's cheated/ordinary item distinction.
+- Added Valheim 1.0.14 support while retaining compatibility with 1.0.7 and 1.0.12.
+- Retained exact game API checks and rejection of unknown versions.
+## 1.1.6 - 2026-09-14
+
+- Changed player Locked Slots to exclude their contents from Runic Quick Stack only. Requires RunicStorage 1.2.5 or newer for Quick Stack integration; update both mods together.
+- Locks no longer prevent manual moves, drops, replacement equipment or tool swaps, crafting upgrades, or sorting. Matching stacks can increase and ammunition, food, and other items remain usable.
+- Store All, Restock, consolidation, and general protection consumers ignore player slot exclusions. Dedicated equipment/quiver row protections and independent Safety rules remain in effect.
+- Existing saved exclusions stay on their cells, including after the item is replaced or the inventory is sorted.
 
 ## 1.1.5 - 2026-09-14
 
@@ -172,14 +198,10 @@ without changing saved item positions or capacity.
   commits the exact removal, then publishes clean `Disabled` state without requiring another toggle.
 - Separated runtime configuration/disable cleanup from optional keybinding refresh. Cleanup now runs
   first, and failures in either phase are reported and failed closed without suppressing the other.
-- Added bounded once-per-reason verbose diagnostics for every typed item-protection outcome and
-  indeterminate branch without logging item identity, contents, coordinates, or custom data; added
-  direct healthy exact-member `Locked`/`Unlocked` and foreign-item NotApplicable regressions.
+
 - Invalidated cached controller `ButtonDef` paths and active input reservations on Valheim layout-change events, with symmetric shutdown unsubscription.
 - Replaced the new-install Quick 1 controller default with layout-independent `JoyMap` and normalize
   only the exact untouched legacy controller set to that route in memory. This closes Valheim
   Alternative 1's `JoyAltKeys`/`JoyLBumper` left-shoulder alias without rewriting customized files.
   Controller validation is now route-local, same-path map/chat aliases remain suppressed, Core
   registers the actual effective legacy route, and cached steady-state input ticks allocate nothing.
-- Declared the exact Runic Core 1.0.0, Runic Persistence 1.0.0, and Runic Transactions 1.0.0 release floors used by the compiled contracts.
-- Added lossless death, tombstone, logout, disable, upgrade, abrupt-uninstall, installed-IL, crash-cleanup, and 100/1,000/10,000 performance regressions.

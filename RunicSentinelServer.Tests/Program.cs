@@ -64,10 +64,10 @@ namespace RunicSentinelServer.Tests
         {
             Equal("chazman.RunicSentinelServer", Plugin.Guid);
             Equal("Runic Sentinel Server", Plugin.Name);
-            Equal("1.1.2", Plugin.Version);
+            Equal("1.2.0", Plugin.Version);
             Equal("runic.sentinel.server", Plugin.ModuleId);
             Equal("RunicSentinelServer", typeof(Plugin).Assembly.GetName().Name);
-            Equal(new System.Version(1, 1, 2, 0), typeof(Plugin).Assembly.GetName().Version);
+            Equal(new System.Version(1, 2, 0, 0), typeof(Plugin).Assembly.GetName().Version);
             True(HasAttributeArgument(ServerAssembly(), "BepInEx.BepInPlugin", Plugin.Guid));
             True(HasAttributeArgument(ServerAssembly(), "BepInEx.BepInIncompatibility", "chazman.RunicSentinel"));
         }
@@ -79,7 +79,7 @@ namespace RunicSentinelServer.Tests
                 root, "RunicSentinelServer", "manifest.json")));
             JsonElement document = manifest.RootElement;
             Equal("RunicSentinelServer", document.GetProperty("name").GetString());
-            Equal("1.1.2", document.GetProperty("version_number").GetString());
+            Equal("1.2.0", document.GetProperty("version_number").GetString());
             string description = document.GetProperty("description").GetString();
             True(!string.IsNullOrWhiteSpace(description) && description.Length <= 250);
             Sequence(
@@ -362,7 +362,8 @@ namespace RunicSentinelServer.Tests
                 {
                     "0Harmony", "assembly_utils", "assembly_valheim", "BepInEx",
                     "com.rlabrecque.steamworks.net", "netstandard", "RunicSafety",
-                    "UnityEngine.CoreModule"
+                    "UnityEngine.CoreModule", "Newtonsoft.Json", "assembly_guiutils",
+                    "SoftReferenceableAssets", "Splatform", "UnityEngine.PhysicsModule"
                 }.OrderBy(value => value, StringComparer.Ordinal),
                 assembly.MainModule.AssemblyReferences.Select(value => value.Name)
                     .OrderBy(value => value, StringComparer.Ordinal));

@@ -92,8 +92,7 @@ namespace RunicInventory.Integration
         private bool _disposed;
         private float _nextMessageTime;
         private readonly Rect[] _roleSlotRects = new Rect[TopologyLayout.RequiredWidth];
-        private static readonly string[] RoleLabels =
-            { "Helmet", "Chest", "Legs", "Cape", "Utility", "Quick 1", "Quick 2", "Quick 3" };
+        private static string[] RoleLabels => new[] { global::Runic.Localization.RunicText.Get("text_a47fdf6415fc"), global::Runic.Localization.RunicText.Get("text_378d83808237"), global::Runic.Localization.RunicText.Get("text_38557594d0fc"), global::Runic.Localization.RunicText.Get("text_4f646b9c50e7"), global::Runic.Localization.RunicText.Get("text_9450d833fa77"), global::Runic.Localization.RunicText.Get("text_e7f59d22563b"), global::Runic.Localization.RunicText.Get("text_cb419c95c437"), global::Runic.Localization.RunicText.Get("text_6cdf4136acbe") };
 
         internal InventoryRuntime(bool batch)
         {
@@ -474,9 +473,9 @@ namespace RunicInventory.Integration
             {
                 if (rollbackFailure != null)
                     Diagnostics.Error(rollbackFailure,
-                        "Native pocket resize restored item positions but metadata rollback faulted.");
+                        global::Runic.Localization.RunicText.Get("text_55673643a6fd"));
                 Diagnostics.Error(failure ?? new InvalidOperationException("Native resize did not commit."),
-                    "Native pocket resize migration rolled back.");
+                    global::Runic.Localization.RunicText.Get("text_01ecc2ad025a"));
                 FailClosed("topology.native-resize-migration-failed");
                 return;
             }
@@ -576,7 +575,7 @@ namespace RunicInventory.Integration
             return true;
         }
 
-        public bool TryGetProtection(object nativeItem, out ItemProtectionState state)
+        public bool TryGetProtection(object nativeItem, out ItemProtectionState state, bool quickStack = false)
         {
             state = ItemProtectionState.Unknown;
             if (!(nativeItem is ItemDrop.ItemData item))
@@ -756,7 +755,7 @@ namespace RunicInventory.Integration
                     ? ItemProtectionState.Unlocked
                     : ItemProtectionDomain.ClassifyExactMember(
                         TopologyActive && itemY == _layout.SpecialRow || IsQuiverReservedRow(itemY),
-                        _persisted.IsLocked(itemX, itemY));
+                        quickStack && _persisted.IsLocked(itemX, itemY));
                 return true;
             }
             catch (Exception exception)
@@ -821,32 +820,20 @@ namespace RunicInventory.Integration
             if (_disposed || item == null) return true;
             if (!AllowPositionedAddition(destination, item, destinationPosition.x, destinationPosition.y, false))
             {
-                Notify("Runic Inventory: that slot accepts only its labeled equipment or quick-use item type.");
+                Notify(global::Runic.Localization.RunicText.Get("text_85d7e5ec9075"));
                 return false;
             }
             // A swap must validate the item moving back into the source role as well.
             ItemDrop.ItemData displaced = destination?.GetItemAt(destinationPosition.x, destinationPosition.y);
             if (displaced != null && !AllowPositionedAddition(source, displaced, item.m_gridPos.x, item.m_gridPos.y, false))
                 return false;
-            if (ReferenceEquals(source, _inventory) && IsLocked(item))
-            {
-                Notify("Runic Inventory: that slot is locked.");
-                return false;
-            }
-            if (ReferenceEquals(destination, _inventory) && IsLocked(destinationPosition.x, destinationPosition.y) &&
-                (!ReferenceEquals(source, _inventory) || item.m_gridPos.x != destinationPosition.x ||
-                 item.m_gridPos.y != destinationPosition.y))
-            {
-                Notify("Runic Inventory: the destination slot is locked.");
-                return false;
-            }
             if ((!TopologyActive && !HasDedicatedRow(destination)) || !ReferenceEquals(destination, _inventory) || _layout == null) return true;
             if (destinationPosition.x < 0 || destinationPosition.x >= _layout.Width ||
                 destinationPosition.y < 0 || destinationPosition.y >= _layout.Height) return true;
             if (_layout.TryRoleAt(destinationPosition.x, destinationPosition.y, out InventoryRoleKind targetRole) &&
                 !TopologyLayout.Accepts(targetRole, ValheimContracts.Category(item)))
             {
-                Notify("Runic Inventory: that item does not belong in " + RoleLabel(targetRole) + ".");
+                Notify(global::Runic.Localization.RunicText.Get("text_c11aec5c0c55") + RoleLabel(targetRole) + ".");
                 return false;
             }
             if (ReferenceEquals(source, _inventory) && item.m_equipped &&
@@ -854,7 +841,7 @@ namespace RunicInventory.Integration
                 IsEquipmentRole(sourceRole) &&
                 (destinationPosition.x != item.m_gridPos.x || destinationPosition.y != item.m_gridPos.y))
             {
-                Notify("Runic Inventory: unequip that item before moving it out of its equipment role.");
+                Notify(global::Runic.Localization.RunicText.Get("text_4b555b9e2ec0"));
                 return false;
             }
             return amount > 0;
@@ -887,25 +874,17 @@ namespace RunicInventory.Integration
             ItemDrop.ItemData item = _inventory.GetItemAt(position.x, position.y);
             if (item == null || item.m_equipped || !TopologyLayout.Accepts(role, ValheimContracts.Category(item))) return;
             try { _player.EquipItem(item, true); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Equipment role could not invoke vanilla EquipItem; the carried item remains intact."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_58951e078f4e")); }
         }
 
         internal bool AllowSelectedAction(InventoryGrid grid, ItemDrop.ItemData item, InventoryGrid.Modifier modifier)
         {
-            if (_disposed || item == null || grid == null || !ReferenceEquals(grid.GetInventory(), _inventory)) return true;
-            if (modifier != InventoryGrid.Modifier.Move && modifier != InventoryGrid.Modifier.Drop) return true;
-            if (!IsLocked(item)) return true;
-            Notify("Runic Inventory: that slot is locked.");
-            return false;
+            return true; // Slot locks exclude Quick Stack only.
         }
 
         internal bool AllowItemAction(Humanoid actor, Inventory inventory, ItemDrop.ItemData item, string action)
         {
-            if (SlotLockUsePolicy.AllowsUse(action)) return true;
-            if (_disposed || actor != _player || !ReferenceEquals(inventory, _inventory) || item == null || !IsLocked(item))
-                return true;
-            Notify("Runic Inventory: unlock that slot before " + action + ".");
-            return false;
+            return SlotLockUsePolicy.AllowsUse(action);
         }
 
         internal bool AllowStationItem(Humanoid actor, ItemDrop.ItemData item, string action) =>
@@ -915,18 +894,7 @@ namespace RunicInventory.Integration
         {
             if (_disposed || actor != _player || item == null || !CanEnforceLocks() || _layout == null) return true;
             if (_playerLoadInProgress && !_loadMetadataRefreshed && !TryRefreshLoadMetadata()) return true;
-            if (!TopologyLayout.TryEquipmentRole(ValheimContracts.Category(item), out InventoryRoleKind role)) return true;
-            InventorySlotCoordinate target = _layout.Coordinate(role);
-            ItemDrop.ItemData occupant = _inventory.GetItemAt(target.X, target.Y);
-            if (IsLocked(item) && !ReferenceEquals(occupant, item))
-            {
-                Notify("Runic Inventory: unlock that item before equipping it.");
-                return false;
-            }
-            if (!IsLocked(target.X, target.Y)) return true;
-            if (ReferenceEquals(occupant, item)) return true;
-            Notify("Runic Inventory: unlock the " + RoleLabel(role) + " before replacing it.");
-            return false;
+            return true;
         }
 
         internal bool BeginEquipmentTransition(Humanoid actor, ItemDrop.ItemData item)
@@ -944,10 +912,7 @@ namespace RunicInventory.Integration
 
         internal bool AllowCrafting(InventoryGui gui)
         {
-            ItemDrop.ItemData selected = ValheimContracts.CraftingCommitItem(gui);
-            if (selected == null || !IsLocked(selected)) return true;
-            Notify("Runic Inventory: unlock the selected item before upgrading or processing it.");
-            return false;
+            return true;
         }
 
         internal bool AllowPickup(Humanoid actor, GameObject worldObject)
@@ -1035,12 +1000,12 @@ namespace RunicInventory.Integration
                 Math.Max(0f, _player.GetMaxCarryWeight()),
                 filtered);
             string suffix;
-            if (decision.Filtered) suffix = "\nRunic pickup: filtered; quest items always remain allowed.";
+            if (decision.Filtered) suffix = global::Runic.Localization.RunicText.Get("text_e8444b07c486");
             else if (decision.OverflowItems > 0)
-                suffix = "\nRunic pickup: " + decision.OverflowItems + " item(s) would overflow available safe slots.";
+                suffix = global::Runic.Localization.RunicText.Get("text_effb4e47a8df") + decision.OverflowItems + global::Runic.Localization.RunicText.Get("text_a81ae5f90c4b");
             else if (decision.Encumbered)
-                suffix = "\nRunic pickup: fits, but would encumber you (" + decision.ResultingWeight.ToString("0.#") + ").";
-            else suffix = "\nRunic pickup: fits; projected weight " + decision.ResultingWeight.ToString("0.#") + ".";
+                suffix = global::Runic.Localization.RunicText.Get("text_2aecfc52d05b") + decision.ResultingWeight.ToString("0.#") + ").";
+            else suffix = global::Runic.Localization.RunicText.Get("text_25000d44464f") + decision.ResultingWeight.ToString("0.#") + ".";
             if (suffix.Length <= 192 && hoverText.Length + suffix.Length <= 8384) hoverText += suffix;
         }
 
@@ -1078,7 +1043,7 @@ namespace RunicInventory.Integration
         internal bool ShouldBlockStorageAction(string methodName)
         {
             if (!TopologyActive) return false;
-            Notify("Runic Storage " + SafeWord(methodName) + " is paused while native special slots are active; a topology-aware peer is required.");
+            Notify(global::Runic.Localization.RunicText.Get("text_d87e6491dfbe") + SafeWord(methodName) + global::Runic.Localization.RunicText.Get("text_08a97ec4dde4"));
             return true;
         }
 
@@ -1087,7 +1052,7 @@ namespace RunicInventory.Integration
             if (!RequireAuthoritativeTopology("sort")) return;
             if (!SelectedRowPolicy.TryParse(InventoryConfig.SortRows.Value, _layout, out IReadOnlyList<int> rows, out string rowReason))
             {
-                Notify("Runic Inventory: sort rows were rejected (" + rowReason + ").");
+                Notify(global::Runic.Localization.RunicText.Get("text_66ad5f8c3762") + rowReason + ").");
                 return;
             }
             if (HasQuiverLayout)
@@ -1099,14 +1064,14 @@ namespace RunicInventory.Integration
             if (rows.Count == 0) return;
             if (!TryEnterMutation("runic.inventory/sort", out IDisposable lease))
             {
-                Notify("Runic Inventory: another inventory transaction is active; sort was skipped.");
+                Notify(global::Runic.Localization.RunicText.Get("text_e947b7e9762a"));
                 return;
             }
             using (lease)
             {
                 if (!InventoryEvidence.TryCaptureMutation(_inventory, out IReadOnlyList<ItemMutationEvidence> before, out string evidenceReason))
                 {
-                    Notify("Runic Inventory: sort proof failed (" + evidenceReason + ").");
+                    Notify(global::Runic.Localization.RunicText.Get("text_0d536076df12") + evidenceReason + ").");
                     return;
                 }
                 var descriptors = new List<SortItemDescriptor>(before.Count);
@@ -1117,7 +1082,7 @@ namespace RunicInventory.Integration
                     string stableName = item.m_shared?.m_name;
                     if (string.IsNullOrEmpty(stableName) || stableName.Length > 160)
                     {
-                        Notify("Runic Inventory: an item has no bounded stable sort identity; nothing moved.");
+                        Notify(global::Runic.Localization.RunicText.Get("text_409ec2fab854"));
                         return;
                     }
                     float weight;
@@ -1129,14 +1094,14 @@ namespace RunicInventory.Integration
                     bySource.Add(item.m_gridPos.y * _layout.Width + item.m_gridPos.x, item);
                 }
                 if (!SafeSortPlanner.TryPlan(
-                        _layout, descriptors, _persisted.LockedSlots(), rows, out SafeSortPlan plan, out string planReason))
+                        _layout, descriptors, Array.Empty<InventorySlotCoordinate>(), rows, out SafeSortPlan plan, out string planReason))
                 {
-                    Notify("Runic Inventory: sort was rejected (" + planReason + ").");
+                    Notify(global::Runic.Localization.RunicText.Get("text_f959afde6761") + planReason + ").");
                     return;
                 }
                 if (!plan.ChangesAnything)
                 {
-                    Notify("Runic Inventory: the selected safe region is already sorted.");
+                    Notify(global::Runic.Localization.RunicText.Get("text_a8abeac0b18f"));
                     return;
                 }
                 var destinations = new Dictionary<int, Vector2i>();
@@ -1145,7 +1110,7 @@ namespace RunicInventory.Integration
                     int key = move.Source.Y * _layout.Width + move.Source.X;
                     if (!bySource.ContainsKey(key) || destinations.ContainsKey(key))
                     {
-                        Notify("Runic Inventory: sort sources changed before commit; nothing moved.");
+                        Notify(global::Runic.Localization.RunicText.Get("text_d24614dc8793"));
                         return;
                     }
                     destinations.Add(key, new Vector2i(move.Destination.X, move.Destination.Y));
@@ -1170,13 +1135,13 @@ namespace RunicInventory.Integration
                 if (!committed)
                 {
                     if (rollbackFailure != null)
-                        Diagnostics.Error(rollbackFailure, "Sort positions were restored in memory but rollback publication faulted.");
+                        Diagnostics.Error(rollbackFailure, global::Runic.Localization.RunicText.Get("text_5278d11a1d51"));
                     Diagnostics.Error(failure ?? new InvalidOperationException(verifyReason),
-                        "Regional sort rolled back without changing item metadata.");
-                    Notify("Runic Inventory: sort failed and every restorable original position was restored.");
+                        global::Runic.Localization.RunicText.Get("text_c69a0bee9105"));
+                    Notify(global::Runic.Localization.RunicText.Get("text_bd9e08c5fc03"));
                     return;
                 }
-                Notify("Runic Inventory: sorted " + plan.MovableCount + " stack(s) in the selected safe region.");
+                Notify(global::Runic.Localization.RunicText.Get("text_07a681fcd48a") + plan.MovableCount + global::Runic.Localization.RunicText.Get("text_9fff9bf5ce9a"));
             }
         }
 
@@ -1188,7 +1153,7 @@ namespace RunicInventory.Integration
                 !ValheimContracts.TryFocusedSlot(grid, out Vector2i focused) ||
                 focused.x < 0 || focused.x >= _layout.Width || focused.y < 0 || focused.y >= _layout.Height)
             {
-                Notify("Runic Inventory: focus a player inventory slot before toggling its lock.");
+                Notify(global::Runic.Localization.RunicText.Get("text_b4a014f2abff"));
                 return;
             }
             ToggleLockAt(focused);
@@ -1207,7 +1172,7 @@ namespace RunicInventory.Integration
                 focused.x < 0 || focused.x >= _layout.Width ||
                 focused.y < 0 || focused.y >= _layout.Height)
             {
-                Notify("Runic Inventory: point at a player inventory slot before toggling its lock.");
+                Notify(global::Runic.Localization.RunicText.Get("text_4c6c9dbe2fef"));
                 return true;
             }
             ToggleLockAt(focused);
@@ -1218,7 +1183,7 @@ namespace RunicInventory.Integration
         {
             if (!TryEnterMutation("runic.inventory/lock-metadata", out IDisposable lease))
             {
-                Notify("Runic Inventory: another inventory transaction is active; the lock was unchanged.");
+                Notify(global::Runic.Localization.RunicText.Get("text_5175ccb04ee8"));
                 return;
             }
             using (lease)
@@ -1237,13 +1202,13 @@ namespace RunicInventory.Integration
                 bool decoded = written && TopologyPersistenceCodec.TryDecode(payload, out next, out decodeReason);
                 if (!encoded || !written || !decoded)
                 {
-                    Notify("Runic Inventory: lock change was rejected (" + FirstFailure(encodeReason, writeReason, decodeReason) + ").");
+                    Notify(global::Runic.Localization.RunicText.Get("text_0d0b511fa017") + FirstFailure(encodeReason, writeReason, decodeReason) + ").");
                     return;
                 }
                 _persisted = next;
                 RebuildCache("lock-changed");
-                Notify("Runic Inventory: slot " + (focused.x + 1) + "," + (focused.y + 1) +
-                       (wasLocked ? " unlocked." : " locked; protected from Quick Stack and Store All."));
+                Notify(global::Runic.Localization.RunicText.Get("text_23dc58e96fbe") + (focused.x + 1) + "," + (focused.y + 1) +
+                       (wasLocked ? global::Runic.Localization.RunicText.Get("text_926556e761fa") : global::Runic.Localization.RunicText.Get("text_10cf9624edf8")));
             }
         }
 
@@ -1265,14 +1230,14 @@ namespace RunicInventory.Integration
             if (!RequireAuthoritativeTopology("quick-slot")) return;
             if (source == "keyboard" && BetterArcheryCompatibility.QuiverShortcutDown())
             {
-                Notify("Runic Inventory: this shortcut selects quiver ammunition. Choose different Quick 1-3 keys to use both features.");
+                Notify(global::Runic.Localization.RunicText.Get("text_98df153d1369"));
                 return;
             }
             InventorySlotCoordinate coordinate = _layout.Coordinate(role);
             ItemDrop.ItemData item = _inventory.GetItemAt(coordinate.X, coordinate.Y);
             if (item == null)
             {
-                Notify("Runic Inventory: " + RoleLabel(role) + " is empty.");
+                Notify(global::Runic.Localization.RunicText.Get("text_56af4399f0be") + RoleLabel(role) + global::Runic.Localization.RunicText.Get("text_133cb544e6bd"));
                 return;
             }
             // A retained quick-slot item remains usable; locking protects its position
@@ -1280,12 +1245,12 @@ namespace RunicInventory.Integration
             if (!TopologyLayout.Accepts(role, ValheimContracts.Category(item)))
             {
                 FailClosed("topology.quick-role-invalid");
-                Notify("Runic Inventory: the quick-slot topology changed; no item was used.");
+                Notify(global::Runic.Localization.RunicText.Get("text_6b140ae2b923"));
                 return;
             }
             if (!TryEnterMutation("runic.inventory/quick-use", out IDisposable lease))
             {
-                Notify("Runic Inventory: another inventory transaction is active; no item was used.");
+                Notify(global::Runic.Localization.RunicText.Get("text_6700b22b6213"));
                 return;
             }
             using (lease)
@@ -1293,8 +1258,8 @@ namespace RunicInventory.Integration
                 try { _player.UseItem(_inventory, item, false); }
                 catch (Exception exception)
                 {
-                    Diagnostics.Error(exception, "Vanilla quick-slot UseItem faulted; no synthetic consumption was attempted.");
-                    Notify("Runic Inventory: Valheim rejected that manual use.");
+                    Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_e9f4c6370b6c"));
+                    Notify(global::Runic.Localization.RunicText.Get("text_1a6c98e8e6a3"));
                 }
             }
         }
@@ -1359,9 +1324,9 @@ namespace RunicInventory.Integration
                 }
                 _disableCleanupPending = false;
                 FailClosed(rowReason);
-                Notify("Runic Inventory: " + (rowReason == "extra-row.clear-space-before-shrinking"
-                    ? "there is no room to move the extra-row items. Free normal inventory slots first."
-                    : "equipment row could not be prepared (" + rowReason + "). No items were removed."));
+                Notify(global::Runic.Localization.RunicText.Get("text_56af4399f0be") + (rowReason == "extra-row.clear-space-before-shrinking"
+                    ? global::Runic.Localization.RunicText.Get("text_f327d0c36de2")
+                    : global::Runic.Localization.RunicText.Get("text_4cd951287d4b") + rowReason + global::Runic.Localization.RunicText.Get("text_60ac6e1927b5")));
                 return;
             }
             if (!(InventoryConfig.Enabled?.Value ?? false))
@@ -1485,7 +1450,7 @@ namespace RunicInventory.Integration
             try { RebuildCache("inventory-changed", verifySerialization: false); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Inventory change cache rebuild failed closed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_b707f68943a7"));
                 FailClosed("cache.rebuild-failed");
             }
         }
@@ -1664,11 +1629,11 @@ namespace RunicInventory.Integration
             bool serializationAttempted)
         {
             var text = new StringBuilder(768)
-                .Append("Runic Inventory — ").Append(_mode).Append("\n")
-                .Append("Status: ").Append(_reasonCode).Append(" | native 8×")
-                .Append(_layout?.Height ?? 0).Append(" | save proof ")
-                .Append(serializationVerified ? "verified" : serializationAttempted ? "FAILED" : "pending API capture")
-                .Append("\nBottom row: ");
+                .Append(global::Runic.Localization.RunicText.Get("text_4a2f106841b7")).Append(_mode).Append("\n")
+                .Append(global::Runic.Localization.RunicText.Get("text_4889951f6134")).Append(_reasonCode).Append(global::Runic.Localization.RunicText.Get("text_4c407a8d53bd"))
+                .Append(_layout?.Height ?? 0).Append(global::Runic.Localization.RunicText.Get("text_662112dc08fc"))
+                .Append(serializationVerified ? "verified" : serializationAttempted ? "FAILED" : global::Runic.Localization.RunicText.Get("text_04584a73d800"))
+                .Append(global::Runic.Localization.RunicText.Get("text_46d66aa0ca70"));
             for (int index = 0; index < roles.Count; index++)
             {
                 InventoryRoleSnapshot role = roles[index];
@@ -1678,7 +1643,7 @@ namespace RunicInventory.Integration
                 else text.Append(SafePrefab(role.PrefabId)).Append('×').Append(role.Stack);
                 if (role.Locked) text.Append("[LOCK]");
             }
-            text.Append("\nLocks: ");
+            text.Append(global::Runic.Localization.RunicText.Get("text_2c4c453cc2f5"));
             if (lockedSlots.Count == 0) text.Append("none");
             else
             {
@@ -1690,15 +1655,15 @@ namespace RunicInventory.Integration
                 }
                 if (shown < lockedSlots.Count) text.Append(" +").Append(lockedSlots.Count - shown);
             }
-            text.Append("\nKeyboard: Alt+1/2/3 use | Alt+I sort | focus slot then Alt+L lock")
-                .Append("\nController: validated ModifierAction chords only. Dedicated clients use their owning local Player.");
+            text.Append(global::Runic.Localization.RunicText.Get("text_62ad4976e7b3"))
+                .Append(global::Runic.Localization.RunicText.Get("text_25c3792eefcd"));
             _statusText = text.Length <= 1024 ? text.ToString() : text.ToString(0, 1024);
         }
 
         private void RebuildStatusOnly()
         {
-            _statusText = "Runic Inventory — " + _mode + "\nStatus: " + _reasonCode +
-                          "\nNo Runic item mutation is authorized. Native Valheim inventory behavior remains available." +
+            _statusText = global::Runic.Localization.RunicText.Get("text_4a2f106841b7") + _mode + global::Runic.Localization.RunicText.Get("text_ed0deb5e2b51") + _reasonCode +
+                          global::Runic.Localization.RunicText.Get("text_8e4d2ed73064") +
                           CompatibilityRemedy();
         }
 
@@ -1714,8 +1679,8 @@ namespace RunicInventory.Integration
                         InventorySlotCoordinate coordinate = _layout.Coordinate(role);
                         ItemDrop.ItemData item = _inventory.GetItemAt(coordinate.X, coordinate.Y);
                         if (item == null || TopologyLayout.Accepts(role, ValheimContracts.Category(item))) continue;
-                        return "\nMove " + SafePrefab(ValheimContracts.PrefabId(item)) + " out of bottom slot " +
-                               (coordinate.X + 1) + " (" + RoleLabel(role) + "). The row reactivates automatically when valid.";
+                        return global::Runic.Localization.RunicText.Get("text_d86df8c13ced") + SafePrefab(ValheimContracts.PrefabId(item)) + global::Runic.Localization.RunicText.Get("text_b68a72950bec") +
+                               (coordinate.X + 1) + " (" + RoleLabel(role) + global::Runic.Localization.RunicText.Get("text_4ceb4cbd4a4c");
                     }
                 }
                 else if (_reasonCode == "topology.equipped-item-outside-role")
@@ -1729,16 +1694,16 @@ namespace RunicInventory.Integration
                             continue;
                         InventorySlotCoordinate coordinate = _layout.Coordinate(role);
                         if (item.m_gridPos.x == coordinate.X && item.m_gridPos.y == coordinate.Y) continue;
-                        return "\nUnequip " + SafePrefab(ValheimContracts.PrefabId(item)) +
-                               "; its canonical role is bottom slot " + (coordinate.X + 1) + " (" + RoleLabel(role) +
-                               "). The row reactivates automatically when valid.";
+                        return global::Runic.Localization.RunicText.Get("text_fcbbf5b37adc") + SafePrefab(ValheimContracts.PrefabId(item)) +
+                               global::Runic.Localization.RunicText.Get("text_d36c0df08fcc") + (coordinate.X + 1) + " (" + RoleLabel(role) +
+                               global::Runic.Localization.RunicText.Get("text_4ceb4cbd4a4c");
                     }
                 }
                 return string.Empty;
             }
             catch (Exception)
             {
-                return "\nClear incompatible bottom-row items or unequip out-of-role equipment; the row reactivates when valid.";
+                return global::Runic.Localization.RunicText.Get("text_e1dc70345a12");
             }
         }
 
@@ -1795,16 +1760,10 @@ namespace RunicInventory.Integration
         {
             InventorySlotCoordinate target = _layout.Coordinate(role);
             if (item.m_gridPos.x == target.X && item.m_gridPos.y == target.Y) return;
-            if (IsLocked(item) || IsLocked(target.X, target.Y))
-            {
-                FailClosed("equipment.relocation-locked");
-                Notify("Runic Inventory: equipment relocation was blocked by a slot lock; special roles are paused.");
-                return;
-            }
             if (!TryEnterMutation("runic.inventory/equipment-relocate", out IDisposable lease))
             {
                 FailClosed("equipment.relocation-transaction-busy");
-                Notify("Runic Inventory: equipment relocation conflicted with another transaction; special roles are paused.");
+                Notify(global::Runic.Localization.RunicText.Get("text_99fc4cf22b01"));
                 return;
             }
             using (lease)
@@ -1836,8 +1795,8 @@ namespace RunicInventory.Integration
                 if (!committed)
                 {
                     if (rollbackFailure != null)
-                        Diagnostics.Error(rollbackFailure, "Equipment positions were restored in memory but rollback publication faulted.");
-                    Diagnostics.Error(failure ?? new InvalidOperationException(verifyReason), "Equipment position relocation rolled back.");
+                        Diagnostics.Error(rollbackFailure, global::Runic.Localization.RunicText.Get("text_1b35619f99ac"));
+                    Diagnostics.Error(failure ?? new InvalidOperationException(verifyReason), global::Runic.Localization.RunicText.Get("text_13bc0af327e4"));
                     FailClosed("equipment.relocation-failed");
                 }
             }
@@ -1846,7 +1805,7 @@ namespace RunicInventory.Integration
         private bool RequireAuthoritativeTopology(string action)
         {
             if (TopologyActive && _mode == InventoryAuthorityMode.AuthoritativeLocal && IsAuthoritativeLocal(_player)) return true;
-            Notify("Runic Inventory: " + SafeWord(action) + " requires the owning local player; mode is " + _mode + ".");
+            Notify(global::Runic.Localization.RunicText.Get("text_56af4399f0be") + SafeWord(action) + global::Runic.Localization.RunicText.Get("text_87bfc86d7ae3") + _mode + ".");
             return false;
         }
 
@@ -1871,7 +1830,7 @@ namespace RunicInventory.Integration
         private bool RequireLockState()
         {
             if (CanEnforceLocks()) return true;
-            Notify("Runic Inventory: slot locks are unavailable (" + _reasonCode + ").");
+            Notify(global::Runic.Localization.RunicText.Get("text_34ccf89a0796") + _reasonCode + ").");
             return false;
         }
 
@@ -2093,9 +2052,9 @@ namespace RunicInventory.Integration
         }
 
         private static string RoleLabel(InventoryRoleKind role) =>
-            role == InventoryRoleKind.Quick1 ? "quick slot 1" :
-            role == InventoryRoleKind.Quick2 ? "quick slot 2" :
-            role == InventoryRoleKind.Quick3 ? "quick slot 3" : role.ToString().ToLowerInvariant() + " equipment";
+            role == InventoryRoleKind.Quick1 ? global::Runic.Localization.RunicText.Get("text_ae4a9523d28b") :
+            role == InventoryRoleKind.Quick2 ? global::Runic.Localization.RunicText.Get("text_76aec4e1a9eb") :
+            role == InventoryRoleKind.Quick3 ? global::Runic.Localization.RunicText.Get("text_6f57cc02e4ce") : role.ToString().ToLowerInvariant() + global::Runic.Localization.RunicText.Get("text_cb85b4fe7897");
 
         private static string RoleShort(InventoryRoleKind role) =>
             role == InventoryRoleKind.Quick1 ? "Q1" :

@@ -19,6 +19,8 @@ namespace RunicSentinel.Runtime
         internal string BannedUsers = string.Empty;
         internal string Modules = string.Empty;
         internal string DetectedProfile = string.Empty;
+        internal string NamedMods = string.Empty;
+        internal string Players = string.Empty;
         internal string Integrity = string.Empty;
         internal string LastDenial = string.Empty;
         internal string AdmissionMode = "Optional";
@@ -32,6 +34,7 @@ namespace RunicSentinel.Runtime
         internal string AdministratorSource = string.Empty;
         internal string SigningKeyPin = string.Empty;
         internal string Status = string.Empty;
+        internal string ServerName="",WorldName="",OnlinePlayers="",ServerUptime="",RecentFindings="";
         internal bool CapacitySupported, CapacityAvailable, CapacitySavedEnabled, CapacityActiveEnabled, CapacityRestartRequired;
         internal string CapacityVersion = "", CapacityRevision = "", CapacitySavedPlayers = "", CapacityActivePlayers = "", CapacityStatus = "", CapacityCurrentPlayers = "";
     }
@@ -59,6 +62,8 @@ namespace RunicSentinel.Runtime
                 ["bans"] = value.BannedUsers,
                 ["modules"] = value.Modules,
                 ["detected"] = value.DetectedProfile,
+                ["named-mods"] = value.NamedMods,
+                ["players"] = value.Players,
                 ["integrity"] = value.Integrity,
                 ["last-denial"] = value.LastDenial,
                 ["admission"] = value.AdmissionMode,
@@ -72,6 +77,7 @@ namespace RunicSentinel.Runtime
                 ["administrator-source"] = value.AdministratorSource,
                 ["key-pin"] = value.SigningKeyPin,
                 ["status"] = value.Status,
+                ["server-name"]=value.ServerName,["world-name"]=value.WorldName,["online-players"]=value.OnlinePlayers,["server-uptime"]=value.ServerUptime,["recent-findings"]=value.RecentFindings,
                 ["cap-supported"] = value.CapacitySupported ? "1" : "0",
                 ["cap-available"] = value.CapacityAvailable ? "1" : "0",
                 ["cap-saved-enabled"] = value.CapacitySavedEnabled ? "1" : "0",
@@ -128,6 +134,8 @@ namespace RunicSentinel.Runtime
                 BannedUsers = Get(fields, "bans"),
                 Modules = Get(fields, "modules"),
                 DetectedProfile = Get(fields, "detected"),
+                NamedMods = Get(fields, "named-mods"),
+                Players = Get(fields, "players"),
                 Integrity = Get(fields, "integrity"),
                 LastDenial = Get(fields, "last-denial"),
                 AdmissionMode = Get(fields, "admission"),
@@ -141,6 +149,7 @@ namespace RunicSentinel.Runtime
                 AdministratorSource = Get(fields, "administrator-source"),
                 SigningKeyPin = Get(fields, "key-pin"),
                 Status = Get(fields, "status"),
+                ServerName=Get(fields,"server-name"),WorldName=Get(fields,"world-name"),OnlinePlayers=Get(fields,"online-players"),ServerUptime=Get(fields,"server-uptime"),RecentFindings=Get(fields,"recent-findings"),
                 CapacitySupported = Get(fields, "cap-supported") == "1",
                 CapacityAvailable = Get(fields, "cap-available") == "1",
                 CapacitySavedEnabled = Get(fields, "cap-saved-enabled") == "1",
@@ -181,13 +190,13 @@ namespace RunicSentinel.Runtime
         internal static byte[] EncodeMessage(string value)
         {
             byte[] bytes = StrictUtf8.GetBytes(value ?? string.Empty);
-            if (bytes.Length > 4096) throw new InvalidDataException("admin-message-too-large");
+            if (bytes.Length > MaximumWireBytes) throw new InvalidDataException("admin-message-too-large");
             return bytes;
         }
 
         internal static string DecodeMessage(byte[] bytes)
         {
-            if (bytes == null || bytes.Length > 4096) return "invalid-response";
+            if (bytes == null || bytes.Length > MaximumWireBytes) return "invalid-response";
             try { return StrictUtf8.GetString(bytes); }
             catch { return "invalid-response"; }
         }

@@ -30,47 +30,47 @@ namespace RunicInventory
         internal static void Bind(ConfigFile config)
         {
             Enabled = config.Bind("General", "Enabled", true,
-                new ConfigDescription("Automatically add the equipment and quick-use row. Disable is unavailable until there is room in normal inventory for every extra-row item.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_8d4aa0761bf8"),
                     null, new Integration.ConfigurationManagerAttributes()));
             ShowInventoryStatus = config.Bind("UI", "ShowInventoryStatus", false,
-                "Show the bounded topology/authority panel while the player inventory is open.");
+                global::Runic.Localization.RunicText.Get("text_3c4bb869b3e0"));
             ShowRoleLabels = config.Bind("UI", "ShowRoleLabels", true,
-                "Label and subtly outline the eight native bottom-row equipment and quick slots while inventory is open.");
+                global::Runic.Localization.RunicText.Get("text_10dc0db42044"));
             ShowPickupPreview = config.Bind("UI", "ShowPickupPreview", true,
-                "Append a bounded local capacity/weight preview to nearby world-item hover text.");
+                global::Runic.Localization.RunicText.Get("text_9aeb1688941e"));
             CompactQuiverLayout = config.Bind("UI", "CompactQuiverLayout", true,
-                "Collapse unused display space between Better Archery's quiver and Runic equipment row. Visual only; no inventory slots or items are moved.");
+                global::Runic.Localization.RunicText.Get("text_90beaaeae893"));
             FilteredPickupItems = config.Bind("Pickup Filter", "Items", string.Empty,
-                "Exact comma/semicolon/newline-separated prefab IDs or shared-name tokens to refuse before pickup mutation; maximum 128 safe entries. Quest items always bypass the filter.");
+                global::Runic.Localization.RunicText.Get("text_c2e4efc127e7"));
             SortRows = config.Bind("Sort", "Rows", "1,2",
-                "Zero-based general rows eligible for regional sort. Row 0 and the bottom special row are always rejected. Empty means every proven general row.");
+                global::Runic.Localization.RunicText.Get("text_cfd403f31628"));
             Quick1 = config.Bind("Keyboard", "UseQuickSlot1", new KeyboardShortcut(KeyCode.Alpha1, KeyCode.LeftAlt),
-                "Manually use quick slot 1 for the owning local player, including a dedicated-server client.");
+                global::Runic.Localization.RunicText.Get("text_c19bc8ec2e08"));
             Quick2 = config.Bind("Keyboard", "UseQuickSlot2", new KeyboardShortcut(KeyCode.Alpha2, KeyCode.LeftAlt),
-                "Manually use quick slot 2 for the owning local player, including a dedicated-server client.");
+                global::Runic.Localization.RunicText.Get("text_4a213600b47c"));
             Quick3 = config.Bind("Keyboard", "UseQuickSlot3", new KeyboardShortcut(KeyCode.Alpha3, KeyCode.LeftAlt),
-                "Manually use quick slot 3 for the owning local player, including a dedicated-server client.");
+                global::Runic.Localization.RunicText.Get("text_dfce180bc2ee"));
             Sort = config.Bind("Keyboard", "SortSelectedRows", new KeyboardShortcut(KeyCode.I, KeyCode.LeftAlt),
-                "Sort only configured safe general rows while the inventory is open.");
+                global::Runic.Localization.RunicText.Get("text_6c6419e7f4d1"));
             ToggleLock = config.Bind("Keyboard", "ToggleFocusedSlotLock", new KeyboardShortcut(KeyCode.L, KeyCode.LeftAlt),
-                "Optional keyboard fallback for slot locking. The primary gesture is Left Alt + right-click on a player slot.");
+                global::Runic.Localization.RunicText.Get("text_31d0dc2a5d57"));
 
             ControllerEnabled = config.Bind("Controller", "Enabled", true,
-                "Enable raw, effective-path-validated controller chords.");
+                global::Runic.Localization.RunicText.Get("text_d760c9e83479"));
             ControllerModifier = config.Bind("Controller", "ModifierAction", ControllerBindingPolicy.ModifierAction,
-                "Existing Valheim Joy* action held as the modifier.");
+                global::Runic.Localization.RunicText.Get("text_0040e54c0301"));
             ControllerQuick1 = config.Bind("Controller", "UseQuickSlot1Action", ControllerBindingPolicy.Quick1Action,
-                "Existing gamepad action pressed with ModifierAction to use quick slot 1. The exact untouched legacy 1.0.0 controller set is read as JoyMap without rewriting the file.");
+                global::Runic.Localization.RunicText.Get("text_21358e79d50b"));
             ControllerQuick2 = config.Bind("Controller", "UseQuickSlot2Action", ControllerBindingPolicy.Quick2Action,
-                "Existing gamepad action pressed with ModifierAction to use quick slot 2.");
+                global::Runic.Localization.RunicText.Get("text_78efbbf396ce"));
             ControllerQuick3 = config.Bind("Controller", "UseQuickSlot3Action", ControllerBindingPolicy.Quick3Action,
-                "Existing gamepad action pressed with ModifierAction to use quick slot 3.");
+                global::Runic.Localization.RunicText.Get("text_d88ee291d981"));
             ControllerSort = config.Bind("Controller", "SortSelectedRowsAction", ControllerBindingPolicy.SortAction,
-                "Existing gamepad action pressed with ModifierAction to sort while inventory is open.");
+                global::Runic.Localization.RunicText.Get("text_454da9489f48"));
             ControllerToggleLock = config.Bind("Controller", "ToggleFocusedSlotLockAction", ControllerBindingPolicy.ToggleLockAction,
-                "Existing gamepad action pressed with ModifierAction to toggle the focused slot lock.");
+                global::Runic.Localization.RunicText.Get("text_cece443edf13"));
             VerboseDiagnostics = config.Bind("Diagnostics", "Verbose", false,
-                "Log successful bounded protection decisions and control routes. Indeterminate protection decisions always log once per reason. Inventory contents and player metadata are never logged.");
+                global::Runic.Localization.RunicText.Get("text_00bba4d37a51"));
         }
     }
 }

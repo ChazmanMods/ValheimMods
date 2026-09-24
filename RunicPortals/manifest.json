@@ -1,6 +1,6 @@
 {
   "name": "RunicPortals",
-  "version_number": "1.2.4",
+  "version_number": "1.2.10",
   "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicPortals",
   "description": "Turn portals into named, permission-aware networks while preserving normal one-to-one behavior for every portal you leave unconfigured.",
   "dependencies": [

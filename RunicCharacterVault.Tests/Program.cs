@@ -19,6 +19,7 @@ namespace RunicCharacterVault.Tests
         {
             Run("admission matrix", AdmissionMatrix);
             Run("existing character enrollment and account limits", ExistingEnrollment);
+            Run("server admins bypass only the character count limit", AdminEnrollment);
             Run("import has no starter items and saves once on spawn", ImportedStartingItems);
             Run("enrollment preserves bytes and refuses overwrite", EnrollmentStorage);
             Run("real character transport and vault round trip", RealCharacterRoundTrip);
@@ -82,6 +83,28 @@ namespace RunicCharacterVault.Tests
                 evaluator.Decide(false, "account", false, false, true, true));
             Equal(CharacterAdmission.NewEnrollment,
                 evaluator.Decide(false, "account", false, true, true, true));
+        }
+
+        private static void AdminEnrollment()
+        {
+            var evaluator = new CharacterAdmissionEvaluator(new OccupiedCatalog());
+            Equal(CharacterAdmission.NewEnrollment,
+                evaluator.Decide(false, "admin", true, false, true, false, true));
+            Equal(CharacterAdmission.RejectAdditionalCharacter,
+                evaluator.Decide(false, "player", true, false, true, false, false));
+            Equal(CharacterAdmission.NewEnrollment,
+                evaluator.Decide(false, "player", true, true, true, false, false));
+            Equal(CharacterAdmission.RejectUnregisteredProfile,
+                evaluator.Decide(false, "admin", false, false, true, false, true));
+            Equal(CharacterAdmission.NewEnrollment,
+                evaluator.Decide(false, "admin", false, false, true, true, true));
+            Equal(CharacterAdmission.RejectConcurrentEnrollment,
+                evaluator.Decide(false, "admin", true, false, false, false, true));
+            Equal(CharacterAdmission.ExistingProfile,
+                evaluator.Decide(true, "admin", false, false, false, false, true));
+            // Removing admin status restores the limit for subsequent enrollments.
+            Equal(CharacterAdmission.RejectAdditionalCharacter,
+                evaluator.Decide(false, "admin", true, false, true, false, false));
         }
 
         private sealed class OccupiedCatalog : ICharacterProfileCatalog
@@ -246,11 +269,11 @@ namespace RunicCharacterVault.Tests
         private static void PluginMetadata()
         {
             Assembly assembly = typeof(CharacterVaultPlugin).Assembly;
-            Equal(new System.Version(1, 0, 2, 0), assembly.GetName().Version);
+            Equal(new System.Version(1, 0, 3, 0), assembly.GetName().Version);
             BepInPlugin attribute = typeof(CharacterVaultPlugin)
                 .GetCustomAttribute<BepInPlugin>();
             Equal("chazman.RunicCharacterVault", attribute.GUID);
-            Equal("1.0.2", attribute.Version.ToString());
+            Equal("1.0.3", attribute.Version.ToString());
         }
 
         private static void SaveStatusUsesLiveFontTemplate()
@@ -329,7 +352,7 @@ namespace RunicCharacterVault.Tests
             string manifestPath = Path.Combine(root, "manifest.json");
             using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
             Equal("RunicCharacterVault", manifest.RootElement.GetProperty("name").GetString());
-            Equal("1.0.2", manifest.RootElement.GetProperty("version_number").GetString());
+            Equal("1.0.3", manifest.RootElement.GetProperty("version_number").GetString());
             string[] dependencies = manifest.RootElement.GetProperty("dependencies")
                 .EnumerateArray().Select(item => item.GetString()).ToArray();
             SequenceEqual(new[] { "denikson-BepInExPack_Valheim-5.4.2350" }, dependencies);

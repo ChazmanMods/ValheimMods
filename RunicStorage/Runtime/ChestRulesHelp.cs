@@ -2,41 +2,50 @@ namespace RunicStorage.Runtime;
 
 internal static class ChestRulesHelp
 {
-    internal static string For(string label) => label switch {
-        "Quick Stack Rules" => "Choose what Runic Quick Stack puts in this chest and customize its exterior label. The separate vanilla Stack button keeps its normal behavior.",
-        "Priority" => "Toggle Normal / Preferred. Among chests with equally specific matching rules, Preferred is tried before Normal, then the nearest chest first. An exact-item chest still comes before a broad-group chest. Exclusions always prevent delivery to this chest.",
-        "Remember" => "Remember item types stored here so Runic Quick Stack can refill this chest after it is empty. Turning this off preserves the remembered list but stops using and learning it. The number counts item types, not quantities.",
-        "Clear remembered items" => "Forget this chest's remembered item types. Does not remove actual items or explicit rules. If Remember contents stays ON, later chest inventory changes can teach these items again.",
-        "Clear rules" => "Clear Always accept, Never accept, group selections and the biome filter. Keeps actual items, remembered contents, priority and label settings. Save to apply.",
-        "Always accept" => "Select specific items this chest should accept, even when empty. These bypass the biome filter. Never accept still blocks them. Click a checked item to remove its exception.",
-        "Groups" => "Select built-in or custom item groups. Multiple selections accept any matching group. Only from biome can narrow these matches. A check marks a selected group.",
-        "Never accept" => "Select items Runic Quick Stack must never put here. This overrides Always accept, groups, remembered contents and both priority settings. It does not remove items already here or block manual placement.",
-        "Accepted" => "Review your explicit Always accept items and selected groups. Click an entry to remove that rule. This is not a complete list of all items that could match.",
-        "Remembered" => "Review remembered item types. Click one to forget it. Memory is a fallback when no Always accept or group rules are set; Never accept and the biome filter still apply.",
-        "Only from biome" => "Restrict group and fallback matches to one biome. Any biome removes the restriction. Always accept exceptions bypass this filter; Never accept exclusions do not.",
-        "Custom groups" => "Create reusable groups from your own item selections. Save group stores a local template immediately; select that template under Groups and Save the chest to use it.",
-        "Search items or rules" => "Filter the current list by display name or internal item/rule ID. Search changes only what is shown; it does not change chest rules.",
-        "Previous" => "Show the previous page of the current filtered list.",
-        "Next" => "Show the next page of the current filtered list.",
-        "Exterior" => "Show or hide the label attached to this chest. Sorting rules continue to work when the label is hidden. Save to apply.",
-        "Automatic label (or enter your own)" => "Leave empty to build a label from selected rules or remembered items. Enter your own caption to change only the visible text, not the sorting rules.",
-        "Color name" => "Type a color name, then press Enter or leave this field. Supported Unity names are used directly. Familiar other colors use the nearest palette RGB; unknown words use the nearest spelling. The chosen name is shown before Save.",
-        "Text color" => "Choose a supported Unity text color. The mod writes its opaque hex color tag automatically. The label background is selected separately.",
-        "Background" => "Choose Transparent (chest surface shows through), solid White, or solid Black behind the label text. This does not change text color or chest rules.",
-        "Front" or "Back" or "Left" or "Right" or "Top" => "Put the label on the " + label.ToLowerInvariant() + " face, relative to the chest's own rotation. Save to apply.",
-        "Smaller" => "Reduce label text size by 0.1, down to 0.3. Text can shrink further automatically to fit its label area.",
-        "Larger" => "Increase label text size by 0.1, up to 2.0. Long text still shrinks to fit its label area.",
-        "←" => "Move the label left 0.05 metres on the selected chest face (limit 1 metre).",
-        "→" => "Move the label right 0.05 metres on the selected chest face (limit 1 metre).",
-        "↓" => "Move the label down 0.05 metres on the selected chest face (limit 1 metre).",
-        "↑" => "Move the label up 0.05 metres on the selected chest face (limit 1 metre).",
-        "Reset position" => "Center the label and restore size 1.0. Keeps your chosen face, text, color and background.",
-        "Group name" => "Enter a unique name for this reusable custom group. It needs at least one selected item before Save group.",
-        "Save group" => "Save this reusable template immediately to your local group library. Cancel does not undo library saves. Other chests keep their own saved copies.",
-        "Delete" => "Delete the selected template from your local group library immediately. Existing chest selections keep their saved copies; Cancel does not undo this deletion.",
-        "New group" => "Start a new custom group. Unsaved edits to the current template are discarded. Choose its items and name, then Save group.",
-        "Cancel" => "Close without saving this chest's edits. Custom group library saves and deletions already performed are kept.",
-        "Save" => "Save rules and label settings to this chest. Access and ownership are checked again; conflicting changes from another edit are not overwritten.",
-        _ => label.StartsWith("Items (") ? "Choose the exact items in this custom group. Click items to add or remove them, then Save group." : "Select " + label + "."
+    internal static string For(string label) => Help(StableLabel(label));
+
+    private static string StableLabel(string label)
+    {
+        foreach (var candidate in Labels)
+            if (global::Runic.Localization.RunicText.TranslateEnglish(candidate) == label) return candidate;
+        return label;
+    }
+    private static readonly string[] Labels = new[] { "Quick Stack Rules", "Priority", "Remember", "Clear remembered items", "Clear rules", "Always accept", "Groups", "Never accept", "Accepted", "Remembered", "Only from biome", "Custom groups", "Search items or rules", "Previous", "Next", "Exterior", "Automatic label (or enter your own)", "Color name", "Text color", "Background", "Front", "Back", "Left", "Right", "Top", "Smaller", "Larger", "\u2190", "\u2192", "\u2193", "\u2191", "Reset position", "Group name", "Save group", "Delete", "New group", "Cancel", "Save" };
+    private static string Help(string label) => label switch {
+        "Quick Stack Rules" => global::Runic.Localization.RunicText.Get("text_e055b32114f6"),
+        "Priority" => global::Runic.Localization.RunicText.Get("text_0fcc8279330e"),
+        "Remember" => global::Runic.Localization.RunicText.Get("text_94e39e87d5f6"),
+        "Clear remembered items" => global::Runic.Localization.RunicText.Get("text_50f372c6ffae"),
+        "Clear rules" => global::Runic.Localization.RunicText.Get("text_17a7ad4d4f64"),
+        "Always accept" => global::Runic.Localization.RunicText.Get("text_9e15300824f1"),
+        "Groups" => global::Runic.Localization.RunicText.Get("text_0f307afdb59b"),
+        "Never accept" => global::Runic.Localization.RunicText.Get("text_8d2dd48c9c44"),
+        "Accepted" => global::Runic.Localization.RunicText.Get("text_ff366cfba8cd"),
+        "Remembered" => global::Runic.Localization.RunicText.Get("text_d550bf02555a"),
+        "Only from biome" => global::Runic.Localization.RunicText.Get("text_080704a90681"),
+        "Custom groups" => global::Runic.Localization.RunicText.Get("text_e180d091de97"),
+        "Search items or rules" => global::Runic.Localization.RunicText.Get("text_0e7a1d983170"),
+        "Previous" => global::Runic.Localization.RunicText.Get("text_ccec4e53e333"),
+        "Next" => global::Runic.Localization.RunicText.Get("text_3f7e27b36a7c"),
+        "Exterior" => global::Runic.Localization.RunicText.Get("text_a61a376e1ed4"),
+        "Automatic label (or enter your own)" => global::Runic.Localization.RunicText.Get("text_2f543c6ec797"),
+        "Color name" => global::Runic.Localization.RunicText.Get("text_4382861d3b00"),
+        "Text color" => global::Runic.Localization.RunicText.Get("text_b2e30326430f"),
+        "Background" => global::Runic.Localization.RunicText.Get("text_6d10b8eeb3df"),
+        "Front" or "Back" or "Left" or "Right" or "Top" => global::Runic.Localization.RunicText.Get("text_ed0e2368c9a5") + label.ToLowerInvariant() + global::Runic.Localization.RunicText.Get("text_f235077e694a"),
+        "Smaller" => global::Runic.Localization.RunicText.Get("text_b68fdb013ad7"),
+        "Larger" => global::Runic.Localization.RunicText.Get("text_76f6ff21293e"),
+        "←" => global::Runic.Localization.RunicText.Get("text_6bf8211256e9"),
+        "→" => global::Runic.Localization.RunicText.Get("text_c747a7bb1853"),
+        "↓" => global::Runic.Localization.RunicText.Get("text_ffe302f8f00a"),
+        "↑" => global::Runic.Localization.RunicText.Get("text_7e52cd495ea3"),
+        "Reset position" => global::Runic.Localization.RunicText.Get("text_c590c8f79bd5"),
+        "Group name" => global::Runic.Localization.RunicText.Get("text_2da3173bd76b"),
+        "Save group" => global::Runic.Localization.RunicText.Get("text_1e2d0a8e7420"),
+        "Delete" => global::Runic.Localization.RunicText.Get("text_bdff781a82c2"),
+        "New group" => global::Runic.Localization.RunicText.Get("text_28a7bce167b2"),
+        "Cancel" => global::Runic.Localization.RunicText.Get("text_b614a82f4ccd"),
+        "Save" => global::Runic.Localization.RunicText.Get("text_eb7af15d2e76"),
+        _ => label.StartsWith("Items (") ? global::Runic.Localization.RunicText.Get("text_e0bb20ab35ed") : global::Runic.Localization.RunicText.Get("text_1f7133c21072") + label + "."
     };
 }

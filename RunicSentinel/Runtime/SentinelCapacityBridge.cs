@@ -35,7 +35,7 @@ namespace RunicSentinel.Runtime
                     document.CapacitySavedPlayers = saved.Players.ToString(CultureInfo.InvariantCulture);
                     document.CapacityActiveEnabled = validated;
                     document.CapacityActivePlayers = fault ? "Blocked by integrity validation" : active.ToString(CultureInfo.InvariantCulture);
-                    document.CapacityStatus = (string)runtime.GetProperty("Status", Static).GetValue(null);
+                    document.CapacityStatus = (string)runtime.GetProperty(global::Runic.Localization.RunicText.Get("text_920e413c7d41"), Static).GetValue(null);
                     document.CapacityRestartRequired = fault || requested != saved.Enabled || (saved.Enabled && saved.Players != active);
                     document.CapacityCurrentPlayers = ZNet.instance.GetNrOfPlayers().ToString(CultureInfo.InvariantCulture);
                 }
@@ -43,7 +43,7 @@ namespace RunicSentinel.Runtime
             catch (Exception error)
             {
                 document.CapacityAvailable = false;
-                document.CapacityStatus = "Server cap unavailable: " + error.Message;
+                document.CapacityStatus = global::Runic.Localization.RunicText.Get("text_7097a7e32d9f") + error.Message;
                 if (document.CapacityStatus.Length > 512) document.CapacityStatus = document.CapacityStatus.Substring(0, 512);
             }
         }
@@ -64,7 +64,7 @@ namespace RunicSentinel.Runtime
                 config.SaveOnConfigSet = false;
                 try { enabledEntry.Value = enabled; playerEntry.Value = players; }
                 finally { config.SaveOnConfigSet = automaticSave; }
-                return "Server cap settings saved for the next restart. The running cap is unchanged; nobody was disconnected. Previous config backed up.";
+                return global::Runic.Localization.RunicText.Get("text_ce0333ecaef6");
             }
         }
 

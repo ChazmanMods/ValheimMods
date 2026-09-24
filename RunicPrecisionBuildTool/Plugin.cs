@@ -19,7 +19,7 @@ namespace QuietBuildRotation
     {
         public const string Guid = "chazman.RunicPrecisionBuildTool";
         public const string Name = "Runic Precision Build Tool";
-        public const string Version = "2.0.4";
+        public const string Version = "2.0.7";
 
         internal static ManualLogSource Log { get; private set; }
 

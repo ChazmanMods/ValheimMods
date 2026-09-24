@@ -1,6 +1,6 @@
 {
   "name": "RunicCrafting",
-  "version_number": "1.1.0",
+  "version_number": "1.1.7",
   "website_url": "https://discord.gg/7HKHTCdFqY",
   "description": "Craft and build from nearby containers, see combined material requirements, configure workshop access, and repair all without inventory shuffling.",
   "dependencies": [

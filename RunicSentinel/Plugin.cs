@@ -9,6 +9,7 @@ using RunicSentinel.Api;
 namespace RunicSentinel
 {
     [BepInPlugin(Guid, Name, Version)]
+    [BepInIncompatibility("server_devcommands")]
     [BepInDependency("chazman.RunicSafety", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("chazman.RunicWorldEngine", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInIncompatibility("chazman.RunicSentinelServer")]
@@ -57,6 +58,7 @@ namespace RunicSentinel
                     _runtime, _managedPolicy, _operatorCommands);
                 _adminPanel = new SentinelAdminPanel(_adminControl);
                 _harmony = new Harmony(Guid);
+                RunicSentinel.Devcommands.Engine.Init(Config,Logger);
                 _harmony.PatchAll(typeof(Plugin).Assembly);
                 SentinelConfig.Changed += Refresh;
                 Logger.LogInfo(Name + " v" + Version + " initialized as a standalone plugin. " +
@@ -96,7 +98,7 @@ namespace RunicSentinel
             {
                 Logger.LogWarning("Sentinel runtime-integrity check failed closed: " + exception.Message);
             }
-            try { _adminControl?.Tick(); }
+            try { _adminControl?.Tick(); if(_adminControl!=null)RunicSentinel.Devcommands.Engine.Tick(); }
             catch (Exception exception) { Logger.LogWarning("Sentinel admin transport stopped safely: " + exception.Message); }
             try { _adminPanel?.Tick(); }
             catch (Exception exception)
@@ -131,6 +133,7 @@ namespace RunicSentinel
 
         private void Shutdown()
         {
+            try { RunicSentinel.Devcommands.Engine.Stop(); } catch { }
             SentinelConfig.Changed -= Refresh;
             Interlocked.Exchange(ref _refreshRequested, 0);
             _runtimeStarted = false;

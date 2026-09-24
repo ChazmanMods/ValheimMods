@@ -67,7 +67,7 @@ namespace RunicCharacterVault
         private static string DescribeManager(PlayFabMultiplayerManager manager)
         {
             if (manager == null) return "manager=<null>";
-            return $"managerObject={RuntimeHelpers.GetHashCode(manager):X8}, state={manager.State}, " +
+            return global::Runic.Localization.RunicText.Format("text_8a39f07c27f4", RuntimeHelpers.GetHashCode(manager), manager.State) +
                 $"network={PlayFabConnectionDiagnostics.Fingerprint(manager.NetworkId)}, " +
                 $"remotePlayers={DescribePlayers(manager.RemotePlayers)}";
         }

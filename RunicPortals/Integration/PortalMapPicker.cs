@@ -58,8 +58,6 @@ namespace RunicPortals.Integration
 
         private static readonly FieldInfo LargeZoomField =
             AccessTools.Field(typeof(Minimap), "m_largeZoom");
-        private static readonly FieldInfo MaximumZoomField =
-            AccessTools.Field(typeof(Minimap), "m_maxZoom");
         private static readonly FieldInfo MapOffsetField =
             AccessTools.Field(typeof(Minimap), "m_mapOffset");
         private static readonly FieldInfo VisibleIconTypesField =
@@ -78,13 +76,19 @@ namespace RunicPortals.Integration
         internal bool BlocksPlayerMovement(Player player) =>
             _mapPicker != null && player != null && _mapPicker.Player == player;
 
+        internal bool ProtectsPickerPlayer(Character character) =>
+            FeatureEnabled && _mapPicker != null && character != null &&
+            character == Player.m_localPlayer && _mapPicker.Player == character &&
+            _mapPicker.Player.GetPlayerID() == _mapPicker.PlayerId &&
+            !_mapPicker.Player.IsDead() && ValheimContracts.HasLocalPlayerAuthority;
+
         private bool TryOpenMapPicker(TeleportWorld portal, Player player)
         {
             if (portal == null || player == null || player != Player.m_localPlayer) return true;
             if (_mapPicker != null) return true;
             if (!ValheimContracts.HasLocalPlayerAuthority)
             {
-                Message(player, "Portal picker requires native ownership of the local player.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_2f93a24cb65d"));
                 return true;
             }
             WardContext sourceWard = ValheimContracts.ResolveWard(
@@ -92,7 +96,7 @@ namespace RunicPortals.Integration
                 player.GetPlayerID());
             if (!ValheimContracts.WardAllows(sourceWard))
             {
-                Message(player, "Portal picker denied: ward access was denied at this portal.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_8e0fb756f550"));
                 RejectRoute(portal, RouteStopCode.AuthorityUnavailable);
                 return true;
             }
@@ -104,9 +108,11 @@ namespace RunicPortals.Integration
                 return true;
             }
             if (!TryReadVisibleEndpoint(portal, out PortalEndpoint source) ||
-                !source.PermitsDeparture)
+                !source.PermitsDeparture ||
+                !_permissions.Allows(source, PortalPermissionAdapter.Identity(player.GetPlayerID()), PortalAccessAction.ViewDiscover) ||
+                !_permissions.Allows(source, PortalPermissionAdapter.Identity(player.GetPlayerID()), PortalAccessAction.Depart))
             {
-                Message(player, "This portal is not configured for departures.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_75e68bce57ee"));
                 RejectRoute(portal, RouteStopCode.DepartureDenied);
                 return true;
             }
@@ -129,7 +135,7 @@ namespace RunicPortals.Integration
             Rigidbody body = player.GetComponent<Rigidbody>();
             if (map == null || body == null)
             {
-                Message(player, "Portal map picker is unavailable because the map or player body is not ready.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_9f4761c479e8"));
                 return false;
             }
             var session = new PickerSession
@@ -160,7 +166,7 @@ namespace RunicPortals.Integration
             }
             catch (Exception exception)
             {
-                CancelMapPicker("Portal map picker could not open: " + exception.Message, true);
+                CancelMapPicker(global::Runic.Localization.RunicText.Get("text_ecd03d8e0d3e") + exception.Message, true);
                 return false;
             }
         }
@@ -181,7 +187,7 @@ namespace RunicPortals.Integration
                 !_graph.TryGetEndpoint(source.PortalId, out PortalEndpoint currentSource) ||
                 !SameRouteState(source, currentSource))
             {
-                failure = "Portal destinations are unavailable because the network changed.";
+                failure = global::Runic.Localization.RunicText.Get("text_6330e83dbcb7");
                 return false;
             }
             string traveler = PortalPermissionAdapter.Identity(player.GetPlayerID());
@@ -201,7 +207,7 @@ namespace RunicPortals.Integration
             {
                 if (!_graph.TryGetEndpoint(entry.PortalId, out PortalEndpoint destination) ||
                     !_index.TryGetZdo(entry.PortalId, out ZDO zdo) ||
-                    !PortalZdoCodec.TryRead(zdo, out PortalEndpoint current, out _) ||
+                    !PortalZdoCodec.TryReadDestination(zdo, out PortalEndpoint current, out _) ||
                     !SameRouteState(destination, current)) continue;
                 WardContext ward = ValheimContracts.ResolveWard(zdo.GetPosition(), player.GetPlayerID());
                 bool wardAllowed = ValheimContracts.DestinationWardAllows(ward);
@@ -220,14 +226,16 @@ namespace RunicPortals.Integration
                     destination.Revision));
                 if (!plan.IsReady) continue;
                 string duplicate = entry.DuplicateName ? " [" + entry.Disambiguator + "]" : string.Empty;
-                string scope = PolicyLabel(destination.NetworkKind);
-                string direction = destination.PermitsDeparture ? "Both" : "Arrival only";
+                string scope = destination.Mode == PortalMode.StandardPair
+                    ? "Standard Pair" : PolicyLabel(destination.NetworkKind);
+                string direction = destination.Mode == PortalMode.StandardPair
+                    ? "Vanilla return route" : destination.PermitsDeparture ? "Both" : "Arrival only";
                 candidates.Add(new PickerCandidate
                 {
                     PortalId = destination.PortalId,
                     DisplayName = destination.DisplayName,
                     Label = destination.DisplayName + duplicate + " - " + scope + " - " + direction +
-                            (plan.IsOneWay ? " - ONE WAY" : string.Empty),
+                            (plan.IsOneWay ? global::Runic.Localization.RunicText.Get("text_c4f175a5609f") : string.Empty),
                     Revision = destination.Revision,
                     Position = zdo.GetPosition(),
                     OneWay = plan.IsOneWay
@@ -245,7 +253,7 @@ namespace RunicPortals.Integration
             if (session.Candidates.Count == 0)
             {
                 CancelMapPicker(
-                    "No authorized online arrival portals are available in network '" +
+                    global::Runic.Localization.RunicText.Get("text_5449d5e12c2e") +
                     session.NetworkId + "'.", true);
                 return;
             }
@@ -260,19 +268,19 @@ namespace RunicPortals.Integration
                     false);
                 if (candidate.Pin == null)
                 {
-                    CancelMapPicker("Portal destination markers could not be created.", true);
+                    CancelMapPicker(global::Runic.Localization.RunicText.Get("text_96b2b222ad70"), true);
                     return;
                 }
                 PortalMapMarkerSprite.Apply(candidate.Pin);
                 candidate.Pin.m_doubleSize = true;
                 candidate.Pin.m_animate = true;
             }
-            ShowAllPickerPins(session);
+            // The directory can finish after the player pans or zooms. Add pins without changing that view.
             Message(session.Player,
-                session.Candidates.Count + " destination" +
+                session.Candidates.Count + global::Runic.Localization.RunicText.Get("text_3f57fc99c65e") +
                 (session.Candidates.Count == 1 ? string.Empty : "s") +
-                " available. Click a marker to travel." +
-                (truncated ? " The directory limit was reached." : string.Empty));
+                global::Runic.Localization.RunicText.Get("text_ad4abfd7ce03") +
+                (truncated ? global::Runic.Localization.RunicText.Get("text_a899fb11b1be") : string.Empty));
         }
 
         internal bool TryHandleMapPickerClick(Vector3 screenPoint)
@@ -465,24 +473,6 @@ namespace RunicPortals.Integration
             }
         }
 
-        private static void ShowAllPickerPins(PickerSession session)
-        {
-            Vector3 minimum = session.Source.transform.position;
-            Vector3 maximum = minimum;
-            foreach (PickerCandidate candidate in session.Candidates)
-            {
-                minimum = Vector3.Min(minimum, candidate.Position);
-                maximum = Vector3.Max(maximum, candidate.Position);
-            }
-            try
-            {
-                if (LargeZoomField != null && MaximumZoomField != null)
-                    LargeZoomField.SetValue(session.Map, MaximumZoomField.GetValue(session.Map));
-            }
-            catch (Exception) { }
-            session.Map.ShowPointOnMap((minimum + maximum) * 0.5f);
-        }
-
         internal void DrawMapPickerOverlay()
         {
             PickerSession session = _mapPicker;
@@ -508,9 +498,9 @@ namespace RunicPortals.Integration
             Rect box = PickerOverlayBounds();
             GUI.Box(box, GUIContent.none, _pickerBoxStyle);
             GUI.Label(new Rect(box.x + 10f, box.y + 6f, box.width - 20f, 26f),
-                "Runic network: " + session.NetworkId, _pickerTitleStyle);
+                global::Runic.Localization.RunicText.Get("text_90dc8cdfaad1"), _pickerTitleStyle);
             GUI.Label(new Rect(box.x + 10f, box.y + 34f, box.width - 20f, 34f),
-                "Click a portal marker to travel. Arrival-only markers are one-way. Press Esc to cancel.",
+                global::Runic.Localization.RunicText.Get("text_afd57636b9fb"),
                 _pickerBodyStyle);
         }
 
@@ -527,8 +517,8 @@ namespace RunicPortals.Integration
 
         internal void FailMapPickerUi(Exception exception)
         {
-            Diagnostics.Error(exception, "Portal map picker UI failed closed.");
-            CancelMapPicker("Portal map picker closed after a display error.", true);
+            Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_6e380ff1faec"));
+            CancelMapPicker(global::Runic.Localization.RunicText.Get("text_38e2f2a667db"), true);
         }
 
         private void ShutdownMapPicker()

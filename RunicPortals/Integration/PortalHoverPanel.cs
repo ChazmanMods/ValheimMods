@@ -100,14 +100,14 @@ namespace RunicPortals.Integration
             float innerWidth = width - inset * 2f;
             float currentY = y + inset;
             DrawLabel(ref currentY, x + inset, innerWidth,
-                "Runic Portals - setup guide", _titleStyle, gap);
+                global::Runic.Localization.RunicText.Get("text_d07337e0623b"), _titleStyle, gap);
             DrawLabel(ref currentY, x + inset, innerWidth, content.Status, _statusStyle, gap);
             if (content.Warning.Length != 0)
                 DrawLabel(ref currentY, x + inset, innerWidth, content.Warning, _warningStyle, gap);
-            DrawLabel(ref currentY, x + inset, innerWidth, "Controls", _headingStyle, gap * 0.5f);
+            DrawLabel(ref currentY, x + inset, innerWidth, global::Runic.Localization.RunicText.Get("text_799c26913574"), _headingStyle, gap * 0.5f);
             DrawLabel(ref currentY, x + inset, innerWidth, content.Controls, _bodyStyle, gap);
             DrawLabel(ref currentY, x + inset, innerWidth,
-                "Setup commands and access", _headingStyle, gap * 0.5f);
+                global::Runic.Localization.RunicText.Get("text_957d354098df"), _headingStyle, gap * 0.5f);
             DrawLabel(ref currentY, x + inset, innerWidth, content.Instructions, _bodyStyle, 0f);
         }
 
@@ -121,23 +121,23 @@ namespace RunicPortals.Integration
         internal static string FriendlyControllerPath(string path, string fallback)
         {
             string normalized = (path ?? string.Empty).Trim().Replace('\\', '/').ToLowerInvariant();
-            if (normalized.EndsWith("/lefttrigger", StringComparison.Ordinal)) return "Left Trigger";
-            if (normalized.EndsWith("/righttrigger", StringComparison.Ordinal)) return "Right Trigger";
-            if (normalized.EndsWith("/leftshoulder", StringComparison.Ordinal)) return "Left Bumper";
-            if (normalized.EndsWith("/rightshoulder", StringComparison.Ordinal)) return "Right Bumper";
-            if (normalized.EndsWith("/buttonsouth", StringComparison.Ordinal)) return "A / Cross";
-            if (normalized.EndsWith("/buttoneast", StringComparison.Ordinal)) return "B / Circle";
-            if (normalized.EndsWith("/buttonwest", StringComparison.Ordinal)) return "X / Square";
-            if (normalized.EndsWith("/buttonnorth", StringComparison.Ordinal)) return "Y / Triangle";
-            if (normalized.EndsWith("/dpad/up", StringComparison.Ordinal)) return "D-pad Up";
-            if (normalized.EndsWith("/dpad/down", StringComparison.Ordinal)) return "D-pad Down";
-            if (normalized.EndsWith("/dpad/left", StringComparison.Ordinal)) return "D-pad Left";
-            if (normalized.EndsWith("/dpad/right", StringComparison.Ordinal)) return "D-pad Right";
-            if (normalized.EndsWith("/leftstickpress", StringComparison.Ordinal)) return "Left Stick Click";
-            if (normalized.EndsWith("/rightstickpress", StringComparison.Ordinal)) return "Right Stick Click";
-            if (normalized.EndsWith("/start", StringComparison.Ordinal)) return "Menu";
-            if (normalized.EndsWith("/select", StringComparison.Ordinal)) return "View / Share";
-            return BoundedLabel(fallback, "Controller action");
+            if (normalized.EndsWith("/lefttrigger", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_3ba65231b54a");
+            if (normalized.EndsWith("/righttrigger", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_eb5168025c81");
+            if (normalized.EndsWith("/leftshoulder", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_2bbd2670e952");
+            if (normalized.EndsWith("/rightshoulder", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_b238567f2f82");
+            if (normalized.EndsWith("/buttonsouth", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_b81cc6f28763");
+            if (normalized.EndsWith("/buttoneast", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_7df3fba69cfe");
+            if (normalized.EndsWith("/buttonwest", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_9affb90082db");
+            if (normalized.EndsWith("/buttonnorth", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_7c3f8373297f");
+            if (normalized.EndsWith("/dpad/up", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_1f85615c359b");
+            if (normalized.EndsWith("/dpad/down", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_6e47237e9353");
+            if (normalized.EndsWith("/dpad/left", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_321cd19f454a");
+            if (normalized.EndsWith("/dpad/right", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_89cbe5b197bb");
+            if (normalized.EndsWith("/leftstickpress", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_c3a92a975036");
+            if (normalized.EndsWith("/rightstickpress", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_50b1892d38b2");
+            if (normalized.EndsWith("/start", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_99af6606ff9d");
+            if (normalized.EndsWith("/select", StringComparison.Ordinal)) return global::Runic.Localization.RunicText.Get("text_0b2e04edf664");
+            return BoundedLabel(fallback, global::Runic.Localization.RunicText.Get("text_0b896c1c823b"));
         }
 
         private float Measure(PortalSetupGuideContent content, float width, int fontSize)
@@ -146,13 +146,13 @@ namespace RunicPortals.Integration
             float gap = Mathf.Max(4f, fontSize * 0.32f);
             float innerWidth = width - inset * 2f;
             float height = inset * 2f;
-            height += LabelHeight("Runic Portals - setup guide", _titleStyle, innerWidth) + gap;
+            height += LabelHeight(global::Runic.Localization.RunicText.Get("text_d07337e0623b"), _titleStyle, innerWidth) + gap;
             height += LabelHeight(content.Status, _statusStyle, innerWidth) + gap;
             if (content.Warning.Length != 0)
                 height += LabelHeight(content.Warning, _warningStyle, innerWidth) + gap;
-            height += LabelHeight("Controls", _headingStyle, innerWidth) + gap * 0.5f;
+            height += LabelHeight(global::Runic.Localization.RunicText.Get("text_799c26913574"), _headingStyle, innerWidth) + gap * 0.5f;
             height += LabelHeight(content.Controls, _bodyStyle, innerWidth) + gap;
-            height += LabelHeight("Setup commands and access", _headingStyle, innerWidth) + gap * 0.5f;
+            height += LabelHeight(global::Runic.Localization.RunicText.Get("text_957d354098df"), _headingStyle, innerWidth) + gap * 0.5f;
             height += LabelHeight(content.Instructions, _bodyStyle, innerWidth);
             return Mathf.Ceil(height);
         }
@@ -207,17 +207,17 @@ namespace RunicPortals.Integration
             catch (Exception) { }
             if (!controller)
             {
-                use = KeyboardBinding("Use", "Use");
-                string keyboardAlternate = KeyboardBinding("AltPlace", "Alternate Place");
+                use = KeyboardBinding(global::Runic.Localization.RunicText.Get("text_c36d819e7bc6"), global::Runic.Localization.RunicText.Get("text_c36d819e7bc6"));
+                string keyboardAlternate = KeyboardBinding("AltPlace", global::Runic.Localization.RunicText.Get("text_c24799272339"));
                 alternateUse = keyboardAlternate + " + " + use;
                 return;
             }
 
-            use = ControllerBinding("JoyUse", "Use");
+            use = ControllerBinding("JoyUse", global::Runic.Localization.RunicText.Get("text_c36d819e7bc6"));
             string alternateAction = ZInput.InputLayout == InputLayout.Default
                 ? "JoyAltPlace"
                 : "JoyAltKeys";
-            string controllerAlternate = ControllerBinding(alternateAction, "Controller Alt");
+            string controllerAlternate = ControllerBinding(alternateAction, global::Runic.Localization.RunicText.Get("text_8f425f2e1d7b"));
             alternateUse = controllerAlternate + " + " + use;
         }
 

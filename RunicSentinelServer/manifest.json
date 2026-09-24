@@ -1,8 +1,8 @@
 {
   "name": "RunicSentinelServer",
-  "version_number": "1.1.2",
+  "version_number": "1.2.0",
   "website_url": "https://discord.gg/7HKHTCdFqY",
-  "description": "Server-only Raven's Gate admission, signed policy, enforcement, admin backend, backups, reports, and console tools without client reporting or GUI code.",
+  "description": "Server-only Sentinel admission, signed policy, enforcement, admin backend, backups, reports, and console tools without client reporting or GUI code.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2350",
     "Chazman-RunicSafety-1.0.2"

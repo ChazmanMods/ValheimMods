@@ -1,7 +1,9 @@
 {
   "name": "RunicClock",
-  "version_number": "1.0.1",
+  "version_number": "1.0.2",
   "website_url": "https://discord.gg/7HKHTCdFqY",
   "description": "A client-only HUD clock with game time, day count, sun/moon indicator, optional local time, and customizable placement and size.",
-  "dependencies": ["denikson-BepInExPack_Valheim-5.4.2350"]
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2350"
+  ]
 }

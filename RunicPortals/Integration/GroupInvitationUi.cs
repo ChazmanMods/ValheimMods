@@ -99,7 +99,7 @@ namespace RunicPortals.Integration
                 _responding = false;
                 _nextPoll = 0f;
                 Player.m_localPlayer?.Message(MessageHud.MessageType.Center,
-                    response?.Text ?? "Group response was not confirmed. Retry using /group accept or /group decline.");
+                    response?.Text ?? global::Runic.Localization.RunicText.Get("text_51ed807b359d"));
                 // A timed-out request may have committed; query before offering it again.
                 if (response == null) _handled.Remove(choice.Token);
                 _choices = Array.Empty<GroupInvitationChoice>();

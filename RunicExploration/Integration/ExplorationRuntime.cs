@@ -266,7 +266,7 @@ namespace RunicExploration.Integration
             float innerWidth = _panelRect.width - inset * 2f;
             GUI.Label(
                 new Rect(_panelRect.x + inset, currentY, innerWidth, 25f * scale),
-                "Runic Exploration - known world only",
+                global::Runic.Localization.RunicText.Get("text_4c1ca11313cd"),
                 _titleStyle);
             currentY += 27f * scale;
 
@@ -342,7 +342,7 @@ namespace RunicExploration.Integration
                 {
                     GUI.Label(
                         new Rect(_panelRect.x + inset, currentY, innerWidth, rowHeight),
-                        "No explored saved pins match this filter.",
+                        global::Runic.Localization.RunicText.Get("text_c90bdbffe800"),
                         _smallStyle);
                     currentY += rowHeight;
                 }
@@ -673,7 +673,7 @@ namespace RunicExploration.Integration
         {
             switch (filter)
             {
-                case KnownPinCategoryFilter.TaggedAssets: return "tagged assets";
+                case KnownPinCategoryFilter.TaggedAssets: return global::Runic.Localization.RunicText.Get("text_d350dea08831");
                 case KnownPinCategoryFilter.Tombstones: return "tombstones";
                 case KnownPinCategoryFilter.Beds: return "beds";
                 case KnownPinCategoryFilter.Custom: return "custom";

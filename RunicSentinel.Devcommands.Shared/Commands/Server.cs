@@ -1,0 +1,44 @@
+#nullable enable
+using System.Linq;
+namespace RunicSentinel.Devcommands;
+///<summary>Utility command for server side execution.</summary>
+public class ServerCommand
+{
+
+  private void MakeServer(string name)
+  {
+    var original = Terminal.commands[name];
+    Helper.Command(name, original.Description, (args) =>
+    {
+      if (ZNet.instance && !ZNet.instance.IsServer())
+      {
+        ServerExecution.Send(args);
+      }
+      else original.action(args);
+    });
+  }
+  public ServerCommand()
+  {
+    new Terminal.ConsoleCommand("server", "[command] - Executes the given command on the server.", (args) =>
+    {
+      if (args.Length < 2) return;
+      var command = string.Join(" ", args.Args.Skip(1));
+      ServerExecution.Send(command);
+    }, false, true);
+    AutoComplete.RegisterEmpty("server");
+    AutoComplete.Offsets["server"] = 0;
+
+    MakeServer("randomevent");
+    AutoComplete.RegisterEmpty("randomevent");
+    MakeServer("stopevent");
+    AutoComplete.RegisterEmpty("stopevent");
+    AutoComplete.RegisterEmpty("genloc");
+    AutoComplete.RegisterEmpty("sleep");
+    AutoComplete.Register("skiptime", index =>
+    {
+      if (index == 0) return ParameterInfo.Create("Seconds", "a number (default 240.0)");
+      return ParameterInfo.None;
+    });
+    AutoComplete.RegisterEmpty("resetkeys");
+  }
+}

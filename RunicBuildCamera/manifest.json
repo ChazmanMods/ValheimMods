@@ -1,6 +1,6 @@
 {
   "name": "RunicBuildCamera",
-  "version_number": "1.0.3",
+  "version_number": "1.0.5",
   "website_url": "https://discord.gg/7HKHTCdFqY",
   "description": "Build from the angle you need with a detached camera, remote placement, repair and removal, optional loose-material pickup, and Wisplight support.",
   "dependencies": [

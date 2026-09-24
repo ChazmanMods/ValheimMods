@@ -18,11 +18,14 @@ namespace RunicCrafting.Integration
         private static Vector3 _origin;
         private static float _radius, _nextPulse, _nextStart;
         private static int _submitted;
+        private static EffectList _repairSound;
+        private static float _nextSound;
 
         internal static void Reset()
         {
             Pending.Clear(); HammerPieces.Clear(); _player = null; _network = null;
             _submitted = 0; _nextPulse = _nextStart = 0f;
+            _repairSound = null; _nextSound = 0f;
         }
 
         internal static void Tick()
@@ -42,13 +45,15 @@ namespace RunicCrafting.Integration
                 // Moving out of the starting area cannot expand a queued request's repair reach.
                 if ((player.transform.position - _origin).sqrMagnitude > 4f ||
                     Math.Abs(AreaRepairPolicy.Radius(Configuration.AreaRepairRadius.Value) - _radius) > 0.01f)
-                { Message(player, "Area repair cancelled after movement or radius change."); Reset(); return; }
+                { Message(player, global::Runic.Localization.RunicText.Get("text_510736362d5b")); Reset(); return; }
                 _nextPulse = Time.unscaledTime + 0.05f;
-                _submitted += Pending.Step(piece => Repair(player, piece));
+                int repaired = Pending.Step(piece => Repair(player, piece));
+                _submitted += repaired;
+                if (repaired > 0) PlayRepairFeedback(player);
                 if (Pending.Count == 0)
                 {
-                    Message(player, _submitted > 0 ? "Area repair: sent " + _submitted + " structure repair requests." :
-                        "Area repair: no damaged, accessible hammer structures could be repaired.");
+                    Message(player, _submitted > 0 ? global::Runic.Localization.RunicText.Get("text_f3a2af40e71b") + _submitted + global::Runic.Localization.RunicText.Get("text_8debecd1e1de") :
+                        global::Runic.Localization.RunicText.Get("text_757c04af9403"));
                     HammerPieces.Clear(); _player = null; _network = null;
                     _nextStart = Time.unscaledTime + 1f;
                 }
@@ -57,7 +62,7 @@ namespace RunicCrafting.Integration
             {
                 Reset();
                 Plugin.Log?.LogWarning("Area repair stopped: " + error.Message);
-                Message(Player.m_localPlayer, "Area repair stopped; check the BepInEx log.");
+                Message(Player.m_localPlayer, global::Runic.Localization.RunicText.Get("text_f1ff0afcea50"));
             }
         }
 
@@ -79,14 +84,25 @@ namespace RunicCrafting.Integration
         private static void Start(Player player)
         {
             HammerPieces.Clear();
+            _repairSound = null; _nextSound = 0f;
             // Resolve the registered Hammer table at each keypress, including mod-added hammer pieces.
             PieceTable table = ObjectDB.instance?.GetItemPrefab("Hammer")?.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_buildPieces;
-            if (table == null) { Message(player, "Area repair: hammer build catalog is unavailable."); return; }
+            if (table == null) { Message(player, global::Runic.Localization.RunicText.Get("text_355726b64c1b")); return; }
             foreach (GameObject prefab in table.m_pieces)
             {
                 Piece piece = prefab != null ? prefab.GetComponent<Piece>() : null;
                 if (piece != null && !piece.m_repairPiece && !piece.m_removePiece)
                     HammerPieces.Add(ValheimReflection.PiecePrefabId(piece));
+                if (piece != null && ValheimReflection.PiecePrefabId(piece) == "woodwall")
+                {
+                    // Native manual repair uses the piece's placement effects. Keep just the
+                    // wooden wall's sound effects, without spawning dust or debris at the player.
+                    var sounds = new List<EffectList.EffectData>();
+                    foreach (var effect in piece.m_placeEffect?.m_effectPrefabs ?? Array.Empty<EffectList.EffectData>())
+                        if (effect != null && effect.m_enabled && effect.m_prefab != null && effect.m_prefab.GetComponent<ZSFX>() != null)
+                            sounds.Add(new EffectList.EffectData { m_prefab = effect.m_prefab });
+                    _repairSound = new EffectList { m_effectPrefabs = sounds.ToArray() };
+                }
             }
             _player = player; _network = ZNet.instance; _origin = player.transform.position;
             _radius = AreaRepairPolicy.Radius(Configuration.AreaRepairRadius.Value); _submitted = 0;
@@ -103,9 +119,9 @@ namespace RunicCrafting.Integration
                 if (!Pending.Add(piece)) { truncated = true; break; }
             }
             _nextStart = Time.unscaledTime + 1f;
-            Message(player, Pending.Count == 0 ? "Area repair: no loaded hammer structures in range." :
-                "Area repair started (" + _radius + "m). Stay nearby while repairs finish." +
-                (truncated ? " Large-area limit reached; press again for remaining damaged pieces." : ""));
+            Message(player, Pending.Count == 0 ? global::Runic.Localization.RunicText.Get("text_9901ef28015a") :
+                global::Runic.Localization.RunicText.Get("text_2800cf37e65d") + _radius + global::Runic.Localization.RunicText.Get("text_ec75af7e5f7c") +
+                (truncated ? global::Runic.Localization.RunicText.Get("text_cf32903b99fe") : ""));
         }
 
         private static bool Repair(Player player, Piece piece)
@@ -135,7 +151,15 @@ namespace RunicCrafting.Integration
             return wear.Repair();
         }
 
+        private static void PlayRepairFeedback(Player player)
+        {
+            if (_repairSound == null || Time.unscaledTime < _nextSound) return;
+            _nextSound = Time.unscaledTime + .2f;
+            try { _repairSound.Create(player.transform.position, Quaternion.identity); }
+            catch (Exception error) { Plugin.Log?.LogWarning("Area repair sound unavailable: " + error.Message); }
+        }
+
         private static void Message(Player player, string message) =>
-            player?.Message(MessageHud.MessageType.TopLeft, "Runic Crafting: " + message);
+            player?.Message(MessageHud.MessageType.TopLeft, global::Runic.Localization.RunicText.Get("text_3ebccbaa12dc") + message);
     }
 }

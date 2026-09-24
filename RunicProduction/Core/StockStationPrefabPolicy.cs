@@ -59,7 +59,7 @@ namespace RunicProduction.Core
             string[] entries = text.Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.None);
             if (entries.Length > MaximumEntries)
             {
-                failure = $"The stock station {label} list exceeds {MaximumEntries} entries.";
+                failure = global::Runic.Localization.RunicText.Format("text_84fc9a97f9e9", label, MaximumEntries);
                 return false;
             }
             foreach (string entry in entries)
@@ -67,12 +67,12 @@ namespace RunicProduction.Core
                 string value = entry.Trim();
                 if (!StockDomainValidation.IsExactPrefabId(value))
                 {
-                    failure = $"The stock station {label} list contains an invalid exact prefab ID.";
+                    failure = global::Runic.Localization.RunicText.Format("text_033b25826081", label);
                     return false;
                 }
                 if (!values.Add(value))
                 {
-                    failure = $"The stock station {label} list contains a duplicate exact prefab ID.";
+                    failure = global::Runic.Localization.RunicText.Format("text_bdaf4fe69586", label);
                     return false;
                 }
             }

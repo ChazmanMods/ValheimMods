@@ -7,21 +7,16 @@ using UnityEngine.UI;
 
 namespace RunicSigns.Runtime;
 
-internal sealed class SignRuntime : MonoBehaviour
+internal sealed class SignRuntime : MonoBehaviour, IPlaced
 {
     internal const string SettingsKey = "RunicSigns.Settings.v1";
     private const string LeaseKey = "RunicSigns.SaveLease.v1", ExpiryKey = "RunicSigns.SaveExpiry.v1";
     private const string RequestRpc = "RunicSigns_RequestSave_v1", ResponseRpc = "RunicSigns_SaveResponse_v1";
     private Sign _sign;
     private ZNetView _view;
-    private Vector3 _baseScale;
-    private Vector3 _baseTextPosition;
-    private float _baseFontSize, _baseFontMin, _baseFontMax;
-    private bool _baseAutoSize, _baseRichText;
-    private Color _baseColor;
-    private FontStyles _baseStyle;
-    private TextAlignmentOptions _baseAlignment;
-    private Image _background;
+    private SignAppearance _appearance;
+    private SignSettings _preview;
+    private string _previewCaption;
     private string _rendered;
     private float _next;
     private string _pendingToken, _expectedStyle, _expectedText, _newStyle, _newText;
@@ -30,6 +25,23 @@ internal sealed class SignRuntime : MonoBehaviour
     private bool _granted, _nativeWrite;
     private Action<bool, string> _completion;
     internal bool Saving => _pendingToken != null;
+    public void OnPlaced()
+    {
+        // Native Player.PlacePiece calls IPlaced after setting the creator. Loaded signs and
+        // placement ghosts never receive this callback, so their saved appearance is preserved.
+        if (!_view || !_view.IsValid() || !_view.IsOwner() || Raw.Length != 0 ||
+            !SignPlacement.IsLocalPlacement(_sign)) return;
+        var settings = SignPlacement.CurrentSettings;
+        if (!settings.Valid) return;
+        if (SignPlacement.HasCaption) {
+            _nativeWrite = true;
+            try { _sign.SetText(SignPlacement.Caption); }
+            finally { _nativeWrite = false; }
+            if (NativeText != SignPlacement.Caption) return;
+        }
+        _view.GetZDO().Set(SettingsKey, settings.Encode());
+        Render();
+    }
     internal string Raw => _view.GetZDO().GetString(SettingsKey, "");
     internal string NativeText => _view.GetZDO().GetString(ZDOVars.s_text, _sign.m_defaultText);
     internal static SignRuntime Attach(Sign sign)
@@ -40,15 +52,7 @@ internal sealed class SignRuntime : MonoBehaviour
     private void Awake()
     {
         _sign = GetComponent<Sign>(); _view = GetComponent<ZNetView>();
-        _baseScale = transform.localScale;
-        var text = _sign.m_textWidget;
-        if (text)
-        {
-            _baseFontSize = text.fontSize; _baseFontMin = text.fontSizeMin; _baseFontMax = text.fontSizeMax;
-            _baseAutoSize = text.enableAutoSizing; _baseRichText = text.richText;
-            _baseColor = text.color; _baseStyle = text.fontStyle; _baseAlignment = text.alignment;
-            _baseTextPosition = text.rectTransform.localPosition;
-        }
+        _appearance = new SignAppearance(transform, _sign.m_textWidget);
         _view.Register<string, string, string>(RequestRpc, RequestSave);
         _view.Register<string, string>(ResponseRpc, SaveResponse);
         Render();
@@ -67,7 +71,7 @@ internal sealed class SignRuntime : MonoBehaviour
     {
         if (Saving) return;
         if (!SignAccess.Local(_sign) || !settings.Valid || !SignSettings.ValidText(text))
-        { completion(false, "Check sign access and caption (maximum 256 characters)."); return; }
+        { completion(false, "Check sign access and caption (maximum 1024 characters)."); return; }
         _expectedStyle = expectedStyle; _expectedText = expectedText; _newStyle = settings.Encode(); _newText = text;
         _completion = completion; _pendingToken = Guid.NewGuid().ToString("N");
         _requestedOwner = _view.GetZDO().GetOwner(); _granted = false;
@@ -109,6 +113,7 @@ internal sealed class SignRuntime : MonoBehaviour
             // Native SetText preserves authorship, wards, filtering and muted-author behavior.
             _sign.SetText(_newText);
             if (NativeText != _newText) { Finish(false, "Valheim rejected the caption. Check ward access."); return; }
+            _preview = null; _previewCaption = null; _rendered = null;
             _view.GetZDO().Set(SettingsKey, _newStyle);
             Render();
             Finish(Raw == _newStyle, Raw == _newStyle ? "Saved." : "Settings could not be verified. Reopen the sign.");
@@ -125,59 +130,29 @@ internal sealed class SignRuntime : MonoBehaviour
         var complete = _completion; _completion = null; _pendingToken = null; _granted = false;
         complete?.Invoke(success, message);
     }
+    internal void Preview(SignSettings settings, string caption)
+    {
+        if (!settings.Valid || !SignSettings.ValidText(caption)) return;
+        _preview = settings.Clone(); _previewCaption = caption; _rendered = null; Render();
+    }
+    internal void EndPreview()
+    {
+        _preview = null; _previewCaption = null; _rendered = null; Render();
+    }
     internal void Render()
     {
         if (!_view || !_view.IsValid()) return;
-        string raw = Raw;
+        string raw = _preview != null ? _preview.Encode() : Raw;
         if (raw == _rendered) return;
         _rendered = raw;
         if (!SignSettings.TryDecode(raw, out var settings))
-        { Restore(); Plugin.Log.LogWarning("Unrecognized RunicSigns data preserved; sign uses its original appearance."); return; }
-        if (raw.Length == 0) { Restore(); return; }
-        transform.localScale = _baseScale * settings.Scale;
-        var text = _sign.m_textWidget;
-        if (!text) return; // Dedicated server still applies physical scale.
-        text.richText = false;
-        ColorUtility.TryParseHtmlString(LabelColors.Hex[settings.Color], out var color); text.color = color;
-        text.fontStyle = (settings.Bold ? FontStyles.Bold : FontStyles.Normal) | (settings.Italic ? FontStyles.Italic : FontStyles.Normal);
-        text.alignment = settings.Alignment == 0 ? TextAlignmentOptions.Left : settings.Alignment == 2 ? TextAlignmentOptions.Right : TextAlignmentOptions.Center;
-        text.enableAutoSizing = true; text.fontSizeMax = _baseFontSize * settings.TextSize;
-        text.fontSizeMin = Mathf.Min(text.fontSizeMax, Mathf.Max(1, _baseFontSize * .25f));
-        text.fontSize = text.fontSizeMax;
-        // Rect dimensions are text-local units; localPosition is in the parent's space.
-        // Apply the text transform's scale and rotation exactly once. The sign/ancestor
-        // transforms then carry the offset with the board, including resized/rotated signs.
-        var textRect = text.rectTransform;
-        var localOffset = Vector2.Scale(textRect.rect.size, new Vector2(settings.Horizontal, settings.Vertical));
-        textRect.localPosition = _baseTextPosition + textRect.localRotation *
-            Vector3.Scale(textRect.localScale, new Vector3(localOffset.x, localOffset.y, 0));
-        if (!_background && settings.Background != 0)
-        {
-            var go = new GameObject("RunicSignsBackground", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            go.transform.SetParent(text.transform.parent, false);
-            _background = go.GetComponent<Image>(); _background.raycastTarget = false;
-            var rect = _background.rectTransform; var source = text.rectTransform;
-            rect.anchorMin = source.anchorMin; rect.anchorMax = source.anchorMax; rect.pivot = source.pivot;
-            rect.sizeDelta = source.sizeDelta; rect.localRotation = source.localRotation; rect.localScale = source.localScale;
-            rect.localPosition = _baseTextPosition;
-            rect.SetSiblingIndex(source.GetSiblingIndex());
-        }
-        if (_background) { _background.gameObject.SetActive(settings.Background != 0); _background.color = settings.Background == 1 ? Color.white : Color.black; }
-    }
-    private void Restore()
-    {
-        transform.localScale = _baseScale;
-        if (_background) _background.gameObject.SetActive(false);
-        var text = _sign.m_textWidget;
-        if (!text) return;
-        text.fontSize = _baseFontSize; text.fontSizeMin = _baseFontMin; text.fontSizeMax = _baseFontMax;
-        text.enableAutoSizing = _baseAutoSize; text.richText = _baseRichText; text.color = _baseColor;
-        text.fontStyle = _baseStyle; text.alignment = _baseAlignment; text.rectTransform.localPosition = _baseTextPosition;
+        { _appearance.Restore(); Plugin.Log.LogWarning("Unrecognized RunicSigns data preserved; sign uses its original appearance."); return; }
+        if (raw.Length == 0) { _appearance.Restore(); return; }
+        _appearance.Apply(settings, _previewCaption, () => SignAccess.CanView(_sign));
     }
     private void OnDestroy()
     {
-        CancelSave(); Restore();
-        if (_background) Destroy(_background.gameObject);
+        CancelSave(); _appearance?.Dispose();
         if (_view) { _view.Unregister(RequestRpc); _view.Unregister(ResponseRpc); }
     }
 }

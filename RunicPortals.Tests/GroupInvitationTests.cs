@@ -146,15 +146,15 @@ namespace RunicPortals.Tests
                 True(typeof(UnifiedPopup).GetField(field, fields) != null, "Missing native popup field " + field);
             True(typeof(YesNoPopup).GetConstructor(new[] { typeof(string), typeof(string), typeof(PopupButtonCallback),
                 typeof(PopupButtonCallback), typeof(bool), typeof(bool) }) != null);
-            string popup = File.ReadAllText(Path.Combine(ProjectRoot(), "Integration", "NativeGroupInvitationPopup.cs"));
+            string popup = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(ProjectRoot(), "Integration", "NativeGroupInvitationPopup.cs"));
             Contains(popup, "\"Accept\"", "\"Decline\"", "ReferenceEquals(stack.Peek(), popup)", "CapturePrimaryPointer", "SetTakeInputDelay");
-            string ui = File.ReadAllText(Path.Combine(ProjectRoot(), "Integration", "GroupInvitationUi.cs"));
+            string ui = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(ProjectRoot(), "Integration", "GroupInvitationUi.cs"));
             Contains(ui, "generation != _generation", "_responding", "_handled", "IsDead()", "Chat.instance.HasFocus()", "now >= _freshUntil");
             Contains(ui, "if (!_groups.SupportsInvitationUi) return;");
-            string runtime = File.ReadAllText(Path.Combine(ProjectRoot(), "Integration", "PortalGroupRuntime.cs"));
+            string runtime = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(ProjectRoot(), "Integration", "PortalGroupRuntime.cs"));
             Contains(runtime, "ok-invites-v1", "server.m_uid != sender", "_supportsInvitationUi = false");
             Contains(runtime, "decline require RunicPortals 1.2.4 on the server");
-            string guard = File.ReadAllText(Path.Combine(ProjectRoot(), "Integration", "PortalEditorInputGuard.cs"));
+            string guard = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(ProjectRoot(), "Integration", "PortalEditorInputGuard.cs"));
             Contains(guard, "NativeGroupInvitationPopup.IsOpen", "JoyHotbarUse", "_primaryReleaseFrame");
         }
     }

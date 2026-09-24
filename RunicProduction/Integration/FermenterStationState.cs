@@ -79,9 +79,11 @@ namespace RunicProduction.Integration
         internal static bool TryCapture(ZDO zdo, out FermenterStationState state)
         {
             state = null;
-            return zdo != null && zdo.IsValid() && TryCreate(
-                zdo.GetString(ZDOVars.s_content, string.Empty),
-                zdo.GetLong(ZDOVars.s_startTime, 0L),
+            if (zdo == null || !zdo.IsValid()) return false;
+            string content = FermenterContentStorage.Read(zdo);
+            return TryCreate(
+                content,
+                content.Length == 0 ? 0L : zdo.GetLong(ZDOVars.s_startTime, 0L),
                 zdo.GetBool(ZDOVars.s_cheatedQueued, false),
                 out state);
         }
@@ -138,7 +140,7 @@ namespace RunicProduction.Integration
         {
             if (zdo == null || !zdo.IsValid())
                 throw new ArgumentNullException(nameof(zdo));
-            zdo.Set(ZDOVars.s_content, InputPrefabId);
+            FermenterContentStorage.Write(zdo, InputPrefabId);
             zdo.Set(ZDOVars.s_startTime, StartTicks);
             zdo.Set(ZDOVars.s_cheatedQueued, Cheated);
         }

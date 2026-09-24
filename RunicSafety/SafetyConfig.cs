@@ -41,35 +41,35 @@ namespace RunicSafety
             Unbind();
             _config = config;
             Enabled = Bind(config, "General", "Enabled", true,
-                "Master runtime gate. False preserves vanilla behavior while public audit/backup services remain discoverable.");
+                global::Runic.Localization.RunicText.Get("text_6d6dc4701ff3"));
             ConfirmRareSacrifice = Bind(config, "Confirmations", "RareItemSacrifice", true,
-                "Require the same rare-item sacrifice action twice inside the confirmation window.");
+                global::Runic.Localization.RunicText.Get("text_db8fc97fcad8"));
             ConfirmOccupiedContainer = Bind(config, "Confirmations", "OccupiedContainerDestruction", true,
-                "Require a second hammer removal for a piece containing a non-empty container.");
+                global::Runic.Localization.RunicText.Get("text_dcaeba799395"));
             ConfirmVehicleDestruction = Bind(config, "Confirmations", "ShipOrCartDestruction", true,
-                "Require a second hammer removal for a ship or cart piece.");
+                global::Runic.Localization.RunicText.Get("text_63c9d8a90511"));
             ConfirmPortalOverwrite = Bind(config, "Confirmations", "PortalOverwrite", true,
-                "Require a second commit when replacing an existing portal tag with a different tag.");
+                global::Runic.Localization.RunicText.Get("text_ff3cbd217b26"));
             ConfirmationWindowSeconds = Bind(config, "Confirmations", "RepeatWindowSeconds", 4f,
-                new ConfigDescription("Seconds allowed for the identical repeat action.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_a70672868f2a"),
                     new AcceptableValueRange<float>(1f, 15f)));
             ProtectedDestinations = Bind(config, "Protected Items", "Enabled", true,
-                "Apply equipped, quest, lock-provider, and configured-rare policy at audited vanilla destination boundaries.");
+                global::Runic.Localization.RunicText.Get("text_5760922ac7e7"));
             AdministratorBypass = Bind(config, "Protected Items", "AdministratorBypass", false,
-                "Allow a verified host/admin to bypass protected-item policy. Every bypass is recorded without item contents.");
+                global::Runic.Localization.RunicText.Get("text_e0ae37ad90b0"));
             RarePrefabNames = Bind(config, "Protected Items", "RarePrefabNames", DefaultRarePrefabs,
-                "Comma/semicolon separated exact prefab names. At most 256 bounded entries are accepted.");
+                global::Runic.Localization.RunicText.Get("text_bd4cbf5571a4"));
             BackupRoot = Bind(config, "Migration Backups", "RootDirectory",
                 Path.Combine(Paths.ConfigPath, "RunicSafety", "backups"),
-                "Default same-volume root offered to migration clients. Safety only removes marked backups within this root.");
+                global::Runic.Localization.RunicText.Get("text_b26307eac06d"));
             BackupRetention = Bind(config, "Migration Backups", "RetentionCount", 5,
-                new ConfigDescription("Committed backups retained after a successful new commit.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_c3e2c13bb9da"),
                     new AcceptableValueRange<int>(1, 128)));
             BackupMaximumFiles = Bind(config, "Migration Backups", "MaximumFiles", 32,
-                new ConfigDescription("Maximum source files in one backup transaction.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_65a8f954ff45"),
                     new AcceptableValueRange<int>(1, 1024)));
             BackupMaximumMiB = Bind(config, "Migration Backups", "MaximumTotalMiB", 2048,
-                new ConfigDescription("Maximum total source bytes in one backup transaction.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_8611e5a3c6d4"),
                     new AcceptableValueRange<int>(1, 65536)));
             RebuildRarePrefabs();
             config.SettingChanged += OnSettingChanged;

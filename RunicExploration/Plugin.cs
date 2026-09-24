@@ -12,7 +12,7 @@ namespace RunicExploration
     {
         public const string Guid = "chazman.RunicExploration";
         public const string Name = "Runic Exploration";
-        public const string Version = "1.0.2";
+        public const string Version = "1.0.3";
         private Harmony _harmony;
         private ExplorationRuntime _runtime;
 

@@ -54,7 +54,7 @@ namespace RunicSentinel.Runtime
             ReferenceEquals(_network, ZNet.instance) && Evidence.IsRejected(subject);
         internal static bool TryValidate(ZSteamSocket socket, HSteamNetConnection handle, ulong subject, out string reason)
         {
-            reason = "steam-session-observer-unavailable: reconnect after the server update";
+            reason = global::Runic.Localization.RunicText.Get("text_5f7c6989c389");
             return ReferenceEquals(_network, ZNet.instance) && _validation != null &&
                 Evidence.TryValidate(subject, socket, handle.m_HSteamNetConnection, out reason);
         }

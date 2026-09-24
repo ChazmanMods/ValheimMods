@@ -14,7 +14,7 @@ namespace RunicPortals.Api
         public const int MaximumSearchLength = 64;
         public const int MaximumApprovedIdentities = 64;
         public const int MaximumGraphEndpoints = 2048;
-        public const int MaximumDirectoryResults = 128;
+        public const int MaximumDirectoryResults = MaximumGraphEndpoints;
         public const int MaximumDiagnostics = 256;
         public const int MaximumReturnRoutes = 256;
         public const int MaximumSelections = 256;

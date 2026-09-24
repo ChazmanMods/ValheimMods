@@ -13,6 +13,7 @@ namespace RunicAgriculture
         internal static ConfigEntry<bool> Enabled { get; private set; }
         internal static ConfigEntry<PlantPattern> Pattern { get; private set; }
         internal static ConfigEntry<AgricultureAlignment> Alignment { get; private set; }
+        internal static ConfigEntry<bool> SnapToExistingRows { get; private set; }
         internal static ConfigEntry<int> Rows { get; private set; }
         internal static ConfigEntry<int> Columns { get; private set; }
         internal static ConfigEntry<float> Spacing { get; private set; }
@@ -61,50 +62,52 @@ namespace RunicAgriculture
                 "General",
                 "Enabled",
                 true,
-                "Enable Runic planting previews, explicit batch actions, and read-only status text.");
+                global::Runic.Localization.RunicText.Get("text_062f2399ad55"));
             Pattern = config.Bind(
                 "Planting Pattern",
                 "Pattern",
                 PlantingGridPolicy.DefaultPattern,
-                "Preview shape: Row, Grid, Circle, Star, RightTriangle, HalfCircle, or Trapezoid. The cycle shortcut changes it live.");
+                global::Runic.Localization.RunicText.Get("text_3380a0ba3316"));
             Alignment = config.Bind(
                 "Planting Pattern",
                 "Alignment",
                 AgricultureAlignment.PlayerHeading,
-                "Align to player heading, world axes, or the nearest two matching crops.");
+                global::Runic.Localization.RunicText.Get("text_634d03807cc5"));
+            SnapToExistingRows = config.Bind("Planting Pattern", "SnapToExistingRows", true,
+                global::Runic.Localization.RunicText.Get("text_c6a150fcd483"));
             Rows = config.Bind(
                 "Planting Pattern",
                 "Rows",
                 5,
                 new ConfigDescription(
-                    "Forward footprint in planting rows for every shape except Row. Change it live with the row controls.",
+                    global::Runic.Localization.RunicText.Get("text_5f8df80ea007"),
                     new AcceptableValueRange<int>(1, PatternRequest.AbsoluteMaximumDimension)));
             Columns = config.Bind(
                 "Planting Pattern",
                 "ColumnsOrPoints",
                 5,
                 new ConfigDescription(
-                    "Side-to-side footprint in planting columns. Change it live with the column controls.",
+                    global::Runic.Localization.RunicText.Get("text_a5e75c336fe7"),
                     new AcceptableValueRange<int>(1, PatternRequest.AbsoluteMaximumDimension)));
             Spacing = config.Bind(
                 "Planting Pattern",
                 "SpacingMeters",
                 1.5f,
                 new ConfigDescription(
-                    "Center-to-center spacing for every generated shape.",
+                    global::Runic.Localization.RunicText.Get("text_f0a386206418"),
                     new AcceptableValueRange<float>(0.5f, 6f)));
             LegacyCircleRadius = config.Bind(
                 "Planting Pattern",
                 "CircleRadiusMeters",
                 3f,
                 new ConfigDescription(
-                    "Legacy migration-only circle radius. Live Circle size now uses Rows and Columns; this value is never reapplied after the migration marker is set.",
+                    global::Runic.Localization.RunicText.Get("text_f61a244eba13"),
                     new AcceptableValueRange<float>(0.5f, 12f)));
             LegacyCircleRadiusMigrationApplied = config.Bind(
                 "Migrations",
                 "LegacyCircleRadiusMappedToRowsAndColumns",
                 false,
-                "Internal one-time migration marker. Custom row/column dimensions take precedence over the legacy radius.");
+                global::Runic.Localization.RunicText.Get("text_44ec06e5158e"));
             if (!LegacyCircleRadiusMigrationApplied.Value)
             {
                 bool saveOnConfigSet = config.SaveOnConfigSet;
@@ -134,90 +137,90 @@ namespace RunicAgriculture
                 "Planting Pattern",
                 "MirrorShape",
                 false,
-                "Switch the side used by RightTriangle and HalfCircle, or mirror an asymmetric Trapezoid.");
+                global::Runic.Localization.RunicText.Get("text_d2b9b602bf21"));
             TrapezoidLeftPinch = config.Bind(
                 "Planting Pattern",
                 "TrapezoidLeftPinch",
                 0.5f,
                 new ConfigDescription(
-                    "How far the unmirrored trapezoid's left front edge tapers inward (0 = straight, 1 = center).",
+                    global::Runic.Localization.RunicText.Get("text_02a606cd059b"),
                     new AcceptableValueRange<float>(0f, 1f)));
             TrapezoidRightPinch = config.Bind(
                 "Planting Pattern",
                 "TrapezoidRightPinch",
                 0.5f,
                 new ConfigDescription(
-                    "How far the unmirrored trapezoid's right front edge tapers inward (0 = straight, 1 = center).",
+                    global::Runic.Localization.RunicText.Get("text_a869d4816893"),
                     new AcceptableValueRange<float>(0f, 1f)));
             NearbySeedChestRange = config.Bind(
                 "Planting Resources",
                 "NearbyChestRangeMeters",
                 30f,
                 new ConfigDescription(
-                    "Player-centered range for eligible nearby chests that may supply planting resources. Personal inventory is always consumed first. Static locally-owned chests only; access and wards are rechecked before mutation.",
+                    global::Runic.Localization.RunicText.Get("text_aa00bdc07966"),
                     new AcceptableValueRange<float>(1f, 30f)));
             InvalidPolicy = config.Bind(
                 "Confirmation",
                 "InvalidPositionPolicy",
                 InvalidPositionPolicy.SkipInvalid,
-                "Skip amber/gray terrain or spacing failures, or block the entire confirmation before the first plant.");
+                global::Runic.Localization.RunicText.Get("text_ea163e54008a"));
             ResourcePolicy = config.Bind(
                 "Confirmation",
                 "ResourceShortfallPolicy",
                 ResourceShortfallPolicy.TruncatePredictably,
-                "Stop cleanly at the combined personal-and-nearby-chest per-cell resource budget, or block first. A confirmed left-click batch uses one normal stamina/tool-durability action.");
+                global::Runic.Localization.RunicText.Get("text_c6ffae0f23ea"));
             HarvestRadius = config.Bind(
                 "Harvest",
                 "RadiusMeters",
                 4f,
                 new ConfigDescription(
-                    "Area-harvest radius for the exact same registered Pickable prefab.",
+                    global::Runic.Localization.RunicText.Get("text_044c4dd6edbf"),
                     new AcceptableValueRange<float>(1f, 8f)));
             MaximumHarvest = config.Bind(
                 "Harvest",
                 "MaximumPlants",
                 HardMaximumHarvest,
                 new ConfigDescription(
-                    "Maximum Pickable requests in one area-harvest batch. Hard-capped at 25.",
+                    global::Runic.Localization.RunicText.Get("text_7317af1f94d6"),
                     new AcceptableValueRange<int>(1, HardMaximumHarvest)));
             OfferReplantPreview = config.Bind(
                 "Harvest",
                 "OfferConfirmedReplant",
                 true,
-                "After bounded area harvest, remember successful positions and offer replant ghosts only for matching crops in authorized planting areas; the cultivator does not need to be equipped and planting is never automatic.");
+                global::Runic.Localization.RunicText.Get("text_6cb55563a879"));
             ShowHoverStatus = config.Bind(
                 "Status",
                 "ShowBeeAndCropStatus",
                 true,
-                "Append concise read-only honey, bee happiness, crop maturity, and growth-failure status.");
+                global::Runic.Localization.RunicText.Get("text_fd8b538263fd"));
             ShowContextualControls = config.Bind(
                 "Status",
                 "ShowContextualControls",
                 true,
-                "Replace the vanilla bottom build hints with the Agriculture control bar while a crop preview is active.");
+                global::Runic.Localization.RunicText.Get("text_feaaacf65721"));
             ControlBarScale = config.Bind(
                 "Status",
                 "ControlBarScale",
                 0.9f,
                 new ConfigDescription(
-                    "Scale Valheim's compact bottom Agriculture build-hint panel.",
+                    global::Runic.Localization.RunicText.Get("text_dbf41efd8026"),
                     new AcceptableValueRange<float>(0.75f, 1.75f)));
             GridAndCompactHudMigrationApplied = config.Bind(
                 "Migrations",
                 "GridAndCompactBottomHudApplied",
                 false,
-                "Internal one-time migration marker. Resets the prior shape to the basic Grid and selects the compact native HUD scale once.");
+                global::Runic.Localization.RunicText.Get("text_d678d2a41521"));
             ApplyGridAndCompactHudMigration(config);
             VerboseLogging = config.Bind(
                 "Diagnostics",
                 "VerboseLogging",
                 false,
-                "Log input routing, preview state changes, denials, and action results for troubleshooting.");
+                global::Runic.Localization.RunicText.Get("text_922bc33074a7"));
             ConfirmPattern = config.Bind(
                 "Controls",
                 "ConfirmPattern",
                 new KeyboardShortcut(KeyCode.Mouse0),
-                "Informational binding for ordinary left-click planting; the live Valheim Attack action confirms the displayed pattern.");
+                global::Runic.Localization.RunicText.Get("text_bddae62a4ebb"));
             if (ConfirmPattern.Value.MainKey != KeyCode.Mouse0 ||
                 System.Linq.Enumerable.Any(ConfirmPattern.Value.Modifiers))
                 ConfirmPattern.Value = new KeyboardShortcut(KeyCode.Mouse0);
@@ -225,107 +228,107 @@ namespace RunicAgriculture
                 "Controls",
                 "CyclePattern",
                 new KeyboardShortcut(KeyCode.O, KeyCode.LeftAlt),
-                "Cycle Row, Grid, Circle, Star, RightTriangle, HalfCircle, and Trapezoid while holding a plant with the cultivator.");
+                global::Runic.Localization.RunicText.Get("text_944abf2e8819"));
             AreaHarvest = config.Bind(
                 "Controls",
                 "AreaHarvestModifierInteract",
                 new KeyboardShortcut(KeyCode.E, KeyCode.LeftAlt),
-                "Modifier-interact an available Pickable to harvest nearby objects of that exact registered prefab.");
+                global::Runic.Localization.RunicText.Get("text_f9d7a147a398"));
             ConfirmReplant = config.Bind(
                 "Controls",
                 "ConfirmReplant",
                 new KeyboardShortcut(KeyCode.T, KeyCode.LeftAlt),
-                "Explicitly confirm a pending replant preview while the matching crop is selected.");
+                global::Runic.Localization.RunicText.Get("text_9bb76ce57f98"));
             IncreaseRows = config.Bind(
                 "Pattern Editing Controls",
                 "IncreaseRows",
                 new KeyboardShortcut(KeyCode.UpArrow, KeyCode.LeftAlt, KeyCode.LeftShift),
-                "Add one forward row to the live planting preview.");
+                global::Runic.Localization.RunicText.Get("text_c5d12526d008"));
             DecreaseRows = config.Bind(
                 "Pattern Editing Controls",
                 "DecreaseRows",
                 new KeyboardShortcut(KeyCode.DownArrow, KeyCode.LeftAlt, KeyCode.LeftShift),
-                "Remove one forward row from the live planting preview.");
+                global::Runic.Localization.RunicText.Get("text_f4a62507405f"));
             IncreaseColumns = config.Bind(
                 "Pattern Editing Controls",
                 "IncreaseColumns",
                 new KeyboardShortcut(KeyCode.RightArrow, KeyCode.LeftAlt, KeyCode.LeftShift),
-                "Add one side-to-side column to the live planting preview.");
+                global::Runic.Localization.RunicText.Get("text_1dc2185a3a67"));
             DecreaseColumns = config.Bind(
                 "Pattern Editing Controls",
                 "DecreaseColumns",
                 new KeyboardShortcut(KeyCode.LeftArrow, KeyCode.LeftAlt, KeyCode.LeftShift),
-                "Remove one side-to-side column from the live planting preview.");
+                global::Runic.Localization.RunicText.Get("text_642dfed9cf66"));
             ToggleShapeSide = config.Bind(
                 "Pattern Editing Controls",
                 "ToggleShapeSide",
                 new KeyboardShortcut(KeyCode.L, KeyCode.LeftAlt, KeyCode.LeftShift),
-                "Switch RightTriangle/HalfCircle sides or mirror an asymmetric Trapezoid.");
+                global::Runic.Localization.RunicText.Get("text_acb7b0125402"));
             DecreaseLeftPinch = config.Bind(
                 "Pattern Editing Controls",
                 "DecreaseLeftTrapezoidPinch",
                 new KeyboardShortcut(KeyCode.LeftBracket, KeyCode.LeftAlt, KeyCode.LeftShift),
-                "Widen the unmirrored trapezoid's left front edge by one step.");
+                global::Runic.Localization.RunicText.Get("text_1bf04d54db6f"));
             IncreaseLeftPinch = config.Bind(
                 "Pattern Editing Controls",
                 "IncreaseLeftTrapezoidPinch",
                 new KeyboardShortcut(KeyCode.RightBracket, KeyCode.LeftAlt, KeyCode.LeftShift),
-                "Pinch the unmirrored trapezoid's left front edge inward by one step.");
+                global::Runic.Localization.RunicText.Get("text_af299d6064e1"));
             DecreaseRightPinch = config.Bind(
                 "Pattern Editing Controls",
                 "DecreaseRightTrapezoidPinch",
                 new KeyboardShortcut(KeyCode.Semicolon, KeyCode.LeftAlt, KeyCode.LeftShift),
-                "Widen the unmirrored trapezoid's right front edge by one step.");
+                global::Runic.Localization.RunicText.Get("text_891c491e9a0a"));
             IncreaseRightPinch = config.Bind(
                 "Pattern Editing Controls",
                 "IncreaseRightTrapezoidPinch",
                 new KeyboardShortcut(KeyCode.Quote, KeyCode.LeftAlt, KeyCode.LeftShift),
-                "Pinch the unmirrored trapezoid's right front edge inward by one step.");
+                global::Runic.Localization.RunicText.Get("text_1a9700c0ea7b"));
             ControllerEnabled = config.Bind(
                 "Controller Controls",
                 "Enabled",
                 true,
-                "Enable contextual controller chords through Valheim's ZInput action mappings.");
+                global::Runic.Localization.RunicText.Get("text_dfc9d3f71a47"));
             ControllerModifier = config.Bind(
                 "Controller Controls",
                 "ModifierAction",
                 ValheimControllerAction.JoyAltKeys,
-                "Valheim controller action held as the Runic modifier.");
+                global::Runic.Localization.RunicText.Get("text_dc4902cecbf6"));
             ControllerConfirm = config.Bind(
                 "Controller Controls",
                 "ConfirmAction",
                 ValheimControllerAction.JoyPlace,
-                "Valheim controller action pressed with the modifier to confirm a visible pattern or matching replant preview.");
+                global::Runic.Localization.RunicText.Get("text_5de612a71616"));
             ControllerCycle = config.Bind(
                 "Controller Controls",
                 "CyclePatternAction",
                 ValheimControllerAction.JoyPrevSnap,
-                "Valheim controller action pressed with the modifier to cycle the planting pattern.");
+                global::Runic.Localization.RunicText.Get("text_d04b45d703bc"));
             ControllerAreaHarvest = config.Bind(
                 "Controller Controls",
                 "AreaHarvestAction",
                 ValheimControllerAction.JoyUse,
-                "Valheim controller action pressed with the modifier while interacting with an available Pickable.");
+                global::Runic.Localization.RunicText.Get("text_087da402a5f0"));
             ControllerPreviousEditorField = config.Bind(
                 "Controller Pattern Editor",
                 "PreviousEditorFieldAction",
                 ValheimControllerAction.JoyDPadUp,
-                "Unmodified Valheim controller action that selects the previous visible pattern setting only during an active crop preview.");
+                global::Runic.Localization.RunicText.Get("text_eb40b0bfea5b"));
             ControllerNextEditorField = config.Bind(
                 "Controller Pattern Editor",
                 "NextEditorFieldAction",
                 ValheimControllerAction.JoyDPadDown,
-                "Unmodified Valheim controller action that selects the next visible pattern setting only during an active crop preview.");
+                global::Runic.Localization.RunicText.Get("text_734db65456d0"));
             ControllerDecreaseEditorValue = config.Bind(
                 "Controller Pattern Editor",
                 "DecreaseEditorValueAction",
                 ValheimControllerAction.JoyDPadLeft,
-                "Unmodified Valheim controller action that decreases the selected pattern setting only during an active crop preview.");
+                global::Runic.Localization.RunicText.Get("text_7c8c16085237"));
             ControllerIncreaseEditorValue = config.Bind(
                 "Controller Pattern Editor",
                 "IncreaseEditorValueAction",
                 ValheimControllerAction.JoyDPadRight,
-                "Unmodified Valheim controller action that increases the selected pattern setting only during an active crop preview.");
+                global::Runic.Localization.RunicText.Get("text_0b2485e84dfa"));
         }
 
         internal static AgricultureControllerBindings CurrentControllerBindings() =>

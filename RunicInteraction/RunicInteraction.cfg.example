@@ -1,4 +1,4 @@
-## Runic Interaction 1.0.4 example configuration
+## Runic Interaction 1.0.8 example configuration
 ## Copy to BepInEx/config/chazman.RunicInteraction.cfg while Valheim is closed.
 ## Every feature is reversible and delegates state changes to installed vanilla methods.
 
@@ -15,10 +15,12 @@ HoldToRepeat = true
 ## Add Alt-click full-stack transfer and guard vanilla controller/Ctrl moves.
 TransferGestures = true
 
-## Reserved fail-closed gate; no safe atomic drag-sweep boundary exists in Valheim 1.0.7.
+## Reserved fail-closed gate; no safe atomic drag-sweep boundary exists in Valheim 1.0.8.
 DragTransfer = false
 
-## Session-only delayed close for doors opened by the native local player. Off by default.
+## Close loaded, accessible player-built doors after anyone opens them, including other players.
+## World-generated doors are excluded.
+## Requires an active local player on this client. Off by default.
 AutoCloseDoors = false
 
 ## Restore a still-legal prior hand item after swimming or putting away a temporary Tool.
@@ -70,7 +72,7 @@ AllowQuestItemFiltering = false
 
 ## Generic ZInput action held with the implicit JoyUse pickup action.
 ## JoyRStick is right-stick click and remains physically distinct from JoyUse in all three
-## installed Valheim 1.0.7 controller layouts.
+## installed Valheim 1.0.8 controller layouts.
 PickupBypassModifierAction = JoyRStick
 
 [Diagnostics]

@@ -1,6 +1,6 @@
 {
   "name": "RunicSafety",
-  "version_number": "1.0.5",
+  "version_number": "1.0.9",
   "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicSafety",
   "description": "Protect valuable items and world state with contextual confirmations, protected-item rules, recovery safeguards, verified backups, and compatibility checks.",
   "dependencies": [

@@ -7,6 +7,18 @@ namespace RunicStorage.Runtime
 {
     internal static class StorageContainerAuthority
     {
+        internal static Func<bool> CaptureAuthority(Container container)
+        {
+            if (container == null) return () => true;
+            ZNetView view = ValheimContainerIdentity.NetworkView(container);
+            ZDO zdo = view != null && view.IsValid() ? view.GetZDO() : null;
+            Inventory inventory = container.GetInventory();
+            var revision = zdo?.OwnerRevision;
+            RunicAutomation.MutationGate.Current?.Track(zdo?.m_uid);
+            return () => container != null && view != null && view.IsValid() && view.IsOwner() &&
+                ReferenceEquals(view.GetZDO(), zdo) && zdo != null && zdo.OwnerRevision == revision &&
+                ReferenceEquals(container.GetInventory(), inventory) && !RunicAutomation.ContainerAuthority.Blocked(container);
+        }
         internal const string ContainerLoadMethodName = "Load";
         internal const string ContainerLoadingFieldName = "m_loading";
 
@@ -32,7 +44,7 @@ namespace RunicStorage.Runtime
             Container container,
             bool allowCurrentUse)
         {
-            if (ZNet.instance == null || container == null || !container.isActiveAndEnabled ||
+            if (ZNet.instance == null || container == null || RunicAutomation.ContainerAuthority.Blocked(container) || !container.isActiveAndEnabled ||
                 (bool)LoadingField.GetValue(container) ||
                 container.m_wagon != null && container.m_wagon.InUse())
                 return false;
@@ -45,7 +57,9 @@ namespace RunicStorage.Runtime
             if (!allowCurrentUse && (container.IsInUse() || persistedInUse)) return false;
             if (allowCurrentUse && persistedInUse && !view.IsOwner()) return false;
 
-            if (!view.IsOwner()) view.ClaimOwnership();
+            Player actor = Player.m_localPlayer;
+            if (actor == null || !RunicAutomation.ContainerAuthority.TryAcquire(container, "storage",
+                    RunicAutomation.ContainerAuthority.PlayerContext(actor), actor.GetPlayerID(), allowCurrentUse)) return false;
             return view.IsOwner() && zdo.GetOwner() == ZNet.GetUID();
         }
 
@@ -72,14 +86,14 @@ namespace RunicStorage.Runtime
             return TryGetOwnedInventory(container, allowInUse: true, out inventory);
         }
 
-        private static bool TryGetOwnedInventory(
+        internal static bool TryGetOwnedInventory(
             Container container,
             bool allowInUse,
-            out Inventory inventory)
+            out Inventory inventory, bool existingOwnerOnly = false)
         {
             inventory = null;
-            if (!TryClaimWritableInventory(container, allowInUse))
-                return false;
+            if (!RunicAutomation.ContainerAuthority.Writable(container, allowInUse)) return false;
+            if (!existingOwnerOnly && !TryClaimWritableInventory(container, allowInUse)) return false;
 
             ZNetView view = ValheimContainerIdentity.NetworkView(container);
             ZDO zdo = view != null && view.IsValid() && view.IsOwner() ? view.GetZDO() : null;
@@ -88,6 +102,8 @@ namespace RunicStorage.Runtime
 
             try
             {
+                if (Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(container))
+                    return Runic.Compatibility.ModdedContainerCompatibility.TryRefresh(container, out inventory);
                 LoadMethod.Invoke(container, Array.Empty<object>());
                 inventory = container.GetInventory();
                 if (inventory == null) return false;

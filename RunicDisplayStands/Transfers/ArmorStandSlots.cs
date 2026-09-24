@@ -11,8 +11,7 @@ namespace RunicDisplayStands
         internal const int Count = 9, Width = 5, Height = 2;
         internal const int Helmet = 0, Chest = 1, Legs = 2, Cape = 3, Utility = 4,
             RightHand = 5, LeftHand = 6, Shield = 7, Weapon = 8;
-        internal static readonly string[] Labels =
-            { "Helmet", "Chest", "Legs", "Cape", "Utility", "Right hand", "Left hand", "Shield", "Weapon" };
+        internal static string[] Labels => new[] { global::Runic.Localization.RunicText.Get("text_a47fdf6415fc"), global::Runic.Localization.RunicText.Get("text_378d83808237"), global::Runic.Localization.RunicText.Get("text_38557594d0fc"), global::Runic.Localization.RunicText.Get("text_4f646b9c50e7"), global::Runic.Localization.RunicText.Get("text_9450d833fa77"), global::Runic.Localization.RunicText.Get("text_97fb8f940687"), global::Runic.Localization.RunicText.Get("text_5ca5b8e793be"), global::Runic.Localization.RunicText.Get("text_480d4be7d61f"), global::Runic.Localization.RunicText.Get("text_1710782c5d15") };
 
         internal static bool IsWeapon(ItemDrop.ItemData item) => item != null &&
             (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon ||

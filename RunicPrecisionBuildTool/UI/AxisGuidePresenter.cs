@@ -224,7 +224,8 @@ namespace QuietBuildRotation.UI
                 throw new InvalidOperationException("axis-guide objects are incomplete");
 
             Vector3 pivot = _ghost.transform.position;
-            Quaternion orientation = _ghost.transform.rotation;
+            Quaternion orientation = PlacementRuntime.CurrentRotationFrame == PlacementReferenceFrame.Local
+                ? _ghost.transform.rotation : Quaternion.identity;
             _root.transform.SetPositionAndRotation(pivot, orientation);
             SetAxis(_pitchLine, pivot, orientation * Vector3.right);
             SetAxis(_yawLine, pivot, orientation * Vector3.up);

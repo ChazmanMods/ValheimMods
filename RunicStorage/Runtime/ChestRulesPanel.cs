@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using RunicStorage.Engine;
+using Runic.Shared;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,12 +27,13 @@ internal sealed class ChestRulesPanel : IDisposable
     private int _page;
     private TMP_Text _status, _preview, _rememberText, _showText, _positionText, _priorityText, _explanation, _colorText, _backgroundText;
     private Image _previewBackground;
+    private Runic.Shared.CaptionBend _previewBend;
     private GameObject _choices;
     private TMP_InputField _color, _label, _search;
     private StorageSearchVanillaTheme _theme;
     internal bool IsOpen => _canvas;
     private readonly List<string> _catalog = new();
-    private static readonly string[] Sides = { "Front", "Back", "Left", "Right", "Top" };
+    private static string[] Sides => new[] { global::Runic.Localization.RunicText.Get("text_a61759020289"), global::Runic.Localization.RunicText.Get("text_76900f1bfd16"), global::Runic.Localization.RunicText.Get("text_58eb9032e3bb"), global::Runic.Localization.RunicText.Get("text_883361d5d682"), global::Runic.Localization.RunicText.Get("text_d5cdfcf7ff75") };
 
     internal void Tick()
     {
@@ -41,7 +44,7 @@ internal sealed class ChestRulesPanel : IDisposable
         if (!_launcher && gui && gui.m_takeAllButton)
         {
             _theme = StorageSearchVanillaTheme.Create();
-            _launcher = Button(gui.m_container, "Quick Stack Rules", 0, 0, 175, 36, Open);
+            _launcher = Button(gui.m_container, global::Runic.Localization.RunicText.Get("text_a97a5b96b5e1"), 0, 0, 175, 36, Open);
             _launcher.name = "RunicQuickStackRules";
             var rect = (RectTransform)_launcher.transform;
             // Dedicated footer outside the chest body; never occupy either vanilla header button.
@@ -66,14 +69,14 @@ internal sealed class ChestRulesPanel : IDisposable
         var gui = InventoryGui.instance;
         _chest = gui ? Current.GetValue(gui) as Container : null;
         if (!ChestRuleStore.CanEdit(_chest))
-        { Player.m_localPlayer?.Message(MessageHud.MessageType.Center, "Chest is busy or access is unavailable. Reopen it and try again."); return; }
+        { Player.m_localPlayer?.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_57ae16e2b5e1")); return; }
         _expected = ChestRuleStore.Raw(_chest);
         if (!ChestRules.TryDecode(_expected, out _draft))
-        { Player.m_localPlayer?.Message(MessageHud.MessageType.Center, "Chest rules could not be read. Existing rules were preserved."); return; }
+        { Player.m_localPlayer?.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_151613ec355b")); return; }
         _libraryValid = ChestGroupRuntime.LoadLibrary(out _library);
         if (!_libraryValid) _library = new ChestRules();
         _editingGroup = new ChestCustomGroup();
-        _theme = StorageSearchVanillaTheme.Create(); _page = 0; _filter = ""; _tab = "Items";
+        _theme = StorageSearchVanillaTheme.Create(); _page = 0; _filter = ""; _tab = global::Runic.Localization.RunicText.Get("text_fb8e7a1a3cb7");
         _catalog.Clear();
         if (ObjectDB.instance)
             _catalog.AddRange(ObjectDB.instance.m_items.Where(p => p && p.GetComponent<ItemDrop>())
@@ -94,7 +97,7 @@ internal sealed class ChestRulesPanel : IDisposable
         background.sprite = _theme.PanelSprite; background.type = _theme.PanelType;
         if (_theme.PanelMaterial) background.material = _theme.PanelMaterial;
         _panel = background.rectTransform; _panel.anchorMin = _panel.anchorMax = _panel.pivot = new Vector2(.5f, .5f); _panel.sizeDelta = new Vector2(850, 730);
-        Text(_panel, "Quick Stack Rules", 24, 22, 570, 34, 25);
+        Text(_panel, global::Runic.Localization.RunicText.Get("text_a97a5b96b5e1"), 24, 22, 570, 34, 25);
         _priorityText = Button(_panel, "", 620, 22, 205, 34, () => { _draft.Preferred = !_draft.Preferred; Refresh(); }, ChestRulesHelp.For("Priority")).GetComponentInChildren<TMP_Text>();
         _explanation = Text(_panel, "", 24, 57, 800, 38, 15);
         _rememberText = Button(_panel, "", 24, 98, 390, 34, () => {
@@ -102,48 +105,57 @@ internal sealed class ChestRulesPanel : IDisposable
             if (_draft.Remember) { _draft.Learn(_chest.GetInventory().GetAllItems().Select(ValheimContainerIdentity.ResourceId)); _draft.ShowLabel = true; }
             Refresh();
         }, ChestRulesHelp.For("Remember")).GetComponentInChildren<TMP_Text>();
-        Button(_panel, "Clear remembered items", 430, 98, 220, 34, () => { _draft.Memory.Clear(); Refresh(); });
-        Button(_panel, "Clear rules", 660, 98, 165, 34, () => { _draft.Items.Clear(); _draft.Categories.Clear(); _draft.CustomGroups.Clear(); _draft.Excluded.Clear(); _draft.OnlyBiome = ""; Refresh(); });
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_67f95c666b55"), 430, 98, 220, 34, () => { _draft.Memory.Clear(); Refresh(); });
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_c592c2ab189f"), 660, 98, 165, 34, () => { _draft.Items.Clear(); _draft.Categories.Clear(); _draft.CustomGroups.Clear(); _draft.Excluded.Clear(); _draft.OnlyBiome = ""; Refresh(); });
         int tabIndex = 0;
-        foreach (var tab in new[] { ("Items", "Always accept"), ("Groups", "Groups"), ("Excluded", "Never accept"), ("Accepted", "Accepted"), ("Remembered", "Remembered"), ("Biome", "Only from biome"), ("Custom", "Custom groups") })
+        foreach (var tab in new[] { (global::Runic.Localization.RunicText.English("text_fb8e7a1a3cb7"), global::Runic.Localization.RunicText.Get("text_a0a83b7f9482")), (global::Runic.Localization.RunicText.English("text_39bbb719fa2b"), global::Runic.Localization.RunicText.Get("text_39bbb719fa2b")), (global::Runic.Localization.RunicText.English("text_bef1fd9e5cae"), global::Runic.Localization.RunicText.Get("text_563caf3b0519")), (global::Runic.Localization.RunicText.English("text_a00fb0c50741"), global::Runic.Localization.RunicText.Get("text_a00fb0c50741")), (global::Runic.Localization.RunicText.English("text_a913983316ad"), global::Runic.Localization.RunicText.Get("text_a913983316ad")), (global::Runic.Localization.RunicText.English("text_e3bc8307be2a"), global::Runic.Localization.RunicText.Get("text_0fe994b14bd5")), (global::Runic.Localization.RunicText.English("text_494ca78f7374"), global::Runic.Localization.RunicText.Get("text_9636b3c175d0")) })
         {
             string target = tab.Item1;
             Button(_panel, tab.Item2, 24 + tabIndex % 4 * 204, 141 + tabIndex / 4 * 36, 190, 30,
                 () => { _tab = target; _page = 0; _filter = ""; _search?.SetTextWithoutNotify(""); Refresh(); }); tabIndex++;
         }
-        (_search = Input(_panel, "Search items or rules", "", 24, 216, 600, 32, 128)).onValueChanged.AddListener(s => { _filter = s; _page = 0; Refresh(); });
-        Button(_panel, "Previous", 637, 216, 90, 32, () => { _page = Math.Max(0, _page - 1); Refresh(); });
-        Button(_panel, "Next", 735, 216, 90, 32, () => { _page++; Refresh(); });
+        (_search = Input(_panel, global::Runic.Localization.RunicText.Get("text_5051c6130a60"), "", 24, 216, 600, 32, 128)).onValueChanged.AddListener(s => { _filter = s; _page = 0; Refresh(); });
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_a57b08a480b8"), 637, 216, 90, 32, () => { _page = Math.Max(0, _page - 1); Refresh(); });
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_1ff57a29d7c9"), 735, 216, 90, 32, () => { _page++; Refresh(); });
         _list = Rect("Rules", _panel, 24, 257, 801, 166);
         _aux = Rect("GroupControls", _panel, 24, 432, 801, 34);
         _showText = Button(_panel, "", 24, 474, 180, 32, () => { _draft.ShowLabel = !_draft.ShowLabel; Refresh(); }, ChestRulesHelp.For("Exterior")).GetComponentInChildren<TMP_Text>();
-        _label = Input(_panel, "Automatic label (or enter your own)", _draft.Label, 214, 474, 280, 32, 96);
-        _color = Input(_panel, "Color name", ChestLabelColors.Names[ChestLabelColors.Resolve(_draft.Color)], 504, 474, 145, 32, 32);
+        _label = Input(_panel, global::Runic.Localization.RunicText.Get("text_024132ab240c"), _draft.Label, 214, 474, 198, 32, 96);
+        Runic.Shared.EmojiInput.Attach(_label);
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_0a76ba756cf5"), 418, 474, 76, 32, () => {
+            if (_choices) { _choices.SetActive(false); UnityEngine.Object.Destroy(_choices); }
+            _choices = Runic.Shared.EmojiPicker.Open(_canvas.transform, _label, _theme.Font ? _theme.Font : TMP_Settings.defaultFontAsset);
+        }, global::Runic.Localization.RunicText.Get("text_ce4fee122c4a"));
+        _color = Input(_panel, global::Runic.Localization.RunicText.Get("text_dd7eb423550c"), ChestLabelColors.Names[ChestLabelColors.Resolve(_draft.Color)], 504, 474, 145, 32, 32);
         _colorText = Button(_panel, "", 659, 474, 166, 32, () => ShowChoices(ChestLabelColors.Names, index => {
             _color.SetTextWithoutNotify(ChestLabelColors.Names[index]); UpdatePreview();
-            _status.text = "Text color: " + ChestLabelColors.Names[index] + " (" + ChestLabelColors.Hex[index] + ").";
+            _status.text = global::Runic.Localization.RunicText.Get("text_8e2cce723ae8") + ChestLabelColors.Names[index] + " (" + ChestLabelColors.Hex[index] + ").";
         }, true), ChestRulesHelp.For("Text color")).GetComponentInChildren<TMP_Text>();
         _color.onEndEdit.AddListener(NormalizeColor);
         _label.onValueChanged.AddListener(_ => UpdatePreview()); _color.onValueChanged.AddListener(_ => UpdatePreview());
         for (int i = 0; i < Sides.Length; i++) { int side = i; Button(_panel, Sides[i], 24 + i * 162, 518, 152, 30, () => { _draft.Side = side; Refresh(); }); }
-        _positionText = Text(_panel, "", 24, 557, 800, 25, 17);
-        Button(_panel, "Smaller", 24, 592, 110, 30, () => { _draft.Size = Mathf.Max(.3f, _draft.Size - .1f); Refresh(); });
-        Button(_panel, "Larger", 144, 592, 110, 30, () => { _draft.Size = Mathf.Min(2, _draft.Size + .1f); Refresh(); });
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_1d629c2b632e"), 24, 553, 110, 30, ShowBending,
+            global::Runic.Localization.RunicText.Get("text_14ad9a4ae519"));
+        _positionText = Text(_panel, "", 144, 557, 681, 25, 17);
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_00417195b1e2"), 24, 592, 110, 30, () => { _draft.Size = Mathf.Max(.3f, _draft.Size - .1f); Refresh(); });
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_b05e2520a37f"), 144, 592, 110, 30, () => { _draft.Size = Mathf.Min(2, _draft.Size + .1f); Refresh(); });
         Button(_panel, "←", 278, 592, 75, 30, () => { _draft.Horizontal = Mathf.Max(-1, _draft.Horizontal - .05f); Refresh(); });
         Button(_panel, "→", 363, 592, 75, 30, () => { _draft.Horizontal = Mathf.Min(1, _draft.Horizontal + .05f); Refresh(); });
         Button(_panel, "↓", 448, 592, 75, 30, () => { _draft.Vertical = Mathf.Max(-1, _draft.Vertical - .05f); Refresh(); });
         Button(_panel, "↑", 533, 592, 75, 30, () => { _draft.Vertical = Mathf.Min(1, _draft.Vertical + .05f); Refresh(); });
-        Button(_panel, "Reset position", 628, 592, 197, 30, () => { _draft.Horizontal = _draft.Vertical = 0; _draft.Size = 1; Refresh(); });
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_8cebff871182"), 628, 592, 197, 30, () => { _draft.Horizontal = _draft.Vertical = 0; _draft.Size = 1; Refresh(); });
         _previewBackground = Image("LabelPreviewBackground", _panel, Color.clear);
         _previewBackground.rectTransform.anchoredPosition = new Vector2(24, -632); _previewBackground.rectTransform.sizeDelta = new Vector2(560, 30);
         _previewBackground.raycastTarget = false;
         _preview = Text(_panel, "", 30, 632, 548, 30, 20);
-        _backgroundText = Button(_panel, "", 595, 632, 230, 30, () => ShowChoices(new[] { "Transparent", "White", "Black" }, index => {
+        Runic.Shared.EmojiRenderer.Attach(_preview);
+        _previewBend = Runic.Shared.CaptionBend.Attach((TextMeshProUGUI)_preview, _previewBackground);
+        _backgroundText = Button(_panel, "", 595, 632, 230, 30, () => ShowChoices(new[] { global::Runic.Localization.RunicText.Get("text_aac7e89fcd0e"), global::Runic.Localization.RunicText.Get("text_3495e757855a"), global::Runic.Localization.RunicText.Get("text_c6cfe6e4f129") }, index => {
             _draft.Background = index; UpdatePreview();
         }), ChestRulesHelp.For("Background")).GetComponentInChildren<TMP_Text>();
         _status = Text(_panel, "", 24, 674, 550, 36, 16);
-        Button(_panel, "Cancel", 595, 674, 105, 34, Close);
-        Button(_panel, "Save", 715, 674, 110, 34, Save);
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_19766ed6ccb2"), 595, 674, 105, 34, Close);
+        Button(_panel, global::Runic.Localization.RunicText.Get("text_1509f561f241"), 715, 674, 110, 34, Save);
         Refresh();
     }
 
@@ -175,7 +187,7 @@ internal sealed class ChestRulesPanel : IDisposable
                     if (list.Contains(id)) { list.Remove(id); if (group) _draft.CustomGroups.RemoveAll(g => g.Id == id); }
                     else if (list.Count < ChestRules.Limit) {
                         var custom = group ? CustomDefinitions().FirstOrDefault(g => g.Id == id) : null;
-                        if (custom != null && _draft.CustomGroups.Count >= 16) { _status.text = "A chest can use at most 16 custom groups."; return; }
+                        if (custom != null && _draft.CustomGroups.Count >= 16) { _status.text = global::Runic.Localization.RunicText.Get("text_f04f29574171"); return; }
                         list.Add(id); if (custom != null) _draft.CustomGroups.Add(custom.Copy());
                         _draft.ShowLabel = true;
                     }
@@ -183,46 +195,46 @@ internal sealed class ChestRulesPanel : IDisposable
                 Refresh();
             }, RowHelp(id));
         }
-        _rememberText.text = "Remember contents: " + (_draft.Remember ? "ON" : "OFF") + " (" + _draft.Memory.Count + ")";
-        _showText.text = "Exterior label: " + (_draft.ShowLabel ? "ON" : "OFF");
-        _priorityText.text = "Priority: " + (_draft.Preferred ? "Preferred" : "Normal");
-        _explanation.text = "Never accept blocks delivery to this chest, regardless of priority or other rules.\n" +
-            (_draft.Preferred ? "Preferred: try this chest before Normal chests with equally specific rules; then use distance." :
-            "Normal: Preferred chests with equally specific rules come first; otherwise use distance.");
-        _positionText.text = $"{Sides[_draft.Side]}  |  Size {_draft.Size:0.0}  |  Horizontal {_draft.Horizontal:0.00} m  |  Vertical {_draft.Vertical:0.00} m  |  {_tab}: {_page + 1}/{Math.Max(1, (filtered.Count + pageSize - 1) / pageSize)}";
+        _rememberText.text = global::Runic.Localization.RunicText.Get("text_024fff81b523") + (_draft.Remember ? global::Runic.Localization.RunicText.Get("text_e8a01133b135") : global::Runic.Localization.RunicText.Get("text_38cca6bea010")) + " (" + _draft.Memory.Count + ")";
+        _showText.text = global::Runic.Localization.RunicText.Get("text_067252c6914a") + (_draft.ShowLabel ? global::Runic.Localization.RunicText.Get("text_e8a01133b135") : global::Runic.Localization.RunicText.Get("text_38cca6bea010"));
+        _priorityText.text = global::Runic.Localization.RunicText.Get("text_c96b13e151f5") + (_draft.Preferred ? global::Runic.Localization.RunicText.Get("text_3c757ae9dda9") : global::Runic.Localization.RunicText.Get("text_a7248eeb45eb"));
+        _explanation.text = global::Runic.Localization.RunicText.Get("text_54a0c70b5d99") +
+            (_draft.Preferred ? global::Runic.Localization.RunicText.Get("text_a30b8356fab9") :
+            global::Runic.Localization.RunicText.Get("text_8db332800377"));
+        _positionText.text = global::Runic.Localization.RunicText.Format("text_2d36531baab6", Sides[_draft.Side], _draft.Size, _draft.Horizontal, _draft.Vertical, _tab, _page + 1, Math.Max(1, (filtered.Count + pageSize - 1) / pageSize));
         RefreshAux();
         UpdatePreview();
     }
     private IEnumerable<ChestCustomGroup> CustomDefinitions() => _library.CustomGroups.Concat(_draft.CustomGroups)
         .GroupBy(g => g.Id).Select(g => g.First());
-    private string Name(string id) => id == "biome:any" ? "Any biome" :
+    private string Name(string id) => id == "biome:any" ? global::Runic.Localization.RunicText.Get("text_c426ad4fc085") :
         CustomDefinitions().FirstOrDefault(g => g.Id == id)?.Name ?? ChestRuleGroups.Find(id)?.Name ?? ChestExteriorLabel.DisplayName(id);
     private void RefreshAux()
     {
         foreach (Transform child in _aux) { child.gameObject.SetActive(false); UnityEngine.Object.Destroy(child.gameObject); }
         if (_tab != "Custom" && _tab != "GroupItems") {
-            Text(_aux, "Biome filter: " + (_draft.OnlyBiome.Length == 0 ? "Any" : Name(_draft.OnlyBiome)) +
-                "  |  " + _draft.Items.Count + " always / " + _draft.Excluded.Count + " never / " + _draft.Categories.Count + " groups", 0, 0, 801, 32, 17); return;
+            Text(_aux, global::Runic.Localization.RunicText.Get("text_8c262baee9e6") + (_draft.OnlyBiome.Length == 0 ? global::Runic.Localization.RunicText.Get("text_2b505597daa7") : Name(_draft.OnlyBiome)) +
+                "  |  " + _draft.Items.Count + global::Runic.Localization.RunicText.Get("text_40e4f2900348") + _draft.Excluded.Count + global::Runic.Localization.RunicText.Get("text_dde7e81853d9") + _draft.Categories.Count + global::Runic.Localization.RunicText.Get("text_5f6d556d70d3"), 0, 0, 801, 32, 17); return;
         }
-        Input(_aux, "Group name", _editingGroup.Name, 0, 0, 250, 32, 48).onValueChanged.AddListener(s => _editingGroup.Name = s);
-        Button(_aux, "Items (" + _editingGroup.Items.Count + ")", 260, 0, 135, 32, () => { _tab = "GroupItems"; _page = 0; _filter = ""; _search?.SetTextWithoutNotify(""); Refresh(); });
-        Button(_aux, "Save group", 405, 0, 135, 32, SaveGroup);
-        Button(_aux, "Delete", 550, 0, 105, 32, DeleteGroup);
-        Button(_aux, "New group", 665, 0, 135, 32, () => { _editingGroup = new ChestCustomGroup(); _tab = "GroupItems"; _page = 0; _filter = ""; _search?.SetTextWithoutNotify(""); Refresh(); });
+        Input(_aux, global::Runic.Localization.RunicText.Get("text_762ebb70ef0e"), _editingGroup.Name, 0, 0, 250, 32, 48).onValueChanged.AddListener(s => _editingGroup.Name = s);
+        Button(_aux, global::Runic.Localization.RunicText.Get("text_4e8ec9ed6580") + _editingGroup.Items.Count + ")", 260, 0, 135, 32, () => { _tab = "GroupItems"; _page = 0; _filter = ""; _search?.SetTextWithoutNotify(""); Refresh(); });
+        Button(_aux, global::Runic.Localization.RunicText.Get("text_dc7fd704c4db"), 405, 0, 135, 32, SaveGroup);
+        Button(_aux, global::Runic.Localization.RunicText.Get("text_e2d0a54968ea"), 550, 0, 105, 32, DeleteGroup);
+        Button(_aux, global::Runic.Localization.RunicText.Get("text_df796c655f6f"), 665, 0, 135, 32, () => { _editingGroup = new ChestCustomGroup(); _tab = "GroupItems"; _page = 0; _filter = ""; _search?.SetTextWithoutNotify(""); Refresh(); });
     }
     private void SaveGroup()
     {
-        if (!_libraryValid) { _status.text = "The saved group library is unreadable; it was preserved."; return; }
+        if (!_libraryValid) { _status.text = global::Runic.Localization.RunicText.Get("text_9fa5185f0a22"); return; }
         _editingGroup.Name = _editingGroup.Name.Trim();
-        if (!ChestRules.ValidId(_editingGroup.Name) || _editingGroup.Items.Count == 0) { _status.text = "Give the group a name and select at least one item."; return; }
+        if (!ChestRules.ValidId(_editingGroup.Name) || _editingGroup.Items.Count == 0) { _status.text = global::Runic.Localization.RunicText.Get("text_ac9c9f2da911"); return; }
         if (_library.CustomGroups.Any(g => g.Id != _editingGroup.Id && g.Name.Equals(_editingGroup.Name, StringComparison.OrdinalIgnoreCase)))
-        { _status.text = "Choose a unique group name."; return; }
+        { _status.text = global::Runic.Localization.RunicText.Get("text_1bc14bac827f"); return; }
         var next = new ChestRules(); next.CustomGroups.AddRange(_library.CustomGroups.Where(g => g.Id != _editingGroup.Id).Select(g => g.Copy()));
         next.CustomGroups.Add(_editingGroup.Copy());
         try {
             ChestGroupRuntime.SaveLibrary(next); _library = next;
             if (_draft.Categories.Contains(_editingGroup.Id)) { _draft.CustomGroups.RemoveAll(g => g.Id == _editingGroup.Id); _draft.CustomGroups.Add(_editingGroup.Copy()); }
-            _status.text = "Group saved. Select it under Groups, then Save the chest.";
+            _status.text = global::Runic.Localization.RunicText.Get("text_d22dc166f646");
         } catch (Exception ex) { _status.text = ex.Message; }
         Refresh();
     }
@@ -230,7 +242,7 @@ internal sealed class ChestRulesPanel : IDisposable
     {
         if (!_libraryValid) return;
         var next = new ChestRules(); next.CustomGroups.AddRange(_library.CustomGroups.Where(g => g.Id != _editingGroup.Id).Select(g => g.Copy()));
-        try { ChestGroupRuntime.SaveLibrary(next); _library = next; _status.text = "Library entry removed; existing chest selections are preserved."; _editingGroup = new ChestCustomGroup(); }
+        try { ChestGroupRuntime.SaveLibrary(next); _library = next; _status.text = global::Runic.Localization.RunicText.Get("text_fbb3e94c1a31"); _editingGroup = new ChestCustomGroup(); }
         catch (Exception ex) { _status.text = ex.Message; }
         Refresh();
     }
@@ -241,9 +253,73 @@ internal sealed class ChestRulesPanel : IDisposable
         _preview.richText = true;
         _preview.text = ChestLabelColors.Markup(string.IsNullOrWhiteSpace(_label.text) ? ChestExteriorLabel.AutomaticText(_draft) : _label.text, ChestLabelColors.Hex[index]);
         _preview.color = Color.white;
-        _colorText.text = "Text: " + ChestLabelColors.Names[index] + " ▼";
-        _backgroundText.text = "Background: " + new[] { "Transparent", "White", "Black" }[_draft.Background] + " ▼";
+        _colorText.text = global::Runic.Localization.RunicText.Get("text_21784f40b344") + ChestLabelColors.Names[index] + " ▼";
+        _backgroundText.text = global::Runic.Localization.RunicText.Get("text_7afc36f9b76c") + new[] { "Transparent", "White", "Black" }[_draft.Background] + " ▼";
         _previewBackground.color = _draft.Background == 1 ? Color.white : _draft.Background == 2 ? Color.black : Color.clear;
+        var wrapRadii = _draft.WrapAround ? ChestExteriorLabel.WrapRadii(_chest, _draft.Side) : Vector2.zero;
+        _previewBend.SetSurfaceWrap(wrapRadii.x, wrapRadii.y);
+        _previewBend.Set(_draft.CurveVertical, _draft.CurveDepth);
+    }
+    private void ShowBending()
+    {
+        if (_choices) { _choices.SetActive(false); UnityEngine.Object.Destroy(_choices); }
+        var shade = Image("BendOverlay", _panel, new Color(0, 0, 0, .65f));
+        _choices = shade.gameObject; shade.rectTransform.sizeDelta = new Vector2(850, 730);
+        var menu = Rect("LabelBending", shade.transform, 95, 128, 660, 452);
+        menu.gameObject.AddComponent<Image>().color = new Color(.1f, .07f, .04f, 1);
+        Text(menu, global::Runic.Localization.RunicText.Get("text_c39b8e41a7a0"), 20, 16, 580, 34, 25);
+        TMP_Text mode = null;
+        var explanation = Text(menu, "", 20, 102, 620, 30, 16);
+        Text(menu, global::Runic.Localization.RunicText.Get("text_562a8bc9d913"), 20, 150, 360, 30, 20);
+        Text(menu, global::Runic.Localization.RunicText.Get("text_6e0c2e8c9217"), 20, 188, 620, 28, 17);
+        var depthTitle = Text(menu, "", 20, 236, 360, 30, 20);
+        var depthHelp = Text(menu, "", 20, 274, 620, 28, 17);
+        void Labels() {
+            bool wrapping = _draft.WrapAround && _draft.Side != 4;
+            mode.text = _draft.Side == 4 ? global::Runic.Localization.RunicText.Get("text_176a19476883") : global::Runic.Localization.RunicText.Get("text_08e100526ad8") + (wrapping ? global::Runic.Localization.RunicText.Get("text_e8a01133b135") : global::Runic.Localization.RunicText.Get("text_38cca6bea010"));
+            explanation.text = wrapping ? global::Runic.Localization.RunicText.Get("text_6e07068a81f5") : global::Runic.Localization.RunicText.Get("text_913d9086fddf");
+            depthTitle.text = wrapping ? global::Runic.Localization.RunicText.Get("text_b739a3238ab6") : global::Runic.Localization.RunicText.Get("text_599961a1d706");
+            depthHelp.text = wrapping ? global::Runic.Localization.RunicText.Get("text_946042f96929") : global::Runic.Localization.RunicText.Get("text_4c887777b9ed");
+        }
+        var vertical = BendNumber(menu, 150, () => _draft.CurveVertical, value => _draft.CurveVertical = value);
+        var depth = BendNumber(menu, 236, () => _draft.CurveDepth, value => _draft.CurveDepth = value);
+        var modeButton = Button(menu, "", 20, 60, 620, 34, () => {
+            _draft.WrapAround = !_draft.WrapAround;
+            _draft.CurveDepth = 0; depth.SetTextWithoutNotify("0"); Labels(); UpdatePreview();
+        }, global::Runic.Localization.RunicText.Get("text_95c557e34993"));
+        mode = modeButton.GetComponentInChildren<TMP_Text>(); modeButton.interactable = _draft.Side != 4;
+        Labels();
+        Text(menu, global::Runic.Localization.RunicText.Get("text_cfbecd798dc1"), 20, 322, 620, 28, 17);
+        Button(menu, global::Runic.Localization.RunicText.Get("text_67e582d30305"), 20, 390, 300, 36, () => {
+            _draft.WrapAround = false; _draft.CurveVertical = _draft.CurveDepth = 0;
+            vertical.SetTextWithoutNotify("0"); depth.SetTextWithoutNotify("0"); Labels(); UpdatePreview();
+        });
+        Button(menu, global::Runic.Localization.RunicText.Get("text_11a6767d5674"), 340, 390, 300, 36, () => {
+            UnityEngine.Object.Destroy(_choices); _choices = null; UpdatePreview();
+        });
+    }
+    private TMP_InputField BendNumber(Transform parent, float y, Func<float> read, Action<float> write)
+    {
+        string Format() => CaptionCurve.ToDisplay(read()).ToString("0.####", CultureInfo.InvariantCulture);
+        var input = Input(parent, global::Runic.Localization.RunicText.Get("text_866e7866bc25"), Format(), 455, y, 140, 30, 16);
+        bool Read(string raw, out float value) =>
+            (float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value) ||
+             float.TryParse(raw, NumberStyles.Float, CultureInfo.CurrentCulture, out value)) &&
+            CaptionCurve.Valid(CaptionCurve.FromDisplay(value));
+        input.onValueChanged.AddListener(raw => {
+            if (!Read(raw, out float value)) return;
+            write(CaptionCurve.FromDisplay(value)); UpdatePreview();
+        });
+        input.onEndEdit.AddListener(raw => {
+            if (!Read(raw, out _)) _status.text = global::Runic.Localization.RunicText.Get("text_138f116a68a7");
+            input.SetTextWithoutNotify(Format());
+        });
+        void Nudge(int direction) {
+            write(CaptionCurve.Step(read(), direction)); input.SetTextWithoutNotify(Format()); UpdatePreview();
+        }
+        Button(parent, "−", 410, y, 38, 30, () => Nudge(-1), global::Runic.Localization.RunicText.Get("text_619aeb59ded0"));
+        Button(parent, "+", 602, y, 38, 30, () => Nudge(1), global::Runic.Localization.RunicText.Get("text_dfce770f4402"));
+        return input;
     }
     private void NormalizeColor(string input)
     {
@@ -251,18 +327,18 @@ internal sealed class ChestRulesPanel : IDisposable
         _color.SetTextWithoutNotify(ChestLabelColors.Names[index]);
         UpdatePreview();
         if (_status) _status.text = input.Trim().Equals(ChestLabelColors.Names[index], StringComparison.OrdinalIgnoreCase) ?
-            "Text color: " + ChestLabelColors.Names[index] + " (" + ChestLabelColors.Hex[index] + ")." :
-            "Using " + ChestLabelColors.Names[index] + " for ‘" + input + "’ (" + ChestLabelColors.Hex[index] + ").";
+            global::Runic.Localization.RunicText.Get("text_8e2cce723ae8") + ChestLabelColors.Names[index] + " (" + ChestLabelColors.Hex[index] + ")." :
+            global::Runic.Localization.RunicText.Get("text_f843091714d7") + ChestLabelColors.Names[index] + global::Runic.Localization.RunicText.Get("text_ca179db4d083") + input + "’ (" + ChestLabelColors.Hex[index] + ").";
     }
     private string RowHelp(string id)
     {
         string action = _tab switch {
-            "Biome" => "Select this biome filter.", "Custom" => "Load this template for editing.",
-            "Remembered" => "Forget this remembered item type. It may be learned again after later inventory changes if Remember stays ON.",
-            "Accepted" => "Remove this explicit acceptance rule.", "Excluded" => "Toggle exclusion. When checked, this item cannot be delivered here by Runic Quick Stack, regardless of priority.",
-            "GroupItems" => "Add or remove this item from the custom group being edited.",
-            "Groups" => "Toggle this group. Multiple checked groups accept any matching item, subject to exclusions and the biome filter.",
-            _ => "Toggle this exact-item exception. When checked, accept this item even when the chest is empty or its biome differs. Never accept still blocks it." };
+            "Biome" => global::Runic.Localization.RunicText.Get("text_ebdd9829494a"), "Custom" => global::Runic.Localization.RunicText.Get("text_077f85cfff50"),
+            "Remembered" => global::Runic.Localization.RunicText.Get("text_59957c056166"),
+            "Accepted" => global::Runic.Localization.RunicText.Get("text_85374d42f475"), "Excluded" => global::Runic.Localization.RunicText.Get("text_bef6725fedf7"),
+            "GroupItems" => global::Runic.Localization.RunicText.Get("text_042367220215"),
+            "Groups" => global::Runic.Localization.RunicText.Get("text_68cb9d652712"),
+            _ => global::Runic.Localization.RunicText.Get("text_415ef6c02965") };
         return Name(id) + " (" + id + ")\n" + action;
     }
     private void ShowChoices(string[] options, Action<int> choose, bool colors = false)
@@ -279,7 +355,7 @@ internal sealed class ChestRulesPanel : IDisposable
             int index = i;
             Button(menu, options[i], 6 + i % 3 * 155, 6 + i / 3 * 36, 151, 32, () => {
                 choose(index); UnityEngine.Object.Destroy(_choices); _choices = null;
-            }, colors ? "Use " + options[i] + " text (" + ChestLabelColors.Hex[i] + ")." : "Use a " + options[i].ToLowerInvariant() + " label background.");
+            }, colors ? global::Runic.Localization.RunicText.Get("text_bb33dbdb2f21") + options[i] + global::Runic.Localization.RunicText.Get("text_ae2b655b122e") + ChestLabelColors.Hex[i] + ")." : global::Runic.Localization.RunicText.Get("text_c391c504f003") + options[i].ToLowerInvariant() + global::Runic.Localization.RunicText.Get("text_11beabeb9208"));
         }
     }
     private void Save()

@@ -65,7 +65,7 @@ namespace RunicProduction.Integration
             if (actor == null)
             {
                 authorization = null;
-                failure = "An online player is required to authorize replenishment targets.";
+                failure = global::Runic.Localization.RunicText.Get("text_639e76863e26");
                 return false;
             }
             return TryAuthorize(
@@ -94,7 +94,7 @@ namespace RunicProduction.Integration
             authorization = null;
             if (authorizedPlayerId == 0L || string.IsNullOrWhiteSpace(authorizedPlayerName))
             {
-                failure = "An exact player principal is required to authorize replenishment targets.";
+                failure = global::Runic.Localization.RunicText.Get("text_753c657e523a");
                 return false;
             }
             if (!TryResolve(
@@ -137,7 +137,7 @@ namespace RunicProduction.Integration
             if (authorization == null ||
                 authorization.ProducerKind != ReplenishmentProducerKind.DirectRecipe)
             {
-                failure = "The target is not a direct recipe authorization.";
+                failure = global::Runic.Localization.RunicText.Get("text_4dcc2f8dc299");
                 return false;
             }
             if (!TryResolve(
@@ -161,7 +161,7 @@ namespace RunicProduction.Integration
                 !RequirementsMatch(authorization.Requirements, producer.Requirements))
             {
                 producer = null;
-                failure = "The signed recipe definition changed; refresh targets to authorize it again.";
+                failure = global::Runic.Localization.RunicText.Get("text_8480d3f81560");
                 return false;
             }
             if (!RecipeStationCompatibility.IsPhysicallyUsable(
@@ -229,7 +229,7 @@ namespace RunicProduction.Integration
             if (station == null || !StockDomainValidation.IsExactPrefabId(stationPrefabId) ||
                 !StockDomainValidation.IsExactPrefabId(outputPrefabId) || ObjectDB.instance == null)
             {
-                failure = "Recipe producer state is unavailable.";
+                failure = global::Runic.Localization.RunicText.Get("text_42c80474ec65");
                 return false;
             }
             List<Recipe> candidates = ObjectDB.instance.m_recipes
@@ -240,28 +240,28 @@ namespace RunicProduction.Integration
                 candidates.Count == 1 && candidates[0].m_requireOnlyOneIngredient);
             if (disposition == RecipeCandidateDisposition.Missing)
             {
-                failure = "No enabled exact recipe at this station produces the exemplar.";
+                failure = global::Runic.Localization.RunicText.Get("text_03e5728d18bd");
                 return false;
             }
             if (disposition == RecipeCandidateDisposition.Ambiguous)
             {
-                failure = "More than one exact recipe at this station produces the exemplar.";
+                failure = global::Runic.Localization.RunicText.Get("text_1c1a512a32ce");
                 return false;
             }
             Recipe recipe = candidates[0];
             if (disposition == RecipeCandidateDisposition.RequireOnlyOneUnsupported)
             {
-                failure = "Recipes that accept one of several ingredients are unsupported in v0.3.";
+                failure = global::Runic.Localization.RunicText.Get("text_f9bdc2728e45");
                 return false;
             }
             if (recipe.m_amount <= 0 || recipe.m_amount > StockDomainValidation.MaximumItemAmount)
             {
-                failure = "The recipe output batch is outside the supported bound.";
+                failure = global::Runic.Localization.RunicText.Get("text_43447ab5b0e0");
                 return false;
             }
             if (!DlcInstalled(recipe.m_item.m_itemData.m_shared.m_dlc))
             {
-                failure = "The recipe output requires unavailable DLC.";
+                failure = global::Runic.Localization.RunicText.Get("text_2fb3d0008310");
                 return false;
             }
             if (!IsSupportedOutput(
@@ -269,7 +269,7 @@ namespace RunicProduction.Integration
                     cookingInputStations,
                     fermenterInputStations))
             {
-                failure = "The recipe output is neither consumable nor an input to an enabled allowed cooking producer.";
+                failure = global::Runic.Localization.RunicText.Get("text_a37f40f11703");
                 return false;
             }
             if (!TryRequirements(recipe, out List<ReplenishmentRequirement> requirements, out failure))
@@ -304,7 +304,7 @@ namespace RunicProduction.Integration
             Piece.Requirement[] resources = recipe.m_resources ?? Array.Empty<Piece.Requirement>();
             if (resources.Length > ReplenishmentTargetAuthorization.MaximumRequirements)
             {
-                failure = "The recipe has too many resource rows.";
+                failure = global::Runic.Localization.RunicText.Get("text_e5b86056f3b0");
                 return false;
             }
             foreach (Piece.Requirement resource in resources)
@@ -314,14 +314,14 @@ namespace RunicProduction.Integration
                 if (!StockDomainValidation.IsExactPrefabId(prefab) ||
                     resource.GetAmount(1) > StockDomainValidation.MaximumItemAmount)
                 {
-                    failure = "The recipe contains an invalid exact resource requirement.";
+                    failure = global::Runic.Localization.RunicText.Get("text_0e2864245c54");
                     return false;
                 }
                 requirements.Add(new ReplenishmentRequirement(prefab, resource.GetAmount(1)));
             }
             if (requirements.Count == 0)
             {
-                failure = "Zero-cost replenishment recipes are not supported.";
+                failure = global::Runic.Localization.RunicText.Get("text_b3c8cf1464a5");
                 return false;
             }
             return true;

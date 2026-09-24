@@ -1025,9 +1025,9 @@ namespace RunicSafety.Services
         {
             var builder = new StringBuilder();
             builder.AppendLine(MarkerText);
-            builder.Append("MIGRATION\t").AppendLine(Encode(migrationId));
-            builder.Append("CORRELATION\t").AppendLine(Encode(correlation));
-            builder.Append("CREATED_UTC\t").AppendLine(
+            builder.Append(global::Runic.Localization.RunicText.Get("text_591ed5228a15")).AppendLine(Encode(migrationId));
+            builder.Append(global::Runic.Localization.RunicText.Get("text_9e4ee92280d6")).AppendLine(Encode(correlation));
+            builder.Append(global::Runic.Localization.RunicText.Get("text_3194eac00899")).AppendLine(
                 _clock().ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
             foreach (MigrationBackupFile file in files)
             {

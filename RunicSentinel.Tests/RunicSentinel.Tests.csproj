@@ -10,6 +10,10 @@
   <ItemGroup>
     <Compile Remove="DedicatedHarness\**\*.cs" />
     <Compile Remove="AdministratorHarness\**\*.cs" />
+    <Compile Remove="CommandHarness\**\*.cs" />
+    <Compile Remove="PeopleHarness\**\*.cs" />
+    <Compile Remove="PlayerActionHarness\**\*.cs" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(GAME_MANAGED)/Newtonsoft.Json.dll" Private="true" />
     <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="true" />
     <Reference Include="Mono.Cecil" HintPath="$(BEPINEX_PROFILE)\core\Mono.Cecil.dll" Private="true" />
     <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="true" />

@@ -9,6 +9,8 @@ namespace RunicStorage
 {
     internal static class PluginConfig
     {
+        internal static ConfigEntry<string> QuickStackPrefabIds { get; private set; }
+        internal static ConfigEntry<string> PullPrefabIds { get; private set; }
         internal static ConfigEntry<bool> Enabled { get; private set; }
         internal static ConfigEntry<bool> ShowReadyMessage { get; private set; }
         internal static ConfigEntry<float> RangeMeters { get; private set; }
@@ -43,50 +45,54 @@ namespace RunicStorage
 
         internal static void Bind(ConfigFile config)
         {
-            Enabled = config.Bind("General", "Enabled", true, "Enable Runic Storage gameplay actions.");
+            QuickStackPrefabIds = config.Bind("Modded Containers", "QuickStackPrefabIds", "piece_drawer",
+                global::Runic.Localization.RunicText.Get("text_f9dbe38b22fd"));
+            PullPrefabIds = config.Bind("Modded Containers", "PullPrefabIds", "piece_drawer",
+                global::Runic.Localization.RunicText.Get("text_980709710050"));
+            Enabled = config.Bind("General", "Enabled", true, global::Runic.Localization.RunicText.Get("text_340e175cb779"));
             ShowReadyMessage = config.Bind("General", "ShowReadyMessage", true,
-                "Show a one-time in-world control reminder after the local player loads.");
+                global::Runic.Localization.RunicText.Get("text_37acb38649e3"));
             RangeMeters = config.Bind("Discovery", "RangeMeters", 20f,
-                new ConfigDescription("Nearby storage radius. Hard limited to 50 meters.", new AcceptableValueRange<float>(1f, 50f)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_c80e4d62bbc8"), new AcceptableValueRange<float>(1f, 50f)));
             MaximumCandidates = config.Bind("Discovery", "MaximumCandidates", 64,
-                new ConfigDescription("Maximum cached containers examined per action.", new AcceptableValueRange<int>(1, 256)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_81d1e63d0211"), new AcceptableValueRange<int>(1, 256)));
             ProtectHotbar = config.Bind("Safety", "ProtectHotbar", true,
-                "Never quick-stack, store-all, or consolidate items in the top-row hotbar.");
+                global::Runic.Localization.RunicText.Get("text_5c5d641c67ad"));
             ShowContentsOnHover = config.Bind("Hover", "ShowContents", true,
-                "List a closed authorized container's synchronized contents in its hover text. Private, busy, unsynchronized, or Runic-reserved containers retain vanilla text only.");
+                global::Runic.Localization.RunicText.Get("text_9006a780df66"));
             HoverMaximumItemKinds = config.Bind("Hover", "MaximumItemKinds", 8,
-                new ConfigDescription("Maximum distinct item kinds shown in one hover summary.", new AcceptableValueRange<int>(1, 24)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_cb0291602bfc"), new AcceptableValueRange<int>(1, 24)));
             HoverItemsPerLine = config.Bind("Hover", "ItemsPerLine", 3,
-                new ConfigDescription("Maximum item kinds placed on each summary line.", new AcceptableValueRange<int>(1, 4)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_bd19c2bd5b7d"), new AcceptableValueRange<int>(1, 4)));
             HoverMaximumCharacters = config.Bind("Hover", "MaximumCharacters", 320,
-                new ConfigDescription("Hard character ceiling for the complete generated contents suffix, including formatting tags.", new AcceptableValueRange<int>(64, 1024)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_28a4a81bb673"), new AcceptableValueRange<int>(64, 1024)));
             HoverMaximumStacksExamined = config.Bind("Hover", "MaximumStacksExamined", 256,
-                new ConfigDescription("Maximum inventory stacks examined when rebuilding one changed summary. Additional stacks are reported as unscanned.", new AcceptableValueRange<int>(16, 1024)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_eeb8535a9c0d"), new AcceptableValueRange<int>(16, 1024)));
             HoverMaximumSnapshotCharacters = config.Bind("Hover", "MaximumSnapshotCharacters", 262144,
-                new ConfigDescription("Maximum persisted Base64 inventory characters accepted for an exact hover snapshot. Oversized third-party containers retain vanilla text.", new AcceptableValueRange<int>(16384, 1048576)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_585364fc88e1"), new AcceptableValueRange<int>(16384, 1048576)));
             HoverRefreshIntervalSeconds = config.Bind("Hover", "FailedRefreshRetrySeconds", 0.5f,
-                new ConfigDescription("Retry delay after a container cannot prove an exact synchronized inventory snapshot. Stable summaries remain cached by exact persisted item-payload evidence.", new AcceptableValueRange<float>(0.1f, 5f)));
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_703485340375"), new AcceptableValueRange<float>(0.1f, 5f)));
             QuickStackKey = config.Bind("Keys", "QuickStack", new KeyboardShortcut(KeyCode.Q, KeyCode.LeftAlt),
-                "Deposit eligible carried stacks into authorized nearby containers already holding that item.");
+                global::Runic.Localization.RunicText.Get("text_db7d4548125e"));
             RestockKey = config.Bind("Keys", "Restock", new KeyboardShortcut(KeyCode.R, KeyCode.LeftAlt),
-                "Restock configured carried targets from authorized nearby storage.");
+                global::Runic.Localization.RunicText.Get("text_b62be2d6c34b"));
             RestockTargets = config.Bind("Restock", "Targets", "Wood=50,Stone=50",
-                "Comma-separated prefab/name targets, for example Wood=50,Stone=50.");
+                global::Runic.Localization.RunicText.Get("text_ff38805f2729"));
             SortOpenedContainerKey = config.Bind("Keys", "SortOpenedContainer", new KeyboardShortcut(KeyCode.S, KeyCode.LeftAlt),
-                "Sort the currently opened authorized container by category, name, quality, then weight.");
+                global::Runic.Localization.RunicText.Get("text_c9597fab958a"));
             StoreAllOpenedContainerKey = config.Bind("Keys", "StoreAllOpenedContainer", new KeyboardShortcut(KeyCode.A, KeyCode.LeftAlt),
-                "Store every eligible carried item in the currently opened authorized locally owned container.");
+                global::Runic.Localization.RunicText.Get("text_9432793f9256"));
             LockedContainerSlots = config.Bind("Sort", "LockedSlots", string.Empty,
-                "Semicolon-separated zero-based slots to leave fixed, for example 0,0;1,0.");
+                global::Runic.Localization.RunicText.Get("text_bdb9a2049fde"));
             ConsolidateKey = config.Bind("Keys", "ConsolidateCarriedStacks", new KeyboardShortcut(KeyCode.C, KeyCode.LeftAlt),
-                "Safely consolidate compatible carried stacks while respecting protected slots and equipment.");
+                global::Runic.Localization.RunicText.Get("text_9568168aaf98"));
             SearchKey = config.Bind("Keys", "Search", new KeyboardShortcut(KeyCode.F, KeyCode.LeftAlt),
-                "Open a selectable list of item kinds in authorized nearby containers and highlight every matching chest.");
+                global::Runic.Localization.RunicText.Get("text_0de747a97dc1"));
             SearchItem = config.Bind("Search", "SearchItem", "Wood",
-                "Legacy setting retained for configuration compatibility; Alt+F now opens the complete nearby-item list.");
+                global::Runic.Localization.RunicText.Get("text_0b403f3328e2"));
             SearchMenuFontSize = config.Bind("Search", "MenuFontSize", 14,
                 new ConfigDescription(
-                    "Font size for every title, label, text field, and button in the Alt+F nearby-item window.",
+                    global::Runic.Localization.RunicText.Get("text_1ffa52cdbe74"),
                     new AcceptableValueRange<int>(10, 32)));
             bool hadPersistedSearchMenuFontColor = TryReadAndRemoveLegacySearchMenuFontColor(
                 config,
@@ -95,25 +101,25 @@ namespace RunicStorage
                 "Search",
                 "MenuFontColor",
                 StorageSearchMenuAppearance.DefaultFontColor,
-                "Named font color for the complete Alt+F nearby-item window. Configuration Manager presents the available colors as a dropdown.");
+                global::Runic.Localization.RunicText.Get("text_022702280f9d"));
             if (hadPersistedSearchMenuFontColor)
                 SearchMenuFontColor.Value = persistedSearchMenuFontColor;
             ControllerShortcuts = config.Bind("Controller", "Enabled", true,
-                "Enable controller chords resolved through Valheim's current ZInput action map.");
+                global::Runic.Localization.RunicText.Get("text_95eba864befa"));
             ControllerModifier = config.Bind("Controller", "ModifierAction", "JoyAltKeys",
-                "Valheim ZInput action held as the controller modifier. Change only to an existing action name.");
+                global::Runic.Localization.RunicText.Get("text_26f0831c752c"));
             ControllerQuickStack = config.Bind("Controller", "QuickStackAction", "JoyDPadDown",
-                "Valheim ZInput action pressed with ModifierAction to Quick Stack.");
+                global::Runic.Localization.RunicText.Get("text_90bca5befeac"));
             ControllerRestock = config.Bind("Controller", "RestockAction", "JoyDPadUp",
-                "Valheim ZInput action pressed with ModifierAction to Restock.");
+                global::Runic.Localization.RunicText.Get("text_deebb0d367e0"));
             ControllerSort = config.Bind("Controller", "SortOpenedContainerAction", "JoyRStick",
-                "Valheim ZInput action pressed with ModifierAction to sort the opened container.");
+                global::Runic.Localization.RunicText.Get("text_e633ef105cf6"));
             ControllerConsolidate = config.Bind("Controller", "ConsolidateAction", "JoyDPadLeft",
-                "Valheim ZInput action pressed with ModifierAction to consolidate carried stacks.");
+                global::Runic.Localization.RunicText.Get("text_b27dc2d1856e"));
             ControllerSearch = config.Bind("Controller", "SearchAction", "JoyDPadRight",
-                "Valheim ZInput action pressed with ModifierAction to search nearby storage.");
+                global::Runic.Localization.RunicText.Get("text_9138fc4bdde0"));
             DebugTransfers = config.Bind("Diagnostics", "DebugTransfers", false,
-                "Log detected controls, routing decisions, discovery counts, action summaries, transfer legs, and stable no-op/denial codes.");
+                global::Runic.Localization.RunicText.Get("text_5b7619e46a9a"));
         }
 
         private static bool TryReadAndRemoveLegacySearchMenuFontColor(

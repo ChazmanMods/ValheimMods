@@ -125,6 +125,7 @@ namespace RunicSentinel.Runtime
                                        serverProfile +
                                        "\n\nMOST RECENT CLIENT REPORT\n" +
                                        clientProfile;
+            document.NamedMods = SentinelModChoices.Installed();
             return document;
         }
 
@@ -158,7 +159,7 @@ namespace RunicSentinel.Runtime
                 {
                     throw new IOException("managed-key-persistence-failed-after-policy-signing");
                 }
-                return result + " Initial administrator: " + authority + ":" + subject + ".";
+                return result + global::Runic.Localization.RunicText.Get("text_f9d60b74f4ef") + authority + ":" + subject + ".";
             }
         }
 
@@ -235,9 +236,9 @@ namespace RunicSentinel.Runtime
                 "Raven's Gate administrator applied signed policy sequence " + sequence +
                 "; backup=" + backup + ". Connected clients must receive the public passport " +
                 "before their next strict admission.");
-            return "Applied signed policy sequence " + sequence + ". Backup: " + backup +
-                   ". Public-key pin: " + pin +
-                   ". Admission mode remains " +
+            return global::Runic.Localization.RunicText.Get("text_14a979707579") + sequence + global::Runic.Localization.RunicText.Get("text_417e665008f9") + backup +
+                   global::Runic.Localization.RunicText.Get("text_0b98e93c05cc") + pin +
+                   global::Runic.Localization.RunicText.Get("text_cd66dd6181a5") +
                    _runtime.EffectiveRemoteAdmissionMode.ToString() + ".";
         }
 

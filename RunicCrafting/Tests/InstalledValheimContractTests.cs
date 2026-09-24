@@ -37,8 +37,10 @@ namespace RunicCrafting.Tests
             TestAssert.True(patch.Contains("!ReferenceEquals(__instance, PreviewRefreshRuntime.LoadingPreview)", StringComparison.Ordinal));
             TestAssert.True(patch.Contains("PreviewRefreshRuntime.Supported = false", StringComparison.Ordinal));
             string query = ReadSource("ContainerQueryRuntime.cs");
-            TestAssert.True(query.Contains("if (!requireWritable && allowRefreshCache && !PreviewRefreshRuntime.InAction &&", StringComparison.Ordinal));
-            TestAssert.True(query.Contains("PreviewRefreshRuntime.Cache.Active && ValheimReflection.CanMutateLocalPlayer(player)", StringComparison.Ordinal));
+            TestAssert.True(query.Contains("if (!requireWritable && allowRefreshCache && PreviewRefreshRuntime.Supported &&", StringComparison.Ordinal));
+            TestAssert.True(query.Contains("ValheimReflection.CanMutateLocalPlayer(player)", StringComparison.Ordinal));
+            AssertMethod(assembly, "InventoryGui", "UpdateCraftingPanel", "System.Boolean");
+            AssertMethod(assembly, "InventoryGui", "IsVisible");
             string writableGuard = query.Substring(query.IndexOf("if (requireWritable)", StringComparison.Ordinal));
             writableGuard = writableGuard.Substring(0, writableGuard.IndexOf("if (!requireWritable", StringComparison.Ordinal));
             TestAssert.True(writableGuard.Contains("PreviewRefreshRuntime.Invalidate();", StringComparison.Ordinal));

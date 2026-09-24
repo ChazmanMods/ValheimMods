@@ -157,24 +157,24 @@ namespace RunicPortals.Integration
         private static string VanillaPortalTag(ZDO zdo)
         {
             string tag = zdo?.GetString(ZDOVars.s_tag, string.Empty) ?? string.Empty;
-            return string.IsNullOrWhiteSpace(tag) ? "Portal" : tag.Trim();
+            return string.IsNullOrWhiteSpace(tag) ? global::Runic.Localization.RunicText.Get("text_b65ffe0cec61") : tag.Trim();
         }
 
         private static string MapCategory(PortalEndpoint endpoint)
         {
             switch (endpoint?.NetworkKind)
             {
-                case PortalNetworkKind.Public: return "Public";
-                case PortalNetworkKind.Personal: return "Private";
-                case PortalNetworkKind.Group: return "Group";
-                default: return "Runic";
+                case PortalNetworkKind.Public: return global::Runic.Localization.RunicText.Get("text_591935b15b1c");
+                case PortalNetworkKind.Personal: return global::Runic.Localization.RunicText.Get("text_c63eb6720c6e");
+                case PortalNetworkKind.Group: return global::Runic.Localization.RunicText.Get("text_34ca0e766088");
+                default: return global::Runic.Localization.RunicText.Get("text_00674f364dc3");
             }
         }
 
         private static string MapDisplayName(string category, string name, string network)
         {
-            string value = "[" + SanitizeMapText(category, "Portal") + "] " +
-                           SanitizeMapText(name, "Portal");
+            string value = "[" + SanitizeMapText(category, global::Runic.Localization.RunicText.Get("text_b65ffe0cec61")) + "] " +
+                           SanitizeMapText(name, global::Runic.Localization.RunicText.Get("text_b65ffe0cec61"));
             string safeNetwork = SanitizeMapText(network, string.Empty);
             if (safeNetwork.Length != 0) value += " · " + safeNetwork;
             if (value.Length <= PortalContractLimits.MaximumNameLength) return value;

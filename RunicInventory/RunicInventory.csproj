@@ -29,4 +29,9 @@
     <Reference Include="UnityEngine.UIModule" HintPath="$(GAME_MANAGED)\UnityEngine.UIModule.dll" Private="false" />
     <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(GAME_MANAGED)\UnityEngine.TextRenderingModule.dll" Private="false" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Translations/RunicInventory/English.json" LogicalName="Runic.Localization.English.json" />
+    <None Update="Translations/**/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

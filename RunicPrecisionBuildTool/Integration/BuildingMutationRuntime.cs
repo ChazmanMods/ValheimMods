@@ -85,7 +85,7 @@ namespace QuietBuildRotation.Integration
             catch (Exception exception)
             {
                 Shutdown();
-                error = "safe building mutation adapter failed: " +
+                error = global::Runic.Localization.RunicText.Get("text_bf1a69397c17") +
                         exception.GetType().Name + ": " + exception.Message;
                 return false;
             }
@@ -144,7 +144,7 @@ namespace QuietBuildRotation.Integration
                 piece.GetInstanceID() != record.InstanceId)
             {
                 _undo = default;
-                message = "No eligible Runic placement is available to undo.";
+                message = global::Runic.Localization.RunicText.Get("text_277cd6f58d23");
                 return false;
             }
 
@@ -197,13 +197,13 @@ namespace QuietBuildRotation.Integration
                 IRemoved removed = piece.GetComponent<IRemoved>();
                 removed?.OnRemoved();
                 wear.Remove(false);
-                message = "Most recent eligible placement removed through its native owner path.";
+                message = global::Runic.Localization.RunicText.Get("text_958a2f07a6a0");
                 return true;
             }
             catch (Exception exception)
             {
-                message = "Undo stopped after its one-shot native mutation began (" +
-                          exception.GetType().Name + "). Check the world before retrying.";
+                message = global::Runic.Localization.RunicText.Get("text_b9da9ad77389") +
+                          exception.GetType().Name + global::Runic.Localization.RunicText.Get("text_7bf1fc97be2c");
                 return false;
             }
         }
@@ -213,13 +213,13 @@ namespace QuietBuildRotation.Integration
             message = null;
             if (!player || player != Player.m_localPlayer || !Diagnostics.CanRun)
             {
-                message = "Area repair is unavailable.";
+                message = global::Runic.Localization.RunicText.Get("text_dc831c2d6044");
                 return false;
             }
             ItemDrop.ItemData tool = _getRightItem?.Invoke(player);
             if (tool?.m_shared?.m_buildPieces == null)
             {
-                message = "Equip a build hammer before area repair.";
+                message = global::Runic.Localization.RunicText.Get("text_3044848186f5");
                 return false;
             }
 
@@ -237,7 +237,7 @@ namespace QuietBuildRotation.Integration
                     _pieceMask);
                 if (hitCount >= ColliderCapacity)
                 {
-                    message = "Area repair discovery reached its 256-collider bound; nothing was changed.";
+                    message = global::Runic.Localization.RunicText.Get("text_7a2e4dd8dca0");
                     return false;
                 }
 
@@ -259,7 +259,7 @@ namespace QuietBuildRotation.Integration
 
                 if (candidateCount == 0)
                 {
-                    message = "No damaged eligible pieces were found in the bounded area.";
+                    message = global::Runic.Localization.RunicText.Get("text_b6a9fd871202");
                     return false;
                 }
 
@@ -305,9 +305,9 @@ namespace QuietBuildRotation.Integration
                 }
 
                 message = repaired > 0
-                    ? "Area repair completed: " + repaired +
-                      " piece(s), one native durability drain per success."
-                    : "No candidate passed fresh owner, creator, ward, range, policy, cooldown, and durability checks.";
+                    ? global::Runic.Localization.RunicText.Get("text_4a58de85fc21") + repaired +
+                      global::Runic.Localization.RunicText.Get("text_06552e847e10")
+                    : global::Runic.Localization.RunicText.Get("text_84543ba3e6b2");
                 return repaired > 0;
             }
             finally
@@ -442,23 +442,23 @@ namespace QuietBuildRotation.Integration
             switch (denial)
             {
                 case MutationDenial.ObjectAuthorityUnavailable:
-                    return "Undo stopped because this process is not the current ZDO owner.";
+                    return global::Runic.Localization.RunicText.Get("text_aad965483623");
                 case MutationDenial.WrongCreator:
-                    return "Undo stopped because creator ownership changed or is not yours.";
+                    return global::Runic.Localization.RunicText.Get("text_e0fff39e6937");
                 case MutationDenial.WardDenied:
-                    return "Undo stopped by a fresh ward/access check.";
+                    return global::Runic.Localization.RunicText.Get("text_c6cd5cdb8707");
                 case MutationDenial.OutOfRange:
-                    return "Undo stopped because the piece is outside normal hammer range.";
+                    return global::Runic.Localization.RunicText.Get("text_d81b4503c18d");
                 case MutationDenial.Changed:
-                    return "Undo refused: the piece position or rotation changed.";
+                    return global::Runic.Localization.RunicText.Get("text_551748a66da5");
                 case MutationDenial.Damaged:
-                    return "Undo refused: the piece is no longer at full health.";
+                    return global::Runic.Localization.RunicText.Get("text_c526d50bdabb");
                 case MutationDenial.AccessedOrInteractive:
-                    return "Undo refused: interactive/accessed piece types are never eligible.";
+                    return global::Runic.Localization.RunicText.Get("text_4831d9e046f5");
                 case MutationDenial.StructurallyDependedUpon:
-                    return "Undo refused: structural independence could not be proven.";
+                    return global::Runic.Localization.RunicText.Get("text_25bf903c8fc4");
                 default:
-                    return "Undo stopped by a fresh native placement/removal policy check (" +
+                    return global::Runic.Localization.RunicText.Get("text_40dc580432d2") +
                            denial + ").";
             }
         }

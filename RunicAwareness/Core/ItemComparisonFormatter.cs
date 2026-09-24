@@ -63,35 +63,35 @@ namespace RunicAwareness.Core
             var builder = new StringBuilder(384);
             builder.Append(BoundedText.Label(selected.Name));
             if (isEquipped)
-                builder.Append(" (equipped)");
+                builder.Append(global::Runic.Localization.RunicText.Get("text_e16d658cb550"));
             else if (equipped.HasValue)
-                builder.Append(" vs ").Append(BoundedText.Label(equipped.Value.Name));
+                builder.Append(global::Runic.Localization.RunicText.Get("text_8e292bb1d717")).Append(BoundedText.Label(equipped.Value.Name));
             else
-                builder.Append(" vs empty slot");
+                builder.Append(global::Runic.Localization.RunicText.Get("text_4ed6c4f52683"));
 
             int lines = 1;
-            AppendText(builder, ref lines, "Type", BoundedText.Label(selected.ItemType));
-            AppendInteger(builder, ref lines, "Quality", selected.Quality,
+            AppendText(builder, ref lines, global::Runic.Localization.RunicText.Get("text_baaddf70fb5d"), BoundedText.Label(selected.ItemType));
+            AppendInteger(builder, ref lines, global::Runic.Localization.RunicText.Get("text_1b2c08a8733d"), selected.Quality,
                 equipped?.Quality);
-            AppendNumber(builder, ref lines, "Damage (item)", selected.Damage,
+            AppendNumber(builder, ref lines, global::Runic.Localization.RunicText.Get("text_7fb3931ac7f8"), selected.Damage,
                 equipped?.Damage, selected.Damage > 0f || (equipped?.Damage ?? 0f) > 0f);
-            AppendNumber(builder, ref lines, "Armor", selected.Armor,
+            AppendNumber(builder, ref lines, global::Runic.Localization.RunicText.Get("text_a592855d0508"), selected.Armor,
                 equipped?.Armor, selected.Armor > 0f || (equipped?.Armor ?? 0f) > 0f);
-            AppendNumber(builder, ref lines, "Block (skill)", selected.Block,
+            AppendNumber(builder, ref lines, global::Runic.Localization.RunicText.Get("text_14630e234541"), selected.Block,
                 equipped?.Block, selected.Block > 0f || (equipped?.Block ?? 0f) > 0f);
-            AppendNumber(builder, ref lines, "Move", selected.MovementPercent,
+            AppendNumber(builder, ref lines, global::Runic.Localization.RunicText.Get("text_6ecc3df6bffd"), selected.MovementPercent,
                 equipped?.MovementPercent, true, "%");
             if (lines < MaximumLines && !string.IsNullOrEmpty(selected.SkillName))
             {
-                builder.Append("\nSkill: ").Append(BoundedText.Label(selected.SkillName))
+                builder.Append(global::Runic.Localization.RunicText.Get("text_ccbca08e91b3")).Append(BoundedText.Label(selected.SkillName))
                     .Append(' ').Append(FormatNumber(selected.SkillLevel));
                 lines++;
             }
-            AppendNumber(builder, ref lines, "Weight", selected.Weight,
+            AppendNumber(builder, ref lines, global::Runic.Localization.RunicText.Get("text_81d27ef6d503"), selected.Weight,
                 equipped?.Weight, true);
             if (lines < MaximumLines && selected.MaximumDurability > 0f)
             {
-                builder.Append("\nDurability: ")
+                builder.Append(global::Runic.Localization.RunicText.Get("text_4bcbae487b47"))
                     .Append(FormatNumber(selected.Durability)).Append('/')
                     .Append(FormatNumber(selected.MaximumDurability));
                 lines++;

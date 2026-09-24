@@ -68,7 +68,7 @@ namespace RunicInventory.Integration
             Restore();
             if (_warned) return;
             _warned = true;
-            Diagnostics.Error(exception, "Compact quiver panel unavailable; ordinary display retained. Inventory data was not changed.");
+            Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_2e2ca90ffe5a"));
         }
 
         internal static void Restore()

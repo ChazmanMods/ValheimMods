@@ -53,82 +53,82 @@ namespace RunicAwareness
                 "General",
                 "Enabled",
                 true,
-                "Enable Runic Awareness. This module only observes and renders already-known local state.");
+                global::Runic.Localization.RunicText.Get("text_ec3a59079845"));
 
             ShowFoodTimers = Panel(config, "FoodTimers", true,
-                "Show remaining time and the local food item that supplied each active food slot.");
+                global::Runic.Localization.RunicText.Get("text_a4bb65e67fea"));
             ShowEffectTimers = Panel(config, "EffectTimers", true,
-                "Show locally active HUD status effects and their remaining time.");
+                global::Runic.Localization.RunicText.Get("text_8c10f579fab2"));
             ShowComfort = Panel(config, "ComfortBreakdown", true,
-                "Show current comfort, Rested time, and bounded category results from vanilla's own comfort pass.");
+                global::Runic.Localization.RunicText.Get("text_0a62886999a3"));
             ShowItemComparison = Panel(config, "ItemComparison", true,
-                "Retain bounded item-comparison capture for compatibility; inventory UI suppression takes precedence, so this capture is not rendered as an Awareness panel while inventory is open.");
+                global::Runic.Localization.RunicText.Get("text_d8c348bb2521"));
             ShowProduction = Panel(config, "ProductionContext", true,
-                "Show the currently hovered station's visible state and optional Runic Production status when its runtime contract is available.");
+                global::Runic.Localization.RunicText.Get("text_c15b51f64b09"));
             ShowAgriculture = Panel(config, "AgricultureContext", true,
-                "Show bounded text already exposed by the currently hovered crop or beehive.");
+                global::Runic.Localization.RunicText.Get("text_f0ca691afa6f"));
             ShowBuilding = Panel(config, "BuildingContext", true,
-                "Show the currently selected or hovered build piece's known transform, health, station level, and vanilla support legend.");
+                global::Runic.Localization.RunicText.Get("text_dc6303811cd6"));
             ShowTamedAnimals = Panel(config, "TamedAnimalContext", true,
-                "Show bounded text already exposed by the currently hovered tameable animal.");
+                global::Runic.Localization.RunicText.Get("text_cbe9e30cc686"));
 
             TimerPrecision = config.Bind(
                 "Display",
                 "TimerPrecision",
                 AwarenessTimerPrecision.WholeSecond,
-                "Round remaining timers upward to whole seconds, five seconds, ten seconds, or whole minutes.");
+                global::Runic.Localization.RunicText.Get("text_8286cca9c032"));
             RefreshInterval = config.Bind(
                 "Display",
                 "RefreshIntervalSeconds",
                 0.35f,
                 new ConfigDescription(
-                    "Low-frequency state sampling interval. Text is rebuilt only when a bounded state signature changes.",
+                    global::Runic.Localization.RunicText.Get("text_352dbacb99be"),
                     new AcceptableValueRange<float>(0.2f, 2f)));
             MaximumEffectRows = config.Bind(
                 "Display",
                 "MaximumEffectRows",
                 5,
                 new ConfigDescription(
-                    "Maximum visible HUD-effect rows. The scan itself is hard-capped at 32 local effects.",
+                    global::Runic.Localization.RunicText.Get("text_e5d72a41f73c"),
                     new AcceptableValueRange<int>(1, 8)));
             MaximumComfortRows = config.Bind(
                 "Display",
                 "MaximumComfortWinnerRows",
                 6,
                 new ConfigDescription(
-                    "Maximum named comfort winners. Oversized vanilla comfort sets fail closed to a level-only explanation.",
+                    global::Runic.Localization.RunicText.Get("text_65e1027cf017"),
                     new AcceptableValueRange<int>(1, 8)));
             MaximumContextLines = config.Bind(
                 "Display",
                 "MaximumContextLines",
                 5,
                 new ConfigDescription(
-                    "Maximum lines copied from already-visible current-hover text.",
+                    global::Runic.Localization.RunicText.Get("text_943e318572fe"),
                     new AcceptableValueRange<int>(1, 6)));
             UiScale = config.Bind(
                 "Display",
                 "UiScale",
                 1f,
                 new ConfigDescription(
-                    "Overlay text and panel scale.",
+                    global::Runic.Localization.RunicText.Get("text_bddd88ea038a"),
                     new AcceptableValueRange<float>(0.75f, 2f)));
             ControllerScaleMultiplier = config.Bind(
                 "Display",
                 "ControllerScaleMultiplier",
                 1.15f,
                 new ConfigDescription(
-                    "Additional readability scale while Valheim reports controller navigation as active.",
+                    global::Runic.Localization.RunicText.Get("text_256227e437ea"),
                     new AcceptableValueRange<float>(1f, 1.5f)));
             Anchor = config.Bind(
                 "Display",
                 "Anchor",
                 AwarenessOverlayAnchor.MiddleLeft,
-                "Place the non-interactive overlay at a safe-area anchor. The default is left-middle.");
+                global::Runic.Localization.RunicText.Get("text_161e710f61d3"));
             MiddleLeftAnchorMigrationApplied = config.Bind(
                 "Migrations",
                 "DefaultAnchorMovedToMiddleLeft",
                 false,
-                "Internal one-time migration marker. Once true, later Anchor choices are never rewritten by this migration.");
+                global::Runic.Localization.RunicText.Get("text_65bb41d59a9b"));
             if (!MiddleLeftAnchorMigrationApplied.Value)
             {
                 AwarenessOverlayAnchor migrated = MigrateLegacyAnchor(Anchor.Value, false);
@@ -139,7 +139,7 @@ namespace RunicAwareness
                 "Diagnostics",
                 "VerboseLogging",
                 false,
-                "Log Awareness configuration refreshes. Never logs hidden world state.");
+                global::Runic.Localization.RunicText.Get("text_4a49a608f002"));
         }
 
         internal static AwarenessOverlayAnchor MigrateLegacyAnchor(

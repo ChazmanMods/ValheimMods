@@ -1,0 +1,20 @@
+{
+  "text_02f0185c8297": " AM",
+  "text_1f7ab3406e2f": "Hide while menus, inventory, map, chat input, or text input are open. Always hides with the HUD and during loading.",
+  "text_30e89d7617d0": "Use 24-hour format for the optional local clock.",
+  "text_45f207c536dc": "Choose the screen anchor for the clock.",
+  "text_4f83e880ad86": "Toggle clock visibility during gameplay. Default: Left Alt+C. Ignored while typing or in menus. Set to None to disable.",
+  "text_51fb57908b0f": "Show the clock. The toggle shortcut also changes this setting.",
+  "text_7249b2c66cc5": "Show Valheim's current world day number.",
+  "text_78cf8eb401b2": "Enable the client-only clock. No world or server settings are changed.",
+  "text_7d0b625e1025": "Clock size multiplier. Also scales with screen height relative to 1080p.",
+  "text_86214a9260e0": "Vertical offset in screen pixels; positive moves down. Kept within the screen safe area.",
+  "text_9409bab3d014": "Dark panel opacity. Zero hides the panel and its border.",
+  "text_a15ca5cd809e": "Local ",
+  "text_be4fa73da1f2": "Add your computer's local time, labeled Local. This is not the server's time zone.",
+  "text_be831133ec1a": "Show a sun by day and a crescent moon by night.",
+  "text_cb603c524349": "Display game time as 18:30 instead of 6:30 PM.",
+  "text_cb6f53dae980": " PM",
+  "text_df2441a485d2": "Day ",
+  "text_e8f31dcb1a5f": "Horizontal offset in screen pixels; positive moves right. Kept within the screen safe area."
+}

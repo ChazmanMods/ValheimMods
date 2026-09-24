@@ -1,8 +1,8 @@
 {
   "name": "RunicPrecisionBuildTool",
-  "version_number": "2.0.4",
+  "version_number": "2.0.7",
   "website_url": "https://discord.gg/7HKHTCdFqY",
-  "description": "Build with full six-axis movement and rotation, fine adjustments, transform matching, undo, area repair, and advanced placement tools.",
+  "description": "Precision building with a one-key Local/World rotation toggle, six-axis movement, fine adjustments, beam alignment, transform matching, undo, and area repair.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2350"
   ]

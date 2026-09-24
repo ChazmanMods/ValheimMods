@@ -12,14 +12,14 @@ namespace RunicVelocity
         internal static void Bind(ConfigFile config)
         {
             Enabled = config.Bind("General", "Enabled", true,
-                "Enable bounded startup measurement and the integrity-checked local manifest cache. When false, no timeline, worker, module, or service is started.");
+                global::Runic.Localization.RunicText.Get("text_7f024d5fe1d9"));
             WarmManifest = config.Bind("Manifest", "WarmCache", true,
-                "Reuse a cached SHA-256 and plugin metadata only when the exact relative path, size, and UTC modification time are unchanged. A server challenge may still require fresh hashing.");
+                global::Runic.Localization.RunicText.Get("text_c73467f88e3b"));
             MaximumFiles = config.Bind("Manifest", "MaximumFiles", 2048,
-                new ConfigDescription("Maximum DLLs considered in one bounded scan.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_733b536750f8"),
                     new AcceptableValueRange<int>(1, Core.ManifestCachePolicy.MaximumFiles)));
             DetailedTracing = config.Bind("Diagnostics", "DetailedTracing", false,
-                "Log one bounded manifest summary after the background scan. File paths are not logged.");
+                global::Runic.Localization.RunicText.Get("text_83d5af6a112c"));
         }
     }
 }

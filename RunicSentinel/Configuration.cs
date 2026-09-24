@@ -28,41 +28,41 @@ namespace RunicSentinel
         internal static void Bind(ConfigFile config)
         {
             Enabled = config.Bind("General", "Enabled", true,
-                "Enable bounded Sentinel local-snapshot, RSA policy, and evidence services. Sampled at startup; false registers nothing and starts no worker.");
+                global::Runic.Localization.RunicText.Get("text_04f9fe75aee9"));
             UseServerAdminList = config.Bind("Administrator Access", "UseServerAdminList", true,
-                "Allow server-verified adminlist.txt administrators and the local listen host to use Sentinel administration and first-time F3 setup. Steam raw, Steam_, and V_ IDs are supported. Signed Sentinel roles remain independent. Only the server setting is authoritative.");
+                global::Runic.Localization.RunicText.Get("text_99bb2f56596f"));
             PolicyFile = config.Bind("Policy", "ManifestFile", "RunicSentinel.policy",
-                "Canonical RUNIC-SENTINEL/3 policy path, relative to BepInEx/config unless absolute.");
+                global::Runic.Localization.RunicText.Get("text_b7eed9044c43"));
             SignatureFile = config.Bind("Policy", "SignatureFile", "RunicSentinel.policy.sig",
-                "Canonical Base64 detached RSA-3072/SHA-256 PKCS#1 v1.5 signature path.");
+                global::Runic.Localization.RunicText.Get("text_2e110bbd5688"));
             PublicKeyFile = config.Bind("Policy", "PublicKeyFile", "RunicSentinel.policy.pub",
-                "Canonical RUNIC-RSA-PUBLIC/1 verification public key path. The optional F3 workflow keeps its private key in a separate server-only directory.");
+                global::Runic.Localization.RunicText.Get("text_54e85eb611ce"));
             TrustedPublicKeySha256 = config.Bind("Policy", "TrustedPublicKeySha256", string.Empty,
-                "Required lowercase SHA-256 of the exact canonical public-key file. Empty or mismatched pins keep Sentinel monitor-only.");
+                global::Runic.Localization.RunicText.Get("text_0ed34bbd06da"));
             RemoteAdmissionPolicy = config.Bind("Remote Admission", "Policy", "Optional",
-                "Sampled at startup; changing it requires a restart. Required withholds native " +
-                "admission and denies a " +
-                "missing, stale, malformed, or signed-policy-incompatible client report after a " +
-                "bounded grace period. Optional records evidence without delaying or disconnecting. " +
-                "Disabled does not register the direct Sentinel admission protocol.");
+                global::Runic.Localization.RunicText.Get("text_b602d235fa8e") +
+                global::Runic.Localization.RunicText.Get("text_d66b3605dcac") +
+                global::Runic.Localization.RunicText.Get("text_b101247a5c6d") +
+                global::Runic.Localization.RunicText.Get("text_3e51c1dea7db") +
+                global::Runic.Localization.RunicText.Get("text_183c9913fd6f"));
             IntegrityCheckSeconds = config.Bind("Runtime Integrity", "CheckIntervalSeconds", 15,
-                "Metadata-check loaded plugin DLLs and active signed-passport files at this interval. " +
-                "A detected runtime change denies new strict admissions until restart. Range 5-300 seconds.");
+                global::Runic.Localization.RunicText.Get("text_8907827da911") +
+                global::Runic.Localization.RunicText.Get("text_46c4c63703c2"));
             BackupBeforeTransitions = config.Bind("Transition Safety", "BackupWorldBeforeProfileChange", true,
-                "Before a server loads an existing world with a different signed policy or plugin snapshot, " +
-                "require a verified Runic Safety backup of the world database and metadata.");
+                global::Runic.Localization.RunicText.Get("text_f0e8f6c49a3c") +
+                global::Runic.Localization.RunicText.Get("text_b87330de459d"));
             VeryHighDisconnectCount = config.Bind("Automatic Enforcement", "VeryHighFindingsBeforeDisconnect", 2,
-                new ConfigDescription("Disconnect after this many very-high-confidence violations in the enforcement window.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_308e67125b7e"),
                     new AcceptableValueRange<int>(1, 10)));
             HighDisconnectCount = config.Bind("Automatic Enforcement", "HighFindingsBeforeDisconnect", 3,
-                new ConfigDescription("Disconnect after this many high-confidence violations in the enforcement window.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_a4d9b1405b2f"),
                     new AcceptableValueRange<int>(1, 20)));
             EnforcementWindowSeconds = config.Bind("Automatic Enforcement", "FindingWindowSeconds", 60,
-                new ConfigDescription("Rolling violation window used by graduated automatic enforcement.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_dff407e006ab"),
                     new AcceptableValueRange<int>(10, 600)));
 #if !RUNIC_SENTINEL_SERVER_ONLY
             AdminPanelKey = config.Bind("Administrator Panel", "OpenPanel", new KeyboardShortcut(KeyCode.F3),
-                "Open the server-authorized Runic Sentinel administrator panel. Non-administrators are denied by the server.");
+                global::Runic.Localization.RunicText.Get("text_629c5f55524d"));
 #endif
             PolicyFile.SettingChanged += Notify;
             SignatureFile.SettingChanged += Notify;

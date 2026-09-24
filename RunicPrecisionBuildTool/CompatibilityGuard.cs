@@ -20,7 +20,7 @@ namespace QuietBuildRotation
 
             if (pluginInfo?.Instance == null)
             {
-                reason = "PerfectPlacement is installed, but its free-placement state could not be verified.";
+                reason = global::Runic.Localization.RunicText.Get("text_028fa4e52762");
                 return true;
             }
 
@@ -33,14 +33,14 @@ namespace QuietBuildRotation
                 string value = entry.Value.BoxedValue?.ToString();
                 if (IsEnabled(value))
                 {
-                    reason = "PerfectPlacement free-placement rotation is enabled. Disable one rotation implementation before building.";
+                    reason = global::Runic.Localization.RunicText.Get("text_348c02bee289");
                     return true;
                 }
 
                 return false;
             }
 
-            reason = "PerfectPlacement is installed, but its free-placement configuration entry was not found.";
+            reason = global::Runic.Localization.RunicText.Get("text_654ca6093c3e");
             return true;
         }
 

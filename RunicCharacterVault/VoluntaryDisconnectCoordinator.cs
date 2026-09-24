@@ -166,7 +166,7 @@ namespace RunicCharacterVault
 
         private static string Describe(VoluntaryExitKind kind)
         {
-            return kind == VoluntaryExitKind.ApplicationQuit ? "application quit" : "logout";
+            return kind == VoluntaryExitKind.ApplicationQuit ? global::Runic.Localization.RunicText.Get("text_4dd530f94dcc") : "logout";
         }
     }
 

@@ -14,6 +14,8 @@ internal sealed class ChestRules
     internal int Side;
     internal int Background; // 0 transparent, 1 white, 2 black; older labels default to transparent.
     internal float Size = 1f, Horizontal, Vertical;
+    internal float CurveVertical, CurveDepth;
+    internal bool WrapAround;
     internal string Color = "#FFFFFFFF", Label = "";
     internal readonly List<string> Items = new();
     internal readonly List<string> Categories = new();
@@ -61,12 +63,12 @@ internal sealed class ChestRules
     internal static bool ValidId(string value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 128 &&
         !value.Any(char.IsControl);
     private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
-    internal string Encode() => EncodeVersion(3);
+    internal string Encode() => EncodeVersion(5);
     private string EncodeVersion(byte version)
     {
-        if (Background < 0 || Background > 2 || Side < 0 || Side > 4 || !Finite(Size) || Size < .3f || Size > 2f ||
+        if (!Runic.Shared.CaptionCurve.Valid(CurveVertical) || !Runic.Shared.CaptionCurve.Valid(CurveDepth) || Background < 0 || Background > 2 || Side < 0 || Side > 4 || !Finite(Size) || Size < .3f || Size > 2f ||
             !Finite(Horizontal) || !Finite(Vertical) || Math.Abs(Horizontal) > 1 || Math.Abs(Vertical) > 1 ||
-            Label == null || Label.Length > 96 || Label.Any(char.IsControl) ||
+            Label == null || Label.Length > 96 || Label.Any(char.IsControl) || !Runic.Shared.EmojiText.ValidUnicode(Label) ||
             Color == null || Color.Length != 9 || Color[0] != '#' || !Color.Skip(1).All(Uri.IsHexDigit))
             throw new InvalidDataException("Invalid label settings.");
         using var stream = new MemoryStream();
@@ -97,6 +99,8 @@ internal sealed class ChestRules
                 }
             }
             if (version >= 3) writer.Write((byte)Background);
+            if (version >= 4) { writer.Write(CurveVertical); writer.Write(CurveDepth); }
+            if (version >= 5) writer.Write(WrapAround);
         }
         if (Categories.Any(c => version == 1 ? !CategoryNames.Contains(c) :
             ChestRuleGroups.Find(ChestRuleGroups.Canonical(c)) == null && !CustomGroups.Any(g => g.Id == c))) throw new InvalidDataException("Unknown group.");
@@ -122,7 +126,7 @@ internal sealed class ChestRules
             using var stream = new MemoryStream(Convert.FromBase64String(text));
             using var reader = new BinaryReader(stream, Encoding.UTF8);
             byte version = reader.ReadByte();
-            if (version != 1 && version != 2 && version != 3) return false;
+            if (version < 1 || version > 5) return false;
             rules.Remember = reader.ReadBoolean(); rules.ShowLabel = reader.ReadBoolean(); rules.Side = reader.ReadByte();
             rules.Size = reader.ReadSingle(); rules.Horizontal = reader.ReadSingle(); rules.Vertical = reader.ReadSingle();
             rules.Color = reader.ReadString(); rules.Label = reader.ReadString();
@@ -144,6 +148,8 @@ internal sealed class ChestRules
                 }
             }
             if (version >= 3) rules.Background = reader.ReadByte();
+            if (version >= 4) { rules.CurveVertical = reader.ReadSingle(); rules.CurveDepth = reader.ReadSingle(); }
+            if (version >= 5) rules.WrapAround = reader.ReadBoolean();
             if (stream.Position != stream.Length || rules.EncodeVersion(version) != text) return false;
             for (int i = 0; i < rules.Categories.Count; i++) rules.Categories[i] = ChestRuleGroups.Canonical(rules.Categories[i]);
             return true;

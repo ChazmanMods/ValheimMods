@@ -1,0 +1,158 @@
+#nullable enable
+using System.Collections.Generic;
+using System.Linq;
+using HarmonyLib;
+
+namespace RunicSentinel.Devcommands;
+
+[HarmonyPatch(typeof(Terminal), nameof(Terminal.AddString), typeof(string))]
+public class RedirectOutput
+{
+  public static ZRpc? Target = null;
+
+  static void Postfix(string text)
+  {
+    if (ZNet.m_isServer && Target != null)
+    {
+      // Dedicated server ZLogs also triggers this. These would clutter the console window with low value messages.
+      if (text.StartsWith("["))
+        return;
+      ZNet.instance.RemotePrint(Target, text);
+    }
+  }
+}
+
+// Base game has a way to execute commands on the server, but there is no admin check on it.
+[HarmonyPatch]
+public class ServerExecution
+{
+  [HarmonyPatch(typeof(ZNet), nameof(ZNet.RPC_RemoteCommand)), HarmonyPrefix]
+  static bool ReplceAdminCheckWithCustomCheck(ZNet __instance, ZRpc rpc, string command)
+  {
+    if (!__instance.IsServer())
+      return true;
+
+    RedirectOutput.Target = rpc;
+    if (!IsRpcCommandAllowed(__instance, rpc, command))
+    {
+      __instance.RemotePrint(rpc, $"Unauthorized to use command '{GetCommandName(command)}'.");
+      return false;
+    }
+
+    __instance.InternalCommand(rpc, command);
+    return false;
+  }
+  [HarmonyPatch(typeof(ZNet), nameof(ZNet.RPC_RemoteCommand)), HarmonyFinalizer]
+  static void ClearTarget()
+  {
+    RedirectOutput.Target = null;
+  }
+
+  private static bool IsRpcCommandAllowed(ZNet znet, ZRpc rpc, string command)
+  {
+    // Local server-side invocations (no rpc sender) keep base behavior.
+    if (rpc == null)
+      return true;
+
+    return SentinelBridge.AllowRpc(rpc);
+  }
+
+  private static string GetCommandName(string command)
+  {
+    var kvp = Parse.Kvp(command, ' ');
+    return kvp.Key;
+  }
+
+
+  ///<summary>Sends command to the server so that it can be executed there.</summary>
+  public static void Send(string command)
+  {
+    Console.instance.AddString("Sending command: " + command);
+    SentinelBridge.Submit(Console.instance,"server "+command);
+  }
+  ///<summary>Sends command to the server so that it can be executed there.</summary>
+  public static void Send(IEnumerable<string> args) => Send(string.Join(" ", args));
+  ///<summary>Sends command to the server so that it can be executed there.</summary>
+  public static void Send(Terminal.ConsoleEventArgs args) => Send(args.Args);
+
+  public static string RPC_Pins = "DEV_Pins";
+  public static string RPC_RequestIds = "EW_RequestIds";
+  public static string RPC_SyncLocationIds = "EW_SyncLocationIds";
+  public static string RPC_SyncVegetationIds = "EW_SyncVegetationIds";
+
+  public static void RPC_Do_Pins(ZRpc? rpc, string data)
+  {
+    if(rpc!=null&&!ReferenceEquals(rpc,ZNet.instance.GetServerRPC()))return;
+    var pins = Parse.Split(data, '|').Select(Parse.VectorXZY).ToArray();
+    var findPins = Console.instance.m_findPins;
+    foreach (var pin in findPins)
+      Minimap.instance?.RemovePin(pin);
+    findPins.Clear();
+    foreach (var pos in pins)
+    {
+      var pin = Minimap.instance?.AddPin(pos, Minimap.PinType.Icon3, "", false, false, Player.m_localPlayer.GetPlayerID());
+      if (pin != null)
+        findPins.Add(pin);
+    }
+  }
+
+  public static void RequestIds()
+  {
+    var server = ZNet.instance.GetServerRPC();
+    if (server == null)
+      return;
+    server.Invoke(RPC_RequestIds);
+  }
+
+  public static void RPC_DoRequestIds(ZRpc rpc)
+  {
+    if(!SentinelBridge.AllowRpc(rpc))return;
+    var peer=ZNet.instance.GetPeer(rpc);
+    var character=ZDOMan.instance.GetZDO(peer.m_characterID);
+    PermissionLoader.SendPermissions(rpc,rpc.GetSocket().GetHostName(),character?.GetLong(ZDOVars.s_playerID).ToString()??"");
+    var locationIds = string.Join("|", ParameterInfo.LocationIds);
+    var vegetationIds = string.Join("|", ParameterInfo.VegetationIds);
+    rpc.Invoke(RPC_SyncLocationIds, locationIds);
+    rpc.Invoke(RPC_SyncVegetationIds, vegetationIds);
+  }
+
+  public static void ReceiveLocationIds(ZRpc rpc, string locationIds)
+  {
+    if(!ReferenceEquals(rpc,ZNet.instance.GetServerRPC()))return;
+    ParameterInfo.SetServerLocationIds([.. locationIds.Split('|').Where(s => !string.IsNullOrEmpty(s))]);
+  }
+  public static void ReceiveVegetationIds(ZRpc rpc, string vegetationIds)
+  {
+    if(!ReferenceEquals(rpc,ZNet.instance.GetServerRPC()))return;
+    ParameterInfo.SetServerVegetationIds([.. vegetationIds.Split('|').Where(s => !string.IsNullOrEmpty(s))]);
+  }
+
+  [HarmonyPatch(typeof(ZNet), nameof(ZNet.RPC_PeerInfo)), HarmonyPostfix]
+  static void RegisterRPCs(ZNet __instance, ZRpc rpc)
+  {
+    if (__instance.IsServer())
+    {
+      // Server needs to listen for id request.
+      rpc.Register(RPC_RequestIds, RPC_DoRequestIds);
+    }
+    else
+    {
+      // Clients need to only listen for server messages.
+      ZNetPeer peer = __instance.GetPeer(rpc);
+      if (peer.m_server)
+      {
+        rpc.Register<string>(RPC_Pins, RPC_Do_Pins);
+        rpc.Register<string>(RPC_SyncLocationIds, ReceiveLocationIds);
+        rpc.Register<string>(RPC_SyncVegetationIds, ReceiveVegetationIds);
+        rpc.Register<ZPackage>(PermissionLoader.RPC_Permissions, Admin.ReceivePermissions);
+      }
+    }
+  }
+
+  [HarmonyPatch(typeof(ZoneSystem), nameof(ZoneSystem.Start)), HarmonyPostfix]
+  static void InitServer()
+  {
+    if (ZNet.instance.IsServer())
+      PermissionLoader.FromFile();
+  }
+}

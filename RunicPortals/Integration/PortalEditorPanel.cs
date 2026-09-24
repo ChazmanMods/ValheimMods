@@ -107,7 +107,7 @@ namespace RunicPortals.Integration
             catch (Exception exception)
             {
                 Diagnostics.Error(exception,
-                    "Runic Portals could not create the portal editor; it closed safely.");
+                    global::Runic.Localization.RunicText.Get("text_099f0439ebaf"));
                 Close();
                 _cancel?.Invoke();
             }
@@ -138,7 +138,7 @@ namespace RunicPortals.Integration
         {
             if (!_open) return;
             try { PortalEditorInputGuard.CapturePointer(Event.current); }
-            catch (Exception exception) { FailClosed(exception, "pointer input"); }
+            catch (Exception exception) { FailClosed(exception, global::Runic.Localization.RunicText.Get("text_04206dbc385b")); }
         }
 
         internal void Close()
@@ -223,12 +223,12 @@ namespace RunicPortals.Integration
             panelLayout.childForceExpandWidth = true;
 
             TMP_Text title = CreateText(
-                panel.transform, "Configure Portal", 28, _theme.TextColor,
+                panel.transform, global::Runic.Localization.RunicText.Get("text_c3233f1386a1"), 28, _theme.TextColor,
                 TextAlignmentOptions.Center);
             SetHeight(title.gameObject, 40f);
             TMP_Text description = CreateText(
                 panel.transform,
-                "Choose normal Valheim pairing or configure a Runic travel endpoint.",
+                global::Runic.Localization.RunicText.Get("text_2bb824569d9c"),
                 18, _theme.MutedTextColor, TextAlignmentOptions.Center);
             SetHeight(description.gameObject, 30f);
 
@@ -239,8 +239,8 @@ namespace RunicPortals.Integration
             _standardContent = CreateSection("StandardFields", panel.transform).gameObject;
             _tagInput = CreateField(
                 _standardContent.transform,
-                "Portal tag",
-                "matching tags connect",
+                global::Runic.Localization.RunicText.Get("text_3bda458c79c2"),
+                global::Runic.Localization.RunicText.Get("text_789d604d2c93"),
                 PortalEditCommand.MaximumVanillaTagLength,
                 "$piece_portal_tag",
                 false,
@@ -252,10 +252,10 @@ namespace RunicPortals.Integration
             _networkContent = CreateSection("RunicFields", panel.transform).gameObject;
             _networkInput = CreateField(
                 _networkContent.transform,
-                "Network name",
-                "portals with the exact same network name travel together",
+                global::Runic.Localization.RunicText.Get("text_b97af0128946"),
+                global::Runic.Localization.RunicText.Get("text_ba728e074d08"),
                 PortalContractLimits.MaximumNetworkIdLength,
-                "Runic network name",
+                global::Runic.Localization.RunicText.Get("text_96ae84ca233b"),
                 true,
                 out _);
             _networkInput.SetTextWithoutNotify(_draft.NetworkName ?? string.Empty);
@@ -267,10 +267,10 @@ namespace RunicPortals.Integration
 
             _portalInput = CreateField(
                 _networkContent.transform,
-                "Portal name",
-                "the destination name shown on the map",
+                global::Runic.Localization.RunicText.Get("text_0b9a2a22e6a1"),
+                global::Runic.Localization.RunicText.Get("text_d9335677348d"),
                 PortalContractLimits.MaximumNameLength,
-                "Runic portal name",
+                global::Runic.Localization.RunicText.Get("text_f9e1efae2c59"),
                 true,
                 out _);
             _portalInput.SetTextWithoutNotify(_draft.PortalName ?? string.Empty);
@@ -299,9 +299,9 @@ namespace RunicPortals.Integration
             actionLayout.childControlHeight = true;
             actionLayout.childForceExpandWidth = true;
             actionLayout.childForceExpandHeight = true;
-            _cancelButton = CreateButton(actionRow, "Cancel", out _);
+            _cancelButton = CreateButton(actionRow, global::Runic.Localization.RunicText.Get("text_19766ed6ccb2"), out _);
             _cancelButton.onClick.AddListener(CancelFromUi);
-            _saveButton = CreateButton(actionRow, "Save", out _saveButtonText);
+            _saveButton = CreateButton(actionRow, global::Runic.Localization.RunicText.Get("text_1509f561f241"), out _saveButtonText);
             _saveButton.onClick.AddListener(SaveFromUi);
 
             Canvas.ForceUpdateCanvases();
@@ -339,7 +339,7 @@ namespace RunicPortals.Integration
 
             TMP_Text label = CreateText(
                 background.transform,
-                "Standard Pair (normal Valheim portal)",
+                global::Runic.Localization.RunicText.Get("text_9b8c387848dd"),
                 BodyFontSize,
                 _theme.TextColor,
                 TextAlignmentOptions.MidlineLeft);
@@ -350,10 +350,10 @@ namespace RunicPortals.Integration
 
         private void CreateAccessSelector(Transform parent)
         {
-            RectTransform row = CreateSelectorRow(parent, "Access");
-            _publicButton = CreateButton(row, "Public", out _);
-            _privateButton = CreateButton(row, "Private", out _);
-            _groupButton = CreateButton(row, "Group", out _);
+            RectTransform row = CreateSelectorRow(parent, global::Runic.Localization.RunicText.Get("text_ec5ba0abb717"));
+            _publicButton = CreateButton(row, global::Runic.Localization.RunicText.Get("text_591935b15b1c"), out _);
+            _privateButton = CreateButton(row, global::Runic.Localization.RunicText.Get("text_c63eb6720c6e"), out _);
+            _groupButton = CreateButton(row, global::Runic.Localization.RunicText.Get("text_34ca0e766088"), out _);
             _publicButton.onClick.AddListener(() => SetAccess(PortalNetworkKind.Public));
             _privateButton.onClick.AddListener(() => SetAccess(PortalNetworkKind.Personal));
             _groupButton.onClick.AddListener(() => SetAccess(PortalNetworkKind.Group));
@@ -361,10 +361,10 @@ namespace RunicPortals.Integration
 
         private void CreateDirectionSelector(Transform parent)
         {
-            RectTransform row = CreateSelectorRow(parent, "Travel");
-            _bothButton = CreateButton(row, "Both", out _);
-            _arrivalsButton = CreateButton(row, "Arrivals Only", out _);
-            _departuresButton = CreateButton(row, "Departures Only", out _);
+            RectTransform row = CreateSelectorRow(parent, global::Runic.Localization.RunicText.Get("text_d2b98fb53714"));
+            _bothButton = CreateButton(row, global::Runic.Localization.RunicText.Get("text_b6c1d862f9f7"), out _);
+            _arrivalsButton = CreateButton(row, global::Runic.Localization.RunicText.Get("text_54121ca58a33"), out _);
+            _departuresButton = CreateButton(row, global::Runic.Localization.RunicText.Get("text_637507e22727"), out _);
             _bothButton.onClick.AddListener(() => SetDirection(PortalEditorDirection.Both));
             _arrivalsButton.onClick.AddListener(
                 () => SetDirection(PortalEditorDirection.ArrivalsOnly));
@@ -377,7 +377,7 @@ namespace RunicPortals.Integration
             RectTransform section = CreateSection("GroupSelector", parent);
             _groupRow = section.gameObject;
             TMP_Text label = CreateText(
-                section, "Runic Group", 17, _theme.MutedTextColor,
+                section, global::Runic.Localization.RunicText.Get("text_e6acdb224e17"), 17, _theme.MutedTextColor,
                 TextAlignmentOptions.MidlineLeft);
             SetHeight(label.gameObject, 24f);
             _groupDropdownButton = CreateButton(section, string.Empty, out _groupButtonText);
@@ -584,8 +584,8 @@ namespace RunicPortals.Integration
             {
                 SetStatus(
                     _groupSnapshotAvailable
-                        ? "You are not currently a member of a Runic Group. Manage Groups through Valheim chat with /group."
-                        : "Group information is still loading from the server.",
+                        ? global::Runic.Localization.RunicText.Get("text_1d97811f1628")
+                        : global::Runic.Localization.RunicText.Get("text_07d1ade1d79f"),
                     false,
                     false);
                 return;
@@ -625,7 +625,7 @@ namespace RunicPortals.Integration
             PortalEditCommand command = _draft.BuildCommand();
             if (command == null || command.Kind == PortalEditKind.Invalid)
             {
-                SetStatus(command?.Error ?? "Complete the required portal fields.", true, false);
+                SetStatus(command?.Error ?? global::Runic.Localization.RunicText.Get("text_ad2e23d528c0"), true, false);
                 return;
             }
             try
@@ -639,12 +639,12 @@ namespace RunicPortals.Integration
                 bool confirmation = result.State == PortalEditorSubmitState.ConfirmationRequired;
                 SetStatus(result.Message, !confirmation, confirmation);
                 if (_saveButtonText)
-                    _saveButtonText.text = confirmation ? "Confirm" : "Save";
+                    _saveButtonText.text = confirmation ? global::Runic.Localization.RunicText.Get("text_eebdd24a77d9") : global::Runic.Localization.RunicText.Get("text_1509f561f241");
             }
             catch (Exception exception)
             {
-                SetStatus("The portal could not be saved: " + exception.Message, true, false);
-                Diagnostics.Error(exception, "Runic portal editor submission failed.");
+                SetStatus(global::Runic.Localization.RunicText.Get("text_736510a6e168") + exception.Message, true, false);
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_a33d7be0aad3"));
             }
         }
 
@@ -656,7 +656,7 @@ namespace RunicPortals.Integration
             try { _cancel?.Invoke(); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Runic portal editor cancellation failed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_6343270de92a"));
             }
         }
 
@@ -724,7 +724,7 @@ namespace RunicPortals.Integration
 
         private void DraftChanged()
         {
-            if (_saveButtonText) _saveButtonText.text = "Save";
+            if (_saveButtonText) _saveButtonText.text = global::Runic.Localization.RunicText.Get("text_1509f561f241");
             RefreshContextStatus();
         }
 
@@ -734,7 +734,7 @@ namespace RunicPortals.Integration
             if (_draft.StandardPair)
             {
                 SetStatus(
-                    "Standard Pair uses Valheim's normal portal linking. Two portals with the same tag connect.",
+                    global::Runic.Localization.RunicText.Get("text_fe1f1e38a3e7"),
                     false,
                     false);
                 return;
@@ -742,7 +742,7 @@ namespace RunicPortals.Integration
             if (_standardCurrentlyConnected)
             {
                 SetStatus(
-                    "This Standard Pair is connected. Select Standard Pair, give it a unique tag, and save before converting it.",
+                    global::Runic.Localization.RunicText.Get("text_d6329d91a844"),
                     false,
                     true);
                 return;
@@ -752,17 +752,17 @@ namespace RunicPortals.Integration
                 SetStatus(
                     _groupSnapshotAvailable
                         ? _groupChoices.Count == 0
-                            ? "No Runic Groups are available. Manage Groups through Valheim chat with /group."
-                            : "Only current members of the selected Runic Group may discover and use this portal."
-                        : "Loading your Runic Groups from the server...",
+                            ? global::Runic.Localization.RunicText.Get("text_4a32bb8835e8")
+                            : global::Runic.Localization.RunicText.Get("text_7ce93d42feb5")
+                        : global::Runic.Localization.RunicText.Get("text_b1357f366872"),
                     false,
                     false);
                 return;
             }
             SetStatus(
                 _draft.Access == PortalNetworkKind.Personal
-                    ? "Private portals are visible and usable only by their owner."
-                    : "Public portals are visible and usable by every player who passes normal route and ward checks.",
+                    ? global::Runic.Localization.RunicText.Get("text_90cd21954534")
+                    : global::Runic.Localization.RunicText.Get("text_6069ede1702a"),
                 false,
                 false);
         }
@@ -818,7 +818,7 @@ namespace RunicPortals.Integration
                 PortalGroupChoice choice = _groupChoices[index];
                 string label = string.Equals(
                     choice.GroupId, _draft?.GroupId, StringComparison.Ordinal)
-                    ? choice.DisplayName + "  [selected]"
+                    ? choice.DisplayName + global::Runic.Localization.RunicText.Get("text_970299754962")
                     : choice.DisplayName;
                 Button button = CreateButton(_groupListContent, label, out _);
                 PortalGroupChoice captured = choice;
@@ -843,19 +843,19 @@ namespace RunicPortals.Integration
             if (selected.HasValue)
                 _groupButtonText.text = selected.Value.DisplayName + "   ▼";
             else if (!_groupSnapshotAvailable)
-                _groupButtonText.text = "Loading Groups...";
+                _groupButtonText.text = global::Runic.Localization.RunicText.Get("text_c7f3618e43fb");
             else if (_groupChoices.Count == 0)
-                _groupButtonText.text = "No Groups available";
+                _groupButtonText.text = global::Runic.Localization.RunicText.Get("text_1a433006ce20");
             else if (_draft.GroupId.Length != 0)
-                _groupButtonText.text = "Previously selected Group unavailable";
+                _groupButtonText.text = global::Runic.Localization.RunicText.Get("text_6ec9208af387");
             else
-                _groupButtonText.text = "Choose a Group   ▼";
+                _groupButtonText.text = global::Runic.Localization.RunicText.Get("text_60ecc6919603");
         }
 
         private void UpdateTagLabel()
         {
             if (!_tagLabel || !_tagInput) return;
-            _tagLabel.text = "Portal tag (" + _tagInput.text.Length + "/" +
+            _tagLabel.text = global::Runic.Localization.RunicText.Get("text_7adeea5604ce") + _tagInput.text.Length + "/" +
                              PortalEditCommand.MaximumVanillaTagLength + ")";
         }
 
@@ -947,7 +947,7 @@ namespace RunicPortals.Integration
         private void FailClosed(Exception exception, string operation)
         {
             Diagnostics.Error(exception,
-                "Runic Portals editor faulted during " + operation + "; it closed safely.");
+                global::Runic.Localization.RunicText.Get("text_1f2862cdc95c") + operation + global::Runic.Localization.RunicText.Get("text_46c10f3b7386"));
             Close();
             try { _cancel?.Invoke(); }
             catch { }

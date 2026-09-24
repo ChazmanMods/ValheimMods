@@ -1,4 +1,4 @@
-## Settings file was created by plugin Runic Crafting v1.1.0
+## Settings file was created by plugin Runic Crafting v1.1.4
 ## Plugin GUID: chazman.RunicCrafting
 
 [General]
@@ -41,9 +41,9 @@ RepairAll = true
 
 # Disable independently of inventory-equipment RepairAll. Cancels any pending area repairs.
 Enabled = true
-# BepInEx KeyboardShortcut; Semicolon is the ; key.
+# Semicolon is the ; key.
 Hotkey = Semicolon
-# 1–100m, independent of the chest search range.
+# 1-100 meters, independent of the chest search range.
 RadiusMeters = 50
 
 [Diagnostics]
@@ -51,3 +51,9 @@ RadiusMeters = 50
 ShowStatusMessages = true
 DetailedLogging = false
 LogCacheStats = false
+
+[Modded Containers]
+
+## RunicCrafting material pulls for crafting/building/cooking/refueling. Independent of RunicStorage.
+## Supported custom-container prefab names; separate with commas or semicolons.
+PullPrefabIds = piece_drawer

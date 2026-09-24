@@ -37,11 +37,11 @@ namespace QuietBuildRotation
     internal enum RotationAxis : byte
     {
         None = 0,
-        /// <summary>Turn around Unity world Y (the fixed vertical centerline).</summary>
+        /// <summary>Turn around selected Y axis.</summary>
         Yaw,
-        /// <summary>Tilt around Unity world X (the fixed left/right centerline).</summary>
+        /// <summary>Tilt around selected X axis.</summary>
         Pitch,
-        /// <summary>Spin around Unity world Z (the fixed front/back centerline).</summary>
+        /// <summary>Spin around selected Z axis.</summary>
         Roll
     }
 

@@ -12,8 +12,8 @@ namespace RunicSentinelClient
                 "General",
                 "Enabled",
                 true,
-                "Enable client-only Runic Sentinel admission profile reporting. " +
-                "The setting is sampled at startup; the plugin remains inert on servers.");
+                global::Runic.Localization.RunicText.Get("text_c2c47dd903fc") +
+                global::Runic.Localization.RunicText.Get("text_3fffa17a165a"));
         }
     }
 }

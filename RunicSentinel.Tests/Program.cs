@@ -22,6 +22,14 @@ namespace RunicSentinel.Tests
         {
             var tests = new (string Name, Action Run)[]
             {
+                ("player transport handles vectors, unicode, roles and nested reports", PlayerJsonRoundTrip),
+                ("operator reports explain findings and deduplicate inventory", ReadableOperatorReports),
+                ("report download preserves bytes and rejects traversal and invalid offsets", ReportDownloadBounds),
+                ("native command routing and player query bounds", IntegratedCommandBounds),
+                ("named mod reassignment is exclusive and retains version/hash constraints", NamedModAssignment),
+                ("dashboard document preserves named metadata and player observations", DashboardDocument),
+                ("command payload rejects malformed compound and oversized requests", CommandPayloadBounds),
+                ("commands require fresh authorization and execute at most once on the same connection", CommandDispatchRequiresFreshAuthorization),
                 ("Steam ticket authentication requires native acceptance and asynchronous validation", SentinelAuthenticationTests.SteamSessionTests.ValidTicket),
                 ("Steam rejected and revoked sessions remain denied", SentinelAuthenticationTests.SteamSessionTests.RejectedTicket),
                 ("Steam authentication is bound to exact account socket and handle", SentinelAuthenticationTests.SteamSessionTests.ExactConnection),
@@ -633,7 +641,7 @@ namespace RunicSentinel.Tests
             Contains(control, "MaximumReplayEntries = 256");
             Contains(control, "RequestLifetimeTicks");
             Contains(control, "Fixed(cached.RequestDigest, digest)");
-            string panel = Read("RunicSentinel", "Runtime", "SentinelAdminPanel.cs");
+            string panel = ReadLocalizedPanel();
             Contains(panel, "KeyCode.F3");
             Contains(panel, "SentinelAdminPanel.IsOpen");
             Contains(panel, "__result = false");
@@ -647,7 +655,7 @@ namespace RunicSentinel.Tests
             Contains(panel, "RunicSentinelValheimSkin");
             Contains(panel, "CreateWoodTexture");
             Contains(panel, "CreateInsetTexture");
-            Contains(panel, "RUNIC SENTINEL FORGE");
+            Contains(panel, "Runic Sentinel");
             Contains(panel, "GUIContent.none");
             Contains(panel,
                 "Every operation is independently re-authorized by the server.");
@@ -730,7 +738,7 @@ namespace RunicSentinel.Tests
             Contains(managed, "if (!CanInitialize)");
             Contains(managed, "return Bootstrap(authority, subject)");
             Contains(managed, "UnknownMods = \"Unmanaged\"");
-            Contains(Read("RunicSentinel", "Runtime", "SentinelAdminPanel.cs"), "Set Up Sentinel");
+            Contains(ReadLocalizedPanel(), "Set Up Sentinel");
         }
 
         private static void ManagedRsaProviderIsExact()
@@ -849,7 +857,7 @@ namespace RunicSentinel.Tests
                 "_runtime.Start(Paths.ConfigPath)", StringComparison.Ordinal);
             True(unityStart >= 0 && initialSnapshot > unityStart);
             string configurationSource = Read("RunicSentinel", "Configuration.cs");
-            Contains(configurationSource, "Sampled at startup; changing it requires a restart");
+            Contains(configurationSource + Read("RunicSentinel", "Translations", "RunicSentinel", "English.json"), "Sampled at startup; changing it requires a restart");
             False(configurationSource.Contains(
                 "RemoteAdmissionPolicy.SettingChanged += Notify", StringComparison.Ordinal));
             Contains(Read("RunicSentinel", "Runtime", "SentinelManagedPolicyService.cs"),
@@ -860,7 +868,7 @@ namespace RunicSentinel.Tests
             Contains(readme, "not unforgeable proof");
             using JsonDocument manifest = JsonDocument.Parse(Read("RunicSentinel", "manifest.json"));
             Equal("RunicSentinel", manifest.RootElement.GetProperty("name").GetString());
-            Equal("1.4.2", manifest.RootElement.GetProperty("version_number").GetString());
+            Equal("1.5.0", manifest.RootElement.GetProperty("version_number").GetString());
             Sequence(
                 new[]
                 {
@@ -894,6 +902,12 @@ namespace RunicSentinel.Tests
                 True(File.Exists(path), "Missing installed Valheim 1.0 assembly: " + path);
                 using AssemblyDefinition game = AssemblyDefinition.ReadAssembly(path);
                 TypeDefinition znet = game.MainModule.Types.Single(type => type.FullName == "ZNet");
+                True(znet.Fields.Single(f=>f.Name=="m_ServerName").IsStatic);
+                Method(znet,"InternalKick","ZNetPeer");
+                Equal("SyncedList",znet.Fields.Single(f=>f.Name=="m_adminList").FieldType.FullName);
+                Equal("SyncedList",znet.Fields.Single(f=>f.Name=="m_bannedList").FieldType.FullName);
+                var synced=game.MainModule.GetType("SyncedList");
+                if(synced!=null)Equal("FileHelpers/FileLocation",synced.Fields.Single(f=>f.Name=="m_fileLocation").FieldType.FullName);
                 Equal("System.Void", Method(
                     znet, "RPC_ServerHandshake", "ZRpc", "System.String").ReturnType.FullName);
                 Equal("System.Void", Method(znet, "ServerLoadWorld").ReturnType.FullName);

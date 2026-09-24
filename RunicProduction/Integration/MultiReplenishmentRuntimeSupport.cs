@@ -20,7 +20,7 @@ namespace RunicProduction.Integration
             catalog = null;
             failure = string.Empty;
             if (stationZdo == null || string.IsNullOrWhiteSpace(stationId))
-                return Fail("The exact station identity is unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_a036e6714536"), out failure);
 
             StoredRecordState state = MultiReplenishmentCatalogStore.Normalize(
                 stationZdo, out catalog);
@@ -31,19 +31,19 @@ namespace RunicProduction.Integration
 
             if (state == StoredRecordState.Invalid)
                 return Fail(
-                    "The replenishment destination catalog is corrupt or incomplete.",
+                    global::Runic.Localization.RunicText.Get("text_ec318aee709c"),
                     out failure);
             if (state == StoredRecordState.Valid)
             {
                 if (ProductionEndpointIdentity.IsCanonicalToken(catalog.StationId) &&
                     !string.Equals(catalog.StationId, stationId, StringComparison.Ordinal))
                     return Fail(
-                        "The replenishment catalog belongs to another station identity.",
+                        global::Runic.Localization.RunicText.Get("text_678b3690ae29"),
                         out failure);
                 if (!LegacyDebrisMatchesCatalog(
                         catalog, legacyLink, legacyPlanState, legacyPlan))
                     return Fail(
-                        "Legacy and catalog replenishment data disagree.",
+                        global::Runic.Localization.RunicText.Get("text_d2d9497e662e"),
                         out failure);
                 if (legacyLink != null || legacyPlanState != StoredRecordState.Absent)
                     ClearLegacySingleton(stationZdo);
@@ -62,7 +62,7 @@ namespace RunicProduction.Integration
                     !ReplenishmentPlanStore.MatchesLink(
                         legacyPlan, legacyLink, exactBinding))
                     return Fail(
-                        "The legacy replenishment link and plan are inconsistent.",
+                        global::Runic.Localization.RunicText.Get("text_3d716dd1438d"),
                         out failure);
                 try
                 {
@@ -82,7 +82,7 @@ namespace RunicProduction.Integration
                         !MultiReplenishmentCatalogStore.CatalogsEqual(
                             catalog, migrated))
                         return Fail(
-                            "The legacy replenishment catalog did not round-trip.",
+                            global::Runic.Localization.RunicText.Get("text_e3bcd01fb432"),
                             out failure);
                     ClearLegacySingleton(stationZdo);
                     return StoredRecordState.Valid;
@@ -90,7 +90,7 @@ namespace RunicProduction.Integration
                 catch (Exception exception)
                 {
                     return Fail(
-                        "Legacy replenishment migration failed: " +
+                        global::Runic.Localization.RunicText.Get("text_92c34b86d4a7") +
                         exception.GetType().Name + ".",
                         out failure);
                 }
@@ -109,14 +109,14 @@ namespace RunicProduction.Integration
                     MultiReplenishmentCatalogStore.Read(
                         stationZdo, out catalog) != StoredRecordState.Valid)
                     return Fail(
-                        "An empty replenishment catalog could not be initialized.",
+                        global::Runic.Localization.RunicText.Get("text_b63fd60cec46"),
                         out failure);
                 return StoredRecordState.Valid;
             }
             catch (Exception exception)
             {
                 return Fail(
-                    "Replenishment catalog initialization failed: " +
+                    global::Runic.Localization.RunicText.Get("text_6bd6043dafd5") +
                     exception.GetType().Name + ".",
                     out failure);
             }

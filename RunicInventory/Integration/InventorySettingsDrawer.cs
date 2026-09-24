@@ -23,7 +23,7 @@ namespace RunicInventory.Integration
             try
             {
                 GUI.enabled = previous && (!enabled.Value || canDisable);
-                bool next = GUILayout.Toggle(enabled.Value, enabled.Value ? "Enabled" : "Disabled");
+                bool next = GUILayout.Toggle(enabled.Value, enabled.Value ? global::Runic.Localization.RunicText.Get("text_92c1cdfdf4cb") : global::Runic.Localization.RunicText.Get("text_75081b593d15"));
                 if (next != enabled.Value) enabled.Value = next;
             }
             finally { GUI.enabled = previous; }

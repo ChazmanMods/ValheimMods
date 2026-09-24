@@ -12,20 +12,20 @@ namespace RunicClock
 
         internal ClockConfig(ConfigFile config)
         {
-            Enabled = config.Bind("General", "Enabled", true, "Enable the client-only clock. No world or server settings are changed.");
-            Visible = config.Bind("General", "Visible", true, "Show the clock. The toggle shortcut also changes this setting.");
-            ToggleKey = config.Bind("General", "ToggleShortcut", new KeyboardShortcut(KeyCode.C, KeyCode.LeftAlt), "Toggle clock visibility during gameplay. Default: Left Alt+C. Ignored while typing or in menus. Set to None to disable.");
-            Use24Hour = config.Bind("Clock", "Use24Hour", true, "Display game time as 18:30 instead of 6:30 PM.");
-            ShowDay = config.Bind("Clock", "ShowDay", true, "Show Valheim's current world day number.");
-            ShowIndicator = config.Bind("Clock", "ShowSunMoon", true, "Show a sun by day and a crescent moon by night.");
-            ShowRealTime = config.Bind("Clock", "ShowRealWorldTime", false, "Add your computer's local time, labeled Local. This is not the server's time zone.");
-            RealTime24Hour = config.Bind("Clock", "RealWorldUse24Hour", true, "Use 24-hour format for the optional local clock.");
-            Anchor = config.Bind("Display", "Anchor", ClockAnchor.TopCenter, "Choose the screen anchor for the clock.");
-            OffsetX = config.Bind("Display", "OffsetX", 0f, new ConfigDescription("Horizontal offset in screen pixels; positive moves right. Kept within the screen safe area.", new AcceptableValueRange<float>(-4096, 4096)));
-            OffsetY = config.Bind("Display", "OffsetY", 64f, new ConfigDescription("Vertical offset in screen pixels; positive moves down. Kept within the screen safe area.", new AcceptableValueRange<float>(-4096, 4096)));
-            Scale = config.Bind("Display", "Scale", 1f, new ConfigDescription("Clock size multiplier. Also scales with screen height relative to 1080p.", new AcceptableValueRange<float>(0.6f, 2f)));
-            BackgroundOpacity = config.Bind("Display", "BackgroundOpacity", 0.65f, new ConfigDescription("Dark panel opacity. Zero hides the panel and its border.", new AcceptableValueRange<float>(0, 1)));
-            HideInMenus = config.Bind("Display", "HideInMenus", true, "Hide while menus, inventory, map, chat input, or text input are open. Always hides with the HUD and during loading.");
+            Enabled = config.Bind("General", "Enabled", true, global::Runic.Localization.RunicText.Get("text_78cf8eb401b2"));
+            Visible = config.Bind("General", "Visible", true, global::Runic.Localization.RunicText.Get("text_51fb57908b0f"));
+            ToggleKey = config.Bind("General", "ToggleShortcut", new KeyboardShortcut(KeyCode.C, KeyCode.LeftAlt), global::Runic.Localization.RunicText.Get("text_4f83e880ad86"));
+            Use24Hour = config.Bind("Clock", "Use24Hour", true, global::Runic.Localization.RunicText.Get("text_cb603c524349"));
+            ShowDay = config.Bind("Clock", "ShowDay", true, global::Runic.Localization.RunicText.Get("text_7249b2c66cc5"));
+            ShowIndicator = config.Bind("Clock", "ShowSunMoon", true, global::Runic.Localization.RunicText.Get("text_be831133ec1a"));
+            ShowRealTime = config.Bind("Clock", "ShowRealWorldTime", false, global::Runic.Localization.RunicText.Get("text_be4fa73da1f2"));
+            RealTime24Hour = config.Bind("Clock", "RealWorldUse24Hour", true, global::Runic.Localization.RunicText.Get("text_30e89d7617d0"));
+            Anchor = config.Bind("Display", "Anchor", ClockAnchor.TopCenter, global::Runic.Localization.RunicText.Get("text_45f207c536dc"));
+            OffsetX = config.Bind("Display", "OffsetX", 0f, new ConfigDescription(global::Runic.Localization.RunicText.Get("text_e8f31dcb1a5f"), new AcceptableValueRange<float>(-4096, 4096)));
+            OffsetY = config.Bind("Display", "OffsetY", 64f, new ConfigDescription(global::Runic.Localization.RunicText.Get("text_86214a9260e0"), new AcceptableValueRange<float>(-4096, 4096)));
+            Scale = config.Bind("Display", "Scale", 1f, new ConfigDescription(global::Runic.Localization.RunicText.Get("text_7d0b625e1025"), new AcceptableValueRange<float>(0.6f, 2f)));
+            BackgroundOpacity = config.Bind("Display", "BackgroundOpacity", 0.65f, new ConfigDescription(global::Runic.Localization.RunicText.Get("text_9409bab3d014"), new AcceptableValueRange<float>(0, 1)));
+            HideInMenus = config.Bind("Display", "HideInMenus", true, global::Runic.Localization.RunicText.Get("text_1f7ab3406e2f"));
         }
     }
 }

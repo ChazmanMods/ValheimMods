@@ -82,14 +82,14 @@ namespace RunicProduction.Core
                 defaultTargetReserve > MaximumReserveAmount)
             {
                 failure =
-                    $"DefaultReserve must be between 1 and {MaximumReserveAmount}.";
+                    global::Runic.Localization.RunicText.Format("text_5455fa1e35d5", MaximumReserveAmount);
                 return false;
             }
 
             string text = exactPrefabReserves ?? string.Empty;
             if (text.Length > MaximumConfigurationCharacters)
             {
-                failure = "The replenishment reserve configuration is too long.";
+                failure = global::Runic.Localization.RunicText.Get("text_a3298d9a3ef6");
                 return false;
             }
 
@@ -100,7 +100,7 @@ namespace RunicProduction.Core
                 if (entries.Length > MaximumRules)
                 {
                     failure =
-                        $"The replenishment reserve configuration exceeds {MaximumRules} rules.";
+                        global::Runic.Localization.RunicText.Format("text_e70eeb11c226", MaximumRules);
                     return false;
                 }
 
@@ -109,14 +109,14 @@ namespace RunicProduction.Core
                     if (string.IsNullOrWhiteSpace(rawEntry))
                     {
                         failure =
-                            "The replenishment reserve configuration contains an empty rule.";
+                            global::Runic.Localization.RunicText.Get("text_0315e87244cf");
                         return false;
                     }
                     int separator = rawEntry.IndexOf('=');
                     if (separator <= 0 || separator != rawEntry.LastIndexOf('='))
                     {
                         failure =
-                            "Each replenishment reserve rule must contain exactly one '=' separator.";
+                            global::Runic.Localization.RunicText.Get("text_8c4f0f55419a");
                         return false;
                     }
                     string prefabId = rawEntry.Substring(0, separator).Trim();
@@ -124,19 +124,19 @@ namespace RunicProduction.Core
                     if (!StockDomainValidation.IsExactPrefabId(prefabId))
                     {
                         failure =
-                            "The replenishment reserve configuration contains an invalid exact prefab ID.";
+                            global::Runic.Localization.RunicText.Get("text_2a8c8510aef9");
                         return false;
                     }
                     if (!TryParseAmount(amountText, out int amount))
                     {
                         failure =
-                            $"Replenishment reserves must be decimal integers between 1 and {MaximumReserveAmount}.";
+                            global::Runic.Localization.RunicText.Format("text_15488a6db23a", MaximumReserveAmount);
                         return false;
                     }
                     if (rules.ContainsKey(prefabId))
                     {
                         failure =
-                            "The replenishment reserve configuration contains a duplicate exact prefab ID.";
+                            global::Runic.Localization.RunicText.Get("text_c26b74491b30");
                         return false;
                     }
                     rules.Add(prefabId, amount);

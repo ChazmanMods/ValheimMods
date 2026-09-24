@@ -26,7 +26,6 @@ namespace RunicWorldEngine.Integration
             if (!_requested) return;
             try
             {
-                if (global::Version.CurrentVersion.ToString() != "1.0.12") throw new InvalidOperationException("Player-cap audit requires Valheim 1.0.12.");
                 int configured = WorldEngineConfig.MaximumPlayers.Value;
                 CapacityAudit.Limit(configured, _dedicated, true);
                 using (var assembly = AssemblyDefinition.ReadAssembly(typeof(ZNet).Assembly.Location))
@@ -49,7 +48,7 @@ namespace RunicWorldEngine.Integration
                     _harmony.Patch(target, transpiler: new HarmonyMethod(typeof(CapacityRuntime), nameof(Transpile)) { priority = Priority.Last });
                 _valid = true;
                 if (!CheckIntegrity()) throw new InvalidOperationException(Status);
-                Status = $"validated {Targets.Count}/{Targets.Count} hosting limits; player cap={PlayerLimit}, PlayFab transport cap={CapacityAudit.Limit(PlayerLimit, _dedicated, true)}";
+                Status = global::Runic.Localization.RunicText.Format("text_ac591cf388f4", Targets.Count, Targets.Count, PlayerLimit, CapacityAudit.Limit(PlayerLimit, _dedicated, true));
                 Plugin.Log.LogInfo("Capacity: " + Status);
             }
             catch (Exception error)
@@ -58,7 +57,7 @@ namespace RunicWorldEngine.Integration
                 _harmony = null;
                 _valid = false;
                 PlayerLimit = 10;
-                Status = "CAP OVERRIDE REJECTED; hosting blocked until configuration/build is corrected and restarted: " + error.Message;
+                Status = global::Runic.Localization.RunicText.Get("text_b80e6b9c2dd3") + error.Message;
                 Plugin.Log.LogError(Status);
             }
         }
@@ -83,7 +82,7 @@ namespace RunicWorldEngine.Integration
             catch (Exception error)
             {
                 _valid = false; // Sticky fault. Do not silently shrink an already advertised lobby.
-                Status = "CAP INTEGRITY FAULT; new admissions blocked; restart required: " + error.Message;
+                Status = global::Runic.Localization.RunicText.Get("text_c175aa0f5106") + error.Message;
                 Plugin.Log.LogError(Status);
                 return false;
             }
@@ -110,7 +109,7 @@ namespace RunicWorldEngine.Integration
             Targets.Clear();
             _requested = _valid = false;
             PlayerLimit = 10;
-            Status = "vanilla capacity (override disabled)";
+            Status = global::Runic.Localization.RunicText.Get("text_29e297337e69");
         }
     }
 

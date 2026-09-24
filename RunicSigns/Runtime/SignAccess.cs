@@ -14,6 +14,8 @@ internal static class SignAccess
         sign.GetComponent<ZNetView>() && sign.GetComponent<ZNetView>().IsValid() &&
         Utils.GetPrefabName(sign.gameObject) == "sign";
 
+    private static readonly System.Reflection.FieldInfo Viewable = AccessTools.Field(typeof(Sign), "m_isViewable");
+    internal static bool CanView(Sign sign) => sign && Viewable != null && (bool)Viewable.GetValue(sign);
     internal static bool Local(Sign sign) => Eligible(sign) && Player.m_localPlayer &&
         !Player.m_localPlayer.IsDead() && Vector3.Distance(Player.m_localPlayer.transform.position, sign.transform.position) <= 5 &&
         PrivateArea.CheckAccess(sign.transform.position, 0, false);

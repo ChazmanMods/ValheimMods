@@ -10,6 +10,17 @@ namespace RunicProduction.Tests
 
         private static void Main()
         {
+            Run("blocked stations back off and removed stations lose schedule state", () =>
+            {
+                var schedule = new RunicProduction.Core.StationSchedule();
+                if (!schedule.IsDue(1, 0)) throw new Exception("new station not due");
+                schedule.Observe(1, 0, false, 2);
+                if (schedule.IsDue(1, 3) || !schedule.IsDue(1, 4)) throw new Exception("backoff failed");
+                schedule.Observe(1, 4, true, 2);
+                if (!schedule.IsDue(1, 6)) throw new Exception("success did not reset backoff");
+                schedule.Remove(1);
+                if (!schedule.IsDue(1, 0)) throw new Exception("removed station retained state");
+            });
             RunAll(NativeCheatChecksTests.Cases());
             RunAll(ProductionLinkPressTests.Cases());
             RunAll(ProductionSetupOwnershipTests.Cases());

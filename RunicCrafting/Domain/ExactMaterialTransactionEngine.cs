@@ -9,7 +9,6 @@ namespace RunicCrafting.Domain
     /// </summary>
     public sealed class ExactMaterialTransactionEngine
     {
-        private readonly object _gate = new object();
         private readonly ExactMaterialPlanner _planner;
 
         public ExactMaterialTransactionEngine(ExactMaterialPlanner planner = null) =>
@@ -24,7 +23,8 @@ namespace RunicCrafting.Domain
             lease = null;
             denialReason = string.Empty;
             var restoreTokens = new List<IMaterialRestoreToken>();
-            Monitor.Enter(_gate);
+            if (!RunicAutomation.MutationGate.TryBegin("crafting", out var gate))
+            { denialReason = "mutation-busy"; return false; }
             try
             {
                 var sourceList = new List<IMutableMaterialSource>();
@@ -33,9 +33,12 @@ namespace RunicCrafting.Domain
                     if (source == null || sourceList.Count >= ExactMaterialPlanner.MaximumSources)
                     {
                         denialReason = "source-limit";
-                        Monitor.Exit(_gate);
+                        gate.Dispose();
                         return false;
                     }
+                    if (RunicAutomation.MutationGate.IsBlocked(source.SourceId))
+                    { denialReason = "endpoint-needs-inspection:" + source.SourceId; gate.Dispose(); return false; }
+                    gate.Track(source.SourceId);
                     sourceList.Add(source);
                 }
 
@@ -48,7 +51,7 @@ namespace RunicCrafting.Domain
                         byId.ContainsKey(source.SourceId))
                     {
                         denialReason = "invalid-sources";
-                        Monitor.Exit(_gate);
+                        gate.Dispose();
                         return false;
                     }
                     snapshots.Add(snapshot);
@@ -57,7 +60,7 @@ namespace RunicCrafting.Domain
 
                 if (!_planner.TryPlan(requirements, snapshots, out MaterialPlan plan, out denialReason))
                 {
-                    Monitor.Exit(_gate);
+                    gate.Dispose();
                     return false;
                 }
 
@@ -68,21 +71,24 @@ namespace RunicCrafting.Domain
                             line.Quantity,
                             out IMaterialRestoreToken token) || token == null)
                     {
-                        RestoreReverse(restoreTokens);
-                        denialReason = "source-changed:" + line.SourceId;
-                        Monitor.Exit(_gate);
+                        bool restored = RestoreReverse(restoreTokens);
+                        gate.Complete(restored ? RunicAutomation.MutationOutcome.RolledBack : RunicAutomation.MutationOutcome.Indeterminate);
+                        denialReason = (restored ? "source-changed:" : "recovery-needs-inspection:") + line.SourceId;
+                        gate.Dispose();
                         return false;
                     }
                     restoreTokens.Add(token);
                 }
 
-                lease = new MaterialConsumptionLease(_gate, plan, snapshots, restoreTokens);
+                lease = new MaterialConsumptionLease(gate, plan, snapshots, restoreTokens);
                 return true;
             }
-            catch
+            catch (Exception error)
             {
-                RestoreReverse(restoreTokens);
-                Monitor.Exit(_gate);
+                bool restored = RestoreReverse(restoreTokens);
+                gate.Complete(restored && !(error is RunicAutomation.MutationIndeterminateException)
+                    ? RunicAutomation.MutationOutcome.RolledBack : RunicAutomation.MutationOutcome.Indeterminate);
+                gate.Dispose();
                 throw;
             }
         }
@@ -101,17 +107,17 @@ namespace RunicCrafting.Domain
 
     public sealed class MaterialConsumptionLease : IDisposable
     {
-        private readonly object _gate;
+        private readonly RunicAutomation.MutationLease gate;
         private readonly IReadOnlyList<IMaterialRestoreToken> _restoreTokens;
         private int _active = 1;
 
         internal MaterialConsumptionLease(
-            object gate,
+            RunicAutomation.MutationLease gate,
             MaterialPlan plan,
             IReadOnlyList<MaterialSourceSnapshot> sourceSnapshots,
             IReadOnlyList<IMaterialRestoreToken> restoreTokens)
         {
-            _gate = gate;
+            this.gate = gate;
             Plan = plan;
             SourceSnapshots = sourceSnapshots;
             _restoreTokens = restoreTokens;
@@ -124,17 +130,22 @@ namespace RunicCrafting.Domain
         public void Commit()
         {
             if (Interlocked.Exchange(ref _active, 0) != 1) return;
-            Monitor.Exit(_gate);
+            gate.Complete(RunicAutomation.MutationOutcome.Committed);
+            gate.Dispose();
         }
 
         public bool Rollback()
         {
             if (Interlocked.Exchange(ref _active, 0) != 1) return true;
             bool restored = ExactMaterialTransactionEngine.RestoreReverse(_restoreTokens);
-            Monitor.Exit(_gate);
+            gate.Complete(restored ? RunicAutomation.MutationOutcome.RolledBack : RunicAutomation.MutationOutcome.Indeterminate);
+            gate.Dispose();
             return restored;
         }
 
-        public void Dispose() => Rollback();
+        public void Dispose()
+        {
+            if (!Rollback()) throw new RunicAutomation.MutationIndeterminateException("crafting " + gate.Id);
+        }
     }
 }

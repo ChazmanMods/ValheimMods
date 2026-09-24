@@ -9,7 +9,7 @@ namespace RunicStorage.Runtime;
 internal static class ChestRuleStore
 {
     internal const string Key = "RunicStorage.ChestRules.v1";
-    internal static bool Eligible(Container chest) => chest && chest.GetComponentInParent<Piece>() &&
+    internal static bool Eligible(Container chest) => chest && !Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(chest) && chest.GetComponentInParent<Piece>() &&
         !chest.GetComponentInParent<Ship>() && chest.m_wagon == null &&
         !chest.GetComponentInParent<ArmorStand>() && !chest.GetComponentInParent<ItemStand>();
 
@@ -31,7 +31,7 @@ internal static class ChestRuleStore
 
     internal static bool Save(Container chest, ChestRules rules, string expected, out string error)
     {
-        error = "Chest access changed. Close and reopen its rules.";
+        error = global::Runic.Localization.RunicText.Get("text_06a9a674b1dc");
         if (!CanEdit(chest)) return false;
         var view = ValheimContainerIdentity.NetworkView(chest);
         if (!view || !view.IsOwner() || Raw(chest) != expected) return false;

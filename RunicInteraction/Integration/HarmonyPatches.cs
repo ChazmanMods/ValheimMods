@@ -16,7 +16,7 @@ namespace RunicInteraction.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Smelter input registration failed; its switches remain vanilla.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_42d8b2177ba1"));
             }
         }
     }
@@ -34,7 +34,7 @@ namespace RunicInteraction.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Cooking input registration failed; its switches remain vanilla.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_d3c1294ddc0b"));
             }
         }
     }
@@ -48,7 +48,7 @@ namespace RunicInteraction.Integration
             try { HoldRepeatRuntime.Register(__instance.m_addFuelSwitch); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Shield fuel registration failed; its switch remains vanilla.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_fb46743df3f5"));
             }
         }
     }
@@ -64,7 +64,7 @@ namespace RunicInteraction.Integration
             try { __state = HoldRepeatRuntime.Begin(__instance, __1); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Hold-repeat preparation failed; this input remains vanilla.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_a66398fb3ecb"));
             }
         }
 
@@ -76,7 +76,7 @@ namespace RunicInteraction.Integration
             try { HoldRepeatRuntime.End(__instance, __state); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Hold-repeat interval restoration failed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_0f48285fbb18"));
             }
             return __exception;
         }
@@ -95,7 +95,7 @@ namespace RunicInteraction.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Cooking hold-repeat decision failed; vanilla hold handling won.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_d17138c02b22"));
             }
         }
     }
@@ -115,7 +115,7 @@ namespace RunicInteraction.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Fermenter hold-repeat decision failed; vanilla hold handling won.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_8820de8c479e"));
             }
         }
     }
@@ -135,7 +135,7 @@ namespace RunicInteraction.Integration
             try { __state = DoorAutoCloseRuntime.BeforeInteract(__instance, __0, __1); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Door opening capture failed; no auto-close intent will be created.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_aa888bf56a6f"));
             }
         }
 
@@ -147,7 +147,7 @@ namespace RunicInteraction.Integration
             try { DoorAutoCloseRuntime.AfterInteract(__state, __result); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Door auto-close approval failed; the door remains at its vanilla state.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_f4e0e643a03c"));
             }
         }
     }
@@ -161,7 +161,7 @@ namespace RunicInteraction.Integration
             try { DoorAutoCloseRuntime.ObserveWardTopologyMutation(zdo); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Door ward index add observation failed closed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_1730dd88ea22"));
             }
         }
     }
@@ -175,7 +175,7 @@ namespace RunicInteraction.Integration
             try { DoorAutoCloseRuntime.ObserveWardTopologyMutation(zdo); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Door ward index remove observation failed closed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_60c31af3a764"));
             }
         }
     }
@@ -189,7 +189,7 @@ namespace RunicInteraction.Integration
             try { return !TransferGestureRuntime.TryHandleAltClick(__instance, __0); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Alt-transfer failed closed; vanilla click handling won.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_6fddbb3ebab5"));
                 return true;
             }
         }
@@ -214,7 +214,7 @@ namespace RunicInteraction.Integration
             try { return TransferGestureRuntime.GuardVanillaMove(__0, __1, __3); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Transfer validation failed closed; the move was declined.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_d9837f81b1dc"));
                 return false;
             }
         }
@@ -237,7 +237,7 @@ namespace RunicInteraction.Integration
             try { __state = EquipmentRestoreRuntime.BeforeEquip(__instance, __0); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Equipment capture failed; vanilla equip handling won.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_4ab8a58ad577"));
             }
         }
 
@@ -253,7 +253,7 @@ namespace RunicInteraction.Integration
             try { EquipmentRestoreRuntime.AfterEquip(__instance, __0, __result, __state); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Equipment restore capture failed; no item was forced.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_9e9d7ca87ce2"));
             }
         }
     }
@@ -268,7 +268,7 @@ namespace RunicInteraction.Integration
             try { EquipmentRestoreRuntime.AfterUnequip(__instance, __0); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Equipment restore scheduling failed; no item was forced.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_9ca7a3fcbd23"));
             }
         }
     }
@@ -283,7 +283,7 @@ namespace RunicInteraction.Integration
             try { EquipmentRestoreRuntime.BeforeHideHands(__instance, __0); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Swim equipment capture failed; vanilla hide handling won.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_e6ff5935cebf"));
             }
         }
     }
@@ -297,7 +297,7 @@ namespace RunicInteraction.Integration
             try { EquipmentRestoreRuntime.AfterShowHands(__instance, __0); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Swim equipment fallback was not scheduled; vanilla show handling won.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_df2167e667d8"));
             }
         }
     }
@@ -316,7 +316,7 @@ namespace RunicInteraction.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Menu context capture failed; setup remains vanilla.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_430319a022f5"));
             }
         }
 
@@ -326,7 +326,7 @@ namespace RunicInteraction.Integration
             try { MenuMemoryRuntime.CompleteSetup(__instance); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Menu context restore failed; vanilla selection remains active.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_259640619909"));
             }
         }
     }
@@ -340,7 +340,7 @@ namespace RunicInteraction.Integration
             try { MenuMemoryRuntime.BeforeHide(__instance); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Menu selection capture failed; inventory close remains vanilla.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_ad92c83b16f9"));
             }
         }
     }
@@ -359,7 +359,7 @@ namespace RunicInteraction.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Craft-tab selection capture failed; tab behavior remains vanilla.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_ff6fc7caf8d0"));
             }
         }
 
@@ -369,7 +369,7 @@ namespace RunicInteraction.Integration
             try { MenuMemoryRuntime.AfterContextChange(__instance); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Craft-tab selection restore failed; vanilla selection remains active.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_99dc9c90b600"));
             }
         }
     }
@@ -388,7 +388,7 @@ namespace RunicInteraction.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Upgrade-tab selection capture failed; tab behavior remains vanilla.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_c0159cfc3de6"));
             }
         }
 
@@ -398,7 +398,7 @@ namespace RunicInteraction.Integration
             try { MenuMemoryRuntime.AfterContextChange(__instance); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Upgrade-tab selection restore failed; vanilla selection remains active.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_f3e01a0bbd55"));
             }
         }
     }
@@ -413,7 +413,7 @@ namespace RunicInteraction.Integration
             try { TextEntryRuntime.Begin(__0, ref __2); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Text-entry setup failed; vanilla limits remain in force.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_0ddb738f2976"));
             }
         }
     }
@@ -427,11 +427,11 @@ namespace RunicInteraction.Integration
             try { return TextEntryRuntime.ValidateCommit(__instance, __0); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Text-entry validation faulted; commit was declined safely.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_1867a65d1d62"));
                 try { ValheimAccess.ClearQueuedTextReceiver(__instance); }
                 catch (Exception cleanupException)
                 {
-                    Diagnostics.Error(cleanupException, "Stale text receiver cleanup also failed.");
+                    Diagnostics.Error(cleanupException, global::Runic.Localization.RunicText.Get("text_b0f855d94c95"));
                 }
                 return false;
             }
@@ -447,7 +447,7 @@ namespace RunicInteraction.Integration
             try { TextEntryRuntime.AfterHide(__instance); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Text cancellation cleanup failed; no commit was synthesized.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_17a2cf6465cb"));
             }
         }
     }
@@ -469,7 +469,7 @@ namespace RunicInteraction.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Pickup filter faulted; vanilla pickup handling won.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_3a8dd69f38c1"));
                 return true;
             }
         }

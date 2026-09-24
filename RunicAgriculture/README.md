@@ -8,6 +8,7 @@ Farming should feel like building a thriving homestead, not clicking the same pa
 
 - Plant rows, grids, circles, stars, triangles, half-circles, and trapezoids.
 - See live placement, spacing, terrain, biome, access, and resource feedback.
+- Snap planting patterns to existing crop rows and match their spacing.
 - Harvest matching mature crops across a configurable area.
 - Confirm a replant layout using the crop positions you just harvested.
 - Use configurable keyboard, mouse, and controller controls.
@@ -42,6 +43,27 @@ protocols, or suite-wide inventory locks. A failed or interrupted batch releases
 small process-local exclusion scope and cannot block another mod's inventory or tools.
 
 ## Planting patterns
+
+### Snap to existing rows
+
+Snapping is on by default. Aim near at least two matching seedlings or mature crops: the preview
+aligns its planting cells with that row and measures its crop spacing. When a parallel row is
+visible, it also matches the gap between rows, even if that differs from the crop spacing.
+This works for extending a row or adding aligned rows beside it. The HUD shows **Snapped** and
+the measured crop/row spacing. Existing plants remain untouched; occupied or invalid cells still
+go through the normal placement checks and the configured skip/block policy.
+
+Hold **Ctrl** for free placement with your configured spacing and wheel rotation. To turn automatic
+snapping off, set `Planting Pattern -> SnapToExistingRows = false` and choose PlayerHeading or
+WorldAxes alignment. ExistingCropRow explicitly enables snapping. With no usable row nearby,
+the preview falls back to your configured spacing and heading/world alignment.
+
+Matching samples loaded crops within 6m. A single crop cannot establish spacing; crowded scans
+or rows tighter than the selected crop's safe spacing fall back to free placement. An isolated
+pair supplies its measured gap; additional plants help recover spacing across missing plants.
+Replant confirmation keeps the exact harvested positions.
+
+### Shapes and footprint
 
 Select a cultivator crop to display a bounded preview. The ordinary/default shape is the basic
 rectangular Grid. Existing 1.0.0 configurations receive a one-time reset to Grid so a previously
@@ -141,3 +163,13 @@ Disabling the mod clears its previews and leaves vanilla agriculture unchanged. 
 crop growth time, yield, biome rules, seed generation, inventory topology, crafting material
 sourcing, or unattended automation. Runtime member checks target Valheim 1.0.7 and fail closed
 if required signatures are unavailable.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicAgriculture` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

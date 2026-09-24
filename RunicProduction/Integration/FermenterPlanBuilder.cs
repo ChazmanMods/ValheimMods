@@ -43,7 +43,7 @@ namespace RunicProduction.Integration
             failure = string.Empty;
             if (descriptor == null || replenishmentInventory == null || link == null ||
                 string.IsNullOrEmpty(stationId) || actorId == 0L || string.IsNullOrWhiteSpace(actorName))
-                return Fail("Fermenter plan inputs are unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_92e7dc4fb87e"), out failure);
             bool refresh = previous != null &&
                            previous.AdapterKind == ReplenishmentProducerKind.Fermenter &&
                            string.Equals(
@@ -53,7 +53,7 @@ namespace RunicProduction.Integration
                            ReplenishmentPlanStore.MatchesLink(previous, link, stationId);
             if (previous != null && !refresh)
                 return Fail(
-                    "The prior Fermenter plan is not bound to this exact station and link.",
+                    global::Runic.Localization.RunicText.Get("text_d7a6bd105da0"),
                     out failure);
             long authorizedPlayerId = refresh ? previous.AuthorizedPlayerId : actorId;
             string authorizedPlayerName = refresh
@@ -62,7 +62,7 @@ namespace RunicProduction.Integration
             if (authorizedPlayerId == 0L || authorizedPlayerId != link.OwnerId ||
                 string.IsNullOrWhiteSpace(authorizedPlayerName))
                 return Fail(
-                    "The Fermenter plan principal does not match the exact link owner.",
+                    global::Runic.Localization.RunicText.Get("text_f8fdf85c045f"),
                     out failure);
             var exemplars = new SortedSet<string>(StringComparer.Ordinal);
             foreach (ItemDrop.ItemData item in replenishmentInventory.GetAllItems())
@@ -72,17 +72,17 @@ namespace RunicProduction.Integration
                     continue;
                 exemplars.Add(prefabId);
                 if (exemplars.Count > ReplenishmentPlan.MaximumTargets)
-                    return Fail("The replenishment chest contains too many Fermenter output exemplars.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_0beed712358c"), out failure);
             }
             if (refresh && previous.Revision == int.MaxValue)
                 return Fail(
-                    "The Fermenter plan revision is exhausted; remove and re-add this destination.",
+                    global::Runic.Localization.RunicText.Get("text_b7ed2c0aa56f"),
                     out failure);
             var targets = new List<ReplenishmentTargetAuthorization>(exemplars.Count);
             foreach (string output in exemplars)
             {
                 if (!descriptor.TryFromOutput(output, out FermenterConversionDescriptor conversion))
-                    return Fail("A Fermenter output exemplar became ambiguous.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_4250cac66027"), out failure);
                 targets.Add(new ReplenishmentTargetAuthorization(
                     conversion.OutputPrefabId,
                     ReplenishmentProducerKind.Fermenter,
@@ -132,7 +132,7 @@ namespace RunicProduction.Integration
                 !string.Equals(plan.StationPrefabId, descriptor.PrefabId, StringComparison.Ordinal) ||
                 !ReplenishmentPlanStore.MatchesLink(plan, link, stationId) ||
                 plan.AuthorizedPlayerId != link.OwnerId)
-                return Fail("The persisted Fermenter plan is not bound to this exact station/link.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_0fa5264c5885"), out failure);
             foreach (ReplenishmentTargetAuthorization target in plan.Targets)
             {
                 if (target.ProducerKind != ReplenishmentProducerKind.Fermenter ||
@@ -146,7 +146,7 @@ namespace RunicProduction.Integration
                         StringComparison.Ordinal) ||
                     !target.ProducerSignatureMatches(FermenterProducerSignature.Create(descriptor, conversion)))
                     return Fail(
-                        "A Fermenter target no longer matches the exact producer signature.",
+                        global::Runic.Localization.RunicText.Get("text_6c725a19f071"),
                         out failure);
             }
             return true;

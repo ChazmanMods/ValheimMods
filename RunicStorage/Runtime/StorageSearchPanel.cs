@@ -213,11 +213,11 @@ namespace RunicStorage.Runtime
             panelLayout.childForceExpandHeight = false;
             panelLayout.childForceExpandWidth = true;
 
-            TMP_Text title = CreateText(panel.transform, "Runic Storage — Nearby Items",
+            TMP_Text title = CreateText(panel.transform, global::Runic.Localization.RunicText.Get("text_f9b3b60b739c"),
                 layout.FontSize, textColor, TextAlignmentOptions.Center);
             SetHeight(title.gameObject, layout.FontSize + 18);
             TMP_Text instruction = CreateText(panel.transform,
-                "Select an item to mark every nearby chest that contains it.",
+                global::Runic.Localization.RunicText.Get("text_d509dff67028"),
                 layout.FontSize, textColor, TextAlignmentOptions.Left);
             SetHeight(instruction.gameObject, layout.FontSize * 2 + 10);
 
@@ -231,16 +231,16 @@ namespace RunicStorage.Runtime
             filterLayout.childForceExpandHeight = true;
             filterLayout.childForceExpandWidth = false;
 
-            TMP_Text filterLabel = CreateText(filterRow, "Filter", layout.FontSize, textColor,
+            TMP_Text filterLabel = CreateText(filterRow, global::Runic.Localization.RunicText.Get("text_638e249f4a15"), layout.FontSize, textColor,
                 TextAlignmentOptions.MidlineLeft);
             SetWidth(filterLabel.gameObject, Math.Max(52f, layout.FontSize * 4f));
             _filterInput = CreateInput(filterRow, layout, textColor);
             LayoutElement inputLayout = _filterInput.gameObject.AddComponent<LayoutElement>();
             inputLayout.flexibleWidth = 1f;
             inputLayout.minWidth = 120f;
-            Button clear = CreateButton(filterRow, "Clear", layout, textColor);
+            Button clear = CreateButton(filterRow, global::Runic.Localization.RunicText.Get("text_83b12c2216ef"), layout, textColor);
             clear.onClick.AddListener(ClearFilter);
-            Button close = CreateButton(filterRow, "Close", layout, textColor);
+            Button close = CreateButton(filterRow, global::Runic.Localization.RunicText.Get("text_7d9eb7acb13e"), layout, textColor);
             close.onClick.AddListener(Close);
 
             _scrollRect = CreateScrollView(panel.transform);
@@ -277,7 +277,7 @@ namespace RunicStorage.Runtime
             TMP_Text value = CreateText(viewport, _filter, layout.FontSize, textColor,
                 TextAlignmentOptions.MidlineLeft);
             Stretch(value.rectTransform);
-            TMP_Text placeholder = CreateText(viewport, "type to filter…", layout.FontSize,
+            TMP_Text placeholder = CreateText(viewport, global::Runic.Localization.RunicText.Get("text_4867cdb95ac9"), layout.FontSize,
                 new Color(textColor.r, textColor.g, textColor.b, 0.52f),
                 TextAlignmentOptions.MidlineLeft);
             Stretch(placeholder.rectTransform);
@@ -380,7 +380,7 @@ namespace RunicStorage.Runtime
                 shown++;
                 string label = entry.DisplayName + "  ×" + entry.Quantity +
                                "  —  " + entry.Containers.Count +
-                               (entry.Containers.Count == 1 ? " chest" : " chests");
+                               (entry.Containers.Count == 1 ? global::Runic.Localization.RunicText.Get("text_a43543d84a47") : global::Runic.Localization.RunicText.Get("text_4ed3d6ce7df7"));
                 Button row = CreateButton(_entryContent, label, layout, textColor,
                     Math.Max(layout.ItemHeight, _theme.ControlHeight));
                 StorageSearchEntry selected = entry;
@@ -389,7 +389,7 @@ namespace RunicStorage.Runtime
             if (shown == 0)
             {
                 TMP_Text empty = CreateText(_entryContent,
-                    "No nearby item matches that filter.", layout.FontSize, textColor,
+                    global::Runic.Localization.RunicText.Get("text_91df69917cf6"), layout.FontSize, textColor,
                     TextAlignmentOptions.Center);
                 SetHeight(empty.gameObject, Math.Max(layout.ItemHeight * 2, 60));
             }
@@ -587,7 +587,7 @@ namespace RunicStorage.Runtime
             if (player)
                 player.Message(
                     MessageHud.MessageType.Center,
-                    "Runic Storage: highlighted " + marked + " chest(s) containing " +
+                    global::Runic.Localization.RunicText.Get("text_2f4c039d5569") + marked + global::Runic.Localization.RunicText.Get("text_3659f1087c17") +
                     entry.DisplayName + ".",
                     0,
                     null);

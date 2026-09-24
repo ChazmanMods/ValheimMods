@@ -32,9 +32,19 @@ namespace RunicBuildCamera.Integration
         {
             if (!_initialized) return;
 
+            // Focus callbacks can occur before plugin startup has finished. Read Unity's
+            // current state each frame so an early unfocused snapshot cannot disable B.
+            _focused = Application.isFocused;
             Player player = Player.m_localPlayer;
+            KeyboardShortcut toggle = BuildCameraConfig.ToggleShortcut.Value;
+            bool mainKeyPressed = toggle.MainKey != KeyCode.None && Input.GetKeyDown(toggle.MainKey);
+            bool togglePressed = toggle.MainKey != KeyCode.None && toggle.IsDown();
+            if (mainKeyPressed && !togglePressed)
+                ActivationFeedback(player, global::Runic.Localization.RunicText.Get("text_868e36f8c510") + toggle);
             if (!ConfigEnabled() || !_focused)
             {
+                if (togglePressed)
+                    ActivationFeedback(player, !ConfigEnabled() ? global::Runic.Localization.RunicText.Get("text_e1ab24965475") : global::Runic.Localization.RunicText.Get("text_4ea5638c368a"));
                 Stop();
                 return;
             }
@@ -46,14 +56,17 @@ namespace RunicBuildCamera.Integration
                 return;
             }
 
-            KeyboardShortcut toggle = BuildCameraConfig.ToggleShortcut.Value;
-            bool togglePressed = toggle.MainKey != KeyCode.None && toggle.IsDown();
             if (togglePressed)
             {
                 if (Session.IsActive)
+                {
                     Stop();
+                    ActivationFeedback(player, "Off.");
+                }
                 else if (ValheimAdapter.CanTakeInput(player))
                     TryStart(player);
+                else
+                    ActivationFeedback(player, global::Runic.Localization.RunicText.Get("text_f46af67108b2"));
                 return;
             }
 
@@ -183,9 +196,17 @@ namespace RunicBuildCamera.Integration
 
         private static void TryStart(Player player)
         {
-            if (!ValheimAdapter.IsBuildToolEquipped(player)) return;
+            if (!ValheimAdapter.IsBuildToolEquipped(player))
+            {
+                ActivationFeedback(player, global::Runic.Localization.RunicText.Get("text_aad211031f8b"));
+                return;
+            }
             GameCamera camera = GameCamera.instance;
-            if (camera == null) return;
+            if (camera == null)
+            {
+                ActivationFeedback(player, global::Runic.Localization.RunicText.Get("text_2e15e203e13d"));
+                return;
+            }
 
             float range = Positive(BuildCameraConfig.CameraRange.Value, 1f);
             Session.Begin(
@@ -194,6 +215,14 @@ namespace RunicBuildCamera.Integration
                 camera.transform.position,
                 camera.transform.rotation,
                 range);
+            ActivationFeedback(player, global::Runic.Localization.RunicText.Get("text_3691699c3e79"));
+        }
+
+        private static void ActivationFeedback(Player player, string message)
+        {
+            Diagnostics.Info("Build camera: " + message);
+            if (player != null)
+                player.Message(MessageHud.MessageType.TopLeft, global::Runic.Localization.RunicText.Get("text_5a7920bb73fd") + message);
         }
 
         private static CameraPose StepCamera(BuildCameraSession session, float deltaTime)

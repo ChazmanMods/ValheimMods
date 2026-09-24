@@ -173,7 +173,7 @@ namespace RunicCharacterVault
 
         private static string DescribeApiError(string stage, PlayFabError error)
         {
-            return $"PlayFab {stage} failed: code={error?.Error}, http={error?.HttpCode}, " +
+            return global::Runic.Localization.RunicText.Format("text_11c1d10a8c18", stage, error?.Error, error?.HttpCode) +
                 $"message={error?.ErrorMessage ?? "unavailable"}";
         }
 

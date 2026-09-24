@@ -470,7 +470,7 @@ internal static class ContainerHoverContents
 	{
 		if (!HoverLabelPolicy.TryPrepareLocalizationToken(item?.m_shared?.m_name, out var token))
 		{
-			return HoverLabelPolicy.NormalizeDisplayLabel(fallback, "Item");
+			return HoverLabelPolicy.NormalizeDisplayLabel(fallback, global::Runic.Localization.RunicText.Get("text_652bcc3a4784"));
 		}
 		try
 		{

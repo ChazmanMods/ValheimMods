@@ -98,8 +98,8 @@ namespace RunicAwareness.Integration
             Builder.Clear();
             if (count > AwarenessConfig.HardMaximumComfortPieces)
             {
-                Builder.Append("Nearby category details withheld: vanilla returned ")
-                    .Append(count).Append(" comfort pieces (hard limit ")
+                Builder.Append(global::Runic.Localization.RunicText.Get("text_60c5ff286468"))
+                    .Append(count).Append(global::Runic.Localization.RunicText.Get("text_10267c60bf55"))
                     .Append(AwarenessConfig.HardMaximumComfortPieces).Append(").");
             }
             else
@@ -108,7 +108,7 @@ namespace RunicAwareness.Integration
                 if (!sheltered)
                 {
                     if (Builder.Length > 0) Builder.Append('\n');
-                    Builder.Append("Known opportunity: shelter is not currently counted.");
+                    Builder.Append(global::Runic.Localization.RunicText.Get("text_9fa12d3448ee"));
                 }
             }
 
@@ -140,8 +140,8 @@ namespace RunicAwareness.Integration
             int winnerCount = 0;
             int ignored = 0;
             Piece previous = null;
-            builder.Append("Counted: base +1");
-            if (sheltered) builder.Append(", shelter +1");
+            builder.Append(global::Runic.Localization.RunicText.Get("text_426565458d7a"));
+            if (sheltered) builder.Append(global::Runic.Localization.RunicText.Get("text_2bcb760d3170"));
             for (int index = 0; index < count; index++)
             {
                 Piece current = pieces[index];
@@ -168,10 +168,10 @@ namespace RunicAwareness.Integration
                 previous = current;
             }
             if (winnerCount > visibleWinners)
-                builder.Append(" (+").Append(winnerCount - visibleWinners).Append(" more winners)");
+                builder.Append(" (+").Append(winnerCount - visibleWinners).Append(global::Runic.Localization.RunicText.Get("text_ed3bc035c87c"));
             if (ignored > 0)
-                builder.Append("\nNearby alternatives not counted: ").Append(ignored)
-                    .Append(" (same category/name or zero comfort).");
+                builder.Append(global::Runic.Localization.RunicText.Get("text_888cbc0d1cb6")).Append(ignored)
+                    .Append(global::Runic.Localization.RunicText.Get("text_ad7cefa833f0"));
         }
 
         private static ulong Hash(int level, bool sheltered, List<Piece> pieces, int count)

@@ -1,8 +1,11 @@
+## 1.0.3
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
 
 ## 1.0.2 - 2026-09-09
 
-- Re-audited all startup milestones and plugin-cache contracts against Valheim 1.0.7.
 - Updated the BepInEx dependency to 5.4.2350 and aligned the package, plugin, and assembly versions.
 
 ## 1.0.1 - 2026-09-05

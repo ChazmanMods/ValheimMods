@@ -33,7 +33,7 @@ namespace RunicExploration.Integration
             try
             {
                 _statusLine = _enabled.Value && _plugin != null
-                    ? "Runic Portals: authorized directory remains available in portal context."
+                    ? global::Runic.Localization.RunicText.Get("text_1b81c45a16b9")
                     : string.Empty;
             }
             catch

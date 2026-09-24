@@ -91,14 +91,14 @@ namespace RunicCharacterVault
 
         private static string DescribeQueue(ZPlayFabSocket.InFlightQueue queue)
         {
-            return $"queue={RuntimeHelpers.GetHashCode(queue):X8}, head={queue.Head}, " +
-                $"tail={queue.Tail}, bytes={queue.Bytes}, empty={queue.IsEmpty}";
+            return global::Runic.Localization.RunicText.Format("text_54a5d509164b", RuntimeHelpers.GetHashCode(queue), queue.Head) +
+                global::Runic.Localization.RunicText.Format("text_c4a6cd2bcc18", queue.Tail, queue.Bytes, queue.IsEmpty);
         }
 
         private static string DescribeSocket(ZPlayFabSocket socket, bool isClient)
         {
             return $"object={RuntimeHelpers.GetHashCode(socket):X8}, " +
-                $"side={(isClient ? "client" : "server")}, connected={socket.IsConnected()}, " +
+                global::Runic.Localization.RunicText.Format("text_32ce5f0ddd55", (isClient ? "client" : "server"), socket.IsConnected()) +
                 $"remote={PlayFabConnectionDiagnostics.Fingerprint(socket.m_remotePlayerId)}";
         }
 
@@ -108,7 +108,7 @@ namespace RunicCharacterVault
             int offset = payload.Length - 5;
             uint id = (uint)(payload[offset] | payload[offset + 1] << 8 |
                 payload[offset + 2] << 16 | payload[offset + 3] << 24);
-            return $"id={id}, type={payload[payload.Length - 1]}, bytes={payload.Length}";
+            return global::Runic.Localization.RunicText.Format("text_2fc79b810e34", id, payload[payload.Length - 1], payload.Length);
         }
 
         private static string DescribeBytes(byte[] payload, int offset)

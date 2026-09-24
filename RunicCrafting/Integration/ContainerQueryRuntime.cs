@@ -31,22 +31,29 @@ namespace RunicCrafting.Integration
                 PreviewRefreshRuntime.Invalidate();
                 UiPreviewCache.Invalidate();
             }
-            if (!requireWritable && allowRefreshCache && !PreviewRefreshRuntime.InAction &&
-                PreviewRefreshRuntime.Cache.Active && ValheimReflection.CanMutateLocalPlayer(player))
+            if (!requireWritable && allowRefreshCache && PreviewRefreshRuntime.Supported &&
+                ValheimReflection.CanMutateLocalPlayer(player))
             {
-                var key = new PreviewRefreshRuntime.QueryKey(player, station, origin, radius, stationlessAccessAuthorized);
-                if (PreviewRefreshRuntime.Cache.TryGet(key, out PreviewRefreshRuntime.Sources cached))
+                // UI callers can arrive outside the usual menu hooks (including Show All).
+                // The existing cache keys context and survives only this frame or a mutation.
+                long scope = PreviewRefreshRuntime.Begin();
+                try
                 {
-                    CachePerformance.RefreshHits++;
-                    reasonCode = cached.Reason;
-                    return cached.Items;
+                    var key = new PreviewRefreshRuntime.QueryKey(player, station, origin, radius, stationlessAccessAuthorized);
+                    if (PreviewRefreshRuntime.Cache.TryGet(key, out PreviewRefreshRuntime.Sources cached))
+                    {
+                        CachePerformance.RefreshHits++;
+                        reasonCode = cached.Reason;
+                        return cached.Items;
+                    }
+                    long epoch = PreviewRefreshRuntime.Cache.Epoch;
+                    IReadOnlyList<IMutableMaterialSource> sources = ResolveSourcesUncached(player, station,
+                        origin, radius, requirements, purposeId, stationlessAccessAuthorized,
+                        out reasonCode, requireWritable: false, allPreviewResources: true);
+                    PreviewRefreshRuntime.Cache.Store(key, new PreviewRefreshRuntime.Sources(sources, reasonCode), epoch);
+                    return sources;
                 }
-                long epoch = PreviewRefreshRuntime.Cache.Epoch;
-                IReadOnlyList<IMutableMaterialSource> sources = ResolveSourcesUncached(player, station,
-                    origin, radius, requirements, purposeId, stationlessAccessAuthorized,
-                    out reasonCode, requireWritable: false, allPreviewResources: true);
-                PreviewRefreshRuntime.Cache.Store(key, new PreviewRefreshRuntime.Sources(sources, reasonCode), epoch);
-                return sources;
+                finally { PreviewRefreshRuntime.End(scope); }
             }
             return ResolveSourcesUncached(player, station, origin, radius, requirements, purposeId,
                 stationlessAccessAuthorized, out reasonCode, requireWritable);
@@ -181,6 +188,10 @@ namespace RunicCrafting.Integration
                     returned++;
                     continue;
                 }
+                Inventory capturedInventory = captured.GetInventory();
+                ZNetView capturedView = ValheimReflection.GetView(captured);
+                ZDO capturedZdo = capturedView.GetZDO();
+                var capturedOwnerRevision = capturedZdo.OwnerRevision;
                 result.Add(new ValheimMaterialSource(
                     ValheimReflection.ContainerEndpointId(captured),
                     captured.GetInventory(),
@@ -195,7 +206,13 @@ namespace RunicCrafting.Integration
                                   station, player, WorkshopAction.StationUse).Allowed &&
                               _workshopAccess.Evaluate(
                                   station, player, WorkshopAction.LocalMaterialUse).Allowed) &&
-                        IsEligibleContainer(captured, player, origin, radius, out _, true)));
+                        IsEligibleContainer(captured, player, origin, radius, out _, true),
+                    () => ValheimReflection.CanMutateLocalPlayer(player) &&
+                        ReferenceEquals(captured.GetInventory(), capturedInventory) &&
+                        capturedView.IsValid() && capturedView.IsOwner() &&
+                        ReferenceEquals(capturedView.GetZDO(), capturedZdo) &&
+                        capturedZdo.OwnerRevision == capturedOwnerRevision &&
+                        !captured.IsInUse() && capturedZdo.GetInt(ZDOVars.s_inUse, 0) == 0));
                 returned++;
             }
 
@@ -220,6 +237,13 @@ namespace RunicCrafting.Integration
             if (container == null || !container.isActiveAndEnabled)
             {
                 rejectionReason = "inactive";
+                return false;
+            }
+            if (Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(container) &&
+                !Runic.Compatibility.ModdedContainerCompatibility.Listed(container,
+                    Configuration.PullPrefabIds.Value))
+            {
+                rejectionReason = "custom-container-not-listed";
                 return false;
             }
             if (!ValheimReflection.CanMutateLocalPlayer(player))
@@ -264,7 +288,12 @@ namespace RunicCrafting.Integration
                 return false;
             }
             if (!requireWritable) return true;
-            if (!view.IsOwner()) view.ClaimOwnership();
+            if (!RunicAutomation.ContainerAuthority.TryAcquire(container, "crafting",
+                    RunicAutomation.ContainerAuthority.PlayerContext(player), player.GetPlayerID()))
+            {
+                rejectionReason = "waiting-for-container-synchronization";
+                return false;
+            }
             if (!view.IsOwner() || zdo.GetOwner() != ZNet.GetUID())
             {
                 rejectionReason = "ownership-claim-failed";
@@ -281,7 +310,7 @@ namespace RunicCrafting.Integration
         private static string FormatRejections(IEnumerable<KeyValuePair<string, int>> counts)
         {
             string[] values = counts.Select(pair => pair.Key + "=" + pair.Value).ToArray();
-            return values.Length == 0 ? string.Empty : "; rejected[" + string.Join(",", values) + "]";
+            return values.Length == 0 ? string.Empty : global::Runic.Localization.RunicText.Get("text_03c143087092") + string.Join(",", values) + "]";
         }
 
         internal static string PrincipalValue(Player player) =>

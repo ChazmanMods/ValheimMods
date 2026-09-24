@@ -55,7 +55,7 @@ internal static class TransferRegressionTests
         var beforeSource=Bytes(source);var beforeTarget=Bytes(target);
         var p=new Player{Inventory=source};Player.m_localPlayer=p;
         int callbacks=0;
-        target.m_onChanged=()=>{if(++callbacks==1){tool.m_customData["lock"]="changed";throw new InvalidOperationException("Injected publication failure");}};
+        target.m_onChanged=()=>{if(++callbacks==1){throw new InvalidOperationException("Injected publication failure");}};
         StorageMutationLease.TryBegin(p,out var lease);
         bool threw=false;
         using(lease)try{ValheimContainerService.MoveUpTo(source,target,wood,10,p,lease,null,new Container{Inventory=target});}catch{threw=true;}
@@ -63,6 +63,31 @@ internal static class TransferRegressionTests
         Check(Bytes(source).SequenceEqual(beforeSource)&&Bytes(target).SequenceEqual(beforeTarget),"Both inventories must roll back exactly.");
         Check(ReferenceEquals(source.GetAllItems()[0],tool)&&ReferenceEquals(source.GetAllItems()[1],wood)&&ReferenceEquals(target.GetAllItems()[0],existing),"Rollback must retain original item references.");
         Check(tool.m_durability==10.029f&&tool.m_equipped&&tool.m_customData["lock"]=="yes","Rollback must retain float precision, equipment and custom metadata.");
+    }
+
+    internal static void ForeignCallbackEditBlocksFurtherTransfers()
+    {
+        RunicAutomation.MutationGate.EndSession();
+        var wood=Item(1,10,0); var source=Bag(wood); var target=Bag();
+        target.m_onChanged=()=>{wood.m_customData["foreign"]="keep";throw new Exception("callback");};
+        bool uncertain=false;
+        try { ValheimContainerService.MoveUpTo(source,target,wood,3); }
+        catch(RunicAutomation.MutationIndeterminateException) { uncertain=true; }
+        Check(uncertain && wood.m_customData["foreign"]=="keep","Unknown callback edit must not be overwritten.");
+        Check(RunicAutomation.MutationGate.IsBlocked(source)&&RunicAutomation.MutationGate.IsBlocked(target),"Both endpoints must be blocked.");
+        Check(RunicAutomation.MutationGate.Current==null,"Gate must be released even after failed recovery.");
+        Check(ValheimContainerService.MoveUpTo(source,Bag(),wood,1,out var failure)==0&&failure==StorageMoveFailure.Indeterminate,"Blocked endpoint cannot be reused.");
+        RunicAutomation.MutationGate.EndSession();
+    }
+
+    internal static void CallbackCannotStartNestedTransfer()
+    {
+        RunicAutomation.MutationGate.EndSession();
+        var source=Bag(Item(1,10,0));var target=Bag();var other=Bag(Item(2,4,0));var output=Bag();
+        bool blocked=false;
+        target.m_onChanged=()=>{blocked=ValheimContainerService.MoveUpTo(other,output,other.GetAllItems()[0],1,out var failure)==0&&failure==StorageMoveFailure.MutationBusy;};
+        Check(ValheimContainerService.MoveUpTo(source,target,source.GetAllItems()[0],3)==3,"Outer transfer must succeed.");
+        Check(blocked&&other.GetAllItems()[0].m_stack==4&&output.GetAllItems().Count==0,"Nested callback transfer must not change items.");
     }
 
     internal static void FullAndOwnershipFailuresAreDistinct()

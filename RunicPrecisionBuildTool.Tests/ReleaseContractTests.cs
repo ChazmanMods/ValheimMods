@@ -12,7 +12,7 @@ namespace QuietBuildRotation.Tests
     {
         internal static void Register()
         {
-            TestRunner.Run("Precision Build runtime and package are 2.0.4", VersionIdentityIsExact);
+            TestRunner.Run("Precision Build runtime and package are 2.0.7", VersionIdentityIsExact);
             TestRunner.Run("startup reports the actual Valheim build instead of a fixed label", StartupVersionIsExact);
             TestRunner.Run("manifest has BepInEx as its only dependency", ManifestDependenciesAreExact);
             TestRunner.Run("module has no Runic runtime assembly references", FoundationReferencesAreExact);
@@ -28,28 +28,28 @@ namespace QuietBuildRotation.Tests
             TestRunner.Run("safe utilities contain no remote or durable operation surface", RemoteUndoBoundaryIsDurable);
             TestRunner.Run("catalog localization uses bounded direct Translate only", CatalogLocalizationIsBounded);
             TestRunner.Run("release documentation states native-owner utility behavior truthfully", DocumentationIsTruthful);
-            TestRunner.Run("configuration example exposes every 2.0.4 release control", ConfigurationExampleIsComplete);
+            TestRunner.Run("configuration example exposes every 2.0.7 release control", ConfigurationExampleIsComplete);
             TestRunner.Run("published icon is an exact 256 by 256 PNG", IconDimensionsAreExact);
         }
 
         private static void VersionIdentityIsExact()
         {
             TestAssert.Equal("chazman.RunicPrecisionBuildTool", Plugin.Guid);
-            TestAssert.Equal("2.0.4", Plugin.Version);
+            TestAssert.Equal("2.0.7", Plugin.Version);
             Assembly assembly = typeof(Plugin).Assembly;
-            TestAssert.Equal(new System.Version(2, 0, 4, 0), assembly.GetName().Version);
+            TestAssert.Equal(new System.Version(2, 0, 7, 0), assembly.GetName().Version);
             TestAssert.Equal("Runic Precision Build Tool",
                 assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product);
-            TestAssert.Equal("2.0.4",
+            TestAssert.Equal("2.0.7",
                 assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
             using JsonDocument json = JsonDocument.Parse(File.ReadAllText(Module("manifest.json")));
             TestAssert.Equal("RunicPrecisionBuildTool", json.RootElement.GetProperty("name").GetString());
-            TestAssert.Equal("2.0.4", json.RootElement.GetProperty("version_number").GetString());
+            TestAssert.Equal("2.0.7", json.RootElement.GetProperty("version_number").GetString());
         }
 
         private static void StartupVersionIsExact()
         {
-            TestAssert.Equal("1.0.12", Diagnostics.GetValheimVersion());
+            TestAssert.Equal("1.0.15", Diagnostics.GetValheimVersion());
             string plugin = File.ReadAllText(Module("Plugin.cs"));
             string diagnostics = File.ReadAllText(Module("Diagnostics.cs"));
             TestAssert.True(plugin.Contains(
@@ -237,7 +237,7 @@ namespace QuietBuildRotation.Tests
             TestAssert.True(presenter.Contains(
                 "TextWrappingModes.Normal",
                 StringComparison.Ordinal));
-            TestAssert.True(presenter.Contains("<b>PRECISION</b>", StringComparison.Ordinal));
+            TestAssert.True(presenter.Contains("<b>PRECISION ", StringComparison.Ordinal));
             TestAssert.False(presenter.Contains("MinimumReadoutWidth", StringComparison.Ordinal));
             TestAssert.False(presenter.Contains("MaximumReadoutWidth", StringComparison.Ordinal));
             TestAssert.False(presenter.Contains("KeyHints", StringComparison.Ordinal));
@@ -282,6 +282,7 @@ namespace QuietBuildRotation.Tests
                 TestAssert.True(source.Contains(required, StringComparison.Ordinal),
                     "Mutation runtime lost guard: " + required);
 
+            source = source.Replace("\r\n", "\n");
             int clear = source.IndexOf("_undo = default;\n            try", StringComparison.Ordinal);
             int remove = source.IndexOf("wear.Remove(false)", StringComparison.Ordinal);
             TestAssert.True(clear >= 0 && remove > clear,
@@ -346,7 +347,7 @@ namespace QuietBuildRotation.Tests
             });
             foreach (string required in new[]
                      {
-                         "2.0.4", "bounded", "dedicated", "native", "vanilla",
+                         "2.0.7", "bounded", "dedicated", "native", "vanilla",
                          "undo", "area repair", "favorites", "recent", "snap",
                          "current owner", "BepInEx", "standalone"
                      })
@@ -357,7 +358,7 @@ namespace QuietBuildRotation.Tests
         private static void ConfigurationExampleIsComplete()
         {
             string config = File.ReadAllText(Module("RunicPrecisionBuildTool.cfg.example"));
-            string source = File.ReadAllText(Module("Configuration.cs"));
+            string source = File.ReadAllText(Module("Configuration.cs")) + File.ReadAllText(Module("Translations/RunicPrecisionBuildTool/English.json"));
             foreach (string key in new[]
                      {
                          "RequirePrecisionMode", "PrecisionModeToggle", "ReferenceFrame",

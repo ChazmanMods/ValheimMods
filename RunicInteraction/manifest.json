@@ -1,6 +1,6 @@
 {
   "name": "RunicInteraction",
-  "version_number": "1.0.4",
+  "version_number": "1.0.10",
   "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicInteraction",
   "description": "Smooth out everyday Valheim interactions with hold-repeat, full-stack transfers, safer doors, equipment restore, menu memory, and pickup filters.",
   "dependencies": [

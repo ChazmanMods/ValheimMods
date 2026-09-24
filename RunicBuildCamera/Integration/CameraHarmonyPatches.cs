@@ -153,9 +153,10 @@ namespace RunicBuildCamera.Integration
             {
                 return !BuildCameraRuntime.TryUpdateCamera(__instance, dt);
             }
-            catch
+            catch (Exception exception)
             {
                 BuildCameraRuntime.ForceStop();
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_1d7135258182"));
                 return true;
             }
         }

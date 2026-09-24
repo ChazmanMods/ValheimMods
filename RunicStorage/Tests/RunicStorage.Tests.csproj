@@ -12,7 +12,14 @@
     <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\Shared\ModdedContainerCompatibility.cs" Link="Compatibility\ModdedContainerCompatibility.cs" />
+    <Compile Include="..\..\Shared\Tests\ModdedContainerStubs.cs" Link="Compatibility\ModdedContainerStubs.cs" />
+    <Compile Include="DrawerCompatibilityTests.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="..\..\Shared\CaptionCurve.cs" Link="Shared\CaptionCurve.cs" />
+    <Compile Include="..\..\Shared\Emoji\EmojiText.cs" />
+    <Compile Include="..\..\Shared\Emoji\EmojiCatalog.Generated.cs" />
+    <Compile Include="..\..\Shared\Emoji\Tests\EmojiRegressionTests.cs" />
     <Compile Include="TransferRegressionTests.cs" />
     <Compile Include="ChestRulesTests.cs" />
     <Compile Include="ChestGroupTests.cs" />
@@ -25,4 +32,10 @@
     <Compile Include="..\Engine\*.cs" Link="Engine\%(Filename)%(Extension)" />
     <Reference Include="Mono.Cecil" HintPath="$(BEPINEX_PROFILE)\core\Mono.Cecil.dll" Private="true" />
   </ItemGroup>
-</Project>
+  <ItemGroup><Compile Include="../../Shared/InventorySafety/MutationGate.cs" /><Compile Include="../../Shared/InventorySafety/SharedState.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../Shared/Localization/*.cs" />
+    <Compile Include="../../Shared/Tests/LocalizationStub.cs" />
+    <EmbeddedResource Include="../Translations/RunicStorage/English.json" LogicalName="Runic.Localization.English.json" />
+  </ItemGroup>
+<ItemGroup><Compile Include="../../Shared/Tests/LocalizedSource.cs" /></ItemGroup></Project>

@@ -31,7 +31,8 @@ namespace RunicStorage.Engine
         internal static bool TryCapture<T>(
             IReadOnlyList<T> items,
             out StorageProtectionSnapshot snapshot,
-            out string failureCode)
+            out string failureCode,
+            bool quickStack = false)
             where T : class
         {
             snapshot = default;
@@ -56,11 +57,19 @@ namespace RunicStorage.Engine
             }
 
             MethodInfo method = api.GetMethod(
-                "TryGetProtection",
+                quickStack ? "TryGetQuickStackProtection" : "TryGetProtection",
                 BindingFlags.Public | BindingFlags.Static,
                 binder: null,
                 types: new[] { typeof(object), typeof(int).MakeByRefType() },
                 modifiers: null);
+            if (method == null)
+            {
+                // Older Inventory releases exposed their Quick Stack locks through the
+                // general query. Preserve that protection until both mods are updated.
+                if (quickStack)
+                    method = api.GetMethod("TryGetProtection", BindingFlags.Public | BindingFlags.Static,
+                        binder: null, types: new[] { typeof(object), typeof(int).MakeByRefType() }, modifiers: null);
+            }
             if (method == null)
             {
                 failureCode = "protection.optional-api-malformed";

@@ -1,0 +1,21 @@
+{
+  "text_00308931ac1d": "Sample this process's peers once per second. Clients see their own connection, not remote server telemetry.",
+  "text_062cf05eea1f": "Coalesce overlapping asynchronous world saves and defer the main-thread PrepareSave capture ",
+  "text_26b4a8c272de": "Warning threshold for queued messages or priority/invalid ZDO work.",
+  "text_29e297337e69": "vanilla capacity (override disabled)",
+  "text_42308444810e": "Include names, peer IDs, RTT and queue/rate details in periodic summaries. No IP addresses or credentials are logged.",
+  "text_4902dc8c1cb9": "Write rate-limited aggregate ZDO counts and traffic to the BepInEx log.",
+  "text_5c17b1f1dcb6": "Seconds between optional aggregate summaries.",
+  "text_651d517dc40d": "Write sustained server health warnings and recovery messages to BepInEx logs.",
+  "text_92cbf9361d05": "until a stable frame. Synchronous shutdown saves are never deferred.",
+  "text_9c9d086955ae": "Startup gate for world/network diagnostics, optional player-cap override, and save smoothing. Restart to change. When false, no Harmony patches or runtime state are created. This never enables deletion or network sync rescheduling.",
+  "text_ac591cf388f4": "validated {0}/{1} hosting limits; player cap={2}, PlayFab transport cap={3}",
+  "text_af43bb1eed0a": "; sustained conditions only, after a 15-second peer warm-up for network warnings.",
+  "text_b5d5241509a4": "Server health ",
+  "text_b7bcb46277a4": "Prefer to start asynchronous PrepareSave only when the previous unscaled frame was at or below this duration.",
+  "text_b80e6b9c2dd3": "CAP OVERRIDE REJECTED; hosting blocked until configuration/build is corrected and restarted: ",
+  "text_c175aa0f5106": "CAP INTEGRITY FAULT; new admissions blocked; restart required: ",
+  "text_c1c6835d0205": "Human player cap (2-64); dedicated PlayFab host slot is added separately. Frozen until process restart. Higher caps require adequate server/network capacity.",
+  "text_d2a955847a6c": "Maximum time an asynchronous save may wait for a stable frame. The save then starts even if frames remain busy.",
+  "text_f99a4834649c": "Opt in to the audited hosting-limit override. Restart required. Conflicts or unknown limits block hosting/new admissions rather than partially applying a cap."
+}

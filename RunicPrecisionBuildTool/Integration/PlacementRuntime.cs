@@ -49,6 +49,10 @@ namespace QuietBuildRotation
         private static InputChord _nextRecentChord;
         private static InputChord _undoChord;
         private static InputChord _areaRepairChord;
+        private static InputChord _rotationFrameToggleChord;
+
+        internal static PlacementReferenceFrame CurrentRotationFrame =>
+            PluginConfig.RotationReferenceFrame?.Value ?? PlacementReferenceFrame.Local;
 
         internal static void Initialize()
         {
@@ -173,6 +177,10 @@ namespace QuietBuildRotation
                 _bindings.PrecisionModeToggle, in _bindings);
             if (toggled)
                 TogglePrecisionMode(player, vanillaBase, yawIndex);
+
+            if (inputGate && takeInput && canRotate && IsPrecisionModeActive)
+                TryToggleRotationFrame();
+            Pose.RotationReferenceFrame = CurrentRotationFrame;
 
             // Activation precedes routing so a pitch/roll/yaw wheel gesture made with the
             // toggle edge is applied immediately instead of being sampled while disabled and
@@ -486,7 +494,7 @@ namespace QuietBuildRotation
             {
                 player.Message(
                     MessageHud.MessageType.Center,
-                    "Aim at a build piece to match orientation.",
+                    global::Runic.Localization.RunicText.Get("text_c1ea426fe32a"),
                     0,
                     null);
                 return;
@@ -521,7 +529,7 @@ namespace QuietBuildRotation
             {
                 player.Message(
                     MessageHud.MessageType.Center,
-                    component + " could not be matched.",
+                    component + global::Runic.Localization.RunicText.Get("text_1ddbcd186880"),
                     0,
                     null);
                 return;
@@ -531,7 +539,7 @@ namespace QuietBuildRotation
             _lastTarget = target;
             player.Message(
                 MessageHud.MessageType.Center,
-                component + " matched.",
+                component + global::Runic.Localization.RunicText.Get("text_edca16b4f8c2"),
                 0,
                 null);
             Diagnostics.Verbose("Matched target " + component.ToLowerInvariant() + ".");
@@ -548,7 +556,7 @@ namespace QuietBuildRotation
             {
                 player.Message(
                     MessageHud.MessageType.Center,
-                    "Aim at a build piece to match position or transform.",
+                    global::Runic.Localization.RunicText.Get("text_e827a6e02251"),
                     0,
                     null);
                 return;
@@ -559,34 +567,34 @@ namespace QuietBuildRotation
             switch (kind)
             {
                 case SemanticCommandKind.MatchPositionX:
-                    label = "World X";
+                    label = global::Runic.Localization.RunicText.Get("text_416bb482c338");
                     matched = Pose.MatchPositionComponent(
                         target.Position, SemanticCommandKind.MatchPositionX, now);
                     break;
                 case SemanticCommandKind.MatchPositionY:
-                    label = "World Y";
+                    label = global::Runic.Localization.RunicText.Get("text_896d7577c00e");
                     matched = Pose.MatchPositionComponent(
                         target.Position, SemanticCommandKind.MatchPositionY, now);
                     break;
                 case SemanticCommandKind.MatchPositionZ:
-                    label = "World Z";
+                    label = global::Runic.Localization.RunicText.Get("text_f004943979a6");
                     matched = Pose.MatchPositionComponent(
                         target.Position, SemanticCommandKind.MatchPositionZ, now);
                     break;
                 case SemanticCommandKind.MatchTransform:
-                    label = "Full transform";
+                    label = global::Runic.Localization.RunicText.Get("text_c3f41014ae0b");
                     matched = Pose.MatchTransform(
                         new PlacementTransform(target.Position, targetRotation), now);
                     break;
                 default:
-                    label = "Position";
+                    label = global::Runic.Localization.RunicText.Get("text_6d031af10da7");
                     matched = Pose.MatchPosition(target.Position, now);
                     break;
             }
 
             if (!matched)
             {
-                player.Message(MessageHud.MessageType.Center, label + " could not be matched.", 0, null);
+                player.Message(MessageHud.MessageType.Center, label + global::Runic.Localization.RunicText.Get("text_1ddbcd186880"), 0, null);
                 return;
             }
 
@@ -594,7 +602,7 @@ namespace QuietBuildRotation
             _lastTarget = target;
             player.Message(
                 MessageHud.MessageType.Center,
-                label + " matched; vanilla validation remains authoritative.",
+                label + global::Runic.Localization.RunicText.Get("text_f284dc0beff9"),
                 0,
                 null);
         }
@@ -611,7 +619,7 @@ namespace QuietBuildRotation
             {
                 player.Message(
                     MessageHud.MessageType.Center,
-                    "No completed vanilla snap pair is available. Select a source with Tab, then approach a target side.",
+                    global::Runic.Localization.RunicText.Get("text_1e994173b4ea"),
                     0,
                     null);
                 return;
@@ -619,7 +627,7 @@ namespace QuietBuildRotation
 
             player.Message(
                 MessageHud.MessageType.Center,
-                "Snap side locked with opposed normals and target tangent; validation remains vanilla.",
+                global::Runic.Localization.RunicText.Get("text_d4a258e0f8ec"),
                 0,
                 null);
             Diagnostics.Verbose("Snap-side match locked to host " + host.GetInstanceID() + ".");
@@ -633,7 +641,7 @@ namespace QuietBuildRotation
             {
                 player.Message(
                     MessageHud.MessageType.Center,
-                    "Repeat requires two successful placements in this session.",
+                    global::Runic.Localization.RunicText.Get("text_607937981c87"),
                     0,
                     null);
                 return;
@@ -641,7 +649,7 @@ namespace QuietBuildRotation
 
             player.Message(
                 MessageHud.MessageType.Center,
-                "Relative offset and rotation repeated; placement still requires vanilla approval.",
+                global::Runic.Localization.RunicText.Get("text_cbd45e68b3a4"),
                 0,
                 null);
         }
@@ -791,6 +799,7 @@ namespace QuietBuildRotation
             }
             else if (IsPrecisionModeActive && PlacementAdapter.CanTakeInput(player))
             {
+                if (IsToggleGateOpen(player)) TryToggleRotationFrame();
                 if (_inputRouter.WasExactActionPressed(_undoChord, in _bindings))
                     BuildingMutationRuntime.TryUndo(player, out message);
                 else if (_inputRouter.WasExactActionPressed(_areaRepairChord, in _bindings))
@@ -927,7 +936,7 @@ namespace QuietBuildRotation
             {
                 player.Message(
                     MessageHud.MessageType.Center,
-                    "Precision mode is always active because RequirePrecisionMode is disabled.",
+                    global::Runic.Localization.RunicText.Get("text_c30117c995d6"),
                     0,
                     null);
                 return;
@@ -943,8 +952,8 @@ namespace QuietBuildRotation
             player.Message(
                 MessageHud.MessageType.Center,
                 _precisionModeActive
-                    ? "Runic precision mode enabled."
-                    : "Runic precision mode disabled; placement is vanilla.",
+                    ? global::Runic.Localization.RunicText.Get("text_e6e29f806bdd")
+                    : global::Runic.Localization.RunicText.Get("text_cd0d203d709a"),
                 0,
                 null);
         }
@@ -984,8 +993,19 @@ namespace QuietBuildRotation
             }
         }
 
+        private static void TryToggleRotationFrame()
+        {
+            if (!_inputRouter.WasExactActionPressed(_rotationFrameToggleChord, in _bindings))
+                return;
+            PluginConfig.RotationReferenceFrame.Value = CurrentRotationFrame == PlacementReferenceFrame.Local
+                ? PlacementReferenceFrame.World : PlacementReferenceFrame.Local;
+            Pose.RotationReferenceFrame = CurrentRotationFrame;
+            OrientationPresenter.Invalidate();
+        }
+
         private static void RebuildBindings()
         {
+            _rotationFrameToggleChord = ToInputChord(PluginConfig.RotationFrameToggle);
             _bindings = new InputBindings(
                 new RotationInputBindings(
                     ToInputChord(PluginConfig.YawWheelChord),

@@ -93,7 +93,7 @@ namespace RunicCrafting.Integration
                     }
                     if (reason == "backpack-space-required")
                     {
-                        player.Message(MessageHud.MessageType.TopLeft, "Runic Crafting: make backpack space for one cooking/fuel item.");
+                        player.Message(MessageHud.MessageType.TopLeft, global::Runic.Localization.RunicText.Get("text_a062aa7a3467"));
                         return false;
                     }
                 }

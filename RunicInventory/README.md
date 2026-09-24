@@ -1,4 +1,4 @@
-# Runic Inventory 1.1.5
+# Runic Inventory 1.1.10
 
 Equipped armor is on your body, yet it occupies the same general backpack space as wood, stone, trophies, and everything else you collect. Frequently used tools and consumables compete for the same limited organization.
 
@@ -10,8 +10,8 @@ Equipped armor is on your body, yet it occupies the same general backpack space 
 - Three quick-access roles for frequently used items.
 - One additional row, separate from native pocket upgrades, with permanently assigned slot types.
 - Automatic placement and safe swapping for recognized equipment.
-- Per-slot locks, protected-item behavior, and pickup controls.
-- Sorting rules that respect equipment, locked cells, and item state.
+- Per-slot Quick Stack exclusions and pickup controls.
+- Sorting rules that respect equipment and item state.
 
 ## How to use it
 
@@ -45,14 +45,17 @@ to sort the configured safe rows. Hold `Left Alt` and right-click a player-inven
 unlock it; focusing a cell and pressing `Left Alt + L` is the keyboard fallback. Controller chords
 can be changed in the BepInEx configuration manager or config file.
 
-To keep food or supplies out of Quick Stack and Store All, install Runic Inventory alongside Runic
-Storage, open your player inventory, and Alt-right-click each cell you want protected. A yellow
-outline and a lock/unlock message confirm the change, including for empty cells. Locked items
-remain usable: select and fire ammunition, eat food, drink potions, use quick-slot items, and
-replenish matching stacks normally. Locks still protect against storage transfers, sorting moves,
-dropping, and guarded disposal; unlock before deliberately moving or discarding the item.
-Cooking, refueling, and processing also allow locked supplies; if RunicSafety is installed,
-update it to 1.0.5 or newer for this behavior. Its other item safeguards still apply.
+To keep food or supplies out of Runic Quick Stack, use RunicInventory 1.1.9 or newer together with
+RunicStorage 1.2.5 or newer. Open your player inventory and Alt-right-click each cell to exclude.
+A yellow outline and a lock/unlock message confirm the change, including for empty cells.
+**Locked Slots apply only to Runic Quick Stack (Alt+Q).** You can add to matching stacks, shoot
+arrows, use food and potions, swap a broken tool for a working one, move or drop items, equip
+replacement gear, upgrade, cook, and process normally. Store All, Restock, consolidation, and
+inventory sorting also ignore these slot exclusions. Equipment-role rules and other mods'
+independent safeguards still apply.
+The exclusion stays on the cell, not the item: a replacement item in that cell is excluded from
+Quick Stack; an item moved out loses that exclusion. Sorting can change which item occupies it.
+Existing saved locks keep their cells and automatically use this new behavior.
 Storage's `Sort -> LockedSlots` setting only fixes chest
 positions during chest sorting and does not create player-inventory locks.
 
@@ -86,13 +89,14 @@ journal, quarantine, or recovery protocol.
 
 `RunicInventory.Api.InventoryIntegrationApi.TryGetProtection(object, out int)` is a tiny optional
 reflection seam for independently installed mods. It returns state `0` for governed-but-unknown,
-`1` for proven unlocked, and `2` for locked. A false return means the supplied object is outside
+`1` for proven unlocked, and `2` for protected dedicated-row items. Player slot exclusions do not
+affect this general query. A false return means the supplied object is outside
 Inventory's active protection domain. Consumers must treat unknown as fail-closed and must not retain
 the native item.
-`TryGetUseProtection(object, out int)` provides a separate view for normal cooking, refueling,
-and processing: healthy slot-retained items report unlocked for use only. Unknown states and
-domain checks are unchanged. Transfer, display, sacrifice, and disposal integrations must keep
-using `TryGetProtection`; the use API is not permission to move items out of protected slots.
+`TryGetQuickStackProtection(object, out int)` additionally reports player slot exclusions as
+locked. RunicStorage uses this query only for Quick Stack. Other storage actions and general
+integrations use `TryGetProtection`. `TryGetUseProtection(object, out int)` provides the native-use
+view for cooking, refueling, and processing. Unknown states and domain checks are unchanged.
 Slot locks remain available when valid native slots and lock metadata exist but optional layout
 features are unavailable. The dedicated row's item-type restrictions remain in effect while enabled.
 A confirmed startup
@@ -120,3 +124,19 @@ headless server process has no local player, so this mod remains inert there.
 
 Install only BepInEx and Runic Inventory. Existing 1.0.0 configuration and topology metadata remain
 valid; no data migration or version bump is required.
+
+## Game compatibility
+
+Verified against Valheim 1.0.15. Startup checks required APIs directly; an unfamiliar game version alone does not disable the mod.
+
+Compatibility: startup validates required game APIs rather than rejecting an unfamiliar game version. Actual API incompatibilities still disable safely.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicInventory` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

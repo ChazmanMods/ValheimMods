@@ -31,7 +31,7 @@ namespace RunicAgriculture.Integration
             UpdateReleaseState();
             if (!bindings.ContainsChordPrimary(primaryAction))
             {
-                problem = "the requested primary is not one of the validated agriculture actions";
+                problem = global::Runic.Localization.RunicText.Get("text_73bf533f8721");
                 return false;
             }
             if (!ValheimAccess.TryVerifyControllerActions(bindings, out problem, out _))
@@ -50,18 +50,18 @@ namespace RunicAgriculture.Integration
             }
             catch (Exception exception)
             {
-                problem = "the accepted controller chord could not be resolved (" +
+                problem = global::Runic.Localization.RunicText.Get("text_7c21bc514016") +
                           exception.GetType().Name + ")";
                 return false;
             }
             if (modifier == null || primary == null || !modifier.Held || !primary.Pressed)
             {
-                problem = "the accepted controller chord is no longer pressed";
+                problem = global::Runic.Localization.RunicText.Get("text_28de8044ab27");
                 return false;
             }
             if (_modifier != null && !ReferenceEquals(_modifier, modifier))
             {
-                problem = "the controller modifier changed while an accepted gesture is being released";
+                problem = global::Runic.Localization.RunicText.Get("text_76bedf30c430");
                 return false;
             }
             if (!Session.TryCapture(modifierPath, primaryPath, out problem)) return false;
@@ -80,7 +80,7 @@ namespace RunicAgriculture.Integration
             UpdateReleaseState();
             if (!bindings.ContainsEditorPrimary(primaryAction))
             {
-                problem = "the requested primary is not one of the crop-preview editor controls";
+                problem = global::Runic.Localization.RunicText.Get("text_be968fdb8e50");
                 return false;
             }
             if (!ValheimAccess.TryVerifyControllerActions(bindings, out problem, out _))
@@ -97,13 +97,13 @@ namespace RunicAgriculture.Integration
             }
             catch (Exception exception)
             {
-                problem = "the accepted editor control could not be resolved (" +
+                problem = global::Runic.Localization.RunicText.Get("text_e6ab83d0d9b1") +
                           exception.GetType().Name + ")";
                 return false;
             }
             if (modifier == null || primary == null || modifier.Held || !primary.Pressed)
             {
-                problem = "the editor control is no longer pressed without the controller modifier";
+                problem = global::Runic.Localization.RunicText.Get("text_454b9804f802");
                 return false;
             }
             if (!EditorSession.TryCapture(primaryPath, out problem)) return false;

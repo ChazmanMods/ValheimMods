@@ -39,7 +39,7 @@ namespace RunicBuildCamera.Tests
             TestRunner.Run("example configuration defaults are exact", ExampleConfigurationDefaultsAreExact);
             TestRunner.Run("README configuration table matches the example", ReadmeConfigurationMatchesExample);
             TestRunner.Run("documentation defines the safety and multiplayer boundary", DocumentationDefinesSafetyBoundary);
-            TestRunner.Run("changelog and assembly share version 1.0.3", ChangelogVersionIsAligned);
+            TestRunner.Run("changelog and assembly share version 1.0.5", ChangelogVersionIsAligned);
         }
 
         private static void ManifestIdentityIsAligned()
@@ -48,7 +48,7 @@ namespace RunicBuildCamera.Tests
                 File.ReadAllText(TestPaths.PluginFile("manifest.json")));
             JsonElement root = document.RootElement;
             TestAssert.Equal("RunicBuildCamera", root.GetProperty("name").GetString());
-            TestAssert.Equal("1.0.3", root.GetProperty("version_number").GetString());
+            TestAssert.Equal("1.0.5", root.GetProperty("version_number").GetString());
             TestAssert.True(root.GetProperty("description").GetString()
                 .Contains("detached camera", StringComparison.OrdinalIgnoreCase));
             string[] dependencies = root.GetProperty("dependencies")

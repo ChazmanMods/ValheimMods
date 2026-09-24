@@ -1,3 +1,12 @@
+## 1.0.3
+
+- Add selected-player actions through a bounded, exact-server/character RPC receiver: raise/reset skills, heal, clear food/status, adrenaline and registered status effects.
+- Preserve affected-player cheat confirmation, reject replays and show acknowledged completion or failure.
+
+## 1.0.2
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
 
 ## 1.0.1 - 2026-09-09

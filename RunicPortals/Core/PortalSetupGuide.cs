@@ -78,54 +78,54 @@ namespace RunicPortals.Core
             string alternateUse = Binding(alternateUseBinding, "Alternate Place + Use");
             string status = state.IsNetwork
                 ? NetworkStatus(state)
-                : "Current mode: Standard Pair (vanilla) | Link: " +
+                : global::Runic.Localization.RunicText.Get("text_3cbd94169b76") +
                   (state.VanillaConnected ? "connected" : "unlinked");
             string warning = string.Empty;
             if (state.EditorOpen)
-                warning = "Portal setup is open. Choose Standard Pair or Runic Network, fill in the visible fields, then Save.";
+                warning = global::Runic.Localization.RunicText.Get("text_7d16f1b8ad1c");
             else if (!state.IsNetwork && state.VanillaConnected)
-                warning = "Connected vanilla pair: give it a unique Standard Pair tag before converting it to a Runic network.";
+                warning = global::Runic.Localization.RunicText.Get("text_3b03c1feaa44");
 
             string controls;
             if (!state.IsNetwork)
-                controls = use + " - edit the vanilla tag\n" +
-                           alternateUse + " - open the Runic portal editor";
+                controls = use + global::Runic.Localization.RunicText.Get("text_4557ff28f4bd") +
+                           alternateUse + global::Runic.Localization.RunicText.Get("text_2308fea27b6c");
             else if (!state.DetailsVisible)
-                controls = "This portal's details and route controls are hidden from your current identity.";
+                controls = global::Runic.Localization.RunicText.Get("text_88ec4dc0ef31");
             else if (!state.PermitsDeparture)
-                controls = use + " - edit this Runic portal\n" +
-                           "Arrival-only endpoint: it appears in a portal picker, but walking into it does not start a trip.";
+                controls = use + global::Runic.Localization.RunicText.Get("text_dc6fd4e622e8") +
+                           global::Runic.Localization.RunicText.Get("text_4c78182c42ad");
             else
-                controls = use + " - edit this Runic portal\n" +
-                           "Walk into the portal - open its safe destination map\n" +
-                           "Click an authorized arrival portal on the map to travel" +
+                controls = use + global::Runic.Localization.RunicText.Get("text_dc6fd4e622e8") +
+                           global::Runic.Localization.RunicText.Get("text_c8d4795e025f") +
+                           global::Runic.Localization.RunicText.Get("text_a7916026edbf") +
                            (state.AcceptsArrival
                                ? string.Empty
-                               : "\nDeparture-only endpoint: a destination click confirms that the trip may be one-way.");
+                               : global::Runic.Localization.RunicText.Get("text_68b643541d98"));
 
             string instructions =
-                "STANDARD PAIR - Valheim's normal one-to-one portal. Check Standard Pair and enter a tag of up to 10 characters.\n\n" +
-                "RUNIC NETWORK - enter a Network Name shared by the destinations that belong together, then give this endpoint a distinct Portal Name.\n\n" +
-                "ACCESS - Public is available to everyone, Private is owner-only, and Group is available to current members of the selected Runic Group.\n\n" +
-                "DIRECTION - Both supports arrival and departure; Arrivals Only is a destination; Departures Only starts trips and may be one-way.\n\n" +
-                "Groups are managed in Valheim chat with /group create, /group invite, /group accept, and /group list. Your groups appear automatically in the editor.\n\n" +
-                "Walk into a departure-capable Runic portal and click an authorized destination on the map. On the normal large map, press P to show or hide the world-wide authorized portal directory.";
+                global::Runic.Localization.RunicText.Get("text_31dc2b011b30") +
+                global::Runic.Localization.RunicText.Get("text_40697685d448") +
+                global::Runic.Localization.RunicText.Get("text_45d60c7557c9") +
+                global::Runic.Localization.RunicText.Get("text_22f27007de2a") +
+                global::Runic.Localization.RunicText.Get("text_4154e72a3b21") +
+                global::Runic.Localization.RunicText.Get("text_c14684466edb");
             return new PortalSetupGuideContent(status, warning, controls, instructions);
         }
 
         private static string NetworkStatus(PortalHoverPanelState state)
         {
             if (!state.DetailsVisible)
-                return "Current mode: Restricted Network Portal | Details hidden by current permissions";
+                return global::Runic.Localization.RunicText.Get("text_5245186207f8");
             string direction = state.AcceptsArrival && state.PermitsDeparture
                 ? "both"
-                : state.AcceptsArrival ? "arrive only" : "depart only";
+                : state.AcceptsArrival ? global::Runic.Localization.RunicText.Get("text_b16a6dd9b127") : global::Runic.Localization.RunicText.Get("text_e8440ffba352");
             string selected = state.SelectedDestination.Length == 0
                 ? "none"
                 : state.SelectedDestination;
-            return "Current mode: " + (state.Policy.Length == 0 ? "Network" : state.Policy + " Network") +
-                   " | Network: " + state.NetworkId + " | Name: " + state.DisplayName +
-                   " | Direction: " + direction + "\nSelected destination: " + selected;
+            return global::Runic.Localization.RunicText.Get("text_bd4d698e09d9") + (state.Policy.Length == 0 ? global::Runic.Localization.RunicText.Get("text_1744b96470b5") : state.Policy + global::Runic.Localization.RunicText.Get("text_d77462b4f025")) +
+                   global::Runic.Localization.RunicText.Get("text_c436e786c0fd") + state.NetworkId + global::Runic.Localization.RunicText.Get("text_6a7d1835592c") + state.DisplayName +
+                   global::Runic.Localization.RunicText.Get("text_88d68eeae5d9") + direction + global::Runic.Localization.RunicText.Get("text_1fbf04039d5a") + selected;
         }
 
         private static string Binding(string value, string fallback)

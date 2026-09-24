@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
+public interface IPlaced { void OnPlaced(); }
+
 namespace UnityEngine
 {
     public class Object
@@ -21,8 +23,9 @@ namespace UnityEngine
     {
         public readonly Dictionary<Type, Component> Components = new();
         public Transform transform;
+        public string name;
         public GameObject(string name = "sign", params Type[] types)
-        { transform = new RectTransform { gameObject = this }; foreach (var type in types) Add(type); }
+        { this.name=name; transform = new RectTransform { gameObject = this }; foreach (var type in types) Add(type); }
         private Component Add(Type type)
         {
             if (type == typeof(RectTransform)) return transform;
@@ -31,7 +34,8 @@ namespace UnityEngine
         }
         public T AddComponent<T>() where T : Component => (T)Add(typeof(T));
         public T GetComponent<T>() => Components.TryGetValue(typeof(T), out var c) ? (T)(object)c : default;
-        public void SetActive(bool active) { }
+        public bool activeSelf = true;
+        public void SetActive(bool active) { activeSelf = active; }
     }
     public class Transform : Component
     {
@@ -74,10 +78,18 @@ namespace UnityEngine
         public static Vector2 Scale(Vector2 a,Vector2 b) => new(a.x*b.x,a.y*b.y);
         public static Vector2 operator +(Vector2 a,Vector2 b) => new(a.x+b.x,a.y+b.y);
     }
-    public struct Color { public static Color white => new(); public static Color black => new(); }
+    public struct Color { public float r,g,b,a; public Color(float r,float g,float b,float a){this.r=r;this.g=g;this.b=b;this.a=a;} public static Color white => new(1,1,1,1); public static Color black => new(0,0,0,1); }
+    public class Material : Object {
+        public HashSet<string> Keywords = new();
+        public Dictionary<string,float> Floats = new();
+        public Dictionary<string,Color> Colors = new();
+        public Material(Material other){ if(other!=null) { Keywords=new(other.Keywords); Floats=new(other.Floats); Colors=new(other.Colors); } } public bool HasProperty(string s)=>true;
+        public void EnableKeyword(string s){Keywords.Add(s);} public void SetFloat(string s,float v){Floats[s]=v;} public void SetColor(string s,Color v){Colors[s]=v;}
+    }
     public static class ColorUtility { public static bool TryParseHtmlString(string s,out Color c) { c=new(); return true; } }
-    public static class Mathf { public static float Min(float a,float b)=>Math.Min(a,b); public static float Max(float a,float b)=>Math.Max(a,b); }
-    public static class Time { public static float unscaledTime; }
+    public static class Mathf { public static float Clamp(float x,float a,float b)=>Math.Clamp(x,a,b); public static float Min(float a,float b)=>Math.Min(a,b); public static float Max(float a,float b)=>Math.Max(a,b); }
+    public static class Time { public static float unscaledTime; public static int frameCount; }
+    public enum KeyCode { LeftBracket, RightBracket, F8 }
     public class CanvasRenderer : Component { }
 }
 namespace UnityEngine.UI
@@ -87,12 +99,29 @@ namespace UnityEngine.UI
 }
 namespace TMPro
 {
+    public interface ITextPreprocessor { string PreprocessText(string text); }
+    public enum TextWrappingModes { Normal, NoWrap }
+    public struct TMP_CharacterInfo { public bool isVisible; public int materialReferenceIndex, vertexIndex; }
+    public struct TMP_MeshInfo { public UnityEngine.Vector3[] vertices; }
+    public class TMP_TextInfo { public int characterCount; public TMP_CharacterInfo[] characterInfo; public TMP_MeshInfo[] meshInfo; }
+    public enum TextOverflowModes { Overflow, Ellipsis }
     [Flags] public enum FontStyles { Normal=0, Bold=1, Italic=2 }
     public enum TextAlignmentOptions { Left, Center, Right }
     public class TextMeshProUGUI : UnityEngine.Component
     {
+        public event Action<TMP_TextInfo> OnPreRenderText;
+        public void Generate(TMP_TextInfo info) => OnPreRenderText?.Invoke(info);
+        public int GeometryHandlers => OnPreRenderText?.GetInvocationList().Length ?? 0;
+        public TextWrappingModes textWrappingMode = TextWrappingModes.Normal;
+        public void UpdateMeshPadding(){}
+        public ITextPreprocessor textPreprocessor;
+        public UnityEngine.Material fontSharedMaterial;
+        public bool isOrthographic=true;
+        public bool havePropertiesChanged;
+        public TextOverflowModes overflowMode;
+        public void SetAllDirty(){}
         public float fontSize=20,fontSizeMin=8,fontSizeMax=20;
-        public bool enableAutoSizing,richText=true;
+        public bool enableAutoSizing,overrideColorTags,richText=true;
         public UnityEngine.Color color; public FontStyles fontStyle; public TextAlignmentOptions alignment;
         public string text="Original";
         public UnityEngine.RectTransform rectTransform => (UnityEngine.RectTransform)transform;
@@ -101,9 +130,41 @@ namespace TMPro
 namespace HarmonyLib
 {
     [AttributeUsage(AttributeTargets.All,AllowMultiple=true)] public class HarmonyPatch : Attribute
-    { public HarmonyPatch(){} public HarmonyPatch(Type t,string s){} }
+    { public HarmonyPatch(){} public HarmonyPatch(Type t,string s, params Type[] types){} }
     public class HarmonyPrefix : Attribute{} public class HarmonyPostfix : Attribute{}
+    public static class AccessTools {
+        public static MethodInfo Method(Type t,string name)=>t.GetMethod(name,BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic);
+        public static T MethodDelegate<T>(MethodInfo method) where T:Delegate => (T)method.CreateDelegate(typeof(T));
+    }
 }
+namespace BepInEx.Configuration {
+    public class ConfigEntry<T> { public T Value; }
+    public class ConfigDescription { public ConfigDescription(string s,object range){} }
+    public class AcceptableValueRange<T> { public AcceptableValueRange(T min,T max){} }
+    public class ConfigFile {
+        public Dictionary<string,object> Entries=new();
+        public ConfigEntry<T> Bind<T>(string section,string key,T value,object description) {
+            var entry=new ConfigEntry<T>{Value=value}; Entries[key]=entry; return entry;
+        }
+    }
+    public struct KeyboardShortcut {
+        public static UnityEngine.KeyCode? Pressed;
+        private UnityEngine.KeyCode key;
+        public KeyboardShortcut(UnityEngine.KeyCode value){key=value;}
+        public bool IsDown()=>Pressed==key;
+    }
+}
+public class Player : UnityEngine.Component {
+    public static Player m_localPlayer;
+    public bool Owner=true, Input=true;
+    public bool IsOwner()=>Owner;
+    public long GetPlayerID()=>42;
+    public void Message(MessageHud.MessageType type,string message,int amount=0,UnityEngine.Object icon=null){}
+    private bool TakeInput()=>Input;
+}
+public class Piece : UnityEngine.Component { public long Creator=42; public long GetCreator()=>Creator; }
+public class MessageHud { public enum MessageType { TopLeft } }
+public static class Utils { public static string GetPrefabName(UnityEngine.GameObject go)=>go.name; }
 public interface TextReceiver { }
 public class TextInput { public void RequestText(TextReceiver sign){} }
 public class Sign : UnityEngine.Component, TextReceiver
@@ -154,7 +215,8 @@ public class ZNetView : UnityEngine.Component
 {
     public ZDO Data=new();
     public Dictionary<string,Delegate> Handlers=new();
-    public bool IsValid()=>true;
+    public bool Valid=true;
+    public bool IsValid()=>Valid;
     public bool IsOwner()=>Data.Owner==ZNet.Session;
     public ZDO GetZDO()=>Data;
     public void Register<T,U,V>(string name,Action<long,T,U,V> f)=>Handlers.Add(name,f);
@@ -184,6 +246,14 @@ namespace RunicSigns
 namespace RunicSigns.Runtime
 {
     internal static class SignAccess
-    { public static bool Eligible(Sign s)=>true; public static bool Local(Sign s)=>Network.LocalAccess; public static bool Sender(Sign s,long p)=>Network.SenderAccess; }
-    internal static class SignEditor { public static void Open(Sign s){} }
+    { public static bool Viewable=true; public static bool CanView(Sign s)=>Viewable; public static bool Eligible(Sign s)=>true; public static bool Local(Sign s)=>Network.LocalAccess; public static bool Sender(Sign s,long p)=>Network.SenderAccess; }
+    internal static class SignEditor {
+        public static bool BlockGameplay; public static int OpenPlacementCalls;
+        public static UnityEngine.GameObject PlacementTarget;
+        public static void Open(Sign s){}
+        public static void OpenPlacement(Sign s){OpenPlacementCalls++;PlacementTarget=s.gameObject;BlockGameplay=true;}
+        public static bool IsPlacementTarget(UnityEngine.GameObject ghost)=>BlockGameplay && ghost==PlacementTarget;
+    }
 }
+
+namespace Runic.Shared { internal static class EmojiRenderer { internal static void Attach(TMPro.TextMeshProUGUI text) { } } }

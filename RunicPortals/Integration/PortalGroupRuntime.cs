@@ -489,7 +489,7 @@ namespace RunicPortals.Integration
         {
             ActiveGroupSelection active = _activeGroups.Resolve(actor);
             if (!TryReadCatalog(out GroupCatalog catalog, out string failure))
-                return Friendly("Group information is unavailable (" + failure + ").", active);
+                return Friendly(global::Runic.Localization.RunicText.Get("text_c5be3f4af756") + failure + ").", active);
             switch (request.Operation)
             {
                 case GroupFriendlyOperation.Invitations:
@@ -500,7 +500,7 @@ namespace RunicPortals.Integration
                 {
                     IReadOnlyList<GroupMembership> groups = catalog.GetMemberships(actor);
                     if (groups.Count == 0)
-                        return Friendly("You are not in a Group. Use /group create <name>.", active);
+                        return Friendly(global::Runic.Localization.RunicText.Get("text_90b61d82d241"), active);
                     var lines = new List<string> { "Your Groups:" };
                     foreach (GroupMembership group in groups)
                         lines.Add("- " + group.DisplayName + " (" +
@@ -513,7 +513,7 @@ namespace RunicPortals.Integration
                 case GroupFriendlyOperation.Active:
                     return Friendly(ActiveLabel(active), active);
                 case GroupFriendlyOperation.WhoAmI:
-                    return Friendly("Your exact Group identity is " + actor.CanonicalKey + ".", active);
+                    return Friendly(global::Runic.Localization.RunicText.Get("text_cd7a00d7b794") + actor.CanonicalKey + ".", active);
                 case GroupFriendlyOperation.Members:
                 {
                     if (!TryActiveRecord(actor, catalog, active, out GroupRecord group, out failure))
@@ -526,7 +526,7 @@ namespace RunicPortals.Integration
                     return Friendly(string.Join("\n", lines), active);
                 }
                 default:
-                    return Friendly("That Group query is unsupported.", active);
+                    return Friendly(global::Runic.Localization.RunicText.Get("text_165efa346b58"), active);
             }
         }
 
@@ -536,15 +536,15 @@ namespace RunicPortals.Integration
         {
             ActiveGroupSelection active = _activeGroups.Resolve(actor);
             if (!TryReadCatalog(out GroupCatalog catalog, out string failure))
-                return Friendly("Group command unavailable (" + failure + ").", active);
+                return Friendly(global::Runic.Localization.RunicText.Get("text_36b662a51151") + failure + ").", active);
             if (request.Operation == GroupFriendlyOperation.Select)
             {
                 if (!TryResolveMemberGroup(catalog, actor, request.Primary, out GroupRecord selected, out failure))
                     return Friendly(failure, active);
                 if (!_activeGroups.TrySetAuthoritative(
                         actor, selected.Id, out active, out string setFailure))
-                    return Friendly("Could not select that Group (" + setFailure + ").", active);
-                return Friendly("Active Group: " + selected.DisplayName + ".", active);
+                    return Friendly(global::Runic.Localization.RunicText.Get("text_9dd9e52e6cf0") + setFailure + ").", active);
+                return Friendly(global::Runic.Localization.RunicText.Get("text_5230fbc3479f") + selected.DisplayName + ".", active);
             }
 
             GroupCommand command;
@@ -560,7 +560,7 @@ namespace RunicPortals.Integration
                     return Friendly(failure, active);
                 target.TryGetInvitation(actor, out GroupInvitation invitation);
                 if (!GroupInvitationSnapshot.Matches(invitation, request.Secondary, DateTime.UtcNow.Ticks))
-                    return Friendly("That invitation changed or expired. Wait for the current invitation.", active);
+                    return Friendly(global::Runic.Localization.RunicText.Get("text_00de350e41d7"), active);
                 command = new GroupCommand(request.Operation == GroupFriendlyOperation.Accept
                     ? GroupCommandKind.Accept : GroupCommandKind.Decline, target.Id);
             }
@@ -578,7 +578,7 @@ namespace RunicPortals.Integration
                 long.TryParse(request.Secondary, NumberStyles.None, CultureInfo.InvariantCulture, out expectedInvitationRevision);
             GroupCommandExecutionResult result = _processor.Execute(actor, command, expectedInvitationRevision);
             if (!result.Success)
-                return Friendly("Group command denied: " + ReasonLabel(result.ReasonCode) + ".", active);
+                return Friendly(global::Runic.Localization.RunicText.Get("text_ab451938feac") + ReasonLabel(result.ReasonCode) + ".", active);
             bool select = request.Operation == GroupFriendlyOperation.Create ||
                           request.Operation == GroupFriendlyOperation.Accept;
             bool clear = request.Operation == GroupFriendlyOperation.Leave ||
@@ -632,7 +632,7 @@ namespace RunicPortals.Integration
                 case GroupFriendlyOperation.Delete:
                     return new GroupCommand(GroupCommandKind.Delete, group.Id);
                 default:
-                    failure = "That Group command is unsupported.";
+                    failure = global::Runic.Localization.RunicText.Get("text_e6435cfa8e29");
                     return null;
             }
         }
@@ -692,7 +692,7 @@ namespace RunicPortals.Integration
             out string failure)
         {
             group = null;
-            failure = "No Group with that name is available to you.";
+            failure = global::Runic.Localization.RunicText.Get("text_9e8112e6ddce");
             IEnumerable<GroupRecord> matches = catalog.Groups.Where(value =>
                 value.TryGetMember(actor, out _) &&
                 (GroupIdentity.TryParseCanonicalId(selector, out Guid exact)
@@ -705,7 +705,7 @@ namespace RunicPortals.Integration
                 failure = string.Empty;
                 return true;
             }
-            if (bounded.Length > 1) failure = "That Group name is ambiguous.";
+            if (bounded.Length > 1) failure = global::Runic.Localization.RunicText.Get("text_b0338058c768");
             return false;
         }
 
@@ -717,7 +717,7 @@ namespace RunicPortals.Integration
             out string failure)
         {
             group = null;
-            failure = "No current invitation from that Group was found.";
+            failure = global::Runic.Localization.RunicText.Get("text_4bf3a30c436c");
             IEnumerable<GroupRecord> matches = catalog.Groups.Where(value =>
                 value.TryGetInvitation(actor, out GroupInvitation invitation) &&
                 !invitation.IsExpired(DateTime.UtcNow.Ticks) &&
@@ -739,7 +739,7 @@ namespace RunicPortals.Integration
             out string failure)
         {
             group = null;
-            failure = "No active Group. Use /group use <group name> first.";
+            failure = global::Runic.Localization.RunicText.Get("text_24ad9bdcd58b");
             return active != null && active.IsAvailable &&
                    Guid.TryParseExact(active.GroupId, "N", out Guid id) &&
                    catalog.TryGetGroup(id, out group) && group.TryGetMember(actor, out _);
@@ -751,7 +751,7 @@ namespace RunicPortals.Integration
             out string failure)
         {
             identity = null;
-            failure = "No connected player has that exact name.";
+            failure = global::Runic.Localization.RunicText.Get("text_c32d955c8ed8");
             if (TryCanonicalPlayerIdentity(selector, out identity))
             {
                 failure = string.Empty;
@@ -769,11 +769,11 @@ namespace RunicPortals.Integration
                 failure = string.Empty;
                 return true;
             }
-            if (matches.Length > 1) failure = "More than one connected player has that name.";
+            if (matches.Length > 1) failure = global::Runic.Localization.RunicText.Get("text_881db82579a2");
             else if (ZNet.instance != null && ZNet.instance.IsServer() &&
                      ZNet.instance.GetPeers().Take(64).Any(peer => peer != null && peer.IsReady() &&
                          string.Equals(peer.m_playerName, selector, StringComparison.OrdinalIgnoreCase)))
-                failure = "That player is connected, but their character identity is not ready. Ask them to finish spawning and retry /group whoami.";
+                failure = global::Runic.Localization.RunicText.Get("text_f9125d2de9d8");
             return false;
         }
 
@@ -808,7 +808,7 @@ namespace RunicPortals.Integration
             IEnumerable<ConnectedPlayer> values,
             StableIdentity identity) =>
             values.FirstOrDefault(value => value.Identity.Equals(identity))?.Name ??
-            "Player " + identity.SubjectId;
+            global::Runic.Localization.RunicText.Get("text_2b6565434216") + identity.SubjectId;
 
         private static bool TryResolvePeerIdentity(long sender, out StableIdentity identity)
             => TryResolvePeerIdentity(sender, out identity, out _);
@@ -816,21 +816,21 @@ namespace RunicPortals.Integration
         private static bool TryResolvePeerIdentity(long sender, out StableIdentity identity, out string failure)
         {
             identity = null;
-            failure = "connection unavailable";
+            failure = global::Runic.Localization.RunicText.Get("text_dd058f7addbf");
             ZNet network = ZNet.instance;
             ZNetPeer peer = network?.GetPeer(sender);
             if (network == null || !network.IsServer() || peer == null || peer.m_uid != sender ||
                 !peer.IsReady() || peer.m_rpc == null || peer.m_socket == null)
                 return false;
-            failure = "character not spawned";
+            failure = global::Runic.Localization.RunicText.Get("text_6aa9e9d25b92");
             if (peer.m_characterID.IsNone() || ZDOMan.instance == null) return false;
             ZDO character = ZDOMan.instance.GetZDO(peer.m_characterID);
-            failure = "character data not synchronized";
+            failure = global::Runic.Localization.RunicText.Get("text_3e8599477ab9");
             if (character == null || !character.IsValid() || character.GetOwner() != sender ||
                 ZDOMan.instance.GetZDO(peer.m_characterID) != character) return false;
             GameObject prefab = ZNetScene.instance?.GetPrefab(character.GetPrefab());
             long playerId = character.GetLong(ZDOVars.s_playerID, 0L);
-            failure = "character ID or prefab unavailable";
+            failure = global::Runic.Localization.RunicText.Get("text_76f01b54c920");
             if (prefab == null || prefab.GetComponent<Player>() == null || playerId == 0L)
                 return false;
             identity = PlayerIdentity(playerId);
@@ -1029,28 +1029,28 @@ namespace RunicPortals.Integration
 
         private static string ActiveLabel(ActiveGroupSelection active) =>
             active != null && active.IsAvailable
-                ? "Active Group: " + active.DisplayName + "."
-                : "Active Group: none. Use /group use <group name>.";
+                ? global::Runic.Localization.RunicText.Get("text_5230fbc3479f") + active.DisplayName + "."
+                : global::Runic.Localization.RunicText.Get("text_66821cf53068");
 
         private static string SuccessLabel(
             GroupFriendlyOperation operation,
             GroupRecord group)
         {
-            string name = group?.DisplayName ?? "the Group";
+            string name = group?.DisplayName ?? global::Runic.Localization.RunicText.Get("text_caa7b0041107");
             switch (operation)
             {
-                case GroupFriendlyOperation.Create: return "Group created: " + name + ". It is now active.";
-                case GroupFriendlyOperation.Invite: return "Invitation sent for " + name + ".";
-                case GroupFriendlyOperation.Accept: return "Joined " + name + ". It is now active.";
-                case GroupFriendlyOperation.Decline: return "Declined invitation to " + name + ".";
-                case GroupFriendlyOperation.Leave: return "You left " + name + ".";
-                case GroupFriendlyOperation.Rename: return "Group renamed to " + name + ".";
-                case GroupFriendlyOperation.CancelInvitation: return "Invitation cancelled.";
-                case GroupFriendlyOperation.Remove: return "Player removed from " + name + ".";
-                case GroupFriendlyOperation.SetRole: return "Player role updated in " + name + ".";
-                case GroupFriendlyOperation.TransferOwnership: return "Ownership of " + name + " transferred.";
-                case GroupFriendlyOperation.Delete: return "Group deleted: " + name + ".";
-                default: return "Group command completed.";
+                case GroupFriendlyOperation.Create: return global::Runic.Localization.RunicText.Get("text_b6e835e776f0") + name + global::Runic.Localization.RunicText.Get("text_ac72145e7359");
+                case GroupFriendlyOperation.Invite: return global::Runic.Localization.RunicText.Get("text_c3587151a8c4") + name + ".";
+                case GroupFriendlyOperation.Accept: return global::Runic.Localization.RunicText.Get("text_5992091754f3") + name + global::Runic.Localization.RunicText.Get("text_ac72145e7359");
+                case GroupFriendlyOperation.Decline: return global::Runic.Localization.RunicText.Get("text_3b13b04480ee") + name + ".";
+                case GroupFriendlyOperation.Leave: return global::Runic.Localization.RunicText.Get("text_44582a294099") + name + ".";
+                case GroupFriendlyOperation.Rename: return global::Runic.Localization.RunicText.Get("text_eedd244741c3") + name + ".";
+                case GroupFriendlyOperation.CancelInvitation: return global::Runic.Localization.RunicText.Get("text_134517d2e8c8");
+                case GroupFriendlyOperation.Remove: return global::Runic.Localization.RunicText.Get("text_b1e000ddd7cb") + name + ".";
+                case GroupFriendlyOperation.SetRole: return global::Runic.Localization.RunicText.Get("text_cf4b446a5dfd") + name + ".";
+                case GroupFriendlyOperation.TransferOwnership: return global::Runic.Localization.RunicText.Get("text_735b4487b21b") + name + global::Runic.Localization.RunicText.Get("text_546bb3ec533e");
+                case GroupFriendlyOperation.Delete: return global::Runic.Localization.RunicText.Get("text_9216cbd0437c") + name + ".";
+                default: return global::Runic.Localization.RunicText.Get("text_bb42a6cf76d4");
             }
         }
 
@@ -1097,7 +1097,7 @@ namespace RunicPortals.Integration
                 switch (verb)
                 {
                     case "help":
-                        message = "Group commands: create, list, use, active, members, whoami, invite, accept, decline, leave, rename, cancel, remove, role, transfer, delete.";
+                        message = global::Runic.Localization.RunicText.Get("text_e69ae7833ec9");
                         return false;
                     case "list": RequireCount(args, 2); request = new GroupFriendlyRequest(GroupFriendlyOperation.List); break;
                     case "active": RequireCount(args, 2); request = new GroupFriendlyRequest(GroupFriendlyOperation.Active); break;
@@ -1123,7 +1123,7 @@ namespace RunicPortals.Integration
                     case "transfer": request = new GroupFriendlyRequest(GroupFriendlyOperation.TransferOwnership, Join(args, 2)); break;
                     case "delete": RequireCount(args, 2); request = new GroupFriendlyRequest(GroupFriendlyOperation.Delete); break;
                     default:
-                        message = "Unknown Group command. Type /group help.";
+                        message = global::Runic.Localization.RunicText.Get("text_e0ff878aee12");
                         return false;
                 }
                 message = string.Empty;
@@ -1133,7 +1133,7 @@ namespace RunicPortals.Integration
                 exception is ArgumentException || exception is OverflowException)
             {
                 request = null;
-                message = "That Group command is incomplete or invalid. Type /group help.";
+                message = global::Runic.Localization.RunicText.Get("text_2c67e5a1dc3d");
                 return false;
             }
         }

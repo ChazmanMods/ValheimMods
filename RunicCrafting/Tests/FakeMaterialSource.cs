@@ -24,6 +24,7 @@ namespace RunicCrafting.Tests
         public string SourceId { get; }
         internal MaterialSourceKind Kind { get; }
         internal float DistanceSquared { get; }
+        internal bool FailRestore { get; set; }
         internal bool FailNextTake { get; set; }
 
         public MaterialSourceSnapshot Snapshot()
@@ -84,6 +85,7 @@ namespace RunicCrafting.Tests
 
             public bool Restore()
             {
+                if (_source.FailRestore) return false;
                 if (!_active) return true;
                 _active = false;
                 _source.Restore(_resourceId, _quantity);

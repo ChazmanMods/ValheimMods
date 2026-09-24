@@ -9,10 +9,7 @@ namespace RunicInventory.Integration
 {
     internal static class ValheimContracts
     {
-        internal const string AuditedGameVersion = "1.0.12";
-        internal static bool IsSupportedVersion(string version) =>
-            string.Equals(version, AuditedGameVersion, StringComparison.Ordinal) ||
-            string.Equals(version, "1.0.7", StringComparison.Ordinal);
+        internal const string AuditedGameVersion = "1.0.15";
         private const BindingFlags InstanceAll = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
         internal delegate void InventoryChangedDelegate(
@@ -31,27 +28,37 @@ namespace RunicInventory.Integration
         private static FieldInfo _craftUpgradeItem;
         private static bool _ready;
 
-        internal static void ValidateGameVersion(Type versionType)
+        // Version is diagnostic only; Initialize validates the APIs we actually use.
+        internal static string ReadGameVersion(Type versionType = null)
         {
-            // GetVersionString is a display label and can include an OS prefix (e.g. l-).
-            // CurrentVersion identifies the game build without weakening the audited-version gate.
-            PropertyInfo property = versionType?.GetProperty(
-                "CurrentVersion", BindingFlags.Public | BindingFlags.Static);
-            if (property == null || property.GetGetMethod() == null ||
-                property.GetIndexParameters().Length != 0)
-                throw new MissingMemberException("Version.CurrentVersion");
-            string installed = property.GetValue(null, null)?.ToString() ?? string.Empty;
-            if (!IsSupportedVersion(installed))
-                throw new MissingMethodException(
-                    "Runic Inventory " + Plugin.Version + " is audited for Valheim " +
-                    "1.0.7 or " + AuditedGameVersion + "; installed " + (installed.Length == 0 ? "unknown" : installed) + ".");
+            try
+            {
+                versionType = versionType ?? typeof(Player).Assembly.GetType("Version", false);
+                return versionType?.GetProperty("CurrentVersion", BindingFlags.Public | BindingFlags.Static)
+                    ?.GetValue(null, null)?.ToString() ?? "unknown";
+            }
+            catch (Exception) { return "unknown"; }
+        }
+
+        internal static MethodInfo ResolveStackSearch(Type inventoryType)
+        {
+            // Prefer the richer overload if a future build exposes both contracts.
+            foreach (Type[] parameters in new[] {
+                new[] { typeof(string), typeof(int), typeof(float), typeof(bool) },
+                new[] { typeof(string), typeof(int), typeof(float) } })
+            {
+                MethodInfo method = inventoryType.GetMethod("FindFreeStackItem", InstanceAll, null, parameters, null);
+                if (method != null && method.ReturnType == typeof(ItemDrop.ItemData) && !method.IsGenericMethod)
+                    return method;
+            }
+            throw new MissingMethodException(inventoryType.FullName,
+                "FindFreeStackItem(string,int,float[,bool]):ItemData");
         }
 
         internal static bool Initialize(out string problem)
         {
             try
             {
-                ValidateGameVersion(typeof(Player).Assembly.GetType("Version", true));
 
                 _changed = AccessTools.MethodDelegate<InventoryChangedDelegate>(Exact(
                     typeof(Inventory), "Changed", InstanceAll,
@@ -76,8 +83,9 @@ namespace RunicInventory.Integration
                 Exact(typeof(Inventory), nameof(Inventory.GetItemAt), InstanceAll, typeof(int), typeof(int));
                 Exact(typeof(Inventory), nameof(Inventory.Save), InstanceAll, typeof(ZPackage));
                 Exact(typeof(Inventory), "FindEmptySlot", InstanceAll, typeof(bool));
-                Exact(typeof(Inventory), "FindFreeStackItem", InstanceAll,
-                    typeof(string), typeof(int), typeof(float));
+                MethodInfo stackSearch = ResolveStackSearch(typeof(Inventory));
+                if (stackSearch.ReturnType != typeof(ItemDrop.ItemData))
+                    throw new MissingMemberException("Inventory.FindFreeStackItem return type");
                 Exact(typeof(Inventory), nameof(Inventory.CanAddItem), InstanceAll,
                     typeof(ItemDrop.ItemData), typeof(int));
                 Exact(typeof(Inventory), nameof(Inventory.SetHeight), InstanceAll, typeof(int));
@@ -202,7 +210,7 @@ namespace RunicInventory.Integration
             catch (Exception exception)
             {
                 _ready = false;
-                problem = exception.GetType().Name + ": " + exception.Message;
+                problem = "Runic Inventory " + Plugin.Version + " API compatibility: " + exception.GetType().Name + ": " + exception.Message;
                 return false;
             }
         }

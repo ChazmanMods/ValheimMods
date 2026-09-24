@@ -1,6 +1,6 @@
 {
   "name": "RunicExploration",
-  "version_number": "1.0.2",
+  "version_number": "1.0.3",
   "website_url": "https://discord.gg/7HKHTCdFqY",
   "description": "Search and filter saved locations in your explored world, then navigate to what you already discovered without revealing unknown map areas.",
   "dependencies": [

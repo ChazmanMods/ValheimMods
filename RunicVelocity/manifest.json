@@ -1,6 +1,6 @@
 {
   "name": "RunicVelocity",
-  "version_number": "1.0.2",
+  "version_number": "1.0.3",
   "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicVelocity",
   "description": "Diagnose heavily modded startup with loading milestones and an integrity-checked plugin cache that shows what changed and what was reused.",
   "dependencies": [

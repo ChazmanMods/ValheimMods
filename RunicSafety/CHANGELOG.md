@@ -1,5 +1,22 @@
+## 1.0.9
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
 
+## 1.0.8 - 2026-09-18
+
+- Replaced the exact game-version allowlist with startup API validation. Compatible future patches no longer require a version-only update.
+- Incompatible APIs still fail closed; World Engine retains its exact method-body audit.
+
+## 1.0.7 - 2026-09-18
+
+- Added Valheim 1.0.15 support while retaining exact API checks and support for 1.0.7, 1.0.12, and 1.0.14.
+
+## 1.0.6 - 2026-09-17
+
+- Added Valheim 1.0.14 support while retaining compatibility with 1.0.7 and 1.0.12.
+- Retained exact game API checks and rejection of unknown versions.
 ## 1.0.5 - 2026-09-12
 
 - Added support for RunicInventory 1.1.2's separate item-use protection, allowing locked supplies to be cooked, used as fuel, smelted, or fermented.
@@ -17,8 +34,6 @@
 
 - Added bounded, deterministic directory-source backups for Valheim 1.0's chunked world-save format.
 - Rejects reparse points, backup-root overlap, changing members, unsafe paths, and configured file/byte limits before promotion.
-- Re-audited the installed Valheim 1.0.7 assemblies and updated the BepInEx dependency to 5.4.2350.
-
 ## 1.0.1 - 2026-09-05
 
 - Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.

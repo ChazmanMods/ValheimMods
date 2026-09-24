@@ -53,7 +53,7 @@ namespace RunicSafety.Integration
                 Plugin.ModuleId,
                 Plugin.Version,
                 Plugin.ProtocolVersion,
-                ValheimContracts.AuditedGameVersion,
+                ValheimContracts.ReadGameVersion(),
                 "native-valheim",
                 SafetyConfig.SynchronizedRulesHash());
             CompatibilityDecision decision = _compatibility.Evaluate(local, local);

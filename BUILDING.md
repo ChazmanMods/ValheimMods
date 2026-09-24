@@ -46,8 +46,6 @@ directory. Some are console regression runners rather than `dotnet test` project
 Consult their README, TESTING documentation, and project files. Tests that inspect
 native game methods need matching installed client/server assemblies.
 
-A successful build is not a substitute for in-game verification. The root README
-distinguishes packaged versions from newer development source versions.
 
 ## Packaging
 
@@ -62,3 +60,13 @@ Some historical deployment tools retain machine-specific paths and are included
 for reference; inspect them before use. Do not run deployment scripts merely to
 build a mod. Never commit server credentials, signing keys, player/world saves,
 or unredacted operational logs.
+
+## Sentinel command references
+
+Before building RunicSentinel or RunicSentinelServer, generate the compile references from your own installed Valheim and Harmony files:
+
+```powershell
+dotnet run --project tools/SentinelPublicize -- "C:/Games/Valheim/valheim_Data/Managed" "RunicSentinel.Devcommands.Shared/refs" "C:/Games/Valheim/BepInEx/core/0Harmony.dll"
+```
+
+Build the desired Sentinel project in Release after generating the references. The Release target embeds its YAML dependency. Keep generated reference assemblies out of packages and source control. The integrated command code retains the attribution and license in each Sentinel package's THIRD-PARTY-NOTICES.txt.

@@ -1,11 +1,13 @@
+## 1.3.9
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
 
 ## 1.3.8 - 2026-09-14
 
 - Fixed Use/equip removing your worn cape when the stand's Cape slot was empty. An empty stand slot now leaves your cape equipped.
 - When only the stand has a cape, it moves to your inventory and equips. When both sides have a cape, they swap as before. Unequipped spare capes remain in your inventory.
-- Verified all four cape-presence combinations with a full ordinary backpack and RunicInventory's protected Cape cell, including item conservation and equipment state.
-
 ## 1.3.7 - 2026-09-14
 
 This update fixes armor that appeared on the stand in the world but was missing from its inventory panel.
@@ -61,8 +63,6 @@ The complete behavior in this release is:
 
 - Updated item-stand and armor-stand item identifiers to Valheim 1.0 integer hashes, with safe migration and removal of stale legacy string values.
 - Updated inventory notification, peer configuration synchronization, compact-grid bounds, and vanilla Stack All restoration for Valheim 1.0.
-- Re-audited both installed Valheim 1.0.7 client and dedicated-server assemblies and updated the BepInEx dependency to 5.4.2350.
-
 ## 1.3.2 - 2026-09-05
 
 - Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.

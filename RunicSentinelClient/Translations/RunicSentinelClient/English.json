@@ -1,0 +1,21 @@
+{
+  "text_24c65f4c73bd": " plugins).",
+  "text_256802b36bf6": "Sentinel Client bound its admission handler before native peer admission.",
+  "text_2d3f4fc3053f": "Sentinel admission denied (",
+  "text_3154b686bf87": "Sentinel admission challenge was rejected: ",
+  "text_3fffa17a165a": "The setting is sampled at startup; the plugin remains inert on servers.",
+  "text_47ce59380df7": "Sentinel Client left the direct RPC with its existing Sentinel responder.",
+  "text_4b41a28d971b": "Sentinel Client could not answer the admission challenge (",
+  "text_66337c067689": "Sentinel could not resume the native handshake (",
+  "text_6bb69ccb1357": "Sentinel admission report creation failed safely (",
+  "text_77a95578092e": "Sentinel Client received an admission challenge.",
+  "text_7e3fa6436397": "Sentinel Client submitted an admission profile report (",
+  "text_80678fbd62f4": "Sentinel Client could not verify its direct RPC registration.",
+  "text_862b290fb35b": "Sentinel admission decision was rejected: ",
+  "text_965172dfe6a8": "Sentinel Client could not access the direct RPC registry.",
+  "text_c2c47dd903fc": "Enable client-only Runic Sentinel admission profile reporting. ",
+  "text_cfad5f821987": "Sentinel admission accepted (",
+  "text_f441b5e60c09": "Sentinel admission report send failed safely (",
+  "text_f5547dddf418": "Sentinel Client direct RPC registration failed safely (",
+  "text_fa3bfcf34dd5": "Sentinel Client could not capture Valheim's invite secret."
+}

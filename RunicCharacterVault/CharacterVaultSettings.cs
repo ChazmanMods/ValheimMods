@@ -17,13 +17,13 @@ namespace RunicCharacterVault
             StartingItems = new List<StartingItem>();
             allowExistingCharacters = config.Bind(
                 "Server", "AllowExistingCharacters", true,
-                "Import a previously played character when no vault copy exists. The first upload is trusted; existing vault copies are never replaced by enrollment. Disable for fresh-character-only servers.");
+                global::Runic.Localization.RunicText.Get("text_186878ab4f27"));
             allowMultipleCharacters = config.Bind(
                 "Server", "AllowMultipleCharacters", false,
-                "Allow one platform account to enroll more than one character name.");
+                global::Runic.Localization.RunicText.Get("text_ceb554ffe583"));
             startingItems = config.Bind(
                 "Server", "StartingItems", string.Empty,
-                "Optional comma-separated Valheim prefab:quantity pairs for newly enrolled characters.");
+                global::Runic.Localization.RunicText.Get("text_0f583bcd8a07"));
         }
 
         internal bool AllowMultipleCharacters { get; private set; }

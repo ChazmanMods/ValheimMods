@@ -46,4 +46,9 @@
     <EmbeddedResource Include="Assets\RunicPortalMapPin.png"
                       LogicalName="RunicPortals.Assets.RunicPortalMapPin.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Translations/RunicPortals/English.json" LogicalName="Runic.Localization.English.json" />
+    <None Update="Translations/**/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

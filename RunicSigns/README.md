@@ -1,48 +1,45 @@
-# RunicSigns
+# RunicSigns 1.2.7
 
-A simple editor for Valheim's wooden signs. Customize captions, colors, backgrounds and text size, then make the whole sign larger or smaller to suit your build.
+Create and edit sign designs directly in Valheim with live previews, styled text, emojis, effects, and precise placement controls. Requires BepInExPack Valheim 5.4.2350. Install one copy of RunicSigns; remove BetterSigns before installing.
 
-RunicSigns works independently and can be used alongside RunicStorage. It requires only BepInEx.
+## Getting started
 
-## Use
+1. Install RunicSigns through your mod manager, or import `Chazman-RunicSigns-1.2.6.zip` as a local mod. For manual installation, place RunicSigns.dll in BepInEx/plugins/RunicSigns.
+2. Equip a hammer and select the wooden sign. Aim where you want it, then press **F8**. The sign preview stays in place while the designer is open.
+3. Enter a caption. Select words to apply bold, italic, relative size, exact color or opacity to those words. Click **Text Color...** to see all 22 named colors with swatches; choosing one applies the proper formatting automatically. Selection stays captured while using the controls. **Select all** explicitly targets the full caption. With no selection, formatting changes the whole-caption defaults; individual word overrides are preserved. Click **RESET TEXT** to clear all word overrides and restore regular, white, fully opaque text at 1×, without changing the caption, layout, or effects. Color also accepts `#RRGGBB` and `#RRGGBBAA`.
+4. Use **Symbols** for the 64 bundled emojis. Choose alignment, background (automatically sized around the rendered caption), and Fit text to sign or Free text size. **Free text size disables automatic wrapping** so larger captions extend horizontally beyond the board; Enter still adds an intentional line break. Select words for relative sizing, or leave nothing selected to change the base text size. Click **Effects…** for independent Outline and Shadow switches and two curve strengths: up/down and forward/backward. Use both switches and both axes together, or any subset. Each axis has **− / +** buttons and a numeric field. Each click changes by 1 in the new fine scale: **1 now equals the old 0.01 bend**. Start at 1 or −1; type decimals for smaller adjustments. The display range is −100 to +100, and 0 is flat. Existing saved signs retain their appearance; an old value of 0.01 now displays as 1. Positive values curve the center up or forward, negative values down or backward. Effects apply to the whole caption; ordinary formatting targets the selection, or the caption defaults when no text is selected.
+5. Enter horizontal/vertical/depth offsets directly. **Depth** moves the whole caption away from or toward the sign: positive is Forward, negative is Back, along the text’s own facing direction. Back/Forward buttons use the fine/coarse step, and Center text resets all three offsets. The background follows depth movement. In sign-fraction mode, one depth unit equals the text-box width. **Text units** supports ±2000 and uses the same scaling as plain numeric TMP offset values. The alternate mode uses sign-width/height fractions, up to ±20. Fine/coarse arrows and Center are available.
+6. Click **Use for placement**, resume aiming and place the sign normally. **[ / ]** still change whole-sign size outside the editor. The design remains available for subsequent placements during this game session.
+7. Use an existing sign to open the same live designer. **Save sign** commits changes. **Cancel/Escape** restores the saved appearance. Escape closes an open effects, color or symbols picker first. Effects preview live; Done closes the effects panel, while Cancel in the main designer restores the saved design.
 
-Build or approach a normal wooden sign and press **Use**. The RunicSigns editor replaces the text prompt after Valheim approves the interaction.
+F8 and bracket shortcuts can be rebound in the RunicSigns BepInEx config under Placement. Text size ranges from 0.1× to 20×, whole-sign size from 0.25× to 4×. Captions allow 1024 UTF-16 units (two per bundled emoji) and 128 independently styled sections. No HTML/tag entry is needed; typed tags remain literal text.
 
-- **Caption:** up to 256 characters, including line breaks. This limit stays the same at every sign size. Text is literal; formatting tags are not executed.
-- **Sign size:** 0.25×–4× in 0.25 steps. The board, lettering and collision geometry scale together without stretching.
-- **Text size:** 0.3×–3× independently of the board. Long text automatically shrinks to fit.
-- **Color:** type a color name or cycle through RunicStorage's named palette. Hex and approximate names resolve to the nearest supported palette entry, which is shown in the editor.
-- **Background:** transparent, white or black behind the caption. Transparent leaves the wooden board visible.
-- **Alignment and bold:** left, center or right, with optional bold lettering.
-- **Text position:** move the caption in 5% steps, up to 40% of its text area in each direction; Center resets the offset.
-- **Save sign:** apply and save changes. **Cancel**, Escape or controller Cancel discards the draft. Movement, camera controls and gameplay shortcuts are blocked only while the editor is open. Version 1.0.2 fixes the persistent input lock caused by running alongside RunicStorage.
+Cyan and other exact colors now use a private neutral font-face material so the original sign tint does not multiply the chosen color.
 
-The preview shows text styling; inspect the placed sign after saving to judge its physical size and position. New and existing vanilla signs are supported. Modded sign prefabs are intentionally outside this release's scope.
+## Multiplayer and saved designs
 
-## Install
+Install the same RunicSigns version on the server and participating clients. Normal sign ownership and ward permissions still apply. Save commits an existing sign design; Cancel restores its saved appearance.
 
-Install **BepInExPack Valheim 5.4.2350** and put `RunicSigns.dll` under `BepInEx/plugins/RunicSigns` on **every player and the server**, using the same RunicSigns version. Restart those processes after installation. RunicStorage can remain installed.
+## Compatibility
 
-BetterSigns must be disabled because both replace the same sign editor; BepInEx prevents RunicSigns from loading alongside it. Other mods that replace sign editing or change sign scale may also conflict.
+Outline/shadow use the font shader; bundled emoji sprites bend with the caption but retain their own artwork material. Very strong depth curves can intersect nearby scenery.
 
-## Multiplayer and saves
+Existing version-1, version-2 and version-3 styles are readable. Saving a design writes version-4 style data. Earlier RunicSigns releases cannot display/edit that new styling; ordinary caption text remains in the native sign data. Placement drafts are session-local, not config templates.
 
-Each sign's appearance is saved with the world and synchronized between participating installations. Captions and authorship use Valheim's normal sign data and retain the game's text visibility and filtering behavior.
+Before downgrading or uninstalling, back up your world. Older releases cannot render the newer style metadata, although native caption text remains available.
 
-Stay within five metres of the sign and make sure you have ward access. If another player changes the sign while you are editing, your stale save is refused and your draft remains open. Copy your caption before reopening the sign. Cancelled or timed-out requests do not later apply the discarded draft.
+## Artwork
 
-All participants need the mod for consistent dimensions and save coordination. If saving repeatedly times out, check that every player and the server have the same RunicSigns version installed.
+Twemoji graphics copyright Twitter, Inc. and other contributors, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), from [jdecked/twemoji](https://github.com/jdecked/twemoji). Icons are arranged in a padded atlas without changing the artwork. The graphics license is embedded in the DLL.
 
-World saving follows normal Valheim save timing. Uninstalling retains the vanilla signs and captions; custom appearance stops being applied. RunicSigns fields remain available if the mod is reinstalled. Literal tags in a caption may be interpreted by vanilla after uninstalling.
+## Language files
 
-## Release notes
+This version follows Valheim's selected language using files in `Translations/RunicSigns` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
 
-Version **1.0.3** fixes the text-position arrows moving captions off the board. Each nudge now accounts for the text object's scale and rotation. Existing saved offsets use the corrected placement automatically; use **Center** to reset a sign's text position.
+## Support development
 
-Version **1.0.2** fixes the input-hook conflict with RunicStorage that could prevent movement and camera control after closing an editor. In-game operation was confirmed by the author following this fix.
+## Support My Work
 
-Automated checks cover sign settings, simulated multiplayer saves, compatibility with the installed game APIs, and input recovery with both RunicStorage and RunicSigns loaded. Dedicated-server and broader multiplayer edge-case testing remain limited.
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
 
-## Support
-
-Report issues through [the Runic mods Discord](https://discord.gg/7HKHTCdFqY). Include your RunicSigns version, whether you are playing solo or on a server, and the relevant BepInEx log messages.
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

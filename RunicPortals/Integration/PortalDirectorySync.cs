@@ -26,7 +26,7 @@ namespace RunicPortals.Integration
         private const int DirectoryTerminalMarker = 0x50524431;
         private const int MapDirectoryTerminalMarker = 0x50524D31;
         private const int MaximumDirectoryEnvelopeBytes = 2048;
-        private const int MaximumDirectoryEndpointsSent = 512;
+        private const int MaximumDirectoryEndpointsSent = PortalContractLimits.MaximumGraphEndpoints;
         private const int MaximumDirectoryAttempts = 8;
         private const float MaximumDirectoryRequestDistanceMeters = 16f;
         private const float DirectoryRequestTimeoutSeconds = 8f;
@@ -92,7 +92,7 @@ namespace RunicPortals.Integration
             session.DirectoryLocallyKnown = locallyKnown ?? new List<PickerCandidate>();
             session.DirectoryLocallyTruncated = locallyTruncated;
             SendDirectoryRequest(session, network, server);
-            Message(session.Player, "Loading authorized portals from the server...");
+            Message(session.Player, global::Runic.Localization.RunicText.Get("text_c716445bcf38"));
             return true;
         }
 

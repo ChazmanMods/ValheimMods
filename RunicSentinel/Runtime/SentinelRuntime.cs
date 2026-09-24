@@ -380,7 +380,7 @@ namespace RunicSentinel.Runtime
                 _integrityReason = "disposed";
                 network = _network;
                 _network = null;
-                _status = "Disposed";
+                _status = global::Runic.Localization.RunicText.Get("text_3b8d3aeeffd9");
                 Evidence.SetPolicySequence(0L);
             }
             try { network?.Dispose(); }
@@ -573,7 +573,7 @@ namespace RunicSentinel.Runtime
             { status = "PolicyNotYetValid"; return null; }
             if (policy.ExpiresUnixSeconds != 0L && now >= policy.ExpiresUnixSeconds)
             { status = "PolicyExpired"; return null; }
-            status = "Verified";
+            status = global::Runic.Localization.RunicText.Get("text_4f7838402f37");
             return policy;
         }
 

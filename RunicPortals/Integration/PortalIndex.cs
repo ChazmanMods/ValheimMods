@@ -65,7 +65,7 @@ namespace RunicPortals.Integration
             for (int index = 0; index < _sorted.Count; index++)
             {
                 ZDO zdo = _sorted[index];
-                if (!PortalZdoCodec.TryRead(zdo, out PortalEndpoint endpoint, out string failure))
+                if (!PortalZdoCodec.TryReadDestination(zdo, out PortalEndpoint endpoint, out string failure))
                 {
                     if (failure == "schema-unsupported" || failure == "mode-unsupported" ||
                         failure == "record-invalid")

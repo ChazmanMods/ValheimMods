@@ -12,6 +12,9 @@ internal static class Program
     {
         bool expectLegacyFailure = args.Contains("--expect-legacy-failure");
         bool sawFailure = false;
+        // Awareness caches this same open delegate before optional panels finish patching.
+        var awarenessInput = AccessTools.MethodDelegate<Func<Player, bool>>(
+            AccessTools.Method(typeof(Player), "TakeInput"));
         foreach (bool reverseOrder in new[] { false, true })
         {
             var storage = Assembly.Load("StorageHooks"); var signs = Assembly.Load("SignsHooks");
@@ -33,9 +36,13 @@ internal static class Program
                     _storageOpen = _signsOpen = false; Time.frameCount += 10;
                     var camera = new GameCamera();
                     _storageOpen = openStorage; _signsOpen = !openStorage;
+                    if (awarenessInput(Player.m_localPlayer))
+                        throw new Exception("Awareness input gate did not hide for an open mod panel.");
                     camera.UpdateCamera(.016f);
                     if (camera.Look.x != 0) throw new Exception("Editor did not block camera input.");
                     _storageOpen = _signsOpen = false; Time.frameCount += 10;
+                    if (!awarenessInput(Player.m_localPlayer))
+                        throw new Exception("Awareness input gate did not recover after closing the panel.");
                     camera.UpdateCamera(.016f);
                     bool recovered = ZInput.GetButton("Forward") && ZInput.GetButtonDown("Use") && camera.Look.x == 1 &&
                         !(bool)storageState.GetProperty("CameraBlocked", Flags).GetValue(null) &&

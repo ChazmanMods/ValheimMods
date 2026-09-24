@@ -5,6 +5,33 @@ using UnityEngine;
 
 namespace RunicProduction.Integration
 {
+    [HarmonyPatch(typeof(Player), "Awake")]
+    internal static class ProductionCookingExperiencePlayerPatch
+    {
+        private static void Postfix(Player __instance)
+        {
+            try { CookingExperience.Register(__instance); }
+            catch (Exception exception) { ProductionRuntime.FailHook("cooking XP registration", exception); }
+        }
+    }
+
+    [HarmonyPatch(typeof(Beehive), "Awake")]
+    internal static class ProductionBeehiveAwakePatch
+    {
+        private static void Postfix(Beehive __instance)
+        {
+            try { ProductionRuntime.Register(__instance); }
+            catch (Exception exception) { ProductionRuntime.FailHook("Beehive.Awake", exception); }
+        }
+    }
+
+    [HarmonyPatch(typeof(Beehive), nameof(Beehive.GetHoverText))]
+    internal static class ProductionBeehiveHoverPatch
+    {
+        private static void Postfix(Beehive __instance, ref string __result) =>
+            ProductionRuntime.AppendHover(__instance, Contracts.ProductionLinkRole.Output, ref __result);
+    }
+
     [HarmonyPatch(typeof(Container), "Awake")]
     internal static class ProductionHandoffContainerPatch
     {
@@ -18,7 +45,11 @@ namespace RunicProduction.Integration
     [HarmonyPatch(typeof(ZNet), "OnDestroy")]
     internal static class ProductionHandoffWorldExitPatch
     {
-        private static void Postfix() => ProductionChestHandoff.Clear();
+        private static void Postfix()
+        {
+            ProductionChestHandoff.Clear();
+            ProductionOwnershipDiagnostics.Clear();
+        }
     }
 
     [HarmonyPatch(typeof(Player), "Update")]

@@ -13,7 +13,7 @@ namespace RunicPortals
     {
         public const string Guid = "chazman.RunicPortals";
         public const string Name = "Runic Portals";
-        public const string Version = "1.2.4";
+        public const string Version = "1.2.10";
 
         private Harmony _harmony;
         private CorrelatedDiagnosticBuffer _diagnostics;
@@ -29,11 +29,11 @@ namespace RunicPortals
             if (!RuntimeReady) return;
             RuntimeReady = false;
             Diagnostics.Error(exception,
-                "Runic Portals " + context + " hook faulted and was disabled for this session.");
+                global::Runic.Localization.RunicText.Get("text_11ba77847647") + context + global::Runic.Localization.RunicText.Get("text_f6268d75e29f"));
             try { CurrentRuntime?.Shutdown(); }
             catch (Exception cleanup)
             {
-                Diagnostics.Error(cleanup, "Portal runtime fault cleanup failed.");
+                Diagnostics.Error(cleanup, global::Runic.Localization.RunicText.Get("text_3b6ad9d7470b"));
             }
         }
 
@@ -65,7 +65,7 @@ namespace RunicPortals
                 RuntimeReady = true;
                 Logger.LogInfo(
                     Name + " v" + Version + " ready for Valheim " +
-                    ValheimContracts.AuditedGameVersion +
+                    ValheimContracts.ReadGameVersion() +
                     ". Network portals use native local ownership; Group commands use one bounded session channel.");
             }
             catch (Exception exception)

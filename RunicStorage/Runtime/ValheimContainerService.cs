@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
+using Runic.Compatibility;
 using ItemData = ItemDrop.ItemData;
 
 namespace RunicStorage.Runtime
 {
-    internal enum StorageMoveFailure { None, InvalidInput, OwnershipChanged, NoCapacity, SnapshotInvalid }
+    internal enum StorageMoveFailure { None, InvalidInput, OwnershipChanged, NoCapacity, SnapshotInvalid, UnsupportedDrawerMetadata, MutationBusy, RolledBack, Indeterminate }
 
     internal static class ValheimContainerService
     {
@@ -76,6 +77,15 @@ namespace RunicStorage.Runtime
                 ReferenceEquals(source, destination) || maximumQuantity <= 0 ||
                 !HasSourceStack(source, sourceItem)) return 0;
 
+            if (RunicAutomation.MutationGate.IsBlocked(source) || RunicAutomation.MutationGate.IsBlocked(destination))
+            { failure = StorageMoveFailure.Indeterminate; return 0; }
+            RunicAutomation.MutationLease standalone = null;
+            if (playerMutationLease == null && !RunicAutomation.MutationGate.TryBegin("storage-transfer", out standalone))
+            { failure = StorageMoveFailure.MutationBusy; return 0; }
+            using var standaloneScope = standalone;
+            RunicAutomation.MutationLease operation = RunicAutomation.MutationGate.Current;
+            operation?.Track(source); operation?.Track(destination);
+
             Inventory playerInventory = playerInventoryOwner?.GetInventory();
             bool touchesPlayer = ReferenceEquals(source, playerInventory) ||
                                  ReferenceEquals(destination, playerInventory);
@@ -89,16 +99,30 @@ namespace RunicStorage.Runtime
                     "A player inventory move requires its exact local owner lease.");
             failure = StorageMoveFailure.OwnershipChanged;
             if (!StillOwned(sourceContainer) || !StillOwned(destinationContainer)) return 0;
+            Func<bool> sourceAuthority = StorageContainerAuthority.CaptureAuthority(sourceContainer);
+            Func<bool> destinationAuthority = StorageContainerAuthority.CaptureAuthority(destinationContainer);
 
             int requested = Math.Min(maximumQuantity, sourceItem.m_stack);
-            int maximumStack = Math.Max(1, sourceItem.m_shared?.m_maxStackSize ?? 1);
+            bool sourceDrawer = ModdedContainerCompatibility.IsDrawer(sourceContainer);
+            bool destinationDrawer = ModdedContainerCompatibility.IsDrawer(destinationContainer);
+            ItemData template = sourceDrawer ? ModdedContainerCompatibility.NativeTemplate(sourceItem) : sourceItem;
+            if (destinationDrawer && !CanStoreInDrawer(sourceItem, destination))
+            {
+                failure = destination.GetAllItems().Count == 1 &&
+                    destination.GetAllItems()[0].m_dropPrefab == sourceItem.m_dropPrefab
+                    ? StorageMoveFailure.UnsupportedDrawerMetadata : StorageMoveFailure.InvalidInput;
+                return 0;
+            }
+            int maximumStack = destinationDrawer
+                ? destination.GetAllItems()[0].m_shared.m_maxStackSize
+                : Math.Max(1, template.m_shared?.m_maxStackSize ?? 1);
             int capacity = 0;
             foreach (ItemData item in destination.GetAllItems())
-                if (CanMergeExact(sourceItem, item) && item.m_stack < maximumStack)
+                if ((destinationDrawer || CanMergeExact(template, item, sourceDrawer)) && item.m_stack < maximumStack)
                     capacity = AddSaturated(capacity, maximumStack - item.m_stack);
             for (int y = 0; y < destination.GetHeight(); y++)
             for (int x = 0; x < destination.GetWidth(); x++)
-                if (destination.GetItemAt(x, y) == null)
+                if (!destinationDrawer && destination.GetItemAt(x, y) == null)
                     capacity = AddSaturated(capacity, maximumStack);
 
             int quantity = Math.Min(requested, capacity);
@@ -116,6 +140,7 @@ namespace RunicStorage.Runtime
                 failure = StorageMoveFailure.SnapshotInvalid;
                 return 0;
             }
+            string expectedSource = null, expectedDestination = null;
             try
             {
                 Inventory sourceShadow = sourceBefore.CreateShadow();
@@ -124,31 +149,57 @@ namespace RunicStorage.Runtime
                     sourceItem.m_gridPos.x, sourceItem.m_gridPos.y);
                 if (shadowItem == null)
                     throw new InvalidOperationException("The source stack changed before publication.");
-                ApplyExactMove(sourceShadow, destinationShadow, shadowItem, quantity);
-                string expectedSource = SaveInventory(sourceShadow).GetBase64();
-                string expectedDestination = SaveInventory(destinationShadow).GetBase64();
+                ApplyExactMove(sourceShadow, destinationShadow, shadowItem, quantity, sourceDrawer, destinationDrawer);
+                expectedSource = Fingerprint(sourceShadow);
+                expectedDestination = Fingerprint(destinationShadow);
 
-                ApplyExactMove(source, destination, sourceItem, quantity);
-                if (!StillOwned(sourceContainer) || !StillOwned(destinationContainer) ||
-                    !string.Equals(SaveInventory(source).GetBase64(), expectedSource, StringComparison.Ordinal) ||
-                    !string.Equals(SaveInventory(destination).GetBase64(), expectedDestination, StringComparison.Ordinal))
+                Action sourceChanged = source.m_onChanged, destinationChanged = destination.m_onChanged;
+                try
+                {
+                    source.m_onChanged = null; destination.m_onChanged = null;
+                    ApplyExactMove(source, destination, sourceItem, quantity, sourceDrawer, destinationDrawer);
+                }
+                finally { source.m_onChanged = sourceChanged; destination.m_onChanged = destinationChanged; }
+                sourceChanged?.Invoke();
+                destinationChanged?.Invoke();
+                if (!sourceAuthority() || !destinationAuthority() ||
+                    !string.Equals(Fingerprint(source), expectedSource, StringComparison.Ordinal) ||
+                    !string.Equals(Fingerprint(destination), expectedDestination, StringComparison.Ordinal))
                     throw new InvalidOperationException("An endpoint changed during Storage publication.");
                 failure = StorageMoveFailure.None;
+                operation?.Complete(RunicAutomation.MutationOutcome.Committed);
                 return quantity;
             }
             catch (Exception publicationFailure)
             {
                 var restoreFailures = new List<Exception> { publicationFailure };
-                try { RestoreInventory(source, sourceBefore, playerInventoryOwner, playerMutationLease); }
+                try { RestoreKnown(source, sourceBefore, expectedSource, sourceAuthority, playerInventoryOwner, playerMutationLease); }
                 catch (Exception exception) { restoreFailures.Add(exception); }
-                try { RestoreInventory(destination, destinationBefore, playerInventoryOwner, playerMutationLease); }
+                try { RestoreKnown(destination, destinationBefore, expectedDestination, destinationAuthority, playerInventoryOwner, playerMutationLease); }
                 catch (Exception exception) { restoreFailures.Add(exception); }
                 if (restoreFailures.Count > 1)
-                    throw new AggregateException(
-                        "A Storage move failed and one or more exact rollbacks failed.",
-                        restoreFailures);
+                {
+                    failure = StorageMoveFailure.Indeterminate;
+                    RunicAutomation.MutationGate.Block(source); RunicAutomation.MutationGate.Block(destination);
+                    operation?.Complete(RunicAutomation.MutationOutcome.Indeterminate);
+                    throw new RunicAutomation.MutationIndeterminateException("storage " + operation?.Id,
+                        new AggregateException(restoreFailures));
+                }
+                failure = StorageMoveFailure.RolledBack;
+                operation?.Complete(RunicAutomation.MutationOutcome.RolledBack);
                 throw;
             }
+        }
+
+        internal static void RestoreKnown(Inventory inventory, StorageInventorySnapshot snapshot,
+            string expected, Func<bool> authority, Player player, StorageMutationLease lease)
+        {
+            if (!authority() || player != null && ReferenceEquals(player.GetInventory(), inventory) && !player.IsOwner())
+                throw new InvalidOperationException("Recovery authority lost.");
+            try { snapshot.Verify(inventory); return; } catch { }
+            if (expected == null || Fingerprint(inventory) != expected)
+                throw new InvalidOperationException("Recovery would overwrite an unrelated inventory change.");
+            RestoreInventory(inventory, snapshot, player, lease);
         }
 
         internal static void RestoreInventory(
@@ -174,6 +225,13 @@ namespace RunicStorage.Runtime
         internal static Inventory CloneInventory(Inventory source) =>
             new StorageInventorySnapshot(source).CreateShadow();
 
+        internal static string Fingerprint(Inventory inventory)
+        {
+            var text = new System.Text.StringBuilder(SaveInventory(inventory).GetBase64());
+            foreach (ItemData item in inventory.GetAllItems()) text.Append('|').Append(item.m_stack);
+            return text.ToString();
+        }
+
         internal static ZPackage SaveInventory(Inventory source)
         {
             var package = new ZPackage();
@@ -191,15 +249,31 @@ namespace RunicStorage.Runtime
             Inventory source,
             Inventory destination,
             ItemData sourceItem,
-            int quantity)
+            int quantity, bool sourceDrawer = false, bool destinationDrawer = false)
         {
             if (source.GetItemAt(sourceItem.m_gridPos.x, sourceItem.m_gridPos.y) != sourceItem ||
                 sourceItem.m_stack < quantity)
                 throw new InvalidOperationException("The source changed during an exact move.");
-            int maximumStack = Math.Max(1, sourceItem.m_shared?.m_maxStackSize ?? 1);
+            if (destinationDrawer)
+            {
+                // Keep the drawer's own item and oversized SharedData inside the drawer.
+                // Its callback persists the native drawer quantity; do not use AddItem RPCs.
+                if (!CanStoreInDrawer(sourceItem, destination))
+                    throw new InvalidOperationException("The drawer item type changed.");
+                ItemData target = destination.GetAllItems()[0];
+                if (quantity > target.m_shared.m_maxStackSize - target.m_stack)
+                    throw new InvalidOperationException("The drawer capacity changed.");
+                target.m_stack += quantity;
+                InventoryChangedMethod.Invoke(destination, new object[] { false, false });
+                if (!RemoveExact(source, sourceItem, quantity, sourceDrawer))
+                    throw new InvalidOperationException("The source changed during a drawer move.");
+                return;
+            }
+            ItemData template = sourceDrawer ? ModdedContainerCompatibility.NativeTemplate(sourceItem) : sourceItem;
+            int maximumStack = Math.Max(1, template.m_shared?.m_maxStackSize ?? 1);
             var mergeTargets = new List<ItemData>();
             foreach (ItemData item in destination.GetAllItems())
-                if (CanMergeExact(sourceItem, item) && item.m_stack < maximumStack)
+                if (CanMergeExact(template, item, sourceDrawer) && item.m_stack < maximumStack)
                     mergeTargets.Add(item);
             mergeTargets.Sort(CompareItemSlots);
 
@@ -208,7 +282,7 @@ namespace RunicStorage.Runtime
             {
                 if (remaining == 0) break;
                 int moved = Math.Min(remaining, maximumStack - target.m_stack);
-                AddAt(destination, sourceItem, moved, target.m_gridPos);
+                AddAt(destination, template, moved, target.m_gridPos);
                 remaining -= moved;
             }
             for (int y = 0; y < destination.GetHeight() && remaining > 0; y++)
@@ -216,11 +290,38 @@ namespace RunicStorage.Runtime
             {
                 if (destination.GetItemAt(x, y) != null) continue;
                 int moved = Math.Min(remaining, maximumStack);
-                AddAt(destination, sourceItem, moved, new Vector2i(x, y));
+                AddAt(destination, template, moved, new Vector2i(x, y));
                 remaining -= moved;
             }
-            if (remaining != 0 || !source.RemoveItem(sourceItem, quantity))
+            if (remaining != 0 || !RemoveExact(source, sourceItem, quantity, sourceDrawer))
                 throw new InvalidOperationException("The source changed during an exact move.");
+        }
+
+        private static bool RemoveExact(Inventory source, ItemData item, int quantity, bool drawer)
+        {
+            if (!drawer) return source.RemoveItem(item, quantity);
+            if (!source.GetAllItems().Contains(item) || item.m_stack < quantity) return false;
+            item.m_stack -= quantity; // Keep ItemDrawers' assigned empty item in both live and shadow state.
+            InventoryChangedMethod.Invoke(source, new object[] { false, false });
+            return true;
+        }
+
+        private static bool CanStoreInDrawer(ItemData item, Inventory destination)
+        {
+            // Makail persists only prefab + count. Match its native handling of spawned
+            // items: picked-up/cheated flags are not retained by a drawer. Still refuse
+            // custom data, quality, attribution and other meaningful item differences.
+            var drop = item?.m_dropPrefab != null ? item.m_dropPrefab.GetComponent<ItemDrop>() : null;
+            if (drop == null || destination.GetAllItems().Count != 1) return false;
+            ItemData target = destination.GetAllItems()[0];
+            ItemData canonical = drop.m_itemData;
+            return target.m_dropPrefab == item.m_dropPrefab && item.m_quality == canonical.m_quality &&
+                item.m_variant == canonical.m_variant && item.m_worldLevel == canonical.m_worldLevel &&
+                item.m_crafterID == canonical.m_crafterID &&
+                string.Equals(item.m_crafterName ?? "", canonical.m_crafterName ?? "", StringComparison.Ordinal) &&
+                !item.m_equipped && !item.m_shared.m_questItem &&
+                item.m_durability.Equals(canonical.m_durability) &&
+                DictionaryEquals(item.m_customData, canonical.m_customData);
         }
 
         private static void AddAt(
@@ -239,7 +340,7 @@ namespace RunicStorage.Runtime
                 throw new InvalidOperationException("The destination changed during an exact move.");
         }
 
-        private static bool CanMergeExact(ItemData left, ItemData right) =>
+        private static bool CanMergeExact(ItemData left, ItemData right, bool ignorePickupState = false) =>
             left != null && right != null &&
             string.Equals(
                 ValheimContainerIdentity.ResourceId(left),
@@ -249,7 +350,7 @@ namespace RunicStorage.Runtime
             left.m_worldLevel == right.m_worldLevel && left.m_crafterID == right.m_crafterID &&
             string.Equals(left.m_crafterName ?? string.Empty,
                 right.m_crafterName ?? string.Empty, StringComparison.Ordinal) &&
-            left.m_pickedUp == right.m_pickedUp && left.m_equipped == right.m_equipped &&
+            (ignorePickupState || left.m_pickedUp == right.m_pickedUp) && left.m_equipped == right.m_equipped &&
             left.m_cheated == right.m_cheated &&
             left.m_durability.Equals(right.m_durability) &&
             DictionaryEquals(left.m_customData, right.m_customData);

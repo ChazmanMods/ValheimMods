@@ -17,7 +17,7 @@ namespace RunicInventory.Integration
         private static void Postfix(Player __instance)
         {
             try { Plugin.Instance?.Runtime?.OnLocalPlayerChanged(__instance); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Local-player topology bind failed closed."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_5e2af652f514")); }
         }
     }
 
@@ -33,7 +33,7 @@ namespace RunicInventory.Integration
             try { runtime.SetNativeInventorySize(__instance, __0); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Dedicated-row resize failed; original inventory retained.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_f57245ae7d85"));
                 runtime.FailClosed("topology.native-resize-faulted");
             }
             return false;
@@ -49,7 +49,7 @@ namespace RunicInventory.Integration
             try { return Plugin.Instance?.Runtime?.AllowInvalidItemCleanup(__instance) ?? true; }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Inventory cleanup guard faulted; automatic item dropping was skipped.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_52e7295e93f5"));
                 return false;
             }
         }
@@ -84,21 +84,21 @@ namespace RunicInventory.Integration
         {
             if (__instance != Player.m_localPlayer) return;
             try { Plugin.Instance?.Runtime?.OnPlayerLoadStarted(__instance); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Player-load topology scope failed closed."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_e0f06451ec8e")); }
         }
 
         private static void Postfix(Player __instance)
         {
             if (__instance != Player.m_localPlayer) return;
             try { Plugin.Instance?.Runtime?.OnPlayerLoadCompleted(__instance); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Loaded player topology bind failed closed."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_ee6b51b127eb")); }
         }
 
         private static Exception Finalizer(Player __instance, Exception __exception)
         {
             if (__exception == null || __instance != Player.m_localPlayer) return __exception;
             try { Plugin.Instance?.Runtime?.OnPlayerLoadFaulted(__instance); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Faulted player-load topology cleanup failed closed."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_a01583f91988")); }
             return __exception;
         }
     }
@@ -120,7 +120,7 @@ namespace RunicInventory.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Special-row empty-slot routing faulted; vanilla routing won for this call.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_a7d775bf70dd"));
                 return true;
             }
         }
@@ -154,7 +154,7 @@ namespace RunicInventory.Integration
             try { Plugin.Instance?.Runtime?.AdjustCanAddItem(__instance, __0, __1, ref __result); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Safe carrying-capacity validation faulted; capacity was declined.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_53761e20f3aa"));
                 __result = false;
             }
         }
@@ -182,7 +182,7 @@ namespace RunicInventory.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Inventory grid validation faulted; the requested move was declined.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_7a37cc353ed8"));
                 __result = false;
                 return false;
             }
@@ -191,7 +191,7 @@ namespace RunicInventory.Integration
         private static void Postfix(InventoryGrid __instance, Vector2i __3, bool __result)
         {
             try { Plugin.Instance?.Runtime?.AfterGridDrop(__instance.GetInventory(), __3, __result); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Equipment-role post-drop handling failed closed."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_ddb31309f28b")); }
         }
     }
 
@@ -206,7 +206,7 @@ namespace RunicInventory.Integration
             try { return Plugin.Instance?.Runtime?.AllowSelectedAction(__0, __1, __3) ?? true; }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Locked-slot selection validation faulted; the destructive/move action was declined.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_3e88cfe8d8ea"));
                 return false;
             }
         }
@@ -221,7 +221,7 @@ namespace RunicInventory.Integration
             try { return !(Plugin.Instance?.Runtime?.TryTogglePointerLock(__instance, __0) ?? false); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Alt-right-click slot lock failed closed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_8c84b47b888a"));
                 return false;
             }
         }
@@ -245,7 +245,7 @@ namespace RunicInventory.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Locked-item drop validation faulted; the drop was declined.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_bd906f82d5a1"));
                 __result = false;
                 return false;
             }
@@ -261,7 +261,7 @@ namespace RunicInventory.Integration
             try { return Plugin.Instance?.Runtime?.AllowItemAction(__instance, __0, __1, "using it") ?? true; }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Locked-item use validation faulted; the use was declined.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_e5a67ea3dfef"));
                 return false;
             }
         }
@@ -293,7 +293,7 @@ namespace RunicInventory.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Locked equipment-target validation faulted; replacement was declined.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_93f1585631fb"));
                 __result = false;
                 return false;
             }
@@ -305,7 +305,7 @@ namespace RunicInventory.Integration
         private static void Postfix(Humanoid __instance, ItemDrop.ItemData __0, bool __result)
         {
             try { Plugin.Instance?.Runtime?.OnEquipped(__instance, __0, __result); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Equipment-role relocation failed closed."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_6f0fac2b7d96")); }
         }
 
         private static Exception Finalizer(bool __state, Exception __exception)
@@ -313,9 +313,9 @@ namespace RunicInventory.Integration
             try { Plugin.Instance?.Runtime?.EndEquipmentTransition(__state, __exception); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Equipment transition cleanup failed closed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_8ffe7868b2d8"));
                 try { Plugin.Instance?.Runtime?.FailClosed("equipment.transition-cleanup-faulted"); }
-                catch (Exception nested) { Diagnostics.Error(nested, "Equipment transition fail-closed publication faulted."); }
+                catch (Exception nested) { Diagnostics.Error(nested, global::Runic.Localization.RunicText.Get("text_6eb22f316c66")); }
             }
             return __exception;
         }
@@ -342,7 +342,7 @@ namespace RunicInventory.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Pickup filter faulted; vanilla pickup handling won.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_3a8dd69f38c1"));
                 return true;
             }
         }
@@ -350,7 +350,7 @@ namespace RunicInventory.Integration
         private static void Postfix(bool __result, EquipmentAdditionState __state)
         {
             try { Plugin.Instance?.Runtime?.CompleteEquipmentAddition(__state, __result); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Picked-up equipment placement failed closed."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_4242334d5891")); }
         }
     }
 
@@ -360,7 +360,7 @@ namespace RunicInventory.Integration
         private static void Postfix(ItemDrop __instance, ref string __result)
         {
             try { Plugin.Instance?.Runtime?.AppendPickupPreview(__instance, ref __result); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Pickup preview failed closed; vanilla hover text was retained."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_badc41bb45b3")); }
         }
     }
 
@@ -380,7 +380,7 @@ namespace RunicInventory.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Locked upgrade/crafting selection validation faulted; the action was declined.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_9dcb98dbeaf2"));
                 return false;
             }
         }
@@ -388,7 +388,7 @@ namespace RunicInventory.Integration
         private static void Postfix(EquipmentAdditionState __state)
         {
             try { Plugin.Instance?.Runtime?.CompleteEquipmentAddition(__state, true); }
-            catch (Exception exception) { Diagnostics.Error(exception, "Crafted equipment placement failed closed."); }
+            catch (Exception exception) { Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_8ba112f9b4a1")); }
         }
     }
 
@@ -403,7 +403,7 @@ namespace RunicInventory.Integration
             catch (Exception exception)
             {
                 __state = false;
-                Diagnostics.Error(exception, "Repair protection allowance could not start; vanilla repair remains available.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_308dd06e3440"));
             }
         }
 
@@ -412,7 +412,7 @@ namespace RunicInventory.Integration
             try { Plugin.Instance?.Runtime?.EndRepairAllowance(__state); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Repair protection allowance cleanup faulted.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_0e0b093f6911"));
             }
             return __exception;
         }
@@ -435,7 +435,7 @@ namespace RunicInventory.Integration
             }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Locked-item station validation faulted; the station action was declined.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_89b92dc8251d"));
                 result = false;
                 return false;
             }

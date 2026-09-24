@@ -6,13 +6,15 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-public struct Vector2i { public int x, y; public Vector2i(int x, int y) { this.x=x; this.y=y; } }
+public struct Vector2i { public static Vector2i zero => new Vector2i(0,0); public int x, y; public Vector2i(int x, int y) { this.x=x; this.y=y; } }
 public static class Version { public enum Item { Current = 109 } }
 public sealed class ZPackage
 {
     private readonly MemoryStream stream;
     private readonly BinaryReader reader;
     private readonly BinaryWriter writer;
+    public ZPackage(string data) : this(Convert.FromBase64String(data)) {}
+    public int Size() => (int)stream.Length;
     public ZPackage() : this(Array.Empty<byte>()) { }
     public ZPackage(byte[] bytes) { stream=new MemoryStream(); stream.Write(bytes); stream.Position=0; reader=new BinaryReader(stream); writer=new BinaryWriter(stream); }
     public void Write(int x)=>writer.Write(x);
@@ -33,9 +35,10 @@ public sealed class ItemDrop
 {
     public string ResourceName;
     public ItemData m_itemData = new ItemData();
-    public sealed class SharedData { public int m_maxStackSize=50; }
+    public sealed class SharedData { public int m_maxStackSize=50; public bool m_questItem; }
     public sealed class ItemData
     {
+        public FakePrefab m_dropPrefab;
         public int Prefab=1, m_stack=1, m_quality=1, m_variant, m_worldLevel;
         public float m_durability;
         public long m_crafterID;
@@ -113,8 +116,10 @@ public sealed class Player
     public static Player m_localPlayer; public bool Owner=true; public Inventory Inventory;
     public Inventory GetInventory()=>Inventory; public bool IsOwner()=>Owner; public long GetPlayerID()=>1;
 }
-public sealed class Container
+public class Container
 {
+    public ZNetView View = new ZNetView();
+    public T GetComponent<T>() where T:class => View as T;
     public bool isActiveAndEnabled=true, Owner=true, AccessAllowed=true, m_checkGuardStone;
     public Inventory Inventory; public Transform transform=new Transform();
     public bool IsOwner()=>Owner; public Inventory GetInventory()=>Inventory;
@@ -126,7 +131,7 @@ namespace HarmonyLib {public static class AccessTools {public static MethodInfo 
 namespace RunicStorage.Runtime
 {
     internal static class ValheimContainerIdentity {internal static string ResourceId(ItemDrop.ItemData item)=>item.Prefab.ToString();}
-    internal static class StorageContainerAuthority {internal static bool TryClaimWritableInventory(Container c,bool allowCurrentUse)=>c.Owner;}
+    internal static class StorageContainerAuthority { internal static Func<bool> CaptureAuthority(Container c) => () => c == null || c.Owner;internal static bool TryClaimWritableInventory(Container c,bool allowCurrentUse)=>c.Owner;}
 }
 public sealed class Piece
 {
@@ -151,7 +156,14 @@ namespace RunicCrafting.Integration
         internal static string ResourceId(ItemDrop.ItemData item)=>item.Prefab.ToString();
         internal static bool IsUsableRequirementItem(ItemDrop.ItemData item,string resource)=>item.Prefab.ToString()==resource;
         internal static int CountRequirementItems(Inventory inventory,string resource)=>inventory.GetAllItems().Where(i=>IsUsableRequirementItem(i,resource)).Sum(i=>i.m_stack);
+        internal static string Fingerprint(Inventory inventory)
+        {
+            var text = new System.Text.StringBuilder(SaveInventory(inventory).GetBase64());
+            foreach (ItemDrop.ItemData item in inventory.GetAllItems()) text.Append('|').Append(item.m_stack);
+            return text.ToString();
+        }
         internal static ZPackage SaveInventory(Inventory inventory){var p=new ZPackage();inventory.Save(p);return p;}
+        internal static void NotifyInventoryChanged(Inventory inventory) => inventory.m_onChanged?.Invoke();
         internal static void RestoreInventory(Inventory inventory,CraftingInventorySnapshot snapshot)
         {
             snapshot.Restore(inventory);

@@ -23,7 +23,7 @@ namespace RunicClock
             if (use24Hour) return hour.ToString("00", CultureInfo.InvariantCulture) + ":" + minute.ToString("00", CultureInfo.InvariantCulture);
             int twelveHour = hour % 12;
             return (twelveHour == 0 ? 12 : twelveHour).ToString(CultureInfo.InvariantCulture) + ":" +
-                minute.ToString("00", CultureInfo.InvariantCulture) + (hour < 12 ? " AM" : " PM");
+                minute.ToString("00", CultureInfo.InvariantCulture) + (hour < 12 ? global::Runic.Localization.RunicText.Get("text_02f0185c8297") : global::Runic.Localization.RunicText.Get("text_cb6f53dae980"));
         }
 
         internal static double Clamp(double value, double min, double max, double fallback) =>

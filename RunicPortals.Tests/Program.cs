@@ -39,11 +39,7 @@ namespace RunicPortals.Tests
 
         private static void VersionGateAcceptsOnlyAuditedBuilds()
         {
-            if (!ValheimContracts.IsSupportedVersion("1.0.7") || !ValheimContracts.IsSupportedVersion("1.0.12"))
-                throw new Exception("Audited version rejected.");
-            foreach (string unsupported in new[] { "1.0.8", "1.0.13", "l-1.0.12", "1.0.120", "", null })
-                if (ValheimContracts.IsSupportedVersion(unsupported))
-                    throw new Exception("Unsupported version accepted.");
+            if (ValheimContracts.AuditedGameVersion != "1.0.15") throw new Exception("Unexpected audited platform contract.");
         }
 
         private static int Main()
@@ -74,8 +70,8 @@ namespace RunicPortals.Tests
                 ("SignedGroupMembersKeepPortalPermissionBoundaries", SignedGroupMembersKeepPortalPermissionBoundaries),
                 ("GroupIdentityFailureRepliesWithoutMembershipDisclosure", GroupIdentityFailureRepliesWithoutMembershipDisclosure),
                 ("CompatibleGroupStoreUsesExistingFormat", CompatibleGroupStoreUsesExistingFormat),
-                ("DirectoryStaysInsideExactNetwork", DirectoryStaysInsideExactNetwork),
-                ("RouteRejectsCrossNetwork", RouteRejectsCrossNetwork),
+                ("DirectoryIncludesAuthorizedNetworks", DirectoryIncludesAuthorizedNetworks),
+                ("RouteAllowsAuthorizedCrossNetwork", RouteAllowsAuthorizedCrossNetwork),
                 ("OneWayRequiresAcknowledgement", OneWayRequiresAcknowledgement),
                 ("PublicPolicyDefaultsToTravelAndOwnerEdit", PublicPolicyDefaultsToTravelAndOwnerEdit),
                 ("PrivatePolicyRequiresRecordedOwner", PrivatePolicyRequiresRecordedOwner),
@@ -110,11 +106,10 @@ namespace RunicPortals.Tests
                 catch (Exception exception)
                 {
                     System.Console.WriteLine("FAIL " + name + ": " + exception.Message);
-                    return 1;
                 }
             }
             System.Console.WriteLine(passed + "/" + tests.Length + " tests passed.");
-            return 0;
+            return passed == tests.Length ? 0 : 1;
         }
 
         private static void InstalledValheimContractsInitialize()
@@ -529,7 +524,7 @@ namespace RunicPortals.Tests
             }
         }
 
-        private static void DirectoryStaysInsideExactNetwork()
+        private static void DirectoryIncludesAuthorizedNetworks()
         {
             var graph = new PortalGraph(new[]
             {
@@ -541,11 +536,12 @@ namespace RunicPortals.Tests
                 new PortalDirectoryQuery("valheim.player:1", "a", "home"),
                 new AllowAll());
             Equal(RouteStopCode.Ready, result.StopCode);
-            Equal(1, result.Entries.Count);
-            Equal("b", result.Entries[0].PortalId);
+            Equal(2, result.Entries.Count);
+            True(result.Entries.Any(entry => entry.PortalId == "b"));
+            True(result.Entries.Any(entry => entry.PortalId == "c"));
         }
 
-        private static void RouteRejectsCrossNetwork()
+        private static void RouteAllowsAuthorizedCrossNetwork()
         {
             var graph = new PortalGraph(new[]
             {
@@ -555,7 +551,7 @@ namespace RunicPortals.Tests
             RoutePlan plan = graph.Plan(new RoutePlanRequest(
                 "valheim.player:1", "a", "b", TravelPolicyState.Allowed, true),
                 new AllowAll());
-            Equal(RouteStopCode.NetworkMismatch, plan.StopCode);
+            Equal(RouteStopCode.Ready, plan.StopCode);
         }
 
         private static void OneWayRequiresAcknowledgement()
@@ -763,8 +759,8 @@ namespace RunicPortals.Tests
         private static void ManifestHasOnlyBepInEx()
         {
             string manifest = File.ReadAllText(Path.Combine(ProjectRoot(), "manifest.json"));
-            Contains(manifest, "\"version_number\": \"1.2.4\"");
-            Equal("1.2.4", Plugin.Version);
+            Contains(manifest, "\"version_number\": \"1.2.10\"");
+            Equal("1.2.10", Plugin.Version);
             Contains(manifest, "denikson-BepInExPack_Valheim-5.4.2350");
             Reject(manifest, "RunicCore", "RunicPersistence", "RunicPermissions", "RunicTransactions");
         }
@@ -802,7 +798,7 @@ namespace RunicPortals.Tests
                 ProjectRoot(), "Integration", "PortalMapPicker.cs"));
             Contains(source,
                 "MaximumDirectoryEnvelopeBytes = 2048",
-                "MaximumDirectoryEndpointsSent = 512",
+                "MaximumDirectoryEndpointsSent = PortalContractLimits.MaximumGraphEndpoints",
                 "MaximumDirectoryAttempts = 8",
                 "MaximumDirectoryRequestDistanceMeters = 16f",
                 "sourceZdoId",

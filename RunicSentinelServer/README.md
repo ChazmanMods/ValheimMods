@@ -1,75 +1,78 @@
-# Runic Sentinel Server 1.1.2
+# Runic Sentinel Server 1.2.0
 
-Runic Sentinel Server is the authority-only Raven's Gate package for a dedicated server or a
-listen host. It verifies and signs the approved mod policy, challenges each connecting player,
-enforces admission and bans, accepts authenticated remote-administrator requests, creates bounded
-reports, and coordinates verified transition backups.
+Runic Sentinel Server manages approved mods, player admission, administrator permissions and bans on your dedicated server. Administrators connect using the full Runic Sentinel mod and its F3 dashboard.
 
-Uses BepInExPack Valheim 5.4.2350 or newer. It gates Valheim 1.0's native
-invite-secret handshake and backs up both legacy world files and the 1.0 chunked-world directory.
+## Installation and setup
 
-This binary contains no client profile reporter, native client-handshake resume path, administrator
-window, cursor control, or player-input patch. When accidentally installed in a non-authoritative
-client profile it watches Valheim's role selection and remains inert. Install **Runic Sentinel
-Client** there instead.
+1. Install **RunicSentinelServer** on the dedicated server and **RunicSentinel** on the administrator's client. A listen host uses full RunicSentinel. Use only one of these two packages in each profile.
+2. Install the dependencies listed by your mod manager, including Runic Safety. Ordinary players use **RunicSentinelClient**.
+3. Start with **Remote Admission → Policy = Optional** in the server configuration.
+4. Add your account ID to the server's `adminlist.txt`, join the game and press **F3**.
+5. Select **Set Up Sentinel**, choose your mod policy, and select **Apply & Sign Policy**.
+6. When your players' mod profiles are ready, set admission to **Required** and restart the server.
 
-## Setup
+Keep the server's private key in `BepInEx/config/RunicSentinel/server-private` on the server. Keep your existing Sentinel configuration when updating.
 
-1. Install this package and Runic Safety on the server. Do not install the full Runic Sentinel
-   package alongside it; the two authority packages are intentionally incompatible.
-2. Start with `Remote Admission > Policy = Optional`.
-3. Add your account ID to the server's `adminlist.txt`. For Steam on Valheim 1.0, use
-   `V_<SteamID64>`; Sentinel also accepts raw SteamID64 and `Steam_<SteamID64>`.
-4. Install full Sentinel 1.4.0 or newer on your administrator client, join, press **F3**, and click
-   **Set Up Sentinel** once. The server verifies your account, backs up the world, and creates its
-   own signing key and initial administrator policy without a console command. Existing policy/key
-   files are never replaced by this setup. Ordinary players keep Runic Sentinel Client 1.0.1;
-   they cannot claim administrator access. A listen host that wants the panel uses full Sentinel
-   instead of this authority-only package.
-5. Review and sign the client profile, confirm `runic_sentinel status`, then restart with Required
-   admission when ready.
+## F3 dashboard
 
-The managed private key remains under
-`BepInEx/config/RunicSentinel/server-private/RunicSentinel.private.key`. Never distribute or package
-that directory. Existing full-Sentinel policy, signature, public-key, history, report, and backup
-paths are retained so switching authority packages does not fork server security state.
+- **Mod Policy:** search mods by name, choose Required, Allowed, Greylisted or Blocked, then select **Apply & Sign Policy**. Advanced rules let you specify versions and file restrictions.
+- **People:** filter all people, online accounts, administrators or banned accounts. Manage administrator rights and bans, kick connected players, review recent activity and create player reports.
+- **Commands:** enter a command and press Enter or **Run**. Browse the command guide, read command output, and toggle debug mode or no-cost building. Sentinel authorizes each request; no separate Server Devcommands mod is required.
+- **Catalog:** filter by mod or type and select an item or piece for its icon, internal ID, details and recipe. Build its arguments using quantity, applicable quality and qualifier controls, then append them to the selected console command. Review the console line and press Run.
+- **Players:** select an online character to view observations and last-known position, use character commands, teleport, bring them to you or kick them. Administrator names carry an Administrator suffix. Account roles, bans and reports are managed in People.
+- **Server Cap:** with Runic World Engine installed on the host, choose 2–64 players and select **Save for Next Restart**. Restart the host to apply the saved limit.
 
-Server administrators inherit Sentinel access by default. Set `[Administrator Access]
-UseServerAdminList = false` on the server to require only signed Sentinel roles. Signed roles are
-independent: removing someone from adminlist.txt does not remove a separately granted signed role;
-remove that role in the People tab too. Signed bans take precedence. New adminlist entries are read
-by Valheim on permission checks, with a roughly ten-second refresh interval. Close/reopen F3 after
-editing the list. Sentinel access does not itself enable another mod's devcommands.
+## Administrator access
 
-The manual `runic_sentinel bootstrap <authority> <subject>` server-console workflow remains available.
-Keep admission Optional until the intended client profile has been reviewed; first-time setup is
-not an automatic strict allowlist.
+Server administrators have Sentinel access by default. Add your account ID to the server's `adminlist.txt`; for Steam, use `V_<SteamID64>`. Close and reopen F3 after changing the list.
 
-Required mode withholds native admission until a fresh, bounded report from the exact direct
-connection passes the signed server policy. A missing responder, malformed report, stale challenge,
-banned identity, or policy mismatch reaches a finite denial. Client-reported DLL information remains
-compatibility evidence from a client-controlled process, not unforgeable anti-cheat proof.
+To use only Sentinel roles, set `UseServerAdminList = false` under **Administrator Access** in the server configuration. Remove separately assigned Sentinel roles in the People tab when revoking access. Bans take precedence over administrator roles.
 
-Authority preparation begins at Valheim's earliest server-role selection and binds to the exact
-server network instance when it is created. If authority startup fails while Required mode is
-selected, permanent safety gates block world loading and native client admission instead of silently
-running an unprotected server. Restart after correcting the logged startup error.
+## Commands and reports
 
-## Remote server-cap administration
+This authority package contains no client profile reporter or F3 renderer, remains inert on a non-server client, and is intentionally incompatible with the full RunicSentinel plugin in the same process. Use the full plugin on the administrator's client and this package on the dedicated server.
 
-With **RunicWorldEngine 1.2.x** installed and enabled on this host, administrators using full
-**RunicSentinel 1.4.0** can open **F3 → Server Cap**. The tab shows current players, the running
-cap, saved settings, and whether a restart is needed. Choose an override of **2–64** human players
-and click **Save for Next Restart**, or turn the override off to restore the vanilla limit after
-restart. World Engine accounts for the dedicated PlayFab host slot automatically.
+The authenticated player-detail endpoint returns observations without scanning world objects. Explicit report requests create JSON, CSV and TXT files under `BepInEx/config/RunicSentinel/PlayerReports`. Object attribution uses current world creator metadata and is not verified account authorship or complete historical activity.
 
-The server rechecks administrator access for every request. Saves update only the two World Engine
-player-cap settings, retain the previous configuration in
-`chazman.RunicWorldEngine.cfg.sentinel-cap.bak`, and reject stale edits. Nobody is disconnected and
-the host is not restarted by this action. Restart it when ready to apply the saved cap and run
-World Engine's startup integrity validation. No policy signing or role changes are involved.
+- `runic_sentinel status` shows the current policy and admission status.
+- `runic_sentinel report` saves a support report in `BepInEx/config/RunicSentinel/reports`.
+- `runic_sentinel networks` saves a snapshot of loaded portal and production networks from the host console.
 
-World Engine remains optional for other Sentinel features. This server-only package contains the
-cap handler, not the panel; RunicSentinelClient remains admission-only.
+## Language files
 
-Questions and logs: [Runic Mods Discord](https://discord.gg/7HKHTCdFqY)
+The mod follows Valheim's selected language. Add translations in `Translations/RunicSentinelServer` beside the mod file. Missing translations use English. See `TRANSLATING.md` for instructions.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)
+
+## Dashboard update
+
+Drag the lower-right corner to resize F3, or select Fit screen. Run, Clear Output and Insert into console remain outside the command-list scroll area. Use Arguments to browse parameters and installed completion options; hover a parameter for its explanation. Dynamic values depend on the installed command's completion provider.
+
+People combines connected/session players with accounts from the native server access lists and signed policy. Administrator and Banned changes save native server files with backups; revoking a signed role also requires the server signing key. Native grants require UseServerAdminList=true. Self-removal is blocked to prevent lockout. Kick targets the authenticated connection. Offline access-list entries have no invented character location.
+
+Admin Tools creates distinct health and network text reports, retains server copies and downloads complete copies to BepInEx/config/RunicSentinel/Reports on the administrator client. The network scan is a bounded sample of configured Runic links, not a full-world topology reconstruction. Player report previews remain explicitly bounded. Enforcement displays recent server evidence and explains threshold tradeoffs. The policy label names the signed rules, not an r2modman profile.
+
+## Selected-player actions
+
+Administrators use the Players dossier in RunicSentinel 1.5.0 with RunicSentinelServer 1.2.0. Inline tools target the selected online character: teleport to them, bring them, move them to coordinates/another player, raise or lower/reset a skill, heal, clear food/status, set adrenaline, and apply a registered status effect. Skill changes follow native 0–100 clamping and character-save behavior.
+
+The affected player needs either full RunicSentinel 1.5.0 or lightweight RunicSentinelClient 1.0.3 for character actions. Native teleport does not require the new receiver. Client-side cheat actions require the affected player's own prior confirmcheats acknowledgment; the administrator cannot silently acknowledge it for them. The UI disables unavailable receivers and waits for the exact target client's result. A timeout or disconnect is explicitly unconfirmed, not success. No arbitrary remote console execution is provided. Requests and replies are recorded in player activity.
+
+## Integrated command engine
+
+The Server Devcommands 1.109 command/feature baseline is integrated into RunicSentinel 1.5.0 and RunicSentinelServer 1.2.0. Do not install the separate Server Devcommands plugin alongside these packages. Native Valheim commands remain available.
+
+Examples:
+- `addstatus Rested 3600` applies one hour of Rested; `addstatus Rested 6000` applies 100 minutes.
+- `addstatus Burning 20 100` supplies duration and supported effect intensity.
+- `alias rest addstatus Rested 3600` creates a shortcut; run `rest` from F3 or F5.
+- `bind F7 addstatus Rested 3600` stores a binding.
+- `fly; wait 1000; fly` runs a chain with a delay in milliseconds. Each executable command receives fresh Sentinel authorization.
+
+The command guide includes registered parameters and completion values. `dev_config` exposes the integrated gameplay/configuration options; `permissions` manages command and feature restrictions on the server. Automatic devcommands defaults off. Valheim's own explicit cheat confirmation remains required for cheat handlers.
+
+Command configuration uses RunicSentinel.alias*.yaml, RunicSentinel.binds*.yaml and RunicSentinel.commands.permissions.yaml in BepInEx/config. Previous third-party configuration is not silently imported. The dedicated-server binary excludes client GUI/input modules. YAML parsing is embedded; there is no separate parser or command-mod installation step.

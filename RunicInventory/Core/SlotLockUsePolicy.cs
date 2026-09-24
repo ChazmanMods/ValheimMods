@@ -1,11 +1,8 @@
 namespace RunicInventory.Core
 {
-    // Slot retention is not a ban on gameplay consumption. Only explicit native use
-    // paths opt in; transfers, offerings, disposal, and unknown actions stay guarded.
+    // Player slot locks are Quick Stack exclusions, never a veto on native actions.
     internal static class SlotLockUsePolicy
     {
-        internal static bool AllowsUse(string action) =>
-            action == "using it" || action == "cooking it" ||
-            action == "processing it" || action == "fermenting it";
+        internal static bool AllowsUse(string action) => true;
     }
 }

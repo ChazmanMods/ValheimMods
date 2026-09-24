@@ -113,3 +113,19 @@ order to load.
 
 There is no `Update`, `FixedUpdate`, scene scan, or per-frame polling. Diagnostics retain at most
 256 bounded events and do not include item lists, portal text, save contents, or source paths.
+
+## Game compatibility
+
+Verified against Valheim 1.0.15. Startup checks required APIs directly; an unfamiliar game version alone does not disable the mod.
+
+Compatibility: startup validates required game APIs rather than rejecting an unfamiliar game version. Actual API incompatibilities still disable safely.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicSafety` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

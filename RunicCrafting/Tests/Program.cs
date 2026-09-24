@@ -9,6 +9,14 @@ namespace RunicCrafting.Tests
         {
             var tests = new List<(string Name, Action Run)>
             {
+                (nameof(RecipeRegressionTests.WorkbenchSplitMaterialsCommitAndRestore), RecipeRegressionTests.WorkbenchSplitMaterialsCommitAndRestore),
+                (nameof(RecipeRegressionTests.SplitMaterialsFailSafelyWhenChestChanges), RecipeRegressionTests.SplitMaterialsFailSafelyWhenChestChanges),
+                ("CrossModuleGateRejectsNestedCraft", InventorySafetyTests.CrossModuleGateRejectsNestedCraft),
+                ("FailedRollbackBlocksReuseAndReleasesGate", InventorySafetyTests.FailedRollbackBlocksReuseAndReleasesGate),
+                ("LostAuthorityNeverRestoresOldSnapshot", InventorySafetyTests.LostAuthorityNeverRestoresOldSnapshot),
+                ("ForeignCallbackEditIsPreserved", InventorySafetyTests.ForeignCallbackEditIsPreserved),
+                ("DrawerCraftingConsumptionAndRefund", DrawerMaterialTests.DrawerCraftingConsumptionAndRefund),
+                ("DrawerManualStagingUsesNativeStackLimit", DrawerMaterialTests.DrawerManualStagingUsesNativeStackLimit),
                 (nameof(AreaRepairTests.RadiusAndAccessAreBounded), AreaRepairTests.RadiusAndAccessAreBounded),
                 (nameof(AreaRepairTests.BatchesAreBoundedAndCancelable), AreaRepairTests.BatchesAreBoundedAndCancelable),
                 (nameof(AreaRepairTests.RuntimeUsesNativeRepairAndDisablesCleanly), AreaRepairTests.RuntimeUsesNativeRepairAndDisablesCleanly),

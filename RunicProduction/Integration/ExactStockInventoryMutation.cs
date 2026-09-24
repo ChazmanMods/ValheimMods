@@ -85,6 +85,8 @@ namespace RunicProduction.Integration
     {
         internal const int MaximumPayloadBytes = 262144;
         private readonly byte[] _payload;
+        private ItemDrop.ItemData[] _drawerItems;
+        internal ItemDrop.ItemData[] CopyDrawerItems() => _drawerItems?.Select(item => item.Clone()).ToArray();
 
         internal StockInventoryState(byte[] payload, string fingerprint)
         {
@@ -112,8 +114,14 @@ namespace RunicProduction.Integration
             if (inventory == null) throw new ArgumentNullException(nameof(inventory));
             var package = new ZPackage();
             inventory.Save(package);
+            var drawerItems = ProductionContainerCompatibility.CaptureItems(inventory);
+            // Native item serialization stores stack counts in a ushort. Include full
+            // drawer quantities in the fingerprint so very large stacks cannot alias.
+            if (drawerItems != null) foreach (var item in drawerItems) package.Write(item.m_stack);
             byte[] payload = package.GetArray();
-            return new StockInventoryState(payload, Fingerprint(payload));
+            return new StockInventoryState(payload, Fingerprint(payload)) {
+                _drawerItems = drawerItems
+            };
         }
 
         internal static string Fingerprint(byte[] payload)
@@ -691,7 +699,7 @@ namespace RunicProduction.Integration
             try
             {
                 inventory.m_onChanged = null;
-                inventory.Load(new ZPackage(state.CopyPayload()));
+                ProductionContainerCompatibility.Load(inventory, state);
                 if (!state.Matches(inventory))
                     throw new InvalidOperationException(
                         "The exact inventory snapshot did not apply.");
@@ -713,7 +721,7 @@ namespace RunicProduction.Integration
             try
             {
                 inventory.m_onChanged = null;
-                inventory.Load(new ZPackage(rollback.CopyPayload()));
+                ProductionContainerCompatibility.Load(inventory, rollback);
                 if (!rollback.Matches(inventory))
                     throw new InvalidOperationException(
                         "The original inventory snapshot did not restore.");
@@ -829,7 +837,7 @@ namespace RunicProduction.Integration
                 int remove = Math.Min(Math.Max(0, item.m_stack), remaining);
                 if (remove <= 0) continue;
                 consumedCheated |= item.m_cheated;
-                if (!inventory.RemoveItem(item, remove)) return false;
+                if (!ProductionContainerCompatibility.Remove(inventory, item, remove)) return false;
                 remaining -= remove;
                 if (remaining == 0) return true;
             }
@@ -858,10 +866,10 @@ namespace RunicProduction.Integration
             {
                 int chunk = Math.Min(item.m_stack, remaining);
                 if (chunk <= 0) continue;
-                ItemDrop.ItemData payload = item.Clone();
+                ItemDrop.ItemData payload = ProductionContainerCompatibility.TransferTemplate(source, item).Clone();
                 payload.m_stack = chunk;
                 if (!TryAddExactPreservingMetadata(destination, payload, chunk) ||
-                    !source.RemoveItem(item, chunk)) return false;
+                    !ProductionContainerCompatibility.Remove(source, item, chunk)) return false;
                 remaining -= chunk;
                 if (remaining == 0) return true;
             }
@@ -875,6 +883,8 @@ namespace RunicProduction.Integration
         {
             if (inventory == null || template?.m_shared == null ||
                 template.m_dropPrefab == null || amount <= 0) return false;
+            if (ProductionContainerCompatibility.IsDrawer(inventory))
+                return ProductionContainerCompatibility.TryAdd(inventory, template, amount);
             int maximumStack = template.m_shared.m_maxStackSize;
             if (maximumStack <= 0) return false;
             var mergeTargets = inventory.GetAllItems()
@@ -932,6 +942,9 @@ namespace RunicProduction.Integration
             template.m_equipped = false;
             template.m_cheated = output.Cheated;
             template.m_durability = template.GetMaxDurability();
+
+            if (ProductionContainerCompatibility.IsDrawer(inventory))
+                return ProductionContainerCompatibility.TryAdd(inventory, template, output.Amount);
 
             int maximumStack = template.m_shared.m_maxStackSize;
             if (maximumStack <= 0) return false;
@@ -1031,7 +1044,8 @@ namespace RunicProduction.Integration
                 null,
                 source.GetWidth(),
                 source.GetHeight());
-            clone.Load(new ZPackage(state.CopyPayload()));
+            ProductionContainerCompatibility.CopyShape(source, clone);
+            ProductionContainerCompatibility.Load(clone, state);
             if (!state.Matches(clone))
                 throw new InvalidOperationException(
                     "The serialized inventory snapshot is not an exact round trip under the current item definitions.");

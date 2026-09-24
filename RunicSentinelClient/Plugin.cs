@@ -11,9 +11,10 @@ namespace RunicSentinelClient
     {
         public const string Guid = "chazman.RunicSentinelClient";
         public const string Name = "Runic Sentinel Client";
-        public const string Version = "1.0.1";
+        public const string Version = "1.0.3";
 
         private Harmony _harmony;
+        private readonly RunicSentinel.PlayerActions.PlayerActionReceiver _playerReceiver=new RunicSentinel.PlayerActions.PlayerActionReceiver();
         internal static ClientAdmissionRuntime ActiveRuntime { get; private set; }
 
         private void Awake()
@@ -52,7 +53,7 @@ namespace RunicSentinelClient
 
         private void Update()
         {
-            try { ActiveRuntime?.Tick(); }
+            try { ActiveRuntime?.Tick(); if(ActiveRuntime!=null)_playerReceiver.Tick(); }
             catch (Exception exception)
             {
                 Logger.LogWarning(
@@ -65,6 +66,7 @@ namespace RunicSentinelClient
 
         private void Shutdown()
         {
+            _playerReceiver.Dispose();
             try { _harmony?.UnpatchSelf(); } catch { }
             _harmony = null;
             try { ActiveRuntime?.Dispose(); } catch { }

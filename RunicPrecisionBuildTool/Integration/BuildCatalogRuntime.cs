@@ -64,7 +64,7 @@ namespace QuietBuildRotation.Integration
                 _gridWidth = 0;
                 _hasGridWidth = false;
                 _translate = null;
-                error = "bounded build catalog adapter failed: " +
+                error = global::Runic.Localization.RunicText.Get("text_19264ecec70a") +
                         exception.GetType().Name + ": " + exception.Message;
                 return false;
             }
@@ -114,14 +114,14 @@ namespace QuietBuildRotation.Integration
             if (!player || player != Player.m_localPlayer ||
                 _availablePiecesByCategory == null || !_hasGridWidth)
             {
-                message = "Build catalog is unavailable.";
+                message = global::Runic.Localization.RunicText.Get("text_0c43802e01f5");
                 return false;
             }
 
             PieceTable table = PlacementAdapter.GetBuildPieceTable(player);
             if (!table || !Rebuild(table))
             {
-                message = "No currently unlocked build pieces are available.";
+                message = global::Runic.Localization.RunicText.Get("text_b8ac2e78b51c");
                 return false;
             }
 
@@ -135,18 +135,18 @@ namespace QuietBuildRotation.Integration
                         !Catalog.ToggleFavorite(selectedId, out bool favorite))
                     {
                         message = Catalog.FavoriteCount >= BoundedBuildCatalog.FavoriteCapacity
-                            ? "Favorite limit reached (64)."
-                            : "The current piece cannot be favorited.";
+                            ? global::Runic.Localization.RunicText.Get("text_5da559cedca4")
+                            : global::Runic.Localization.RunicText.Get("text_beff292d414e");
                         return false;
                     }
                     PersistFavorites();
-                    message = favorite ? "Build favorite added." : "Build favorite removed.";
+                    message = favorite ? global::Runic.Localization.RunicText.Get("text_d506976d3012") : global::Runic.Localization.RunicText.Get("text_a79a76141b03");
                     return true;
 
                 case BuildCatalogAction.NextFavorite:
                     if (!Catalog.TryCycleFavorite(selectedId, out entry))
                     {
-                        message = "No currently unlocked favorites are available.";
+                        message = global::Runic.Localization.RunicText.Get("text_83c8469144fd");
                         return false;
                     }
                     break;
@@ -154,7 +154,7 @@ namespace QuietBuildRotation.Integration
                 case BuildCatalogAction.NextRecent:
                     if (!Catalog.TryCycleRecent(selectedId, out entry))
                     {
-                        message = "No currently unlocked recent pieces are available.";
+                        message = global::Runic.Localization.RunicText.Get("text_c9f3b8b81782");
                         return false;
                     }
                     break;
@@ -172,7 +172,7 @@ namespace QuietBuildRotation.Integration
 
             if (!TrySelectFresh(table, in entry))
             {
-                message = "Piece availability changed; selection was not applied.";
+                message = global::Runic.Localization.RunicText.Get("text_95ac5a305fa4");
                 return false;
             }
 
@@ -182,7 +182,7 @@ namespace QuietBuildRotation.Integration
             _lastSelectedInstanceId = selectedNow ? selectedNow.GetInstanceID() : 0;
             Catalog.RecordRecent(entry.StableId);
             PersistRecents();
-            message = "Selected " + SafeDisplay(entry.DisplayName) + ".";
+            message = global::Runic.Localization.RunicText.Get("text_da5501947399") + SafeDisplay(entry.DisplayName) + ".";
             return true;
         }
 
@@ -277,7 +277,7 @@ namespace QuietBuildRotation.Integration
             if (field?.DeclaringType != typeof(PieceTable) ||
                 !TryReadLiteralGridWidth(field, out int exact))
             {
-                error = "PieceTable.m_gridWidth is not the supported bounded public const int.";
+                error = global::Runic.Localization.RunicText.Get("text_c2214618386b");
                 return false;
             }
             _gridWidth = exact;

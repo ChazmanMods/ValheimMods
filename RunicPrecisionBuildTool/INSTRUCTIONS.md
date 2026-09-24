@@ -17,11 +17,12 @@ Press P again or leave Hammer placement mode to return to ordinary Valheim contr
 | Alt + Up/Down | Heave |
 | Alt + PageUp/PageDown | Surge |
 | Add V to a movement chord | Fine movement |
-| Hold G | Piece-local axis guides |
+| F4 | Toggle Local / World rotation axes (saved) |
+| Hold G | Rotation axis guides |
 | F10 | Reset all Runic transform state |
 
 Defaults are 22.5-degree normal rotation, 1-degree fine rotation, 0.25 m movement, and 0.05 m fine
-movement. Yaw, pitch, and roll always follow the pending piece's current local Y, X, and Z axes.
+movement. F4 toggles all rotation axes between Local (piece axes, default) and World (fixed axes). Switching does not move the piece. The HUD and G guides show the active mode.
 `Movement.ReferenceFrame` separately selects World or Local axes for each new movement step.
 
 ## Match, repeat, and catalog
@@ -64,3 +65,13 @@ The readout augments Valheim's selected-piece panel and hides only its own rows 
 If an installed Valheim method or IL seam differs from the audited 1.0.7 contract, the plugin
 disables its hooks and leaves vanilla building available. Version 2.0.3 supports keyboard/mouse and
 has no controller bindings.
+
+### Building an arch
+
+Aim at the preceding beam and press Keypad0 to match its orientation. Toggle F4 to LOCAL. For a horizontal wood beam with yellow X along its length, Shift + Wheel bends about pink Z; Shift + V + Wheel bends in one-degree steps. Snap the ends before placing. Alt + Wheel turns around yellow X and twists this beam. Model axes differ between pieces; G shows the actual rotation axes.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

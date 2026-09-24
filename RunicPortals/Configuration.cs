@@ -26,34 +26,34 @@ namespace RunicPortals
         {
             _file = file ?? throw new ArgumentNullException(nameof(file));
             Enabled = file.Bind("General", "Enabled", true,
-                "Master switch. Standard Pair portals always yield to vanilla behavior.");
+                global::Runic.Localization.RunicText.Get("text_41f8794dcbce"));
             UniversalRouting = file.Bind("Features", "UniversalRouting", true,
-                "Enable authenticated public/private/Group network routing for solo, local-host, and compatible dedicated-server sessions.");
+                global::Runic.Localization.RunicText.Get("text_7563ca021fa0"));
             ShowSetupPanel = file.Bind("Display", "ShowSetupPanel", true,
-                "Show the complete state-aware setup guide while aiming at a portal and while the Runic editor is open.");
+                global::Runic.Localization.RunicText.Get("text_666fd723aa69"));
             PanelScale = file.Bind("Display", "PanelScale", 1f,
-                new ConfigDescription("Scale of the portal setup guide.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_792354c9e7fd"),
                     new AcceptableValueRange<float>(0.75f, 1.5f)));
             EditRangeMeters = file.Bind("Authority", "EditRangeMeters", 5f,
-                new ConfigDescription("Maximum range for a portal-mode mutation.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_c8d47208aa3f"),
                     new AcceptableValueRange<float>(2f, 5f)));
             IndexRefreshSeconds = file.Bind("Performance", "IndexRefreshSeconds", 2f,
-                new ConfigDescription("Server-side interval for a bounded portal snapshot refresh.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_12ebdbc8d8b4"),
                     new AcceptableValueRange<float>(0.5f, 30f)));
             MaximumEndpoints = file.Bind("Performance", "MaximumNetworkEndpoints", 1024,
-                new ConfigDescription("Fail-closed graph cap. No partial graph is published when exceeded.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_da6edd40c9f6"),
                     new AcceptableValueRange<int>(16, PortalContractLimits.MaximumGraphEndpoints)));
             DirectoryPageSize = file.Bind("Directory", "CyclePageSize", 32,
-                new ConfigDescription("Maximum authorized destinations returned by a bounded non-map directory request; the walk-in map picker uses the protocol cap.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_85e5ebb9bd6f"),
                     new AcceptableValueRange<int>(1, PortalContractLimits.MaximumDirectoryResults)));
             ReturnRouteMinutes = file.Bind("Routes", "ReturnRouteMinutes", 15,
-                new ConfigDescription("Session-only per-traveler Return option lifetime.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_a1f25b9024fa"),
                     new AcceptableValueRange<int>(1, 120)));
             OneWayAcknowledgementSeconds = file.Bind("Routes", "OneWayAcknowledgementSeconds", 10,
-                new ConfigDescription("Fallback one-way confirmation window. Clicking a one-way destination marker acknowledges it immediately.",
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_24e0a2ebde06"),
                     new AcceptableValueRange<int>(3, 30)));
             VerboseLogging = file.Bind("Diagnostics", "VerboseLogging", false,
-                "Log bounded decision codes. Portal names, coordinates, and inventory contents are never logged.");
+                global::Runic.Localization.RunicText.Get("text_436a7f4e0e28"));
             file.SettingChanged += OnSettingChanged;
         }
 

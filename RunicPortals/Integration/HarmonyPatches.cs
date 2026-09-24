@@ -248,3 +248,20 @@ namespace RunicPortals.Integration
     }
 
 }
+
+namespace RunicPortals.Integration
+{
+    [HarmonyPatch(typeof(Character), "RPC_Damage")]
+    internal static class PortalPickerHitProtectionPatch
+    {
+        private static bool Prefix(Character __instance) =>
+            Plugin.CurrentRuntime?.ProtectsPickerPlayer(__instance) != true;
+    }
+
+    [HarmonyPatch(typeof(Character), nameof(Character.ApplyDamage))]
+    internal static class PortalPickerDamageProtectionPatch
+    {
+        private static bool Prefix(Character __instance) =>
+            Plugin.CurrentRuntime?.ProtectsPickerPlayer(__instance) != true;
+    }
+}

@@ -38,7 +38,7 @@ namespace RunicCrafting.Integration
         }
 
         internal static readonly RefreshQueryCache<QueryKey, Sources> Cache =
-            new RefreshQueryCache<QueryKey, Sources>();
+            new RefreshQueryCache<QueryKey, Sources>(retainForFrame: true);
 
         // Only the private decoded inventory is excluded from mutation invalidation.
         // Another inventory changed by a prefab/mod callback still invalidates the refresh.

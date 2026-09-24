@@ -98,9 +98,9 @@ internal sealed class StorageActions
 			HashSet<Container> hashSet = new HashSet<Container>();
 			List<ItemData> list = new List<ItemData>(inventory.GetAllItems());
 			list.Sort(CompareGridPosition);
-			if (!TryCaptureProtection(list, out var snapshot, out var failureCode))
+			if (!StorageItemProtection.TryCapture(list, out var snapshot, out var failureCode, quickStack: true))
 			{
-				Message(player, "Runic Storage: carried-item protection could not be proven; Quick Stack changed nothing.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_d74744b9357d"));
 				LogAction("quick-stack", failureCode, $"stacks={list.Count} moved=0");
 				return;
 			}
@@ -216,19 +216,19 @@ internal sealed class StorageActions
 			Container container = ((Object)(object)InventoryGui.instance == (Object)null || CurrentContainerField == null) ? null : CurrentContainerField.GetValue(InventoryGui.instance) as Container;
 			if ((Object)(object)container == (Object)null)
 			{
-				Message(player, "Runic Storage: open a container before using Store All.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_7c0e11b163d4"));
 				LogAction("store-all-opened-container", "ui.open-container-required", "container=false moved=0");
 				return;
 			}
 			if ((int)container.m_privacy == 0 || !ValheimContainerService.CanDiscover(container, player.GetPlayerID(), requireWritable: true, allowCurrentUse: true))
 			{
-				Message(player, "Runic Storage: that container is personal, busy, or denied; Store All changed nothing.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_e686ddaaa330"));
 				LogAction("store-all-opened-container", "container.denied", "authorized=false moved=0");
 				return;
 			}
 			if (!StorageContainerAuthority.TryGetExactOpenedLocalOwnerInventory(container, player, out var destination))
 			{
-				Message(player, "Runic Storage: ownership changed before Store All; nothing was changed.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_d1598cbebc22"));
 				LogAction("store-all-opened-container", "ownership.denied", "owner=false moved=0");
 				return;
 			}
@@ -238,7 +238,7 @@ internal sealed class StorageActions
 			items.Sort(CompareGridPosition);
 			if (!TryCaptureProtection(items, out var protection, out var failureCode))
 			{
-				Message(player, "Runic Storage: carried-item protection could not be proven; Store All changed nothing.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_27ce4a509cfe"));
 				LogAction("store-all-opened-container", failureCode, $"stacks={items.Count} moved=0");
 				return;
 			}
@@ -312,7 +312,7 @@ internal sealed class StorageActions
 			Dictionary<string, int> dictionary = ParseTargets(PluginConfig.RestockTargets.Value);
 			if (dictionary.Count == 0)
 			{
-				Message(player, "Runic Storage: Restock.Targets has no valid Item=Amount entries.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_455c125d02a3"));
 				LogAction("restock", "config.targets-invalid", "targets=0");
 				return;
 			}
@@ -321,7 +321,7 @@ internal sealed class StorageActions
 			list.Sort(CompareGridPosition);
 			if (!TryCaptureProtection(list, out var snapshot, out var failureCode))
 			{
-				Message(player, "Runic Storage: carried-item protection could not be proven; Restock changed nothing.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_c1e8fcedf605"));
 				LogAction("restock", failureCode, $"stacks={list.Count} moved=0");
 				return;
 			}
@@ -332,7 +332,7 @@ internal sealed class StorageActions
 			}
 			if (num == 0)
 			{
-				Message(player, "Runic Storage: every configured restock target is already met.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_fa08f068d252"));
 				LogAction("restock", "targets.already-met", $"targets={dictionary.Count} requested=0");
 				return;
 			}
@@ -340,7 +340,7 @@ internal sealed class StorageActions
 			{
 				if (Math.Max(0, item2.Value - CountMatching(inventory, item2.Key)) > 0 && HasProtectedPartialMatch(player, list, in snapshot, item2.Key))
 				{
-					Message(player, "Runic Storage: Restock would modify a protected partial target stack; nothing was changed.");
+					Message(player, global::Runic.Localization.RunicText.Get("text_c3e7d03d4238"));
 					LogAction("restock", "protection.target-partial", "target=" + SafeLogValue(item2.Key) + " moved=0");
 					return;
 				}
@@ -352,7 +352,7 @@ internal sealed class StorageActions
 				allowCurrentUse: true);
 			if (readOnlyList.Count == 0)
 			{
-				Message(player, "Runic Storage: no authorized public container is available in range for restocking.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_855ede5523d0"));
 				LogAction("restock", "discovery.none-authorized", $"targets={dictionary.Count} requested={num}");
 				return;
 			}
@@ -446,7 +446,7 @@ internal sealed class StorageActions
 			allowCurrentUse: true);
 		if (containers.Count == 0)
 		{
-			Message(player, "Runic Storage: no authorized public container is visible in the configured range.");
+			Message(player, global::Runic.Localization.RunicText.Get("text_c5f7b40f048b"));
 			LogAction("search", "discovery.none-authorized", "containers=0");
 			return;
 		}
@@ -494,19 +494,19 @@ internal sealed class StorageActions
 			if (unsynchronized > 0)
 			{
 				Message(player,
-					$"Runic Storage: no readable items were found; {unsynchronized} of {containers.Count} nearby container(s) could not be synchronized.");
+					global::Runic.Localization.RunicText.Format("text_15bfeaf3d177", unsynchronized, containers.Count));
 				LogAction("search", "inventory.synchronization-unavailable",
 					$"containers={containers.Count} unsynchronized={unsynchronized}");
 			}
 			else
 			{
-				Message(player, "Runic Storage: the nearby synchronized containers are empty.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_78680c855b23"));
 				LogAction("search", "inventory.empty", $"containers={containers.Count} unsynchronized=0");
 			}
 			return;
 		}
 		_searchPanel.Open(entries);
-		Message(player, "Runic Storage: choose an item from the nearby-chest list.");
+		Message(player, global::Runic.Localization.RunicText.Get("text_8c3efa2166dd"));
 		LogAction("search", "ok", $"containers={containers.Count} unsynchronized={unsynchronized} kinds={entries.Count} stacks={stacksExamined}");
 	}
 
@@ -527,36 +527,39 @@ internal sealed class StorageActions
 			Container val = ((Object)(object)InventoryGui.instance == (Object)null || CurrentContainerField == null) ? null : CurrentContainerField.GetValue(InventoryGui.instance) as Container;
 			if ((Object)(object)val == (Object)null)
 			{
-				Message(player, "Runic Storage: open a container before sorting.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_1a753bf3e058"));
 				LogAction("sort-opened-container", "ui.open-container-required", "container=false");
 				return;
 			}
 			if ((int)val.m_privacy == 0 || !ValheimContainerService.CanDiscover(val, player.GetPlayerID(), requireWritable: true, allowCurrentUse: true))
 			{
-				Message(player, "Runic Storage: that container is personal, busy, or denied.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_b7592272bc7e"));
 				LogAction("sort-opened-container", "container.denied", "authorized=false");
 				return;
 			}
 			if (!StorageContainerAuthority.TryGetExactOpenedServerOwnerInventory(val, player, out var inventory))
 			{
-				Message(player, "Runic Storage: ownership changed before the sort; nothing was changed.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_52150ab38e4a"));
 				LogAction("sort-opened-container", "ownership.denied", "owner=false");
 				return;
 			}
 			if (!ValheimContainerService.CanSnapshotExactly(inventory))
 			{
-				Message(player, "Runic Storage: this container could not be snapshotted exactly; sort was safely skipped.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_40ee7460f013"));
 				LogAction("sort-opened-container", "inventory.snapshot-invalid", "changed=false");
 				return;
 			}
 			StorageInventorySnapshot val2 = new StorageInventorySnapshot(inventory);
+            RunicAutomation.MutationGate.Current?.Track(inventory);
+            Func<bool> sortAuthority = StorageContainerAuthority.CaptureAuthority(val);
+            string expectedSort = null;
 			HashSet<string> hashSet = ParseLockedSlots(PluginConfig.LockedContainerSlots.Value, inventory.GetWidth(), inventory.GetHeight());
 			List<ItemData> list = new List<ItemData>();
 			List<Vector2i> list2 = new List<Vector2i>();
 			List<ItemData> list3 = new List<ItemData>(inventory.GetAllItems());
 			if (list3.Count == 0)
 			{
-				Message(player, "Runic Storage: the opened container is already empty.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_ff9350be804b"));
 				LogAction("sort-opened-container", "inventory.empty", $"lockedSlots={hashSet.Count}");
 				return;
 			}
@@ -579,7 +582,7 @@ internal sealed class StorageActions
 			}
 			if (list.Count == 0)
 			{
-				Message(player, "Runic Storage: every occupied slot is locked; nothing was moved.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_abf5a151c230"));
 				LogAction("sort-opened-container", "inventory.all-locked", $"stacks={list3.Count} lockedSlots={hashSet.Count}");
 				return;
 			}
@@ -588,7 +591,7 @@ internal sealed class StorageActions
 			{
                 Inventory obj = ValheimContainerService.CloneInventory(inventory);
                 ApplySortExact(obj, hashSet);
-                string @base = ValheimContainerService.SaveInventory(obj).GetBase64();
+                string @base = expectedSort = ValheimContainerService.Fingerprint(obj);
 				list.Sort(CompareItems);
 				for (int k = 0; k < list.Count && k < list2.Count; k++)
 				{
@@ -602,7 +605,7 @@ internal sealed class StorageActions
 				{
 					InventoryChangedMethod.Invoke(inventory, new object[] { false, false });
 				}
-				if (!string.Equals(ValheimContainerService.SaveInventory(inventory).GetBase64(), @base, StringComparison.Ordinal))
+				if (!sortAuthority() || !string.Equals(ValheimContainerService.Fingerprint(inventory), @base, StringComparison.Ordinal))
 				{
 					throw new InvalidOperationException("The opened container changed during nonthrowing sort publication.");
 				}
@@ -611,16 +614,17 @@ internal sealed class StorageActions
 			{
 				try
 				{
-					ValheimContainerService.RestoreInventory(inventory, val2);
+					ValheimContainerService.RestoreKnown(inventory, val2, expectedSort, sortAuthority, player, mutationLease);
 				}
                 catch (Exception ex2)
                 {
+                    RunicAutomation.MutationGate.Current?.Complete(RunicAutomation.MutationOutcome.Indeterminate);
                     throw new AggregateException(
                         "The opened-container sort failed and its exact rollback failed.", ex, ex2);
 				}
 				throw;
 			}
-			Message(player, flag ? $"Runic Storage: sorted {list.Count} stack(s); {hashSet.Count} slot(s) locked." : $"Runic Storage: {list.Count} movable stack(s) were already sorted; nothing changed.");
+			Message(player, flag ? global::Runic.Localization.RunicText.Format("text_0655d244eb24", list.Count, hashSet.Count) : global::Runic.Localization.RunicText.Format("text_844b15448936", list.Count));
 			LogAction("sort-opened-container", flag ? "ok" : "inventory.already-sorted", $"stacks={list3.Count} movable={list.Count} lockedSlots={hashSet.Count} changed={flag}");
 		}
 	}
@@ -638,20 +642,21 @@ internal sealed class StorageActions
 			list.Sort(CompareGridPosition);
 			if (!TryCaptureProtection(list, out var snapshot, out var failureCode))
 			{
-				Message(player, "Runic Storage: carried-item protection could not be proven; consolidation changed nothing.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_2df45d30cace"));
 				LogAction("consolidate", failureCode, $"stacks={list.Count} changed=false");
 				return;
 			}
 			if (!ValheimContainerService.CanSnapshotExactly(inventory))
 			{
-				Message(player, "Runic Storage: your inventory could not be snapshotted exactly; consolidation was safely skipped.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_0d5d05df22f3"));
 				LogAction("consolidate", "inventory.snapshot-invalid", "changed=false");
 				return;
 			}
 			StorageInventorySnapshot backup = new StorageInventorySnapshot(inventory);
+            string expectedConsolidation = null;
 			if (list.Count == 0)
 			{
-				Message(player, "Runic Storage: your carried inventory is empty.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_1d780ae64af6"));
 				LogAction("consolidate", "inventory.empty", "stacks=0");
 				return;
 			}
@@ -665,7 +670,7 @@ internal sealed class StorageActions
 			}
 			if (num == list.Count)
 			{
-				Message(player, "Runic Storage: every carried stack is equipped or in a protected hotbar slot.");
+				Message(player, global::Runic.Localization.RunicText.Get("text_2eaf177bbebe"));
 				LogAction("consolidate", "inventory.all-protected", $"stacks={list.Count} protectedStacks={num}");
 				return;
 			}
@@ -674,7 +679,7 @@ internal sealed class StorageActions
 			{
 				Inventory obj = ValheimContainerService.CloneInventory(inventory);
 				int num3 = ApplyConsolidation(obj, player, in snapshot);
-				string @base = ValheimContainerService.SaveInventory(obj).GetBase64();
+				string @base = expectedConsolidation = ValheimContainerService.Fingerprint(obj);
 				num2 = ApplyConsolidation(inventory, player, in snapshot);
 				if (num2 != num3)
 				{
@@ -684,7 +689,7 @@ internal sealed class StorageActions
 				{
 					InventoryChangedMethod.Invoke(inventory, new object[] { false, false });
 				}
-				if (!string.Equals(ValheimContainerService.SaveInventory(inventory).GetBase64(), @base, StringComparison.Ordinal))
+				if (!player.IsOwner() || !string.Equals(ValheimContainerService.Fingerprint(inventory), @base, StringComparison.Ordinal))
 				{
 					throw new InvalidOperationException("The carried inventory changed during nonthrowing consolidation publication.");
 				}
@@ -693,16 +698,17 @@ internal sealed class StorageActions
 			{
 				try
 				{
-					ValheimContainerService.RestoreInventory(inventory, backup, player, mutationLease);
+					ValheimContainerService.RestoreKnown(inventory, backup, expectedConsolidation, () => player.IsOwner(), player, mutationLease);
 				}
 				catch (Exception ex2)
 				{
+                    RunicAutomation.MutationGate.Current?.Complete(RunicAutomation.MutationOutcome.Indeterminate);
                     throw new AggregateException(
                         "Carried-stack consolidation and its exact rollback both failed.", ex, ex2);
 				}
 				throw;
 			}
-			Message(player, (num2 > 0) ? $"Runic Storage: consolidated {num2} item(s) into compatible stacks." : "Runic Storage: no compatible partial backpack stacks needed consolidation; protected/equipped or metadata-different stacks were left alone.");
+			Message(player, (num2 > 0) ? global::Runic.Localization.RunicText.Format("text_de5871be1d56", num2) : global::Runic.Localization.RunicText.Get("text_8f258741faa2"));
 			LogAction("consolidate", (num2 > 0) ? "ok" : "inventory.no-compatible-stacks", $"stacks={list.Count} protectedStacks={num} moved={num2}");
 		}
 	}
@@ -802,7 +808,11 @@ internal sealed class StorageActions
         int unavailable = 0;
 		foreach (Container item in readOnlyList)
 		{
-			if ((int)item.m_privacy == 0)
+			if (Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(item) &&
+                !Runic.Compatibility.ModdedContainerCompatibility.Listed(item,
+                    action == "quick-stack" ? PluginConfig.QuickStackPrefabIds.Value : PluginConfig.PullPrefabIds.Value))
+                continue;
+            if ((int)item.m_privacy == 0)
 			{
 				num3++;
 			}
@@ -948,7 +958,7 @@ internal sealed class StorageActions
 		mutationLease = null;
 		if (!TryResolveOwnedLocalPlayer(action, out player)) return false;
 		if (StorageMutationLease.TryBegin(player, out mutationLease)) return true;
-		Message(player, "Runic Storage: another Storage action is already in progress.");
+		Message(player, global::Runic.Localization.RunicText.Get("text_06b989ae1d69"));
 		Plugin.Log?.LogWarning(action + " denied with storage.operation-active.");
 		return false;
 	}
@@ -962,14 +972,14 @@ internal sealed class StorageActions
 		}
 		if (!PluginConfig.Enabled.Value)
 		{
-			Message(player, "Runic Storage is disabled in configuration.");
+			Message(player, global::Runic.Localization.RunicText.Get("text_839798ab8179"));
 			return false;
 		}
 		if ((Object)(object)player == (Object)(object)Player.m_localPlayer && ((Character)player).IsOwner())
 		{
 			return true;
 		}
-		Message(player, "Runic Storage: " + action + " requires the owning local player; no carried items were changed.");
+		Message(player, global::Runic.Localization.RunicText.Get("text_5c43336cd644") + action + global::Runic.Localization.RunicText.Get("text_871969235b03"));
 		ManualLogSource log = Plugin.Log;
 		if (log != null)
 		{
@@ -1206,18 +1216,23 @@ internal sealed class StorageActions
 
 	private static string QuickStackNoOpFeedback(QuickStackNoOpReason reason, int hotbarProtected, int equippedProtected, int itemLockProtected, StorageMoveFailure failure, int unavailableContainers)
 	{
+        if (failure == StorageMoveFailure.Indeterminate)
+            return global::Runic.Localization.RunicText.Get("text_f2c562b101d5");
+        if (failure == StorageMoveFailure.MutationBusy)
+            return global::Runic.Localization.RunicText.Get("text_72b7113263b3");
 		return reason switch
 		{
-			QuickStackNoOpReason.InventoryEmpty => "Runic Storage: your carried inventory is empty.",
-			QuickStackNoOpReason.AllStacksProtected => $"Runic Storage: no backpack stack is eligible; {hotbarProtected} hotbar, {equippedProtected} equipped, and {itemLockProtected} typed-lock stack(s) are protected.",
-			QuickStackNoOpReason.NoAuthorizedContainers when unavailableContainers > 0 => "Runic Storage: nearby public chests are busy or still synchronizing; retry when they are available.",
-            QuickStackNoOpReason.NoAuthorizedContainers => $"Runic Storage: no authorized public container is available within {Mathf.Clamp(PluginConfig.RangeMeters.Value, 1f, 50f):0.#} m.",
-			QuickStackNoOpReason.NoMatchingResources when unavailableContainers > 0 => "Runic Storage: a nearby chest is busy or its contents are not synchronized yet; nothing moved.",
-            QuickStackNoOpReason.NoMatchingResources => "Runic Storage: no eligible backpack item matches an item already stored in an authorized nearby container.",
-			_ when failure == StorageMoveFailure.SnapshotInvalid => "Runic Storage: inventory snapshot validation failed; nothing moved. See the client log.",
-            _ when failure == StorageMoveFailure.OwnershipChanged || unavailableContainers > 0 => "Runic Storage: a container became unavailable or ownership changed; nothing moved.",
-            _ when failure == StorageMoveFailure.NoCapacity => "Runic Storage: matching containers have no room for these item stacks; nothing moved.",
-            _ => "Runic Storage: the transfer could not proceed; nothing moved.",
+			QuickStackNoOpReason.InventoryEmpty => global::Runic.Localization.RunicText.Get("text_1d780ae64af6"),
+			QuickStackNoOpReason.AllStacksProtected => global::Runic.Localization.RunicText.Format("text_5dc007318b0a", hotbarProtected, equippedProtected, itemLockProtected),
+			QuickStackNoOpReason.NoAuthorizedContainers when unavailableContainers > 0 => global::Runic.Localization.RunicText.Get("text_3ef408d293ed"),
+            QuickStackNoOpReason.NoAuthorizedContainers => global::Runic.Localization.RunicText.Format("text_99443c6feee2", Mathf.Clamp(PluginConfig.RangeMeters.Value, 1f, 50f)),
+			QuickStackNoOpReason.NoMatchingResources when unavailableContainers > 0 => global::Runic.Localization.RunicText.Get("text_ad919ca4b44c"),
+            QuickStackNoOpReason.NoMatchingResources => global::Runic.Localization.RunicText.Get("text_5b0340beeb50"),
+            _ when failure == StorageMoveFailure.UnsupportedDrawerMetadata => global::Runic.Localization.RunicText.Get("text_cbbd9774ed24"),
+			_ when failure == StorageMoveFailure.SnapshotInvalid => global::Runic.Localization.RunicText.Get("text_74c81463c913"),
+            _ when failure == StorageMoveFailure.OwnershipChanged || unavailableContainers > 0 => global::Runic.Localization.RunicText.Get("text_949c99b90537"),
+            _ when failure == StorageMoveFailure.NoCapacity => global::Runic.Localization.RunicText.Get("text_b745d7a9ca28"),
+            _ => global::Runic.Localization.RunicText.Get("text_d5d55d470737"),
 		};
 	}
 

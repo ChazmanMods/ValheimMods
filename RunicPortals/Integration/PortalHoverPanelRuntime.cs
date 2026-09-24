@@ -77,7 +77,7 @@ namespace RunicPortals.Integration
             {
                 state = new PortalHoverPanelState(
                     true, false, connected, editorOpen, string.Empty, string.Empty,
-                    "Restricted", false, false, string.Empty);
+                    global::Runic.Localization.RunicText.Get("text_a00571bcb257"), false, false, string.Empty);
                 return true;
             }
 
@@ -107,7 +107,7 @@ namespace RunicPortals.Integration
                 return string.Empty;
             return destination.DisplayName +
                    (selection.IsReturn
-                       ? " (Return)"
+                       ? global::Runic.Localization.RunicText.Get("text_84e4a6332923")
                        : HasVisibleDuplicate(source, traveler, destination.DisplayName)
                            ? " [" + destination.PortalId + "]"
                            : string.Empty);
@@ -117,10 +117,10 @@ namespace RunicPortals.Integration
         {
             switch (kind)
             {
-                case PortalNetworkKind.Public: return "Public";
-                case PortalNetworkKind.Personal: return "Private";
-                case PortalNetworkKind.Group: return "Group";
-                default: return "Restricted";
+                case PortalNetworkKind.Public: return global::Runic.Localization.RunicText.Get("text_591935b15b1c");
+                case PortalNetworkKind.Personal: return global::Runic.Localization.RunicText.Get("text_c63eb6720c6e");
+                case PortalNetworkKind.Group: return global::Runic.Localization.RunicText.Get("text_34ca0e766088");
+                default: return global::Runic.Localization.RunicText.Get("text_a00571bcb257");
             }
         }
     }

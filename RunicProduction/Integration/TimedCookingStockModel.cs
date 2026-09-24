@@ -135,7 +135,7 @@ namespace RunicProduction.Integration
             if (station == null || !StockDomainValidation.IsExactPrefabId(prefabId) ||
                 station.m_slots == null || station.m_conversion == null ||
                 station.m_overCookedItem == null)
-                return Fail("Timed cooking producer state is unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_b587138e9381"), out failure);
             var conversions = new List<TimedCookingConversionDescriptor>(station.m_conversion.Count);
             for (int index = 0; index < station.m_conversion.Count; index++)
             {
@@ -150,7 +150,7 @@ namespace RunicProduction.Integration
                     !StockDomainValidation.IsExactPrefabId(output) ||
                     !(conversion.m_cookTime > 0f) || float.IsNaN(conversion.m_cookTime) ||
                     float.IsInfinity(conversion.m_cookTime))
-                    return Fail("Timed cooking conversion state is invalid.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_3a3ae8ebff37"), out failure);
                 conversions.Add(new TimedCookingConversionDescriptor(
                     index, input, output, conversion.m_cookTime));
             }
@@ -160,7 +160,7 @@ namespace RunicProduction.Integration
             string burnt = ValheimAccess.PrefabName(station.m_overCookedItem.gameObject);
             if (station.m_useFuel && !StockDomainValidation.IsExactPrefabId(fuel) ||
                 !StockDomainValidation.IsExactPrefabId(burnt))
-                return Fail("Timed cooking fuel/overcooked identity is invalid.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_e584e0ccd6cb"), out failure);
             descriptor = new TimedCookingStationDescriptor(
                 prefabId,
                 station.m_slots.Length,
@@ -291,7 +291,7 @@ namespace RunicProduction.Integration
             failure = string.Empty;
             if (descriptor == null || replenishmentInventory == null || link == null ||
                 string.IsNullOrEmpty(stationId) || actorId == 0L || string.IsNullOrWhiteSpace(actorName))
-                return Fail("Timed cooking plan inputs are unavailable.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_2880a15e14ae"), out failure);
             bool refresh = previous != null &&
                            previous.AdapterKind == ReplenishmentProducerKind.TimedCooking &&
                            string.Equals(
@@ -301,7 +301,7 @@ namespace RunicProduction.Integration
                            ReplenishmentPlanStore.MatchesLink(previous, link, stationId);
             if (previous != null && !refresh)
                 return Fail(
-                    "The prior timed cooking plan is not bound to this exact station and link.",
+                    global::Runic.Localization.RunicText.Get("text_32a656c70b81"),
                     out failure);
             long authorizedPlayerId = refresh ? previous.AuthorizedPlayerId : actorId;
             string authorizedPlayerName = refresh
@@ -310,7 +310,7 @@ namespace RunicProduction.Integration
             if (authorizedPlayerId == 0L || authorizedPlayerId != link.OwnerId ||
                 string.IsNullOrWhiteSpace(authorizedPlayerName))
                 return Fail(
-                    "The timed cooking plan principal does not match the exact link owner.",
+                    global::Runic.Localization.RunicText.Get("text_3011b4f620ca"),
                     out failure);
             var exemplars = new SortedSet<string>(StringComparer.Ordinal);
             foreach (ItemDrop.ItemData item in replenishmentInventory.GetAllItems())
@@ -320,18 +320,18 @@ namespace RunicProduction.Integration
                 int matches = descriptor.OutputMatchCount(output);
                 if (matches > 1)
                     return Fail(
-                        "An exemplar is produced by more than one timed conversion; that target is ambiguous.",
+                        global::Runic.Localization.RunicText.Get("text_4409cf120eee"),
                         out failure);
                 if (matches != 1) continue;
                 exemplars.Add(output);
                 if (exemplars.Count > ReplenishmentPlan.MaximumTargets)
-                    return Fail("The Replenishment chest contains too many timed cooking exemplars.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_14bf4fa65b36"), out failure);
             }
             var targets = new List<ReplenishmentTargetAuthorization>(exemplars.Count);
             foreach (string output in exemplars)
             {
                 if (!descriptor.TryFromUniqueOutput(output, out TimedCookingConversionDescriptor conversion))
-                    return Fail("A timed cooking exemplar became ambiguous.", out failure);
+                    return Fail(global::Runic.Localization.RunicText.Get("text_2adebd1d1ed9"), out failure);
                 targets.Add(new ReplenishmentTargetAuthorization(
                     output,
                     ReplenishmentProducerKind.TimedCooking,
@@ -345,7 +345,7 @@ namespace RunicProduction.Integration
                     new[] { new ReplenishmentRequirement(conversion.InputPrefabId, 1) }));
             }
             if (refresh && previous.Revision == int.MaxValue)
-                return Fail("The Replenishment plan revision is exhausted; relink the destination.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_fbb38336e7fc"), out failure);
             int cursor = 0;
             if (refresh && previous.Targets.Count > 0 && targets.Count > 0)
             {
@@ -390,7 +390,7 @@ namespace RunicProduction.Integration
                 !string.Equals(plan.StationPrefabId, descriptor.PrefabId, StringComparison.Ordinal) ||
                 !ReplenishmentPlanStore.MatchesLink(plan, link, stationId) ||
                 plan.AuthorizedPlayerId != link.OwnerId)
-                return Fail("The persisted timed cooking plan is not bound to this exact station/link.", out failure);
+                return Fail(global::Runic.Localization.RunicText.Get("text_d801c633da3d"), out failure);
             foreach (ReplenishmentTargetAuthorization target in plan.Targets)
                 if (!TryResolveAuthorized(descriptor, target, out _, out failure)) return false;
             return true;
@@ -419,7 +419,7 @@ namespace RunicProduction.Integration
                 !target.ProducerSignatureMatches(
                     TimedCookingProducerSignature.Create(descriptor, resolved)))
                 return Fail(
-                    "A signed timed cooking producer changed; explicitly refresh targets to authorize it again.",
+                    global::Runic.Localization.RunicText.Get("text_2c755eca4ac8"),
                     out failure);
             conversion = resolved;
             return true;

@@ -47,13 +47,13 @@ namespace RunicBuildCamera
                 "General",
                 "Enabled",
                 true,
-                "Enable Runic Build Camera. Disabling it leaves Valheim's normal build controls unchanged.");
+                global::Runic.Localization.RunicText.Get("text_0a6ae8b067ca"));
             ToggleShortcut = BindEntry(
                 config,
                 "Controls",
                 "ToggleShortcut",
                 new KeyboardShortcut(KeyCode.B),
-                "Keyboard shortcut that enters or exits the detached build camera.");
+                global::Runic.Localization.RunicText.Get("text_79be68bc27a1"));
             CameraRange = BindRange(
                 config,
                 "Camera",
@@ -61,7 +61,7 @@ namespace RunicBuildCamera
                 DefaultCameraRange,
                 MinimumDistance,
                 CameraRangeHardMaximum,
-                "Maximum distance, in metres, that the detached camera may travel from the player.");
+                global::Runic.Localization.RunicText.Get("text_1c9f371d5f2c"));
             MoveSpeed = BindRange(
                 config,
                 "Camera",
@@ -69,7 +69,7 @@ namespace RunicBuildCamera
                 10f,
                 0.5f,
                 50f,
-                "Base detached-camera movement speed in metres per second.");
+                global::Runic.Localization.RunicText.Get("text_09f482d754a0"));
             FastMoveMultiplier = BindRange(
                 config,
                 "Camera",
@@ -77,13 +77,13 @@ namespace RunicBuildCamera
                 3f,
                 1f,
                 10f,
-                "Multiplier applied while the fast-move input is held.");
+                global::Runic.Localization.RunicText.Get("text_9abaa67ab9eb"));
             WorldRelativeMovement = BindEntry(
                 config,
                 "Camera",
                 "WorldRelativeMovement",
                 false,
-                "Move on fixed world axes instead of axes derived from the camera view.");
+                global::Runic.Localization.RunicText.Get("text_fdca2a2cae5e"));
             RemoteActionDistance = BindRange(
                 config,
                 "Remote Actions",
@@ -91,15 +91,15 @@ namespace RunicBuildCamera
                 DefaultRemoteActionDistance,
                 MinimumDistance,
                 RemoteActionDistanceHardMaximum,
-                "Maximum avatar-to-target distance, in metres, while detached placement, repair, " +
-                "or removal runs. Effective crafting-station build range is raised only inside the " +
-                "scoped call; station data is not changed. Valheim's camera ray remains limited to 50 metres.");
+                global::Runic.Localization.RunicText.Get("text_5cdd426faf6d") +
+                global::Runic.Localization.RunicText.Get("text_d77fc99e1978") +
+                global::Runic.Localization.RunicText.Get("text_015eb096e1ec"));
             PickupEnabled = BindEntry(
                 config,
                 "Pickup",
                 "PickupEnabled",
                 true,
-                "Allow nearby loose world-item drops to be collected while the detached camera is active. Chests and other containers are excluded.");
+                global::Runic.Localization.RunicText.Get("text_7e340344c138"));
             PickupRange = BindRange(
                 config,
                 "Pickup",
@@ -107,7 +107,7 @@ namespace RunicBuildCamera
                 10f,
                 1f,
                 50f,
-                "Collection radius, in metres, around the detached camera for eligible loose world items.");
+                global::Runic.Localization.RunicText.Get("text_1503c4d0efb2"));
             PickupIntervalSeconds = BindRange(
                 config,
                 "Pickup",
@@ -115,13 +115,13 @@ namespace RunicBuildCamera
                 0.25f,
                 0.05f,
                 2f,
-                "Minimum time, in seconds, between detached-camera pickup scans.");
+                global::Runic.Localization.RunicText.Get("text_6ac387048534"));
             DemisterFollowCamera = BindEntry(
                 config,
                 "Mist",
                 "DemisterFollowCamera",
                 true,
-                "Move the player's active Wisplight mist-clearing effect with the detached camera. This does nothing without an active Wisplight demister.");
+                global::Runic.Localization.RunicText.Get("text_2fbfdd579ce5"));
             DemisterRangeMultiplier = BindRange(
                 config,
                 "Mist",
@@ -129,37 +129,37 @@ namespace RunicBuildCamera
                 2f,
                 0.25f,
                 5f,
-                "Multiplier applied to mist-clearing range while it follows the detached camera.");
+                global::Runic.Localization.RunicText.Get("text_32c6dc7938c7"));
             InvertMouseHorizontal = BindEntry(
                 config,
                 "Controls",
                 "InvertMouseHorizontal",
                 false,
-                "Invert horizontal mouse look while the detached camera is active.");
+                global::Runic.Localization.RunicText.Get("text_c3b035822ef5"));
             InvertMouseVertical = BindEntry(
                 config,
                 "Controls",
                 "InvertMouseVertical",
                 false,
-                "Invert vertical mouse look while the detached camera is active.");
+                global::Runic.Localization.RunicText.Get("text_41f4b367f85b"));
             InvertControllerHorizontal = BindEntry(
                 config,
                 "Controls",
                 "InvertControllerHorizontal",
                 false,
-                "Invert horizontal controller look while the detached camera is active.");
+                global::Runic.Localization.RunicText.Get("text_f3622ea95b67"));
             InvertControllerVertical = BindEntry(
                 config,
                 "Controls",
                 "InvertControllerVertical",
                 false,
-                "Invert vertical controller look while the detached camera is active.");
+                global::Runic.Localization.RunicText.Get("text_908b56428063"));
             VerboseLogging = BindEntry(
                 config,
                 "Diagnostics",
                 "VerboseLogging",
                 false,
-                "Write additional state-transition diagnostics. Per-frame logging remains disabled.");
+                global::Runic.Localization.RunicText.Get("text_2b4b917a0f25"));
 
         }
 

@@ -1,4 +1,4 @@
-# Runic Interaction 1.0.4
+# Runic Interaction 1.0.10
 
 Not every frustration deserves a separate system. Some are simply small interruptions that happen often enough to wear you down: repeated use clicks, fussy transfers, doors left open, forgotten menu choices, unwanted pickups, and equipment that does not return when expected.
 
@@ -45,8 +45,14 @@ boundary. Ordinary dragging remains vanilla.
 
 ### Session-only door auto-close
 
-Door auto-close is off by default. A successful open by the native local player creates one bounded
-in-memory timer. At expiry, the same loaded door must still have the exact identity and prefab, be
+Enable `Features -> AutoCloseDoors` to close loaded, accessible player-built doors after **any player** opens
+them. The visitor does not need this mod when your client can see the synchronized door state.
+Only doors marked by Valheim as placed by a player qualify, regardless of who built them.
+World-generated doors in burial chambers, frost caves, ruins, and other structures stay untouched.
+Already-open doors are also detected when loaded or when the feature is enabled. Auto-close is
+off by default. An observed open door creates one bounded in-memory timer. Repeated network
+updates do not restart its delay; closing and reopening starts a new delay.
+At expiry, the same loaded door must still have the exact identity and prefab, be
 open and closeable, pass current ward access, and have no character or movable-body obstruction.
 The 32-collider non-alloc scan treats saturation as obstruction.
 
@@ -86,7 +92,7 @@ unrelated tool, inventory, door, or gameplay mod.
 
 Install the DLL on each client that should receive the local conveniences. A dedicated server may
 also load it safely; no protocol handshake is required, and client/server absence or version drift
-does not prevent another Runic mod from loading. Auto-close acts only where that process has the
+  does not prevent another Runic mod from loading. Auto-close acts only where that process has the
 qualifying native local player and loaded door state.
 
 ## Configuration defaults
@@ -121,3 +127,19 @@ No world cleanup is required.
 Community: https://discord.gg/7HKHTCdFqY
 
 Runic Interaction is an independent mod and is not affiliated with Iron Gate Studio.
+
+## Game compatibility
+
+Verified against Valheim 1.0.15. Startup checks required APIs directly; an unfamiliar game version alone does not disable the mod.
+
+Compatibility: startup validates required game APIs rather than rejecting an unfamiliar game version. Actual API incompatibilities still disable safely.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicInteraction` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

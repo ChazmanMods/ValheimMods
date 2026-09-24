@@ -1,12 +1,17 @@
-# Runic Precision Build Tool 2.0.4
+# Runic Precision Build Tool 2.0.7
 
 Valheim's building system makes extraordinary structures possible, but serious builders eventually fight the placement controls: a beam is almost aligned, a roof needs one more axis, or one bad click means dismantling work that was already right.
 
 **Runic Precision Build Tool gives the hammer full six-axis control.** Move and rotate pending pieces exactly, match existing geometry, repeat useful transforms, undo placements, and repair bounded areas while keeping Valheim's familiar building workflow.
 
+## New in 2.0.7
+
+**One key. Two rotation modes.** Tap **F4** for Local axes that follow your piece; tap again for fixed World axes. Your choice stays selected, the piece stays put when you switch, and the HUD and axis guides show exactly which mode is active.
+
 ## Major features
 
 - Move and rotate pending pieces across all six degrees of freedom.
+- Tap **F4** to switch between **Local** and **World** rotation axes; no holding or modifier keys.
 - Switch between normal and fine movement or rotation steps.
 - Match complete or individual transforms from existing pieces.
 - Repeat placements, search the catalog, and inspect precise readouts.
@@ -36,12 +41,15 @@ When precision mode is off, the mod does not change the placement transform.
 | Alt + Up/Down | Heave |
 | Alt + PageUp/PageDown | Surge |
 | Add V to a movement chord | Fine movement |
-| Hold G | Piece-local axis guides |
+| F4 | Toggle World / Local rotation axes (saved) |
+| Hold G | Rotation axis guides |
 | F10 | Reset the complete Runic transform |
 
-Normal rotation is 22.5 degrees and fine rotation is 1 degree by default. Every yaw, pitch, and roll
-increment uses the pending piece's current local Y, X, or Z axis. Thus Alt + Wheel pitches a yawed
-beam around the beam's own X axis. Normal movement is 0.25 m and fine movement is 0.05 m.
+Normal rotation is 22.5 degrees and fine rotation is 1 degree by default. **F4 toggles Local / World rotation** without holding a key or changing the current piece pose. Local is the default and follows the piece's X/Y/Z axes; World uses fixed world X/Y/Z axes. The HUD and G guides show the selected mode. The choice is saved as `Rotation.ReferenceFrame` and is independent of movement.
+
+For an arch, aim at the preceding beam and press **Keypad0** to match its complete orientation. Select **LOCAL** with F4, then bend around the transverse axis shown by G. For the horizontal wood beam whose yellow X axis runs along its length, use **Shift + Wheel** (pink Z/roll) to bend; add **V** for one-degree steps. Snap the joining ends before placing. Alt + Wheel rotates about yellow X, which twists a beam running along X. The displayed pitch/roll/yaw are world orientation readings and may change together during a single local-axis turn.
+
+Normal movement is 0.25 m and fine movement is 0.05 m.
 `Movement.ReferenceFrame=World` keeps new movement steps on world axes; `Local` rotates each new
 movement step by the pending piece orientation. Earlier movement never orbits when the piece rotates
 later.
@@ -121,9 +129,19 @@ Favorites and recents are bounded configuration strings; safe utilities create n
 
 Install BepInExPack Valheim 5.4.2350, then place `RunicPrecisionBuildTool.dll` under
 `BepInEx/plugins/RunicPrecisionBuildTool/`. Configuration is generated at
-`BepInEx/config/chazman.RunicPrecisionBuildTool.cfg`. Version 2.0.4 supports keyboard and mouse; it
+`BepInEx/config/chazman.RunicPrecisionBuildTool.cfg`. Version 2.0.7 supports keyboard and mouse; it
 does not promise controller bindings.
 
 Community: https://discord.gg/7HKHTCdFqY
 
 Runic Precision Build Tool is an independent mod and is not affiliated with Iron Gate Studio.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicPrecisionBuildTool` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

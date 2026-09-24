@@ -1,6 +1,6 @@
 {
   "name": "RunicProduction",
-  "version_number": "1.0.7",
+  "version_number": "1.0.15",
   "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicProduction",
   "description": "Automate your base with chest-linked ingredients, fuel, outputs, and stock replenishment for Valheim's existing production stations.",
   "dependencies": [

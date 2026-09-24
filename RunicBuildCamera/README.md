@@ -52,7 +52,7 @@ those actions.
 
 To put away your hammer or switch items, use the normal hotbar action; the detached camera
 exits automatically. Keyboard put-away also exits the camera and keeps the same keypress.
-Controller hotbar use follows the same exit behavior. Compatible with Valheim 1.0.12.
+Controller hotbar use follows the same exit behavior. Compatible with Valheim 1.0.14.
 
 The toggle can be replaced with any BepInEx keyboard shortcut in
 BepInEx/config/chazman.RunicBuildCamera.cfg.
@@ -104,7 +104,7 @@ loaded by the game.
 
 ## Multiplayer
 
-Version 1.0.3 introduces no custom RPC, synchronized configuration, or networked data type. Install
+Version 1.0.5 introduces no custom RPC, synchronized configuration, or networked data type. Install
 it on each client that wants to use the camera; a dedicated server does not need a matching copy
 for the client feature to operate. Installing this DLL on a dedicated server does not turn the
 client-side camera and range settings into an enforcement system.
@@ -134,3 +134,17 @@ upstream repository and license are:
 Runic Build Camera does not currently include a LICENSE file, so this repository does not state a
 general third-party reuse grant for its own code. Add an explicit project license before inviting
 reuse or redistribution of source.
+
+## Version 1.0.5 update
+
+Restores activation when a stale focus state would otherwise block the shortcut. The camera now shows activation and blocked-shortcut feedback and logs camera-update failures. Confirmed working in-game by the author on September 17, 2026.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicBuildCamera` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

@@ -17,6 +17,7 @@ namespace UnityEngine
         public static Vector3 operator -(Vector3 a, Vector3 b) => new Vector3(a.x-b.x,a.y-b.y,a.z-b.z);
     }
     public class Transform { public Vector3 position; }
+    public struct Quaternion { public static Quaternion identity => new Quaternion(); }
     public class GameObject
     {
         public string name; public bool activeInHierarchy = true; public Transform transform = new Transform();
@@ -41,6 +42,7 @@ namespace HarmonyLib
 }
 public class Piece : UnityEngine.Component
 {
+    public EffectList m_placeEffect = new EffectList();
     public static List<Piece> Loaded = new List<Piece>();
     public bool m_repairPiece, m_removePiece; public CraftingStation m_craftingStation;
     public static void GetAllPiecesInRadius(UnityEngine.Vector3 origin, float radius, List<Piece> output) =>
@@ -49,7 +51,17 @@ public class Piece : UnityEngine.Component
 public class WearNTear : UnityEngine.Component
 {
     public float m_health = 100; public int Requests;
-    public bool Repair() { Requests++; return true; }
+    public bool Accept = true;
+    public bool Repair() { Requests++; return Accept; }
+}
+public class ZSFX : UnityEngine.Component { }
+public class EffectList
+{
+    public class EffectData { public UnityEngine.GameObject m_prefab; public bool m_enabled=true; }
+    public EffectData[] m_effectPrefabs = new EffectData[0];
+    public static int Sounds; public static bool Fail; public static UnityEngine.Vector3 Position;
+    public void Create(UnityEngine.Vector3 position, UnityEngine.Quaternion rotation)
+    { if (Fail) throw new Exception("sound failed"); Sounds += m_effectPrefabs.Length; Position = position; }
 }
 public class ZDO { public float Health = 50; public float GetFloat(int key, float fallback) => Health; }
 public static class ZDOVars { public static int s_health; }

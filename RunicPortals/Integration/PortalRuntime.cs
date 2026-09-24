@@ -239,16 +239,16 @@ namespace RunicPortals.Integration
             if (!panelState.DetailsVisible)
             {
                 _hoverCache.Remove(instanceId);
-                text = "Runic Portal: Restricted Network Portal\n" +
-                       "Details hidden by current permissions";
+                text = global::Runic.Localization.RunicText.Get("text_4fb7e55fd803") +
+                       global::Runic.Localization.RunicText.Get("text_8e8c8bd55b5d");
                 return true;
             }
             if (_hoverCache.TryGetValue(instanceId, out text)) return true;
             string selected = panelState.SelectedDestination.Length == 0
                 ? "none"
                 : panelState.SelectedDestination;
-            text = "Runic Portal: " + panelState.DisplayName + " [" + panelState.NetworkId + "]\n" +
-                   "Selected: " + selected;
+            text = global::Runic.Localization.RunicText.Get("text_8fed301cb760") + panelState.DisplayName + " [" + panelState.NetworkId + "]\n" +
+                   global::Runic.Localization.RunicText.Get("text_1f153fd1824c") + selected;
             _hoverCache[instanceId] = text;
             return true;
         }
@@ -308,7 +308,7 @@ namespace RunicPortals.Integration
         internal PortalEditorSubmitResult SubmitEditorDraft(PortalEditorDraft draft)
         {
             if (_edit == null || draft == null)
-                return PortalEditorSubmitResult.Reject("The portal editor is no longer active.");
+                return PortalEditorSubmitResult.Reject(global::Runic.Localization.RunicText.Get("text_819f01290e68"));
             PortalEditCommand command = draft.BuildCommand();
             return TryCommitEditorCommand(_edit.Portal, command);
         }
@@ -323,7 +323,7 @@ namespace RunicPortals.Integration
             if (session == null || portal == null ||
                 session.InstanceId != portal.GetInstanceID())
                 return PortalEditorSubmitResult.Reject(
-                    "The portal changed. Close this window and try again.");
+                    global::Runic.Localization.RunicText.Get("text_a87ddde51dcd"));
             string confirmationTarget = PortalEditEvidence.OpaqueTarget(session.PortalId.ToString());
             Player actor = Player.m_localPlayer;
             if (actor == null || actor.GetPlayerID() != session.ActorId)
@@ -332,7 +332,7 @@ namespace RunicPortals.Integration
                 RejectEdit(portal, AuthorityStopCode.SenderIdentityUnbound);
                 CancelCurrentEdit();
                 return PortalEditorSubmitResult.Reject(
-                    "Your player identity changed, so the editor closed safely.");
+                    global::Runic.Localization.RunicText.Get("text_780d3e7593cf"));
             }
             if (command == null || command.Kind == PortalEditKind.Invalid)
             {
@@ -340,7 +340,7 @@ namespace RunicPortals.Integration
                 _diagnostics.Record(PortalDiagnosticCode.EditRejected, RouteStopCode.StaleSelection,
                     session.PortalId.ToString());
                 return PortalEditorSubmitResult.Reject(
-                    command?.Error ?? "The portal settings are invalid.");
+                    command?.Error ?? global::Runic.Localization.RunicText.Get("text_fb78de4e74cb"));
             }
             if (!TryBindAndAuthorizeGroupEdit(
                     actor,
@@ -351,7 +351,7 @@ namespace RunicPortals.Integration
                 _confirmations.Cancel(confirmationTarget);
                 RejectEdit(portal, AuthorityStopCode.OwnerPermissionDenied);
                 return PortalEditorSubmitResult.Reject(
-                    Sentence("Runic portal edit cancelled: " + groupFailure));
+                    Sentence(global::Runic.Localization.RunicText.Get("text_730ea66cb20e") + groupFailure));
             }
             if (!TryRevalidateEdit(
                     session,
@@ -367,7 +367,7 @@ namespace RunicPortals.Integration
                 RejectEdit(portal, stop);
                 CancelCurrentEdit();
                 return PortalEditorSubmitResult.Reject(
-                    Sentence("The editor closed safely because " + reason));
+                    Sentence(global::Runic.Localization.RunicText.Get("text_2a626cc8e1f4") + reason));
             }
             if (command.Kind == PortalEditKind.PublicNetwork &&
                 zdo.GetConnectionZDOID(ZDOExtraData.ConnectionType.Portal) != ZDOID.None)
@@ -375,7 +375,7 @@ namespace RunicPortals.Integration
                 _confirmations.Cancel(confirmationTarget);
                 RejectEdit(portal, AuthorityStopCode.CurrentStateChanged);
                 return PortalEditorSubmitResult.Reject(
-                    "This Standard Pair is still connected. Select Standard Pair, give it a unique tag, save, then open the editor again to convert it.");
+                    global::Runic.Localization.RunicText.Get("text_147969ee347f"));
             }
 
             bool metadataMatches = observed.Matches(command, creator);
@@ -438,8 +438,8 @@ namespace RunicPortals.Integration
                 RejectEdit(portal, AuthorityStopCode.CurrentStateChanged);
                 return PortalEditorSubmitResult.Reject(
                     confirmation == PortalConfirmationAdmission.Unavailable
-                        ? "Configured Safety confirmation is unavailable or incompatible."
-                        : "The current Safety confirmation policy denied this change.");
+                        ? global::Runic.Localization.RunicText.Get("text_da5796eed920")
+                        : global::Runic.Localization.RunicText.Get("text_eff2b8438662"));
             }
 
             // A synchronous provider is still third-party code. Rebuild all authority, ward,
@@ -466,7 +466,7 @@ namespace RunicPortals.Integration
                 RejectEdit(portal, stop);
                 CancelCurrentEdit();
                 return PortalEditorSubmitResult.Reject(
-                    "The portal changed during confirmation, so the editor closed safely.");
+                    global::Runic.Localization.RunicText.Get("text_f68295b60b61"));
             }
             if (command.Kind == PortalEditKind.PublicNetwork &&
                 zdo.GetConnectionZDOID(ZDOExtraData.ConnectionType.Portal) != ZDOID.None)
@@ -474,21 +474,21 @@ namespace RunicPortals.Integration
                 _confirmations.Cancel(confirmationTarget);
                 RejectEdit(portal, AuthorityStopCode.CurrentStateChanged);
                 return PortalEditorSubmitResult.Reject(
-                    "The Standard Pair connection changed. Give it a unique tag before converting it.");
+                    global::Runic.Localization.RunicText.Get("text_968d8051027b"));
             }
             if (!TryAuthorizeBoundGroupEdit(actor, command, out groupFailure))
             {
                 _confirmations.Cancel(confirmationTarget);
                 RejectEdit(portal, AuthorityStopCode.OwnerPermissionDenied);
                 return PortalEditorSubmitResult.Reject(
-                    Sentence("Runic portal edit cancelled: " + groupFailure));
+                    Sentence(global::Runic.Localization.RunicText.Get("text_730ea66cb20e") + groupFailure));
             }
             if (!PortalZdoCodec.TryWrite(zdo, command, creator, out _, out string writeFailure))
             {
                 _confirmations.Cancel(confirmationTarget);
                 RejectEdit(portal, AuthorityStopCode.CurrentStateChanged);
                 return PortalEditorSubmitResult.Reject(
-                    Sentence("The portal could not be saved: " + writeFailure));
+                    Sentence(global::Runic.Localization.RunicText.Get("text_736510a6e168") + writeFailure));
             }
             _confirmations.Cancel(confirmationTarget);
             FinishSuccessfulEdit(portal, zdo, command);
@@ -529,14 +529,14 @@ namespace RunicPortals.Integration
             long playerId = actor == null ? 0L : actor.GetPlayerID();
             if (playerId == 0L)
             {
-                failure = "your stable player identity is unavailable";
+                failure = global::Runic.Localization.RunicText.Get("text_fe19556c7188");
                 return false;
             }
             if (command.RequiresActiveGroup)
             {
                 if (!_groups.TryGetActive(playerId, out string groupId, out _))
                 {
-                    failure = "no active Group is selected; open chat and use /group list, then /group use <group name>";
+                    failure = global::Runic.Localization.RunicText.Get("text_ce20aa84e398");
                     return false;
                 }
                 bound = command.BindGroup(groupId);
@@ -559,12 +559,12 @@ namespace RunicPortals.Integration
             long playerId = actor == null ? 0L : actor.GetPlayerID();
             if (playerId == 0L)
             {
-                failure = "your stable player identity is unavailable";
+                failure = global::Runic.Localization.RunicText.Get("text_fe19556c7188");
                 return false;
             }
             if (_groups.TryIsMember(command.GroupId, playerId, out bool member) && member)
                 return true;
-            failure = "the selected Group is unavailable or you are no longer a current member";
+            failure = global::Runic.Localization.RunicText.Get("text_62081d6b28ef");
             return false;
         }
 
@@ -589,8 +589,8 @@ namespace RunicPortals.Integration
                 if (!StandardPairTargetsNetwork(portal)) return false;
                 handled = true;
                 Message(player,
-                    "This Standard Pair is linked to a Runic network portal. Give it a unique " +
-                    "vanilla tag and pair it with another Standard portal.");
+                    global::Runic.Localization.RunicText.Get("text_8a9f4cb852bd") +
+                    global::Runic.Localization.RunicText.Get("text_165133bbabff"));
                 RejectRoute(portal, RouteStopCode.DestinationUnavailable);
                 return true;
             }
@@ -611,7 +611,7 @@ namespace RunicPortals.Integration
             handled = true;
             if (!ValheimContracts.HasLocalPlayerAuthority || player != Player.m_localPlayer)
             {
-                Message(player, "Portal travel requires native ownership of the local player.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_2d9166bd3c34"));
                 RejectRoute(portal, RouteStopCode.AuthorityUnavailable);
                 return true;
             }
@@ -620,14 +620,14 @@ namespace RunicPortals.Integration
                 !TryGetPortalId(portal, out string sourceId) ||
                 !_graph.TryGetEndpoint(sourceId, out PortalEndpoint source))
             {
-                Message(player, "Portal route cancelled: the server graph is unavailable.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_a4a10e1c947a"));
                 RejectRoute(portal, RouteStopCode.SourceUnavailable);
                 return true;
             }
             string traveler = PortalPermissionAdapter.Identity(player.GetPlayerID());
             if (!_selections.TryGet(traveler, sourceId, out PortalSelection selection))
             {
-                Message(player, "No destination selected. Walk into the portal and click a destination marker on the map.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_a80b334d2868"));
                 RejectRoute(portal, RouteStopCode.StaleSelection);
                 return true;
             }
@@ -651,7 +651,7 @@ namespace RunicPortals.Integration
                     if (!_oneWay.ConsumeOrArm(
                             traveler, sourceId, selection.DestinationPortalId, now, duration))
                     {
-                        Message(player, "This destination is one-way. Walk into the portal and click its map marker to acknowledge and travel.");
+                        Message(player, global::Runic.Localization.RunicText.Get("text_849ac9020a5e"));
                         RejectRoute(portal, RouteStopCode.OneWayWarningRequired);
                         return true;
                     }
@@ -675,7 +675,7 @@ namespace RunicPortals.Integration
                 !_index.TryGetZdo(selection.DestinationPortalId, out ZDO destinationZdo) ||
                 !_graph.TryGetEndpoint(selection.DestinationPortalId, out PortalEndpoint destination))
             {
-                Message(player, "Portal route cancelled: an endpoint changed after selection.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_79e7bd779438"));
                 RejectRoute(portal, RouteStopCode.DestinationUnavailable);
                 return true;
             }
@@ -686,7 +686,7 @@ namespace RunicPortals.Integration
             PortalEndpoint currentDestination = null;
             bool metadataMatches = PortalZdoCodec.TryRead(sourceZdo,
                                        out currentSource, out _) &&
-                                   PortalZdoCodec.TryRead(destinationZdo,
+                                   PortalZdoCodec.TryReadDestination(destinationZdo,
                                        out currentDestination, out _) &&
                                    SameRouteState(source, currentSource) &&
                                    SameRouteState(destination, currentDestination);
@@ -719,7 +719,7 @@ namespace RunicPortals.Integration
                 InRange(player.transform.position, portal.transform.position, CurrentEditRange()),
                 metadataMatches && observedSource == sourceZdo &&
                 PortalZdoCodec.GetRevision(sourceZdo) == plan.SourceRevision &&
-                PortalZdoCodec.GetRevision(destinationZdo) == plan.DestinationRevision &&
+                currentDestination != null && currentDestination.Revision == plan.DestinationRevision &&
                 ZDOMan.instance != null &&
                 ZDOMan.instance.GetZDO(sourceZdo.m_uid) == sourceZdo &&
                 ZDOMan.instance.GetZDO(destinationZdo.m_uid) == destinationZdo,
@@ -727,7 +727,7 @@ namespace RunicPortals.Integration
             PortalAuthorityDecision authority = _authority.Evaluate(evidence);
             if (!authority.IsAllowed)
             {
-                Message(player, "Portal route denied: " + AuthorityLabel(authority.StopCode) + ".");
+                Message(player, global::Runic.Localization.RunicText.Get("text_2b43b5feedea") + AuthorityLabel(authority.StopCode) + ".");
                 _diagnostics.Record(PortalDiagnosticCode.AuthorityRejected,
                     RouteStopCode.AuthorityUnavailable, sourceId);
                 return true;
@@ -740,7 +740,7 @@ namespace RunicPortals.Integration
                     out Vector3 position,
                     out Quaternion rotation))
             {
-                Message(player, "Portal route cancelled: the destination transform is invalid.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_5b22546ca5e6"));
                 _diagnostics.Record(PortalDiagnosticCode.RouteRejected,
                     RouteStopCode.TeleportRejected, selection.DestinationPortalId);
                 return true;
@@ -753,7 +753,7 @@ namespace RunicPortals.Integration
             if (!player.TeleportTo(position, rotation, true))
             {
                 _arrivalSuppression.Clear();
-                Message(player, "Portal route cancelled: Valheim rejected the teleport state.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_67d3054da639"));
                 RejectRoute(portal, RouteStopCode.TeleportRejected);
                 return true;
             }
@@ -799,7 +799,7 @@ namespace RunicPortals.Integration
         {
             if (!ValheimContracts.HasLocalPlayerAuthority || actor != Player.m_localPlayer)
             {
-                Message(actor, "Portal selection requires native ownership of the local player.");
+                Message(actor, global::Runic.Localization.RunicText.Get("text_a690a14fde68"));
                 RejectRoute(portal, RouteStopCode.AuthorityUnavailable);
                 return true;
             }
@@ -808,7 +808,7 @@ namespace RunicPortals.Integration
                 actor.GetPlayerID());
             if (!ValheimContracts.WardAllows(sourceWard))
             {
-                Message(actor, "Portal selection denied: ward access was denied at this portal.");
+                Message(actor, global::Runic.Localization.RunicText.Get("text_a0911139a5ff"));
                 RejectRoute(portal, RouteStopCode.AuthorityUnavailable);
                 return true;
             }
@@ -817,7 +817,7 @@ namespace RunicPortals.Integration
                 !TryGetPortalId(portal, out string sourceId) ||
                 !_graph.TryGetEndpoint(sourceId, out PortalEndpoint source))
             {
-                Message(actor, "Portal directory unavailable.");
+                Message(actor, global::Runic.Localization.RunicText.Get("text_74762c0fb840"));
                 return true;
             }
             string traveler = PortalPermissionAdapter.Identity(actor.GetPlayerID());
@@ -853,7 +853,7 @@ namespace RunicPortals.Integration
                         candidates.Add(new CycleCandidate
                         {
                             PortalId = returnEndpoint.PortalId,
-                            Label = "Return: " + returnEndpoint.DisplayName,
+                            Label = global::Runic.Localization.RunicText.Get("text_a5149a4145a0") + returnEndpoint.DisplayName,
                             DisplayName = returnEndpoint.DisplayName,
                             SourceRevision = source.Revision,
                             DestinationRevision = returnEndpoint.Revision,
@@ -886,7 +886,7 @@ namespace RunicPortals.Integration
             }
             if (candidates.Count == 0)
             {
-                Message(actor, "No authorized online destinations are available in this network.");
+                Message(actor, global::Runic.Localization.RunicText.Get("text_9126359f4725"));
                 return true;
             }
             int next = 0;
@@ -908,7 +908,7 @@ namespace RunicPortals.Integration
             _hoverCache.Remove(portal.GetInstanceID());
             _oneWay.Clear();
             _diagnostics.Record(PortalDiagnosticCode.RouteSelected, RouteStopCode.Ready, sourceId);
-            Message(actor, "Destination selected: " + selected.Label + ".");
+            Message(actor, global::Runic.Localization.RunicText.Get("text_b3d6b9c3a8a3") + selected.Label + ".");
             return true;
         }
 
@@ -917,26 +917,26 @@ namespace RunicPortals.Integration
             if (!TryConfigureEvidence(portal, actor, out PortalAuthorityEvidence evidence,
                     out ZDO zdo, out _, out string reason))
             {
-                Message(actor, "Runic portal editor unavailable: " + reason + ".");
+                Message(actor, global::Runic.Localization.RunicText.Get("text_d2881d217dd1") + reason + ".");
                 return true;
             }
             PortalAuthorityDecision decision = _authority.Evaluate(evidence);
             if (!decision.IsAllowed)
             {
-                Message(actor, "Runic portal editor denied: " + AuthorityLabel(decision.StopCode) + ".");
+                Message(actor, global::Runic.Localization.RunicText.Get("text_92465b146e7d") + AuthorityLabel(decision.StopCode) + ".");
                 RejectEdit(portal, decision.StopCode);
                 return true;
             }
             if (_portalEditor == null)
             {
-                Message(actor, "Runic portal editor unavailable: the interface is not ready.");
+                Message(actor, global::Runic.Localization.RunicText.Get("text_773522b52c4e"));
                 return true;
             }
             long token = unchecked(++_editSequence);
             if (token == 0L) token = unchecked(++_editSequence);
             if (!PortalEditEvidence.TryCapture(zdo, out PortalEditEvidence editEvidence))
             {
-                Message(actor, "Runic portal editor unavailable: current metadata evidence is invalid.");
+                Message(actor, global::Runic.Localization.RunicText.Get("text_f45e4ba6b041"));
                 return true;
             }
             int mode = PortalZdoCodec.GetMode(zdo);
@@ -949,7 +949,7 @@ namespace RunicPortals.Integration
                 if (!PortalZdoCodec.TryRead(zdo, out PortalEndpoint endpoint, out _))
                 {
                     Message(actor,
-                        "Runic portal editor unavailable: current portal settings are invalid.");
+                        global::Runic.Localization.RunicText.Get("text_0c775bfb3367"));
                     return true;
                 }
                 draft = PortalEditorDraft.ForNetwork(rawVanillaTag, endpoint);
@@ -993,12 +993,12 @@ namespace RunicPortals.Integration
             zdo = null;
             creator = 0L;
             stop = AuthorityStopCode.CurrentStateChanged;
-            reason = "current portal evidence is unavailable";
+            reason = global::Runic.Localization.RunicText.Get("text_d9077a54d794");
             if (session == null || portal == null || actor == null) return false;
             if (actor.GetPlayerID() != session.ActorId)
             {
                 stop = AuthorityStopCode.SenderIdentityUnbound;
-                reason = "actor identity changed";
+                reason = global::Runic.Localization.RunicText.Get("text_318a5002df08");
                 return false;
             }
             if (!TryConfigureEvidence(
@@ -1018,12 +1018,12 @@ namespace RunicPortals.Integration
             }
             if (zdo.m_uid != session.PortalId)
             {
-                reason = "portal identity changed";
+                reason = global::Runic.Localization.RunicText.Get("text_adeedd759da9");
                 return false;
             }
             if (!PortalEditEvidence.TryCapture(zdo, out current))
             {
-                reason = "portal metadata is invalid or unsupported";
+                reason = global::Runic.Localization.RunicText.Get("text_d178d343e110");
                 return false;
             }
             if (current.Schema != session.Schema ||
@@ -1031,7 +1031,7 @@ namespace RunicPortals.Integration
                 current.Revision != session.Revision ||
                 !current.Matches(session.Evidence))
             {
-                reason = "portal metadata changed while the editor was open";
+                reason = global::Runic.Localization.RunicText.Get("text_8f2b90170d12");
                 return false;
             }
             string rawTag = RawVanillaTag(zdo);
@@ -1044,12 +1044,12 @@ namespace RunicPortals.Integration
             if (!string.Equals(rawTag, session.RawVanillaTag, StringComparison.Ordinal) &&
                 !completedPendingTag)
             {
-                reason = "the vanilla portal tag changed while the editor was open";
+                reason = global::Runic.Localization.RunicText.Get("text_c52aa230cd0d");
                 return false;
             }
             if (connection != session.VanillaConnection && !completedPendingTag)
             {
-                reason = "the vanilla portal connection changed while the editor was open";
+                reason = global::Runic.Localization.RunicText.Get("text_853179b3a09e");
                 return false;
             }
             if (completedPendingTag)
@@ -1073,7 +1073,7 @@ namespace RunicPortals.Integration
             evidence = null;
             zdo = null;
             creator = 0L;
-            reason = "authority context is incomplete";
+            reason = global::Runic.Localization.RunicText.Get("text_a8ffd7109709");
             if (portal == null || actor == null) return false;
             ZNetView view = portal.GetComponent<ZNetView>();
             Piece piece = portal.GetComponent<Piece>() ?? portal.GetComponentInParent<Piece>();
@@ -1081,7 +1081,7 @@ namespace RunicPortals.Integration
             creator = piece == null ? 0L : piece.GetCreator();
             if (zdo == null || zdo.m_uid.IsNone() || creator == 0L)
             {
-                reason = "portal owner or stable object identity is missing";
+                reason = global::Runic.Localization.RunicText.Get("text_c5d27d2e817b");
                 return false;
             }
             int schema = PortalZdoCodec.GetSchema(zdo);
@@ -1091,7 +1091,7 @@ namespace RunicPortals.Integration
                                  schema == PortalZdoCodec.SchemaVersion;
             if (!knownMode || !schemaCurrent)
             {
-                reason = "portal metadata mode or schema is unsupported";
+                reason = global::Runic.Localization.RunicText.Get("text_f6a766452d61");
                 return false;
             }
             string actorStable = PortalPermissionAdapter.Identity(actor.GetPlayerID());
@@ -1100,7 +1100,7 @@ namespace RunicPortals.Integration
             {
                 if (!PortalZdoCodec.TryRead(zdo, out PortalEndpoint currentEndpoint, out _))
                 {
-                    reason = "portal metadata is invalid or uses an unsupported schema";
+                    reason = global::Runic.Localization.RunicText.Get("text_3db9c90a6d2d");
                     return false;
                 }
                 // Piece creator is authoritative for editing; metadata owner is descriptive and cannot grant control.
@@ -1278,15 +1278,15 @@ namespace RunicPortals.Integration
         {
             switch (stop)
             {
-                case RouteStopCode.RestrictedItems: return "You cannot teleport with this inventory under the current world rules.";
-                case RouteStopCode.PortalsDisabled: return "Portals are disabled by the current world rules.";
-                case RouteStopCode.BossTravelBlocked: return "Portal travel is blocked by the active boss rule.";
-                case RouteStopCode.DepartureDenied: return "You are not permitted to depart through this portal.";
-                case RouteStopCode.ArrivalDenied: return "You are not permitted to arrive at that portal.";
-                case RouteStopCode.DestinationUnavailable: return "The selected destination is no longer available.";
-                case RouteStopCode.SourceUnavailable: return "This portal is no longer available.";
-                case RouteStopCode.StaleSelection: return "The selected route changed; select a destination again.";
-                default: return "Portal route cancelled: " + stop + ".";
+                case RouteStopCode.RestrictedItems: return global::Runic.Localization.RunicText.Get("text_22273165bea2");
+                case RouteStopCode.PortalsDisabled: return global::Runic.Localization.RunicText.Get("text_e104b4b5d0bd");
+                case RouteStopCode.BossTravelBlocked: return global::Runic.Localization.RunicText.Get("text_26f5131c8251");
+                case RouteStopCode.DepartureDenied: return global::Runic.Localization.RunicText.Get("text_ff75fdf0b84e");
+                case RouteStopCode.ArrivalDenied: return global::Runic.Localization.RunicText.Get("text_df1e534a998b");
+                case RouteStopCode.DestinationUnavailable: return global::Runic.Localization.RunicText.Get("text_fb03ca843cbd");
+                case RouteStopCode.SourceUnavailable: return global::Runic.Localization.RunicText.Get("text_ec9efb819c1d");
+                case RouteStopCode.StaleSelection: return global::Runic.Localization.RunicText.Get("text_701ec266628a");
+                default: return global::Runic.Localization.RunicText.Get("text_1099f59edbe4") + stop + ".";
             }
         }
 
@@ -1294,18 +1294,18 @@ namespace RunicPortals.Integration
         {
             switch (stop)
             {
-                case AuthorityStopCode.ServerAuthorityMissing: return "server authority is missing";
-                case AuthorityStopCode.DedicatedTransportUnavailable: return "authenticated dedicated transport is unavailable";
-                case AuthorityStopCode.SenderIdentityUnbound: return "the sender identity is not bound";
-                case AuthorityStopCode.ActorNotLocalAuthority: return "the actor is not locally authoritative";
-                case AuthorityStopCode.SourceObjectNotOwned: return "the portal object is not owned by this authority";
-                case AuthorityStopCode.PlayerObjectNotOwned: return "the player object is not owned by this authority";
-                case AuthorityStopCode.OwnerPermissionDenied: return "portal permission was denied";
+                case AuthorityStopCode.ServerAuthorityMissing: return global::Runic.Localization.RunicText.Get("text_41fe8d7def0b");
+                case AuthorityStopCode.DedicatedTransportUnavailable: return global::Runic.Localization.RunicText.Get("text_78fecc062885");
+                case AuthorityStopCode.SenderIdentityUnbound: return global::Runic.Localization.RunicText.Get("text_36191a340e28");
+                case AuthorityStopCode.ActorNotLocalAuthority: return global::Runic.Localization.RunicText.Get("text_8e3f0f094cfc");
+                case AuthorityStopCode.SourceObjectNotOwned: return global::Runic.Localization.RunicText.Get("text_a0071df6af41");
+                case AuthorityStopCode.PlayerObjectNotOwned: return global::Runic.Localization.RunicText.Get("text_9f9780b785a7");
+                case AuthorityStopCode.OwnerPermissionDenied: return global::Runic.Localization.RunicText.Get("text_6116269f2237");
                 case AuthorityStopCode.SourceWardDenied:
-                case AuthorityStopCode.DestinationWardDenied: return "ward access was denied";
-                case AuthorityStopCode.ActorOutOfRange: return "the actor is out of range";
-                case AuthorityStopCode.CurrentStateChanged: return "the portal changed before commit";
-                case AuthorityStopCode.VanillaTravelPolicyDenied: return "Valheim travel policy denied the route";
+                case AuthorityStopCode.DestinationWardDenied: return global::Runic.Localization.RunicText.Get("text_8ec3605fe18c");
+                case AuthorityStopCode.ActorOutOfRange: return global::Runic.Localization.RunicText.Get("text_792af1d2714c");
+                case AuthorityStopCode.CurrentStateChanged: return global::Runic.Localization.RunicText.Get("text_a4f937d33f50");
+                case AuthorityStopCode.VanillaTravelPolicyDenied: return global::Runic.Localization.RunicText.Get("text_8e29305dbf8c");
                 default: return stop.ToString();
             }
         }

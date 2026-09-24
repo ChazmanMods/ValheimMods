@@ -218,3 +218,13 @@ Runic Permissions writes `BepInEx/config/chazman.RunicPermissions.cfg`. The only
   receive stable reason codes and own their player-facing message.
 
 These boundaries are intentional: the module supplies one conservative contract and one evaluator without taking over another mod's responsibility.
+
+## Support Chazman's Mods
+
+If you enjoy my Valheim mods and want to support continued development, testing, multiplayer compatibility, and new projects, I would appreciate it.
+
+Support is completely optional. Playing the mods, reporting bugs, sharing feedback, and recommending them to other players helps just as much.
+
+Thanks for supporting Chazman's Mods and the continued development of RunicSuite, ArcaneDecor, and other projects!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

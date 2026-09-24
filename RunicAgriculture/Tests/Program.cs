@@ -17,6 +17,10 @@ namespace RunicAgriculture.Tests
 
         private static int Main()
         {
+            Run("existing row snaps position and infers spacing across missing crops", ExistingRowSnapTests.RowAndSpacing);
+            Run("parallel crop rows preserve separate row spacing and deterministic orientation", ExistingRowSnapTests.ParallelRows);
+            Run("rotated even-sized grids place every cell on the existing lattice", ExistingRowSnapTests.RotatedEvenGrid);
+            Run("row matching rejects unsafe evidence and avoids diagonal rows", ExistingRowSnapTests.DiagonalAndLimits);
             Run("row pattern is centered and fills right-to-left", RowPatternIsCentered);
             Run("configured Grid remains complete through 40x40", BasicGridScalesToSeeds);
             Run("legacy shape migration selects the obvious Grid default once", GridIsTheMigratedDefault);
@@ -47,7 +51,7 @@ namespace RunicAgriculture.Tests
             Run("gameplay assembly has no Foundation references", AssemblyHasNoFoundationReferences);
             Run("project and manifest have no Foundation dependencies", PackagingIsIndependent);
             Run("durable and authority runtimes were removed", DurableArchitectureIsAbsent);
-            Run("candidate version is 1.0.3", VersionIsUnchanged);
+            Run("candidate version is 1.0.4", VersionIsUnchanged);
 
             System.Console.WriteLine(
                 $"RunicAgriculture focused tests: {_passed} passed, {_failed} failed.");
@@ -681,8 +685,8 @@ namespace RunicAgriculture.Tests
 
         private static void VersionIsUnchanged()
         {
-            TestAssert.Equal("1.0.3", Plugin.Version, "Plugin version changed.");
-            TestAssert.Equal(new System.Version(1, 0, 3, 0), typeof(Plugin).Assembly.GetName().Version,
+            TestAssert.Equal("1.0.4", Plugin.Version, "Plugin version changed.");
+            TestAssert.Equal(new System.Version(1, 0, 4, 0), typeof(Plugin).Assembly.GetName().Version,
                 "Assembly version changed.");
         }
 

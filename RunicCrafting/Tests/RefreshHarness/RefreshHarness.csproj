@@ -12,5 +12,7 @@
     <Compile Include="../../Integration/PreviewMaterialCounts.cs" Link="Runtime/PreviewMaterialCounts.cs" />
     <Compile Include="../../Integration/ReadOnlyMaterialSource.cs" Link="Runtime/ReadOnlyMaterialSource.cs" />
     <Compile Include="../../Integration/UiPreviewCache.cs" Link="Runtime/UiPreviewCache.cs" />
+    <Compile Include="../../Integration/PostCraftRefreshRuntime.cs" Link="Runtime/PostCraftRefreshRuntime.cs" />
   </ItemGroup>
-</Project>
+  <ItemGroup><Compile Include="../../../Shared/InventorySafety/MutationGate.cs" Link="MutationGate.cs" /></ItemGroup>
+<ItemGroup><Compile Include="../../../Shared/InventorySafety/SharedState.cs" /></ItemGroup></Project>

@@ -32,6 +32,28 @@ namespace RunicPortals.Integration
         internal const int ArrivalFlag = 1;
         internal const int DepartureFlag = 2;
 
+        // Called only for objects obtained from the native portal registry.
+        // Keep TryRead network-only so vanilla interaction and tag pairing stay untouched.
+        internal static bool TryReadDestination(ZDO zdo, out PortalEndpoint endpoint, out string failure)
+        {
+            endpoint = null;
+            failure = string.Empty;
+            if (zdo == null || !zdo.IsValid() || zdo.m_uid.IsNone()) return false;
+            if (GetMode(zdo) != (int)PortalMode.StandardPair)
+                return TryRead(zdo, out endpoint, out failure);
+            int schema = GetSchema(zdo);
+            if (schema != 0 && schema != LegacySchemaVersion && schema != SchemaVersion) return false;
+            string tag = zdo.GetString(ZDOVars.s_tag, string.Empty).Trim();
+            if (tag.Length == 0) tag = "Unnamed Standard Pair";
+            if (tag.Length > PortalContractLimits.MaximumNameLength)
+                tag = tag.Substring(0, PortalContractLimits.MaximumNameLength);
+            endpoint = new PortalEndpoint(zdo.m_uid.ToString(), PortalMode.StandardPair,
+                tag, string.Empty, PortalNetworkKind.Public, string.Empty, string.Empty,
+                PortalOnlineState.Online, true, false, PortalAccessProfile.PublicNetwork,
+                Math.Max(0, GetRevision(zdo)));
+            return true;
+        }
+
         internal static bool TryRead(ZDO zdo, out PortalEndpoint endpoint, out string failure)
         {
             endpoint = null;

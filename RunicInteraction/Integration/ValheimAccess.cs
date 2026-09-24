@@ -8,10 +8,7 @@ namespace RunicInteraction.Integration
 {
     internal static class ValheimAccess
     {
-        internal const string AuditedGameVersion = "1.0.12";
-        internal static bool IsSupportedVersion(string version) =>
-            string.Equals(version, AuditedGameVersion, StringComparison.Ordinal) ||
-            string.Equals(version, "1.0.7", StringComparison.Ordinal);
+        internal const string AuditedGameVersion = "1.0.15";
 
         private const BindingFlags InstanceAll =
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -40,20 +37,16 @@ namespace RunicInteraction.Integration
         private static PropertyInfo _pairItem;
         private static bool _ready;
 
-        internal static void ValidateGameVersion(Type versionType)
+        // Version is diagnostic only; Initialize validates the APIs we actually use.
+        internal static string ReadGameVersion(Type versionType = null)
         {
-            // GetVersionString is a display label and can include an OS prefix (e.g. l-).
-            // CurrentVersion identifies the game build without weakening the audited-version gate.
-            PropertyInfo property = versionType?.GetProperty(
-                "CurrentVersion", BindingFlags.Public | BindingFlags.Static);
-            if (property == null || property.GetGetMethod() == null ||
-                property.GetIndexParameters().Length != 0)
-                throw new MissingMemberException("Version.CurrentVersion");
-            string installed = property.GetValue(null, null)?.ToString() ?? string.Empty;
-            if (!IsSupportedVersion(installed))
-                throw new MissingMethodException(
-                    "Runic Interaction " + Plugin.Version + " is audited for Valheim " +
-                    "1.0.7 or " + AuditedGameVersion + "; installed " + (installed.Length == 0 ? "unknown" : installed) + ".");
+            try
+            {
+                versionType = versionType ?? typeof(Player).Assembly.GetType("Version", false);
+                return versionType?.GetProperty("CurrentVersion", BindingFlags.Public | BindingFlags.Static)
+                    ?.GetValue(null, null)?.ToString() ?? "unknown";
+            }
+            catch (Exception) { return "unknown"; }
         }
 
         internal static bool Initialize(out string problem)
@@ -61,7 +54,6 @@ namespace RunicInteraction.Integration
             problem = string.Empty;
             try
             {
-                ValidateGameVersion(typeof(Player).Assembly.GetType("Version", true));
 
                 _doorRpc = DelegateFor<DoorRpcDelegate>(typeof(Door), "RPC_UseDoor", typeof(long), typeof(bool));
                 _doorCanInteract = DelegateFor<DoorCanInteractDelegate>(typeof(Door), "CanInteract");

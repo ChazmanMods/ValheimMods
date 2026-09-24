@@ -97,6 +97,7 @@ namespace RunicProduction.Integration
 
         internal static void VerifySignatures()
         {
+            FermenterContentStorage.VerifySignature();
             _ = QueueSizeMethod;
             _ = SmelterView;
             _ = CookingView;
@@ -322,10 +323,11 @@ namespace RunicProduction.Integration
             (bool)CookingIsFireLitMethod.Invoke(station, null);
 
         internal static string FermenterContent(Fermenter station) =>
-            Zdo(station)?.GetString(ZDOVars.s_content, string.Empty) ?? string.Empty;
+            FermenterContentStorage.Read(Zdo(station));
 
         internal static long FermenterStartTicks(Fermenter station) =>
-            Zdo(station)?.GetLong(ZDOVars.s_startTime, 0L) ?? 0L;
+            string.IsNullOrEmpty(FermenterContent(station)) ? 0L :
+                Zdo(station)?.GetLong(ZDOVars.s_startTime, 0L) ?? 0L;
 
         internal static bool FermenterCheated(Fermenter station) =>
             Zdo(station)?.GetBool(ZDOVars.s_cheatedQueued, false) ?? false;
@@ -350,13 +352,13 @@ namespace RunicProduction.Integration
             string exact = content ?? string.Empty;
             if (exact.Length == 0)
             {
-                zdo.Set(ZDOVars.s_content, string.Empty);
+                FermenterContentStorage.Write(zdo, string.Empty);
                 zdo.Set(ZDOVars.s_startTime, 0L);
                 zdo.Set(ZDOVars.s_cheatedQueued, false);
                 return;
             }
             if (startTicks <= 0L) throw new ArgumentOutOfRangeException(nameof(startTicks));
-            zdo.Set(ZDOVars.s_content, exact);
+            FermenterContentStorage.Write(zdo, exact);
             zdo.Set(ZDOVars.s_startTime, startTicks);
             zdo.Set(ZDOVars.s_cheatedQueued, cheated);
         }
@@ -435,7 +437,7 @@ namespace RunicProduction.Integration
             Player player, Component station, ZDO stationZdo,
             Container chest, ZDO chestZdo, float linkRange, out string detail)
         {
-            detail = "Production setup could not synchronize the selected station and chest; try again.";
+            detail = global::Runic.Localization.RunicText.Get("text_c87036cb2036");
             ZNetView stationView = View(station);
             ZNetView chestView = View(chest);
             bool AccessStillValid()
@@ -463,7 +465,7 @@ namespace RunicProduction.Integration
             }
             if (!AccessStillValid())
             {
-                detail = "Production setup needs an accessible, closed chest within range; check chest and ward access.";
+                detail = global::Runic.Localization.RunicText.Get("text_270e3cda8267");
                 return false;
             }
             bool OwnsStation() => stationView.IsValid() &&
@@ -474,7 +476,10 @@ namespace RunicProduction.Integration
                 chestZdo.GetOwner() == ZNet.GetUID();
             if (!ProductionSetupOwnership.TryAcquire(AccessStillValid,
                     OwnsStation, () => stationView.ClaimOwnership(),
-                    OwnsChest, () => chestView.ClaimOwnership())) return false;
+                    OwnsChest, () => { RunicAutomation.ContainerAuthority.TryAcquire(chest, "production-setup",
+                        RunicAutomation.ContainerAuthority.PlayerContext(player), player.GetPlayerID()); })) return false;
+            if (!RunicAutomation.ContainerAuthority.TryAcquire(chest, "production-setup",
+                    RunicAutomation.ContainerAuthority.PlayerContext(player), player.GetPlayerID())) return false;
             detail = string.Empty;
             return true;
         }
@@ -484,12 +489,14 @@ namespace RunicProduction.Integration
             out Inventory inventory)
         {
             inventory = null;
-            if (container == null || !ContainerWritable(container)) return false;
+            if (container == null || !ContainerWritable(container) || RunicAutomation.ContainerAuthority.Blocked(container)) return false;
             ZNetView view = View(container);
             ZDO zdo = view != null && view.IsValid() && view.IsOwner()
                 ? view.GetZDO()
                 : null;
             if (zdo == null) return false;
+            if (Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(container))
+                return ProductionContainerCompatibility.TryRefresh(container, out inventory);
             ZDOID exactId = zdo.m_uid;
             try { ContainerLoadMethod.Invoke(container, null); }
             catch { return false; }
@@ -519,7 +526,8 @@ namespace RunicProduction.Integration
         }
 
         internal static bool ContainerWritable(Container container) =>
-            container != null && container.isActiveAndEnabled && !container.IsInUse() &&
+            container != null && container.isActiveAndEnabled && !RunicAutomation.ContainerAuthority.Blocked(container) && !container.IsInUse() &&
+            ProductionContainerCompatibility.Allowed(container) &&
             Zdo(container) != null && Zdo(container).GetInt(ZDOVars.s_inUse, 0) == 0 &&
             (container.m_wagon == null || !container.m_wagon.InUse());
 

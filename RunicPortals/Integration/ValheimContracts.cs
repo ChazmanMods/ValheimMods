@@ -28,10 +28,7 @@ namespace RunicPortals.Integration
 
     internal static class ValheimContracts
     {
-        internal const string AuditedGameVersion = "1.0.12";
-        internal static bool IsSupportedVersion(string version) =>
-            string.Equals(version, AuditedGameVersion, StringComparison.Ordinal) ||
-            string.Equals(version, "1.0.7", StringComparison.Ordinal);
+        internal const string AuditedGameVersion = "1.0.15";
         internal const int MaximumPortalObjectsScanned = 4096;
 
         private static FieldInfo _portalObjectsField;
@@ -46,11 +43,6 @@ namespace RunicPortals.Integration
             problem = string.Empty;
             try
             {
-                string installedVersion = ReadGameVersion();
-                if (!IsSupportedVersion(installedVersion))
-                    throw new NotSupportedException(
-                        "Installed Valheim " + installedVersion + " is not audited; expected " +
-                        "1.0.7 or " + AuditedGameVersion + ".");
                 RequireMethod(typeof(TeleportWorld), "Awake", Type.EmptyTypes, false, typeof(void));
                 RequireMethod(typeof(TeleportWorld), nameof(TeleportWorld.Interact),
                     new[] { typeof(Humanoid), typeof(bool), typeof(bool) }, true, typeof(bool));

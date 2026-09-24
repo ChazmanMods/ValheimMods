@@ -12,6 +12,7 @@ namespace RunicWorldEngine.Core
     // The legacy (< network version 35) remote-server browser fallback is not a host limit.
     internal static class CapacityAudit
     {
+
         internal sealed class Site
         {
             internal string Type, Method, MemberType, Member;

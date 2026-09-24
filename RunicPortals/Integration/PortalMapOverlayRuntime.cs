@@ -218,14 +218,14 @@ namespace RunicPortals.Integration
         {
             if (_faulted || !_mapOpen || _suspended || !IsLargeMap(_map)) return;
             string text = _unavailable
-                ? "Runic portal directory unavailable - retrying"
+                ? global::Runic.Localization.RunicText.Get("text_7f15d02c423b")
                 : !_directoryVisible
-                ? "Portal directory: [P] show authorized portals"
+                ? global::Runic.Localization.RunicText.Get("text_e8ffe43e2148")
                 : _model.EligibleCount == 0
-                ? "Portal directory: no authorized portals   [P] hide"
-                : "Portal directory: " + _pins.Count + " authorized portals   [P] hide";
-            if (_loading) text += "   Refreshing…";
-            else if (_truncated) text += "   Result bound reached";
+                ? global::Runic.Localization.RunicText.Get("text_654fefd0b424")
+                : global::Runic.Localization.RunicText.Get("text_134b41763227") + _pins.Count + global::Runic.Localization.RunicText.Get("text_506262eac58f");
+            if (_loading) text += global::Runic.Localization.RunicText.Get("text_9c80e7502868");
+            else if (_truncated) text += global::Runic.Localization.RunicText.Get("text_2ba273c5c037");
             float width = Math.Min(OverlayWidth, Math.Max(220f, Screen.width - 32f));
             var bounds = new Rect(
                 Math.Max(16f, Screen.width - width - 20f),
@@ -353,8 +353,8 @@ namespace RunicPortals.Integration
         {
             Diagnostics.Error(
                 exception,
-                "Normal-map portal overlay failed closed during " + operation +
-                "; vanilla map behavior remains available.");
+                global::Runic.Localization.RunicText.Get("text_979c238d6c0a") + operation +
+                global::Runic.Localization.RunicText.Get("text_bef9ae6d3754"));
             ClearPins();
             _faulted = true;
             _mapOpen = false;

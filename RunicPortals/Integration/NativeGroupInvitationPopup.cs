@@ -38,9 +38,9 @@ namespace RunicPortals.Integration
             _cursorVisible = Cursor.visible;
             _cursorLock = Cursor.lockState;
             _focused = false;
-            _popup = new YesNoPopup("Group invitation",
-                Safe(invitation.Inviter) + " invited you to join\n" + Safe(invitation.Name) +
-                "\n\nAccept joins this group and makes it your active group.",
+            _popup = new YesNoPopup(global::Runic.Localization.RunicText.Get("text_3733873c8398"),
+                Safe(invitation.Inviter) + global::Runic.Localization.RunicText.Get("text_d8566ec98915") + Safe(invitation.Name) +
+                global::Runic.Localization.RunicText.Get("text_4a1bc38da902"),
                 () => Respond(true), () => Respond(false), false, true);
             _active = this;
             UnifiedPopup.Push(_popup);
@@ -53,8 +53,8 @@ namespace RunicPortals.Integration
             var stack = Stack.GetValue(_host) as Stack<PopupBase>;
             if (stack == null || !stack.Contains(_popup)) { Close(); return; }
             if (!ReferenceEquals(stack.Peek(), _popup)) { _focused = false; return; }
-            SetLabel("buttonRightText", "Accept");
-            SetLabel("buttonLeftText", "Decline");
+            SetLabel("buttonRightText", global::Runic.Localization.RunicText.Get("text_89713b9c9c1b"));
+            SetLabel("buttonLeftText", global::Runic.Localization.RunicText.Get("text_a2d285b35287"));
             RenewCursorLease();
             if (!_focused)
             {

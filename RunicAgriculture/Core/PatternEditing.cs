@@ -166,9 +166,9 @@ namespace RunicAgriculture.Core
         {
             switch (pattern)
             {
-                case PlantPattern.RightTriangle: return "Corner " + (mirrored ? "right" : "left");
-                case PlantPattern.HalfCircle: return "Side " + (mirrored ? "left" : "right");
-                case PlantPattern.Trapezoid: return mirrored ? "Mirrored" : "Normal";
+                case PlantPattern.RightTriangle: return global::Runic.Localization.RunicText.Get("text_59be2c9939e5") + (mirrored ? "right" : "left");
+                case PlantPattern.HalfCircle: return global::Runic.Localization.RunicText.Get("text_90eb042fe698") + (mirrored ? "left" : "right");
+                case PlantPattern.Trapezoid: return mirrored ? global::Runic.Localization.RunicText.Get("text_ed059fe4e0d0") : global::Runic.Localization.RunicText.Get("text_a7248eeb45eb");
                 default: return string.Empty;
             }
         }

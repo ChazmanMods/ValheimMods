@@ -41,14 +41,14 @@ namespace RunicProduction.Core
             if (defaultProtectedReserve < 0 ||
                 defaultProtectedReserve > MaximumReserveAmount)
             {
-                failure = $"DefaultProtectedReserve must be between 0 and {MaximumReserveAmount}.";
+                failure = global::Runic.Localization.RunicText.Format("text_23ab434c5522", MaximumReserveAmount);
                 return false;
             }
 
             string text = protectedPrefabAmounts ?? string.Empty;
             if (text.Length > MaximumConfigurationCharacters)
             {
-                failure = "The ingredient reserve configuration is too long.";
+                failure = global::Runic.Localization.RunicText.Get("text_5a89c652fafa");
                 return false;
             }
 
@@ -58,7 +58,7 @@ namespace RunicProduction.Core
                 string[] entries = text.Split(new[] { ';' }, StringSplitOptions.None);
                 if (entries.Length > MaximumRules)
                 {
-                    failure = $"The ingredient reserve configuration exceeds {MaximumRules} rules.";
+                    failure = global::Runic.Localization.RunicText.Format("text_c42660082614", MaximumRules);
                     return false;
                 }
 
@@ -66,14 +66,14 @@ namespace RunicProduction.Core
                 {
                     if (string.IsNullOrWhiteSpace(rawEntry))
                     {
-                        failure = "The ingredient reserve configuration contains an empty rule.";
+                        failure = global::Runic.Localization.RunicText.Get("text_86e508e094a3");
                         return false;
                     }
 
                     int separator = rawEntry.IndexOf('=');
                     if (separator <= 0 || separator != rawEntry.LastIndexOf('='))
                     {
-                        failure = "Each ingredient reserve rule must contain exactly one '=' separator.";
+                        failure = global::Runic.Localization.RunicText.Get("text_3c74481469ca");
                         return false;
                     }
 
@@ -81,17 +81,17 @@ namespace RunicProduction.Core
                     string amountText = rawEntry.Substring(separator + 1).Trim();
                     if (!StockDomainValidation.IsExactPrefabId(prefabId))
                     {
-                        failure = "The ingredient reserve configuration contains an invalid exact prefab ID.";
+                        failure = global::Runic.Localization.RunicText.Get("text_b58fe0de0ad2");
                         return false;
                     }
                     if (!TryParseAmount(amountText, out int amount))
                     {
-                        failure = $"Ingredient reserve amounts must be decimal integers between 0 and {MaximumReserveAmount}.";
+                        failure = global::Runic.Localization.RunicText.Format("text_8340527e30fc", MaximumReserveAmount);
                         return false;
                     }
                     if (rules.ContainsKey(prefabId))
                     {
-                        failure = "The ingredient reserve configuration contains a duplicate exact prefab ID.";
+                        failure = global::Runic.Localization.RunicText.Get("text_d0d680b879f1");
                         return false;
                     }
                     rules.Add(prefabId, amount);

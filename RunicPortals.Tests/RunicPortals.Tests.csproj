@@ -34,4 +34,4 @@
     <Reference Include="UnityEngine.UIModule" HintPath="$(GAME_MANAGED)\UnityEngine.UIModule.dll" Private="true" />
     <Reference Include="Unity.TextMeshPro" HintPath="$(GAME_MANAGED)\Unity.TextMeshPro.dll" Private="true" />
   </ItemGroup>
-</Project>
+<ItemGroup><Compile Include="../Shared/Tests/LocalizedSource.cs" /></ItemGroup></Project>

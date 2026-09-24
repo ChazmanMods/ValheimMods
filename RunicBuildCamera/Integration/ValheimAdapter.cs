@@ -95,7 +95,7 @@ namespace RunicBuildCamera.Integration
             catch (Exception exception)
             {
                 Shutdown();
-                error = $"Valheim camera adapter verification failed: " +
+                error = global::Runic.Localization.RunicText.Get("text_d8ff831563aa") +
                         $"{exception.GetType().Name}: {exception.Message}";
                 return false;
             }

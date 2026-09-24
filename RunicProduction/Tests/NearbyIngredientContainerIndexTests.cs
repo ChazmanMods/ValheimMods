@@ -140,7 +140,8 @@ namespace RunicProduction.Tests
             Require(enabled != null && maximum != null);
 
             MethodInfo bind = Method(typeof(ProductionConfig), "Bind");
-            string[] strings = ReferencedStrings(bind).ToArray();
+            var english = typeof(ProductionConfig).Assembly.GetType("Runic.Localization.RunicText", true).GetMethod("English", BindingFlags.Static | BindingFlags.NonPublic);
+            string[] strings = ReferencedStrings(bind).Select(value => value.StartsWith("text_", StringComparison.Ordinal) ? (string)english.Invoke(null, new object[]{value}) : value).ToArray();
             Require(strings.Contains("Recipe Nearby Ingredients", StringComparer.Ordinal));
             Require(strings.Contains("Enabled", StringComparer.Ordinal));
             Require(strings.Contains("MaximumSourceChests", StringComparer.Ordinal));

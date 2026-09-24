@@ -18,7 +18,7 @@ namespace RunicAgriculture.Integration
             new PreviewPool(AgricultureConfig.HardMaximumPreview);
         private readonly ReplantConfirmation<Vector3> _replant =
             new ReplantConfirmation<Vector3>(AgricultureConfig.HardMaximumHarvest);
-        private readonly Collider[] _alignmentHits = new Collider[96];
+        private readonly Collider[] _alignmentHits = new Collider[256];
         private readonly Collider[] _harvestHits = new Collider[160];
         private readonly Dictionary<string, string> _matureToPlant =
             new Dictionary<string, string>(StringComparer.Ordinal);
@@ -38,6 +38,7 @@ namespace RunicAgriculture.Integration
         private string _previewLimitSummary = string.Empty;
         private string _previewBatchActionSummary = string.Empty;
         private float _patternYawDegrees;
+        private string _snapSummary = string.Empty;
         private int _mutationActive;
         private Piece _seedBudgetPiece;
         private Vector3 _seedBudgetPlayerPosition;
@@ -65,7 +66,7 @@ namespace RunicAgriculture.Integration
             RestoreBuildHintsIfOwned();
             AgricultureInputConsumption.Reset();
             Message(Player.m_localPlayer,
-                "Runic Agriculture disabled for this session after an error. Check LogOutput.log.");
+                global::Runic.Localization.RunicText.Get("text_3a762c94e3df"));
             Publish(reasonCode, "Agriculture runtime disabled after an unexpected failure.",
                 "Restart Valheim, then check BepInEx/LogOutput.log before using batch actions.");
         }
@@ -85,32 +86,32 @@ namespace RunicAgriculture.Integration
             AgricultureControllerBindings controller = AgricultureConfig.CurrentControllerBindings();
             string controllerText = AgricultureConfig.ControllerEnabled.Value
                 ? controller.TryValidate(out string problem)
-                    ? "controller confirm " + controller.ConfirmChord + ", cycle " +
-                      controller.CycleChord + ", harvest " + controller.AreaHarvestChord +
-                      ", choose setting " +
+                    ? global::Runic.Localization.RunicText.Get("text_252fae9ff849") + controller.ConfirmChord + global::Runic.Localization.RunicText.Get("text_3defc7571ef8") +
+                      controller.CycleChord + global::Runic.Localization.RunicText.Get("text_acda834b8146") + controller.AreaHarvestChord +
+                      global::Runic.Localization.RunicText.Get("text_b680800588c3") +
                       ControllerActionDisplay.Friendly(controller.PreviousEditorField) + "/" +
                       ControllerActionDisplay.Friendly(controller.NextEditorField) +
-                      " unmodified in crop preview, adjust " +
+                      global::Runic.Localization.RunicText.Get("text_68cefe3c6e2e") +
                       ControllerActionDisplay.Friendly(controller.DecreaseEditorValue) + "/" +
                       ControllerActionDisplay.Friendly(controller.IncreaseEditorValue) +
-                      " unmodified in crop preview"
-                    : "controller disabled by invalid bindings (" + problem + ")"
-                : "controller controls disabled";
-            return "keyboard plant Left Click" +
-                   ", cycle " + ShortcutLabel(AgricultureConfig.CyclePattern.Value) +
-                   ", harvest " + ShortcutLabel(AgricultureConfig.AreaHarvest.Value) +
-                   ", replant " + ShortcutLabel(AgricultureConfig.ConfirmReplant.Value) +
-                   ", rows " + ShortcutLabel(AgricultureConfig.DecreaseRows.Value) + "/" +
+                      global::Runic.Localization.RunicText.Get("text_ad1cef288539")
+                    : global::Runic.Localization.RunicText.Get("text_7825ff7a51d1") + problem + ")"
+                : global::Runic.Localization.RunicText.Get("text_612f1e2ad0e4");
+            return global::Runic.Localization.RunicText.Get("text_adf0acef19b6") +
+                   global::Runic.Localization.RunicText.Get("text_3defc7571ef8") + ShortcutLabel(AgricultureConfig.CyclePattern.Value) +
+                   global::Runic.Localization.RunicText.Get("text_acda834b8146") + ShortcutLabel(AgricultureConfig.AreaHarvest.Value) +
+                   global::Runic.Localization.RunicText.Get("text_fc4e390f760b") + ShortcutLabel(AgricultureConfig.ConfirmReplant.Value) +
+                   global::Runic.Localization.RunicText.Get("text_04f7b5c5bdce") + ShortcutLabel(AgricultureConfig.DecreaseRows.Value) + "/" +
                    ShortcutLabel(AgricultureConfig.IncreaseRows.Value) +
-                   ", columns " + ShortcutLabel(AgricultureConfig.DecreaseColumns.Value) + "/" +
+                   global::Runic.Localization.RunicText.Get("text_0ab07c4fc640") + ShortcutLabel(AgricultureConfig.DecreaseColumns.Value) + "/" +
                    ShortcutLabel(AgricultureConfig.IncreaseColumns.Value) +
-                   ", side " + ShortcutLabel(AgricultureConfig.ToggleShapeSide.Value) +
-                   ", trapezoid left " + ShortcutLabel(AgricultureConfig.DecreaseLeftPinch.Value) + "/" +
+                   global::Runic.Localization.RunicText.Get("text_c10d0fc37680") + ShortcutLabel(AgricultureConfig.ToggleShapeSide.Value) +
+                   global::Runic.Localization.RunicText.Get("text_cb5ac47da1d8") + ShortcutLabel(AgricultureConfig.DecreaseLeftPinch.Value) + "/" +
                    ShortcutLabel(AgricultureConfig.IncreaseLeftPinch.Value) +
-                   ", right " + ShortcutLabel(AgricultureConfig.DecreaseRightPinch.Value) + "/" +
+                   global::Runic.Localization.RunicText.Get("text_575e17559d2d") + ShortcutLabel(AgricultureConfig.DecreaseRightPinch.Value) + "/" +
                    ShortcutLabel(AgricultureConfig.IncreaseRightPinch.Value) +
-                   ", live wheel rotate Wheel, rows Alt+Wheel, columns Shift+Wheel, spacing Alt+Shift+Wheel" +
-                   ", direct patterns Numpad 1-7, cycle Alt+BuildMenu" +
+                   global::Runic.Localization.RunicText.Get("text_6eb5aa39195e") +
+                   global::Runic.Localization.RunicText.Get("text_7a1256c4f855") +
                    "; " + controllerText + ".";
         }
 
@@ -136,7 +137,7 @@ namespace RunicAgriculture.Integration
             _log.LogInfo("Runic Agriculture controls after configuration change: " + ControlSummary());
             Player player = Player.m_localPlayer;
             if (player != null)
-                Message(player, "Runic Agriculture updated: " + summary + ".");
+                Message(player, global::Runic.Localization.RunicText.Get("text_5b38984fd34d") + summary + ".");
             AgricultureControllerBindings bindings = AgricultureConfig.CurrentControllerBindings();
             if (AgricultureConfig.ControllerEnabled.Value && !bindings.TryValidate(out string problem))
                 ReportControllerProblem(player, problem);
@@ -219,7 +220,7 @@ namespace RunicAgriculture.Integration
                         "Columns  − / +   " + AgricultureConfig.Columns.Value),
                     new AgricultureHintRow(
                         "Wheel",
-                        "Rotate " + _patternYawDegrees.ToString(
+                        _snapSummary.Length > 0 ? _snapSummary : "Rotate " + _patternYawDegrees.ToString(
                             "0.#", CultureInfo.InvariantCulture) + "°  •  spacing " +
                         AgricultureConfig.Spacing.Value.ToString(
                             "0.0", CultureInfo.InvariantCulture) + " m"),
@@ -272,7 +273,7 @@ namespace RunicAgriculture.Integration
                     "Pattern " + pattern + " " + dimensions),
                 new AgricultureHintRow(choose, "Choose " + field),
                 new AgricultureHintRow(adjust, "Adjust " + field),
-                new AgricultureHintRow("", "Spacing " + AgricultureConfig.Spacing.Value.ToString(
+                new AgricultureHintRow("", _snapSummary.Length > 0 ? _snapSummary : "Spacing " + AgricultureConfig.Spacing.Value.ToString(
                     "0.0", CultureInfo.InvariantCulture) + " m"));
         }
 
@@ -382,13 +383,13 @@ namespace RunicAgriculture.Integration
             if (!IsOperational)
             {
                 Message(player, _disabledForSession
-                    ? "Runic Agriculture is disabled for this session after an error; check LogOutput.log."
-                    : "Runic Agriculture is disabled in Configuration Manager.");
+                    ? global::Runic.Localization.RunicText.Get("text_de65c7b74bf8")
+                    : global::Runic.Localization.RunicText.Get("text_ec653f57b1bf"));
                 return;
             }
             if (!hasPlantSelection)
             {
-                Message(player, "Runic agriculture: select a crop with the cultivator first.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_83915513d3f8"));
                 return;
             }
 
@@ -442,7 +443,7 @@ namespace RunicAgriculture.Integration
                         StringComparison.Ordinal)))
                 {
                     Message(player,
-                        "Runic replant uses its saved harvest positions; shape editing resumes on the next normal planting preview.");
+                        global::Runic.Localization.RunicText.Get("text_78a3824ca6e7"));
                     return;
                 }
                 ApplyPatternEdit(player, patternEdit);
@@ -488,7 +489,7 @@ namespace RunicAgriculture.Integration
             if (!AgricultureConfig.ControllerEnabled.Value) return hint;
             AgricultureControllerBindings controller = AgricultureConfig.CurrentControllerBindings();
             return EnsureControllerActions(Player.m_localPlayer) && controller.TryValidate(out _)
-                ? hint + " or " + controller.AreaHarvestChord
+                ? hint + global::Runic.Localization.RunicText.Get("text_e1a3e78cb5c8") + controller.AreaHarvestChord
                 : hint;
         }
 
@@ -520,12 +521,24 @@ namespace RunicAgriculture.Integration
 
             string cropId = PrefabIdentity.Of(piece.gameObject);
             Quaternion rotation = ResolveAlignment(player, piece, rootGhost.transform.position);
+            ExistingRowGrid? snappedGrid = null;
+            _snapSummary = string.Empty;
+            if (!_replant.IsPending &&
+                (AgricultureConfig.SnapToExistingRows.Value || AgricultureConfig.Alignment.Value == AgricultureAlignment.ExistingCropRow) &&
+                !ValheimAccess.KeyHeld(KeyCode.LeftControl, KeyCode.RightControl) &&
+                TryFindExistingGrid(piece, rootGhost.transform.position, rotation, minimumSpacing, out ExistingRowGrid grid))
+            {
+                snappedGrid = grid;
+                rotation = Quaternion.LookRotation(new Vector3((float)grid.Forward.Right, 0, (float)grid.Forward.Forward), Vector3.up);
+                _snapSummary = "Snapped " + grid.Spacing.ToString("0.##", CultureInfo.InvariantCulture) + " × " +
+                    grid.RowSpacing.ToString("0.##", CultureInfo.InvariantCulture) + " m • Ctrl: free placement";
+            }
             List<Vector3> requested = BuildRequestedPositions(
                 player,
                 piece,
                 rootGhost.transform.position,
                 rotation,
-                cropId);
+                cropId, snappedGrid);
             if (requested.Count == 0)
             {
                 _nextPreviewUpdate = Time.unscaledTime + 0.1f;
@@ -579,7 +592,7 @@ namespace RunicAgriculture.Integration
             if (!TryCaptureHarvestCandidate(target, out HarvestPickableCandidate aimed))
             {
                 if (target != null)
-                    Message(player, "Runic harvest: this Pickable is not currently available.");
+                    Message(player, global::Runic.Localization.RunicText.Get("text_3a42974b5c83"));
                 Trace("area harvest preserved the original interaction because the targeted " +
                       "Pickable did not satisfy the live network/availability contract.");
                 return false;
@@ -668,7 +681,7 @@ namespace RunicAgriculture.Integration
 
             if (requestsSent == 0)
             {
-                Message(player, "Runic harvest: no currently available, permitted Pickables.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_694c44f70d6e"));
                 Trace("area harvest found candidates but sent no permitted pick requests; " +
                       (aimedWardDenied ? "the aimed Pickable was ward-denied." :
                           "the original interaction remains available."));
@@ -684,17 +697,17 @@ namespace RunicAgriculture.Integration
                     plantCropId))
             {
                 _replant.Offer(plantCropId, harvestedPositions);
-                Message(player, "Runic harvest: " + requestsSent +
-                    " request(s) sent. Select the matching seed, then confirm with " +
+                Message(player, global::Runic.Localization.RunicText.Get("text_afcd0a95f11d") + requestsSent +
+                    global::Runic.Localization.RunicText.Get("text_26ac88dd11cc") +
                     ShortcutLabel(AgricultureConfig.ConfirmReplant.Value) +
                     (AgricultureConfig.ControllerEnabled.Value
-                        ? " or " + AgricultureConfig.CurrentControllerBindings().ConfirmChord
+                        ? global::Runic.Localization.RunicText.Get("text_e1a3e78cb5c8") + AgricultureConfig.CurrentControllerBindings().ConfirmChord
                         : string.Empty) + ".");
             }
             else
             {
                 _replant.Clear();
-                Message(player, "Runic harvest: " + requestsSent + " request(s) sent.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_afcd0a95f11d") + requestsSent + global::Runic.Localization.RunicText.Get("text_1fd3582a75de"));
             }
             Trace("area harvest sent " + requestsSent + " owner-validated pick request(s) for '" +
                   matureCropId + "'.");
@@ -776,7 +789,7 @@ namespace RunicAgriculture.Integration
             _nextPreviewUpdate = 0f;
             Message(
                 player,
-                "Runic shape: rotated to " +
+                global::Runic.Localization.RunicText.Get("text_e8923015fc07") +
                 _patternYawDegrees.ToString("0.#", CultureInfo.InvariantCulture) + "°.");
         }
 
@@ -820,7 +833,7 @@ namespace RunicAgriculture.Integration
                                   minimumSpacing.ToString("0.0", CultureInfo.InvariantCulture) +
                                   "m spacing."
                                 : "That pattern setting is already at its safe limit.";
-                Message(player, "Runic shape: " + reason);
+                Message(player, global::Runic.Localization.RunicText.Get("text_9650c9ad5863") + reason);
                 return;
             }
 
@@ -842,7 +855,7 @@ namespace RunicAgriculture.Integration
                 state += ", taper L " + Mathf.RoundToInt((float)after.LeftPinch * 100f) +
                          "% / R " + Mathf.RoundToInt((float)after.RightPinch * 100f) + "%";
             state += ", spacing " + after.Spacing.ToString("0.0", CultureInfo.InvariantCulture) + "m";
-            Message(player, "Runic shape: " + state + ".");
+            Message(player, global::Runic.Localization.RunicText.Get("text_9650c9ad5863") + state + ".");
             Trace("live pattern edit " + action + " applied to " + pattern + ".");
         }
 
@@ -852,8 +865,8 @@ namespace RunicAgriculture.Integration
             if (snapshot == null || snapshot.IsReplant)
             {
                 Message(player, snapshot != null
-                    ? "Runic planting: this is a replant preview; use the replant confirmation control."
-                    : "Runic planting: no preview is ready. Select a crop and aim at plantable ground.");
+                    ? global::Runic.Localization.RunicText.Get("text_34619d7a206b")
+                    : global::Runic.Localization.RunicText.Get("text_a57d28e2b503"));
                 Trace("pattern confirmation produced no mutation because no ordinary preview was ready.");
                 return;
             }
@@ -865,7 +878,7 @@ namespace RunicAgriculture.Integration
             Piece piece = player.GetSelectedPiece();
             if (!IsPlantPiece(piece))
             {
-                Message(player, "Runic replant: select the matching crop with the cultivator first.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_f8eb54e7f3df"));
                 Trace("replant confirmation ignored because no crop is selected.");
                 return;
             }
@@ -944,7 +957,7 @@ namespace RunicAgriculture.Integration
                     "runic.agriculture/plant-batch",
                     out IDisposable mutationLease))
             {
-                Message(player, "Runic planting paused: another Agriculture batch is in progress.");
+                Message(player, global::Runic.Localization.RunicText.Get("text_442869502c3f"));
                 return 0;
             }
 
@@ -1054,7 +1067,8 @@ namespace RunicAgriculture.Integration
             Piece piece,
             Vector3 origin,
             Quaternion rotation,
-            string selectedCropId)
+            string selectedCropId,
+            ExistingRowGrid? snappedGrid = null)
         {
             if (_replant.IsPending &&
                 string.Equals(_replant.CropId, selectedCropId, StringComparison.Ordinal))
@@ -1064,7 +1078,7 @@ namespace RunicAgriculture.Integration
             }
 
             int configuredLimit = AgricultureConfig.HardMaximumPreview;
-            float spacing = Math.Max(
+            float spacing = snappedGrid.HasValue ? (float)snappedGrid.Value.Spacing : Math.Max(
                 AgricultureConfig.Spacing.Value,
                 MinimumSpacingFor(piece));
             var capacityRequest = new PatternRequest(
@@ -1093,12 +1107,19 @@ namespace RunicAgriculture.Integration
                 _previewLimitSummary = string.Empty;
 
             var positions = new List<Vector3>(planar.Count);
+            float forwardScale = snappedGrid.HasValue ? (float)(snappedGrid.Value.RowSpacing / spacing) : 1f;
+            if (snappedGrid.HasValue && planar.Count > 0)
+            {
+                PlanarPoint snapped = snappedGrid.Value.SnapOrigin(new PlanarPoint(origin.x, origin.z),
+                    new PlanarPoint(planar[0].Right, planar[0].Forward * forwardScale));
+                origin = new Vector3((float)snapped.Right, origin.y, (float)snapped.Forward);
+            }
             Vector3 right = rotation * Vector3.right;
             Vector3 forward = rotation * Vector3.forward;
             for (int index = 0; index < planar.Count; index++)
             {
                 positions.Add(origin + right * (float)planar[index].Right +
-                              forward * (float)planar[index].Forward);
+                              forward * ((float)planar[index].Forward * forwardScale));
             }
             return positions;
         }
@@ -1298,9 +1319,7 @@ namespace RunicAgriculture.Integration
                     alignment = Quaternion.identity;
                     break;
                 case AgricultureAlignment.ExistingCropRow:
-                    alignment = TryFindExistingRow(piece, origin, out Quaternion row)
-                        ? row
-                        : Quaternion.Euler(0f, player.transform.eulerAngles.y, 0f);
+                    alignment = Quaternion.Euler(0f, player.transform.eulerAngles.y, 0f);
                     break;
                 default:
                     alignment = Quaternion.Euler(0f, player.transform.eulerAngles.y, 0f);
@@ -1309,43 +1328,46 @@ namespace RunicAgriculture.Integration
             return alignment * Quaternion.Euler(0f, _patternYawDegrees, 0f);
         }
 
-        private bool TryFindExistingRow(Piece selectedPiece, Vector3 origin, out Quaternion rotation)
+        private bool TryFindExistingGrid(Piece selectedPiece, Vector3 origin, Quaternion preferred,
+            float minimumSpacing, out ExistingRowGrid grid)
         {
-            rotation = Quaternion.identity;
+            grid = default;
             string cropId = PrefabIdentity.Of(selectedPiece.gameObject);
             int count = Physics.OverlapSphereNonAlloc(
                 origin,
-                8f,
+                6f,
                 _alignmentHits,
                 LayerMask.GetMask("piece", "piece_nonsolid"),
                 QueryTriggerInteraction.Collide);
-            var plants = new HashSet<Plant>();
-            var positions = new List<Vector3>();
+            if (count >= _alignmentHits.Length)
+            {
+                Array.Clear(_alignmentHits, 0, _alignmentHits.Length);
+                return false; // A truncated neighborhood is not enough evidence for a row.
+            }
+            var plants = new HashSet<GameObject>();
+            var positions = new List<PlanarPoint>();
+            Plant selectedPlant = selectedPiece.GetComponent<Plant>();
             for (int index = 0; index < Math.Min(count, _alignmentHits.Length); index++)
             {
                 Collider hit = _alignmentHits[index];
                 _alignmentHits[index] = null;
                 Plant plant = hit != null ? hit.GetComponentInParent<Plant>() : null;
-                if (plant == null || !plants.Add(plant)) continue;
-                if (!string.Equals(PrefabIdentity.Of(plant.gameObject), cropId, StringComparison.Ordinal))
-                    continue;
-                positions.Add(plant.transform.position);
+                Pickable mature = plant == null && hit != null ? hit.GetComponentInParent<Pickable>() : null;
+                GameObject candidate = plant != null ? plant.gameObject : mature != null ? mature.gameObject : null;
+                if (candidate == null || !plants.Add(candidate)) continue;
+                ZNetView view = candidate.GetComponent<ZNetView>();
+                if (view == null || !view.IsValid()) continue; // exclude placement previews
+                string candidateId = PrefabIdentity.Of(candidate);
+                bool matching = string.Equals(candidateId, cropId, StringComparison.Ordinal);
+                if (!matching && mature != null && selectedPlant?.m_grownPrefabs != null)
+                    foreach (GameObject grown in selectedPlant.m_grownPrefabs)
+                        if (string.Equals(candidateId, PrefabIdentity.Of(grown), StringComparison.Ordinal)) { matching = true; break; }
+                if (!matching) continue;
+                positions.Add(new PlanarPoint(candidate.transform.position.x, candidate.transform.position.z));
             }
-            positions.Sort((left, right) =>
-            {
-                int distance = (left - origin).sqrMagnitude.CompareTo((right - origin).sqrMagnitude);
-                if (distance != 0) return distance;
-                int x = left.x.CompareTo(right.x);
-                if (x != 0) return x;
-                int z = left.z.CompareTo(right.z);
-                return z != 0 ? z : left.y.CompareTo(right.y);
-            });
-            if (positions.Count < 2) return false;
-            Vector3 direction = positions[1] - positions[0];
-            direction.y = 0f;
-            if (direction.sqrMagnitude < 0.01f) return false;
-            rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
-            return true;
+            Vector3 right = preferred * Vector3.right;
+            return ExistingRowSnap.TryResolve(positions, new PlanarPoint(origin.x, origin.z),
+                new PlanarPoint(right.x, right.z), minimumSpacing, 6, out grid);
         }
 
         private bool TryCaptureControllerGesture(
@@ -1357,10 +1379,10 @@ namespace RunicAgriculture.Integration
                     controller,
                     primary,
                     out string problem)) return true;
-            string message = "Runic Agriculture controller action blocked: " + problem + ".";
+            string message = global::Runic.Localization.RunicText.Get("text_aa4c70e16775") + problem + ".";
             _log.LogWarning(message + " No agriculture mutation was attempted.");
-            Message(player, message + " Release the controls and try again, or use the keyboard shortcut.");
-            Trace("controller capture failed closed: " + problem + ".");
+            Message(player, message + global::Runic.Localization.RunicText.Get("text_3ba6f847b122"));
+            Trace(global::Runic.Localization.RunicText.Get("text_64ae5636eadd") + problem + ".");
             return false;
         }
 
@@ -1373,10 +1395,10 @@ namespace RunicAgriculture.Integration
                     controller,
                     primary,
                     out string problem)) return true;
-            string message = "Runic Agriculture controller editor input blocked: " + problem + ".";
+            string message = global::Runic.Localization.RunicText.Get("text_194f9f3e8c3c") + problem + ".";
             _log.LogWarning(message + " No pattern setting was changed.");
-            Message(player, message + " Release the D-pad/editor control and try again, or use the keyboard shortcut.");
-            Trace("unmodified controller editor capture failed closed: " + problem + ".");
+            Message(player, message + global::Runic.Localization.RunicText.Get("text_2490e2c156ca"));
+            Trace(global::Runic.Localization.RunicText.Get("text_acf3c9ce3145") + problem + ".");
             return false;
         }
 
@@ -1466,21 +1488,21 @@ namespace RunicAgriculture.Integration
             switch (field)
             {
                 case ControllerEditorField.Rows:
-                    return "Rows " + AgricultureConfig.Rows.Value;
+                    return global::Runic.Localization.RunicText.Get("text_081f23f3bd86") + AgricultureConfig.Rows.Value;
                 case ControllerEditorField.Columns:
-                    return "Columns " + AgricultureConfig.Columns.Value;
+                    return global::Runic.Localization.RunicText.Get("text_d66fcb1c835f") + AgricultureConfig.Columns.Value;
                 case ControllerEditorField.Spacing:
-                    return "Spacing " + AgricultureConfig.Spacing.Value.ToString(
-                               "0.0", CultureInfo.InvariantCulture) + " m";
+                    return global::Runic.Localization.RunicText.Get("text_4e889d18844d") + AgricultureConfig.Spacing.Value.ToString(
+                               "0.0", CultureInfo.InvariantCulture) + global::Runic.Localization.RunicText.Get("text_506df2a2a61a");
                 case ControllerEditorField.Side:
-                    return "Side " + PatternEditor.OrientationLabel(
+                    return global::Runic.Localization.RunicText.Get("text_90eb042fe698") + PatternEditor.OrientationLabel(
                         pattern,
                         AgricultureConfig.MirrorShape.Value);
                 case ControllerEditorField.LeftTaper:
-                    return "Left taper " + Mathf.RoundToInt(
+                    return global::Runic.Localization.RunicText.Get("text_b1773e8caee4") + Mathf.RoundToInt(
                         AgricultureConfig.TrapezoidLeftPinch.Value * 100f) + "%";
                 case ControllerEditorField.RightTaper:
-                    return "Right taper " + Mathf.RoundToInt(
+                    return global::Runic.Localization.RunicText.Get("text_1253c0681f27") + Mathf.RoundToInt(
                         AgricultureConfig.TrapezoidRightPinch.Value * 100f) + "%";
                 default:
                     return field.ToString();
@@ -1489,6 +1511,7 @@ namespace RunicAgriculture.Integration
 
         private void ClearControlBarPreview()
         {
+            _snapSummary = string.Empty;
             _previewValidCount = 0;
             _previewGroundValidCount = 0;
             _previewTotalCount = 0;
@@ -1545,11 +1568,11 @@ namespace RunicAgriculture.Integration
             switch (reason)
             {
                 case AgricultureReasonCodes.NoStamina:
-                    return "need stamina for the one batch action";
+                    return global::Runic.Localization.RunicText.Get("text_ba759ffe12cb");
                 case AgricultureReasonCodes.NoDurability:
-                    return "cultivator needs durability for the batch";
+                    return global::Runic.Localization.RunicText.Get("text_b8ab519d8e0f");
                 default:
-                    return "batch action unavailable";
+                    return global::Runic.Localization.RunicText.Get("text_baa2333f3e62");
             }
         }
 
@@ -1557,21 +1580,21 @@ namespace RunicAgriculture.Integration
         {
             switch (reasonCode)
             {
-                case AgricultureReasonCodes.TerrainUnavailable: return "no terrain";
-                case AgricultureReasonCodes.CropChanged: return "crop changed";
-                case AgricultureReasonCodes.SpacingBlocked: return "too close";
-                case AgricultureReasonCodes.SlopeInvalid: return "too steep";
-                case AgricultureReasonCodes.NotCultivated: return "not cultivated";
-                case AgricultureReasonCodes.BiomeInvalid: return "wrong biome";
-                case AgricultureReasonCodes.OutOfRange: return "out of range";
-                case AgricultureReasonCodes.WaterBlocked: return "in water";
-                case AgricultureReasonCodes.WardDenied: return "ward denied";
-                case AgricultureReasonCodes.NoBuildZone: return "in a no-build area";
-                case AgricultureReasonCodes.PlayerBlocked: return "blocked by a player";
-                case AgricultureReasonCodes.NoSeeds: return "without seeds";
-                case AgricultureReasonCodes.NoDurability: return "without durability";
-                case AgricultureReasonCodes.NoStamina: return "without stamina";
-                case AgricultureReasonCodes.PlacementFailed: return "placement failed";
+                case AgricultureReasonCodes.TerrainUnavailable: return global::Runic.Localization.RunicText.Get("text_35a8dd36098a");
+                case AgricultureReasonCodes.CropChanged: return global::Runic.Localization.RunicText.Get("text_a061e150273f");
+                case AgricultureReasonCodes.SpacingBlocked: return global::Runic.Localization.RunicText.Get("text_f8dd9d307380");
+                case AgricultureReasonCodes.SlopeInvalid: return global::Runic.Localization.RunicText.Get("text_da0c12f8f418");
+                case AgricultureReasonCodes.NotCultivated: return global::Runic.Localization.RunicText.Get("text_9d4d6268c157");
+                case AgricultureReasonCodes.BiomeInvalid: return global::Runic.Localization.RunicText.Get("text_b2f3314ac35c");
+                case AgricultureReasonCodes.OutOfRange: return global::Runic.Localization.RunicText.Get("text_c8007a4d6a1b");
+                case AgricultureReasonCodes.WaterBlocked: return global::Runic.Localization.RunicText.Get("text_25781429f18f");
+                case AgricultureReasonCodes.WardDenied: return global::Runic.Localization.RunicText.Get("text_6666d4f40318");
+                case AgricultureReasonCodes.NoBuildZone: return global::Runic.Localization.RunicText.Get("text_dd941d1b8134");
+                case AgricultureReasonCodes.PlayerBlocked: return global::Runic.Localization.RunicText.Get("text_2707beb8abb9");
+                case AgricultureReasonCodes.NoSeeds: return global::Runic.Localization.RunicText.Get("text_37c574990203");
+                case AgricultureReasonCodes.NoDurability: return global::Runic.Localization.RunicText.Get("text_cdd70550cf8c");
+                case AgricultureReasonCodes.NoStamina: return global::Runic.Localization.RunicText.Get("text_f0e7323cf188");
+                case AgricultureReasonCodes.PlacementFailed: return global::Runic.Localization.RunicText.Get("text_ef0918d6212d");
                 default: return "invalid";
             }
         }
@@ -1587,7 +1610,7 @@ namespace RunicAgriculture.Integration
             _lastControllerProblem = problem;
             string message = "Runic Agriculture controller controls disabled: " + problem + ".";
             _log.LogError(message + " Keyboard controls remain available.");
-            Message(player, message + " Use keyboard controls or correct Configuration Manager.");
+            Message(player, message + global::Runic.Localization.RunicText.Get("text_f8bcfa28cf5a"));
         }
 
         private string FindPlantForMature(string matureCropId)
@@ -1724,12 +1747,12 @@ namespace RunicAgriculture.Integration
         {
             switch (key)
             {
-                case KeyCode.LeftAlt: return "Left Alt";
-                case KeyCode.RightAlt: return "Right Alt";
-                case KeyCode.LeftControl: return "Left Ctrl";
-                case KeyCode.RightControl: return "Right Ctrl";
-                case KeyCode.LeftShift: return "Left Shift";
-                case KeyCode.RightShift: return "Right Shift";
+                case KeyCode.LeftAlt: return global::Runic.Localization.RunicText.Get("text_c975c1dd0c72");
+                case KeyCode.RightAlt: return global::Runic.Localization.RunicText.Get("text_473cbe010f45");
+                case KeyCode.LeftControl: return global::Runic.Localization.RunicText.Get("text_539598885559");
+                case KeyCode.RightControl: return global::Runic.Localization.RunicText.Get("text_cca19102e414");
+                case KeyCode.LeftShift: return global::Runic.Localization.RunicText.Get("text_f75aa1deb96d");
+                case KeyCode.RightShift: return global::Runic.Localization.RunicText.Get("text_b0ea7aeb7eca");
                 default: return key.ToString();
             }
         }
@@ -1765,49 +1788,49 @@ namespace RunicAgriculture.Integration
             switch (reasonCode)
             {
                 case AgricultureReasonCodes.Valid:
-                    return "Runic agriculture completed.";
+                    return global::Runic.Localization.RunicText.Get("text_ad7c25f6d44a");
                 case AgricultureReasonCodes.NotAuthoritative:
-                    return "Runic agriculture: the local player is not the authoritative owner.";
+                    return global::Runic.Localization.RunicText.Get("text_bb8ccc832977");
                 case AgricultureReasonCodes.CropChanged:
-                    return "Runic agriculture: the selected crop changed; review the new preview.";
+                    return global::Runic.Localization.RunicText.Get("text_9da22b6ebc1d");
                 case AgricultureReasonCodes.InvalidBatchBlocked:
-                    return "Runic agriculture: confirmation blocked because at least one preview is invalid.";
+                    return global::Runic.Localization.RunicText.Get("text_2e36f2a53584");
                 case AgricultureReasonCodes.CostBatchBlocked:
-                    return "Runic agriculture: confirmation blocked because full costs are unavailable.";
+                    return global::Runic.Localization.RunicText.Get("text_c47d156d6cdc");
                 case AgricultureReasonCodes.NoSeeds:
-                    return "Runic agriculture stopped when personal inventory and eligible nearby chests ran out of planting resources.";
+                    return global::Runic.Localization.RunicText.Get("text_e53427506063");
                 case AgricultureReasonCodes.NoDurability:
-                    return "Runic agriculture stopped before cultivator durability was exhausted.";
+                    return global::Runic.Localization.RunicText.Get("text_984b29cf22f4");
                 case AgricultureReasonCodes.NoStamina:
-                    return "Runic agriculture stopped at the available stamina budget.";
+                    return global::Runic.Localization.RunicText.Get("text_af7fe5915755");
                 case AgricultureReasonCodes.ReplantNotOffered:
-                    return "Runic replant: no harvested positions are awaiting confirmation.";
+                    return global::Runic.Localization.RunicText.Get("text_10eefb1d2a83");
                 case AgricultureReasonCodes.ReplantCropMismatch:
-                    return "Runic replant: select the crop matching the pending harvest.";
+                    return global::Runic.Localization.RunicText.Get("text_907a9a0827b7");
                 case AgricultureReasonCodes.WardDenied:
-                    return "Runic agriculture: a ward denies this position.";
+                    return global::Runic.Localization.RunicText.Get("text_bf793ca928d7");
                 case AgricultureReasonCodes.SpacingBlocked:
-                    return "Runic agriculture: crop spacing changed; remaining positions were not planted.";
+                    return global::Runic.Localization.RunicText.Get("text_932a0fd47395");
                 case AgricultureReasonCodes.WaterBlocked:
-                    return "Runic agriculture: this crop cannot be planted in water.";
+                    return global::Runic.Localization.RunicText.Get("text_cd2aafdfdb3f");
                 case AgricultureReasonCodes.TerrainUnavailable:
-                    return "Runic agriculture: terrain could not be sampled at this position.";
+                    return global::Runic.Localization.RunicText.Get("text_90b58f68a9be");
                 case AgricultureReasonCodes.SlopeInvalid:
-                    return "Runic agriculture: this position is too steep.";
+                    return global::Runic.Localization.RunicText.Get("text_4b8936c83472");
                 case AgricultureReasonCodes.BiomeInvalid:
-                    return "Runic agriculture: this crop cannot grow in the current biome.";
+                    return global::Runic.Localization.RunicText.Get("text_ccf63aeef82e");
                 case AgricultureReasonCodes.NotCultivated:
-                    return "Runic agriculture: this position requires cultivated ground.";
+                    return global::Runic.Localization.RunicText.Get("text_32bb8f53f1a2");
                 case AgricultureReasonCodes.OutOfRange:
-                    return "Runic agriculture: this position is outside placement range.";
+                    return global::Runic.Localization.RunicText.Get("text_f9281123b75f");
                 case AgricultureReasonCodes.NoBuildZone:
-                    return "Runic agriculture: building is not allowed at this position.";
+                    return global::Runic.Localization.RunicText.Get("text_32a9aec28f38");
                 case AgricultureReasonCodes.PlayerBlocked:
-                    return "Runic agriculture: a player is blocking this position.";
+                    return global::Runic.Localization.RunicText.Get("text_87bb7acae281");
                 case AgricultureReasonCodes.PlacementFailed:
-                    return "Runic agriculture: Valheim rejected the placement; no further positions were attempted.";
+                    return global::Runic.Localization.RunicText.Get("text_c3085cff293b");
                 default:
-                    return "Runic agriculture stopped: " + reasonCode + ".";
+                    return global::Runic.Localization.RunicText.Get("text_33f2a8bda153") + reasonCode + ".";
             }
         }
 

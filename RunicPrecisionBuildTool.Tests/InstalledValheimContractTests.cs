@@ -22,8 +22,8 @@ namespace QuietBuildRotation.Tests
 
         internal static void Register()
         {
-            TestRunner.Run("tests target installed Valheim 1.0.12", InstalledVersionIsExact);
-            TestRunner.Run("installed Valheim assembly is the audited 1.0.12 binary", InstalledHashIsExact);
+            TestRunner.Run("tests target installed Valheim 1.0.15", InstalledVersionIsExact);
+            TestRunner.Run("installed Valheim assembly is the audited 1.0.15 binary", InstalledHashIsExact);
             TestRunner.Run("installed build-menu visibility remains owned by the native build HUD", BuildMenuVisibilityContractIsExact);
             TestRunner.Run("installed placement IL retains one exact rotation and pre-snap hook seam", PlacementHookShapeIsExact);
             TestRunner.Run("all vanilla placement validation remains after the pre-snap seam", PlacementValidationRemainsNative);
@@ -52,7 +52,7 @@ namespace QuietBuildRotation.Tests
                 new[] { typeof(bool) },
                 null);
             TestAssert.True(method != null);
-            TestAssert.Equal("1.0.12", (string)method.Invoke(null, new object[] { false }));
+            TestAssert.Equal("1.0.15", (string)method.Invoke(null, new object[] { false }));
         }
 
         private static void InstalledHashIsExact()
@@ -61,7 +61,7 @@ namespace QuietBuildRotation.Tests
             string path = typeof(Player).Assembly.Location;
             string hash = Convert.ToHexString(sha.ComputeHash(File.ReadAllBytes(path)));
             TestAssert.Equal(
-                "27A766A8D23A7BD8B6A54FB9AD0452A96C305FB3629B39C40527C09A1C393A84",
+                "59F53FB55D99D22A33E8ED094EEC8D21E9F133543BCE92BC3D80DCE44033ADB1",
                 hash);
         }
 
@@ -385,7 +385,7 @@ namespace QuietBuildRotation.Tests
             {
                 string hash = Convert.ToHexString(sha.ComputeHash(File.ReadAllBytes(path)));
                 TestAssert.Equal(
-                    "9DF99B0011B4CA0A448E6D935C77368B4E3B98EEE7B0AC8D1B43B34E267471B2",
+                    "53ED3C85E0CB78F28084B25CE4DAE6F2B929BA9B9C53B788B9A24F950D73F183",
                     hash);
             }
 

@@ -17,7 +17,7 @@ namespace RunicInventory
     {
         public const string Guid = "chazman.RunicInventory";
         public const string Name = "Runic Inventory";
-        public const string Version = "1.1.5";
+        public const string Version = "1.1.10";
         public const string ModuleId = "runic.inventory";
         public const string ProtocolVersion = "1.0";
 
@@ -81,7 +81,7 @@ namespace RunicInventory
             try { _runtime.Tick(); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Inventory runtime faulted and was disabled.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_6586951ebeea"));
                 _runtime.FailClosed("runtime.exception");
             }
         }
@@ -92,7 +92,7 @@ namespace RunicInventory
             try { _runtime.Draw(); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Inventory status drawing failed closed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_634f4fd622aa"));
             }
         }
 
@@ -105,13 +105,13 @@ namespace RunicInventory
             try { _runtime.OnConfigurationChanged(); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Inventory configuration refresh failed closed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_c0e41f8a2d26"));
                 _runtime.FailClosed("config.refresh-failed");
             }
             try { RefreshBindings(); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Inventory keybinding refresh failed.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_7c7aad401442"));
             }
         }
 
@@ -172,7 +172,7 @@ namespace RunicInventory
                 try { _bindings[index].Dispose(); }
                 catch (Exception exception)
                 {
-                    Diagnostics.Error(exception, "Inventory keybinding cleanup failed.");
+                    Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_bee5ee3f3cbd"));
                 }
             }
             _bindings.Clear();
@@ -258,13 +258,13 @@ namespace RunicInventory
             try { runtime?.Dispose(); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Inventory runtime cleanup was incomplete.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_bf7b364b87ab"));
             }
             _runtime = null;
             try { _harmony?.UnpatchSelf(); }
             catch (Exception exception)
             {
-                Diagnostics.Error(exception, "Inventory Harmony cleanup was incomplete.");
+                Diagnostics.Error(exception, global::Runic.Localization.RunicText.Get("text_749140dc00e4"));
             }
             _harmony = null;
             BetterArcheryCompatibility.Reset();

@@ -254,7 +254,7 @@ namespace RunicAwareness.Integration
                 if (SameSignature(ref _foodSignature, ref _hadFoodSignature, signature)) return;
                 _panels.Set(
                     AwarenessPanel.Food,
-                    "Details withheld: local food list exceeds the hard limit of " +
+                    global::Runic.Localization.RunicText.Get("text_1d2daebe64a5") +
                     AwarenessConfig.HardMaximumFoodScan + ".");
                 return;
             }
@@ -285,7 +285,7 @@ namespace RunicAwareness.Integration
                     TimerFormatter.Bucket(food?.m_time ?? 0f, AwarenessConfig.TimerPrecision.Value));
             }
             if (count > visible)
-                _builder.Append("\n+").Append(count - visible).Append(" more local food slots");
+                _builder.Append("\n+").Append(count - visible).Append(global::Runic.Localization.RunicText.Get("text_41f530ff8d65"));
             _panels.Set(AwarenessPanel.Food,
                 BoundedText.Sanitize(_builder.ToString(), 512, MaximumFoodRows + 1));
         }
@@ -306,7 +306,7 @@ namespace RunicAwareness.Integration
                 if (SameSignature(ref _effectSignature, ref _hadEffectSignature, signature)) return;
                 _panels.Set(
                     AwarenessPanel.Effects,
-                    "Details withheld: local effect list exceeds the hard limit of " +
+                    global::Runic.Localization.RunicText.Get("text_82ca4ff07363") +
                     AwarenessConfig.HardMaximumEffectScan + ".");
                 return;
             }
@@ -350,7 +350,7 @@ namespace RunicAwareness.Integration
                 shown++;
             }
             if (hudCount > shown)
-                _builder.Append("\n+").Append(hudCount - shown).Append(" more HUD effects");
+                _builder.Append("\n+").Append(hudCount - shown).Append(global::Runic.Localization.RunicText.Get("text_f9d361b571a5"));
             _panels.Set(AwarenessPanel.Effects,
                 BoundedText.Sanitize(_builder.ToString(), 768, maximum + 1));
         }
@@ -376,15 +376,15 @@ namespace RunicAwareness.Integration
             if (SameSignature(ref _comfortSignature, ref _hadComfortSignature, signature)) return;
 
             _builder.Clear();
-            _builder.Append("Level ").Append(level)
-                .Append(sheltered ? " (sheltered)" : " (not sheltered)");
-            _builder.Append("\nRested: ");
+            _builder.Append(global::Runic.Localization.RunicText.Get("text_596663b106bf")).Append(level)
+                .Append(sheltered ? global::Runic.Localization.RunicText.Get("text_be78596135a9") : global::Runic.Localization.RunicText.Get("text_5447300d55f0"));
+            _builder.Append(global::Runic.Localization.RunicText.Get("text_5fe3267bdb18"));
             if (restedBucket >= 0) TimerFormatter.Append(_builder, restedBucket);
             else _builder.Append("inactive");
             if (!string.IsNullOrEmpty(captured.Detail))
                 _builder.Append('\n').Append(captured.Detail);
             else
-                _builder.Append("\nCategory winners appear after vanilla's next comfort check.");
+                _builder.Append(global::Runic.Localization.RunicText.Get("text_5913e42517da"));
             _panels.Set(AwarenessPanel.Comfort,
                 BoundedText.Sanitize(_builder.ToString(), 1024, 12));
         }
@@ -514,13 +514,13 @@ namespace RunicAwareness.Integration
             _builder.Clear();
             _builder.Append(BoundedLocalization.Label(piece.m_name));
             if (health >= 0f)
-                _builder.Append(" | health ").Append(health.ToString("0", CultureInfo.InvariantCulture))
+                _builder.Append(global::Runic.Localization.RunicText.Get("text_1fb7ebe0bcf4")).Append(health.ToString("0", CultureInfo.InvariantCulture))
                     .Append('%');
-            _builder.Append("\nPosition: ").Append(VectorText(position));
-            _builder.Append("\nRotation: ").Append(VectorText(rotation));
+            _builder.Append(global::Runic.Localization.RunicText.Get("text_b903a0442568")).Append(VectorText(position));
+            _builder.Append(global::Runic.Localization.RunicText.Get("text_c86233fec08e")).Append(VectorText(rotation));
             if (_cachedStationLevel > 0)
-                _builder.Append("\nStation level: ").Append(_cachedStationLevel);
-            _builder.Append("\nSupport colors: blue grounded; green/yellow/orange supported; red weakest.");
+                _builder.Append(global::Runic.Localization.RunicText.Get("text_4ece3e556586")).Append(_cachedStationLevel);
+            _builder.Append(global::Runic.Localization.RunicText.Get("text_724018b29f5f"));
             _panels.Set(AwarenessPanel.Building,
                 BoundedText.Sanitize(_builder.ToString(), 768, 6));
         }
@@ -687,7 +687,8 @@ namespace RunicAwareness.Integration
                 return true;
             if (Game.IsPaused() || Hud.instance == null || Hud.instance.m_userHidden)
                 return true;
-            return _portalPanels.SetupPanelVisible(player);
+            return ValheimContracts.GameplayInputBlocked(player) ||
+                _portalPanels.SetupPanelVisible(player);
         }
 
         private void EnsureStyles(int fontSize)

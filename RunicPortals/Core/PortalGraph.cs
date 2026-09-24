@@ -11,9 +11,7 @@ namespace RunicPortals.Core
 
     internal sealed class PortalGraph
     {
-        private static readonly PortalEndpoint[] EmptyEndpoints = Array.Empty<PortalEndpoint>();
         private readonly Dictionary<string, PortalEndpoint> _byId;
-        private readonly Dictionary<string, PortalEndpoint[]> _byNetwork;
 
         internal PortalGraph(IEnumerable<PortalEndpoint> endpoints, int maximumEndpoints)
         {
@@ -36,7 +34,6 @@ namespace RunicPortals.Core
 
             list.Sort(CompareEndpoint);
             Endpoints = list.ToArray();
-            _byNetwork = BuildNetworks(Endpoints);
         }
 
         internal PortalEndpoint[] Endpoints { get; }
@@ -58,7 +55,7 @@ namespace RunicPortals.Core
             if (!ValidateSource(query, access, out RouteStopCode sourceStop, out PortalEndpoint source))
                 return new PortalDirectoryResult(Array.Empty<PortalDirectoryEntry>(), false, sourceStop);
 
-            PortalEndpoint[] candidates = Network(query.NetworkId);
+            PortalEndpoint[] candidates = Endpoints;
             var visible = new List<PortalEndpoint>(Math.Min(candidates.Length, query.MaximumResults + 1));
             var names = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             bool truncated = false;
@@ -96,7 +93,7 @@ namespace RunicPortals.Core
             if (!ValidateSource(scope, access, out RouteStopCode sourceStop, out PortalEndpoint source))
                 return new PortalNameResolution(sourceStop, Array.Empty<PortalDirectoryEntry>());
 
-            PortalEndpoint[] endpoints = Network(scope.NetworkId);
+            PortalEndpoint[] endpoints = Endpoints;
             var matches = new List<PortalEndpoint>();
             for (int index = 0; index < endpoints.Length; index++)
             {
@@ -133,13 +130,8 @@ namespace RunicPortals.Core
                 return Stop(RouteStopCode.NotFoundOrUnauthorized, request, null, null, false);
             if (source.Mode != PortalMode.Network || source.OnlineState != PortalOnlineState.Online)
                 return Stop(RouteStopCode.SourceUnavailable, request, source, destination, false);
-            if (destination.Mode != PortalMode.Network || destination.OnlineState != PortalOnlineState.Online)
+            if (destination.OnlineState != PortalOnlineState.Online)
                 return Stop(RouteStopCode.DestinationUnavailable, request, source, destination, false);
-            // The exact NetworkName is the routing boundary. Access is evaluated independently
-            // for the source and destination, so a traveler may depart a public endpoint and
-            // arrive at an authorized private or Group endpoint with the same exact name.
-            if (!string.Equals(source.NetworkId, destination.NetworkId, StringComparison.Ordinal))
-                return Stop(RouteStopCode.NetworkMismatch, request, source, destination, false);
             if (string.Equals(source.PortalId, destination.PortalId, StringComparison.Ordinal))
                 return Stop(RouteStopCode.SameEndpoint, request, source, destination, false);
             if (request.SourceRevision >= 0 && request.SourceRevision != source.Revision ||
@@ -156,7 +148,8 @@ namespace RunicPortals.Core
             if (policyStop != RouteStopCode.Ready)
                 return Stop(policyStop, request, source, destination, false);
 
-            bool reverseAllowed = destination.PermitsDeparture && source.AcceptsArrival &&
+            bool reverseAllowed = destination.Mode == PortalMode.Network &&
+                destination.PermitsDeparture && source.AcceptsArrival &&
                 access.Allows(destination, request.TravelerStableId, PortalAccessAction.Depart) &&
                 access.Allows(source, request.TravelerStableId, PortalAccessAction.Arrive);
             bool oneWay = !reverseAllowed;
@@ -196,8 +189,7 @@ namespace RunicPortals.Core
             PortalDirectoryQuery query,
             IPortalAccessEvaluator access)
         {
-            if (endpoint.Mode != PortalMode.Network ||
-                string.Equals(endpoint.PortalId, query.SourcePortalId, StringComparison.Ordinal) ||
+            if (string.Equals(endpoint.PortalId, query.SourcePortalId, StringComparison.Ordinal) ||
                 !endpoint.AcceptsArrival ||
                 endpoint.OnlineState == PortalOnlineState.Disabled ||
                 endpoint.OnlineState == PortalOnlineState.Destroyed ||
@@ -216,28 +208,6 @@ namespace RunicPortals.Core
             string travelerStableId,
             IPortalAccessEvaluator access) =>
             access.Allows(endpoint, travelerStableId, PortalAccessAction.ViewDiscover);
-
-        private PortalEndpoint[] Network(string networkId) =>
-            _byNetwork.TryGetValue(networkId, out PortalEndpoint[] endpoints) ? endpoints : EmptyEndpoints;
-
-        private static Dictionary<string, PortalEndpoint[]> BuildNetworks(PortalEndpoint[] endpoints)
-        {
-            var lists = new Dictionary<string, List<PortalEndpoint>>(StringComparer.Ordinal);
-            for (int index = 0; index < endpoints.Length; index++)
-            {
-                PortalEndpoint endpoint = endpoints[index];
-                if (!lists.TryGetValue(endpoint.NetworkId, out List<PortalEndpoint> list))
-                {
-                    list = new List<PortalEndpoint>();
-                    lists.Add(endpoint.NetworkId, list);
-                }
-                list.Add(endpoint);
-            }
-            var result = new Dictionary<string, PortalEndpoint[]>(StringComparer.Ordinal);
-            foreach (KeyValuePair<string, List<PortalEndpoint>> pair in lists)
-                result.Add(pair.Key, pair.Value.ToArray());
-            return result;
-        }
 
         private static int CompareEndpoint(PortalEndpoint left, PortalEndpoint right)
         {

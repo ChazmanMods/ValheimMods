@@ -1,11 +1,10 @@
-# Runic World Engine 1.2.0
+# Runic World Engine 1.2.3
 
 A Valheim world is constantly synchronizing objects, changing state, communicating with peers, and saving to disk. When those systems collide with an expensive frame or overlapping save work, everyone can feel the hitch even though nobody did anything wrong.
 
 **Runic World Engine watches that infrastructure, offers a coordinated player-cap override, and smooths asynchronous saves.** See which connections are struggling, spot growing queues, and receive early warnings without changing world ownership or synchronization behavior.
 
-Version 1.2.0 targets Valheim 1.0.12 and BepInExPack Valheim 5.4.2350, including the new
-chunked-world save and load pipeline.
+Version 1.2.2 is verified with Valheim 1.0.15 and requires BepInExPack Valheim 5.4.2350, including support for the chunked-world save and load pipeline.
 
 ## Major features
 
@@ -50,11 +49,11 @@ Read the server's BepInEx log for its complete report. Peer details include play
 
 ## Player-cap validation
 
-World Engine audits the Valheim 1.0.12 method bodies and every identified literal hosting-limit site before installing the override: five sites on a listen host, six on a dedicated server. The dedicated set includes Steam's initial maximum-player setting. It preserves the old remote-server browser fallback rather than changing the displayed capacity of other servers.
+World Engine audits the Valheim 1.0.12 / 1.0.14 method bodies and every identified literal hosting-limit site before installing the override: five sites on a listen host, six on a dedicated server. The dedicated set includes Steam's initial maximum-player setting. It preserves the old remote-server browser fallback rather than changing the displayed capacity of other servers.
 
 The override requires the complete audited set. Unknown method bodies, missing sites, additional detected limit sites, or competing transpilers reject the override and block hosting until corrected and restarted. Integrity is checked again before hosting and admission. If the patch set changes afterward, new admissions are blocked and a restart-required error is logged; existing players are not kicked and the cap is not silently reduced. A rejected connection may receive Valheim's server-full message; the host log gives the actual integrity error.
 
-This validates the audited game-side limit patches, not arbitrary behavior added by other plugins or external platform-service limits. Authentication and character-vault checks remain in effect. Do not combine this override with another player-limit mod. Future Valheim builds require a fresh cap audit; the version check does not use platform-prefixed version strings.
+This validates the audited game-side limit patches, not arbitrary behavior added by other plugins or external platform-service limits. Authentication and character-vault checks remain in effect. Do not combine this override with another player-limit mod. A new game version alone does not disable the override. If the audited capacity method bodies change, the override requires a fresh code audit before it can run.
 
 ## Reading health reports
 
@@ -116,3 +115,15 @@ every world size and storage device.
 | `Save Smoothing.MaximumDeferralSeconds` | `5` | Hard maximum delay before a pending save must start. |
 
 World heat maps, compaction, and synchronization rescheduling are not enabled by this mod.
+
+Compatibility: startup validates required game APIs rather than rejecting an unfamiliar game version. Actual API incompatibilities still disable safely.
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicWorldEngine` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

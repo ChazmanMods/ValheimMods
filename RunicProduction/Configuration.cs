@@ -5,6 +5,7 @@ namespace RunicProduction
     internal static class ProductionConfig
     {
         internal static ConfigEntry<bool> Enabled { get; private set; }
+        internal static ConfigEntry<string> ContainerPrefabIds { get; private set; }
         internal static ConfigEntry<float> MaximumLinkRange { get; private set; }
         internal static ConfigEntry<float> MovedTargetTolerance { get; private set; }
         internal static ConfigEntry<int> FuelReserve { get; private set; }
@@ -23,6 +24,8 @@ namespace RunicProduction
         internal static ConfigEntry<int> DefaultReplenishmentReserve { get; private set; }
         internal static ConfigEntry<string> ReplenishmentReserveRules { get; private set; }
         internal static ConfigEntry<float> StockSchedulerIntervalSeconds { get; private set; }
+        internal static ConfigEntry<int> StockSchedulerMaximumExaminations { get; private set; }
+        internal static ConfigEntry<float> StockSchedulerMaximumMilliseconds { get; private set; }
         internal static ConfigEntry<int> StockSchedulerMaximumOperations { get; private set; }
         internal static ConfigEntry<bool> ShowStatusOverlay { get; private set; }
         internal static ConfigEntry<bool> ShowControlHints { get; private set; }
@@ -30,150 +33,156 @@ namespace RunicProduction
 
         internal static void Bind(ConfigFile config)
         {
+            ContainerPrefabIds = config.Bind("Modded Containers", "AllowedPrefabIds", "piece_drawer",
+                global::Runic.Localization.RunicText.Get("text_204394c804c5"));
             Enabled = config.Bind(
                 "General",
                 "Enabled",
                 true,
-                "Enable explicit Runic Input, Output, and Replenishment links. " +
-                "Disabling immediately stops automation without leaving operation state behind.");
+                global::Runic.Localization.RunicText.Get("text_39206eef7ec9") +
+                global::Runic.Localization.RunicText.Get("text_1cd26a4e89ac"));
             MaximumLinkRange = config.Bind(
                 "Links",
                 "MaximumLinkRange",
                 12f,
                 new ConfigDescription(
-                    "Maximum station-to-container distance in meters.",
+                    global::Runic.Localization.RunicText.Get("text_673632d137d7"),
                     new AcceptableValueRange<float>(2f, 30f)));
             MovedTargetTolerance = config.Bind(
                 "Links",
                 "MovedTargetTolerance",
                 0.75f,
                 new ConfigDescription(
-                    "Distance a linked target may move from its recorded ZDO-root position before automation pauses. The relation remains available for an explicit refresh.",
+                    global::Runic.Localization.RunicText.Get("text_e9cec0a9c69d"),
                     new AcceptableValueRange<float>(0.1f, 3f)));
             FuelReserve = config.Bind(
                 "Fuel",
                 "ProtectedReserve",
                 10,
                 new ConfigDescription(
-                    "Minimum fuel items retained in every linked fuel container.",
+                    global::Runic.Localization.RunicText.Get("text_37a856c5c05d"),
                     new AcceptableValueRange<int>(0, 1000)));
             PullBatchSize = config.Bind(
                 "Transfers",
                 "PullBatchSize",
                 1,
                 new ConfigDescription(
-                    "Maximum items pulled per station update. Capacity and authorization are checked per item.",
+                    global::Runic.Localization.RunicText.Get("text_9aee0df2c8aa"),
                     new AcceptableValueRange<int>(1, 10)));
             CookingStationPrefabAllowList = config.Bind(
                 "Cooking Stations",
                 "AllowedPrefabIds",
                 "piece_cookingstation,piece_cookingstation_iron,piece_oven",
-                "Comma-separated exact prefab IDs allowed to use CookingStation automation. " +
-                "A listed prefab must still pass strict runtime CookingStation compatibility checks.");
+                global::Runic.Localization.RunicText.Get("text_9847fcc16532") +
+                global::Runic.Localization.RunicText.Get("text_34972eb1dc79"));
             CookingStationPrefabDenyList = config.Bind(
                 "Cooking Stations",
                 "DeniedPrefabIds",
                 string.Empty,
-                "Comma-separated exact prefab IDs denied CookingStation automation. Deny entries override the allow list.");
+                global::Runic.Localization.RunicText.Get("text_4a9e0fd45e55"));
             RecipeStationPrefabAllowList = config.Bind(
                 "Recipe Stations",
                 "AllowedPrefabIds",
                 "piece_cauldron,piece_MeadCauldron,piece_preptable",
-                "Comma-separated exact prefab IDs allowed to perform signed replenishment recipes. " +
-                "Every station and recipe must still pass strict runtime compatibility and progression checks.");
+                global::Runic.Localization.RunicText.Get("text_0529b54ac8ec") +
+                global::Runic.Localization.RunicText.Get("text_97f91c42a42f"));
             RecipeStationPrefabDenyList = config.Bind(
                 "Recipe Stations",
                 "DeniedPrefabIds",
                 string.Empty,
-                "Comma-separated exact recipe-station prefab IDs denied replenishment. Deny entries override the allow list.");
+                global::Runic.Localization.RunicText.Get("text_310b71d8a3e5"));
             RecipeNearbyIngredientsEnabled = config.Bind(
                 "Recipe Nearby Ingredients",
                 "Enabled",
                 true,
-                "Use bounded, station-centered discovery of eligible nearby ingredient chests for replenishment recipes, cooking, and fermenting. " +
-                "False preserves exact designated-Input-only behavior. The search radius is Links.MaximumLinkRange. " +
-                    "Only loaded, static, accessible chests owned by the same local process qualify; Output, Fuel-compatibility, and Replenishment destinations are excluded unless explicitly linked as Input. " +
-                "Discovery alone never authorizes or mutates a chest.");
+                global::Runic.Localization.RunicText.Get("text_727618a98ce7") +
+                global::Runic.Localization.RunicText.Get("text_d1d98e137445") +
+                    global::Runic.Localization.RunicText.Get("text_cbf55ee44da8") +
+                global::Runic.Localization.RunicText.Get("text_d033d83f2fb7"));
             RecipeNearbyMaximumSourceChests = config.Bind(
                 "Recipe Nearby Ingredients",
                 "MaximumSourceChests",
                 32,
                 new ConfigDescription(
-                    "Maximum eligible nearby ingredient source chests accepted by one replenishment operation. " +
-                    "The loaded-container spatial query is deterministic; exceeding this limit or the hard 64-candidate bound pauses production rather than using a partial source set.",
+                    global::Runic.Localization.RunicText.Get("text_129cd70f0581") +
+                    global::Runic.Localization.RunicText.Get("text_bad246e5026f"),
                     new AcceptableValueRange<int>(1, 64)));
             FermenterPrefabAllowList = config.Bind(
                 "Fermenters",
                 "AllowedPrefabIds",
                 "fermenter",
-                "Comma-separated exact Fermenter prefab IDs allowed to participate in replenishment production.");
+                global::Runic.Localization.RunicText.Get("text_753e29d964f3"));
             FermenterPrefabDenyList = config.Bind(
                 "Fermenters",
                 "DeniedPrefabIds",
                 string.Empty,
-                "Comma-separated exact Fermenter prefab IDs denied replenishment. Deny entries override the allow list.");
+                global::Runic.Localization.RunicText.Get("text_6d168ff49b8d"));
             DefaultIngredientReserve = config.Bind(
                 "Ingredient Reserves",
                 "DefaultProtectedReserve",
                 0,
                 new ConfigDescription(
-                    "Default count retained for every exact ingredient prefab in a linked Input chest and independently in every eligible nearby donor chest.",
+                    global::Runic.Localization.RunicText.Get("text_ce8b9ed57c78"),
                     new AcceptableValueRange<int>(0, 1000000)));
             IngredientReserveRules = config.Bind(
                 "Ingredient Reserves",
                 "ProtectedPrefabAmounts",
                 string.Empty,
-                "Semicolon-separated, case-sensitive exact prefab reserves, for example DeerMeat=10;RawMeat=20. " +
-                "Nearby production preserves the configured amount separately in every donor; direct recipes may combine one exact batch across several donors. " +
-                "Invalid or duplicate rules fail stock input consumption closed.");
+                global::Runic.Localization.RunicText.Get("text_5c214851981e") +
+                global::Runic.Localization.RunicText.Get("text_bdddca18f701") +
+                global::Runic.Localization.RunicText.Get("text_842f9a3e70cc"));
             MaximumLinksPerRole = config.Bind(
                 "Links",
                 "MaximumChestsPerRole",
                 8,
                 new ConfigDescription(
-                    "Single soft limit for Input, Output, and Replenishment chests per station and role. Existing links are retained if this is lowered. The hard safety limit is 16.",
+                    global::Runic.Localization.RunicText.Get("text_e90379aba3fb"),
                     new AcceptableValueRange<int>(1, 16)));
             DefaultReplenishmentReserve = config.Bind(
                 "Replenishment Stock",
                 "DefaultReserve",
                 10,
                 new ConfigDescription(
-                    "Default target count maintained for each exemplar item in a linked Replenishment chest. Production runs only while the exact item count is below this reserve.",
+                    global::Runic.Localization.RunicText.Get("text_f73d0b94eda4"),
                     new AcceptableValueRange<int>(1, 1000000)));
             ReplenishmentReserveRules = config.Bind(
                 "Replenishment Stock",
                 "PrefabReserves",
                 string.Empty,
-                "Semicolon-separated exact prefab reserve overrides, for example QueensJam=20;MeadHealthMinor=10. Invalid or duplicate rules pause replenishment safely.");
+                global::Runic.Localization.RunicText.Get("text_64b3bc863c89"));
             StockSchedulerIntervalSeconds = config.Bind(
                 "Stock Scheduler",
                 "IntervalSeconds",
                 2f,
                 new ConfigDescription(
-                    "Native-owner fire/lamp and replenishment service quantum. Unloaded time never creates catch-up recipe crafts.",
+                    global::Runic.Localization.RunicText.Get("text_a1468524e86d"),
                     new AcceptableValueRange<float>(0.5f, 10f)));
+            StockSchedulerMaximumExaminations = config.Bind("Stock Scheduler", "MaximumExaminationsPerQuantum", 128,
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_89cd275fab0d"), new AcceptableValueRange<int>(1, 4096)));
+            StockSchedulerMaximumMilliseconds = config.Bind("Stock Scheduler", "MaximumMillisecondsPerQuantum", 4f,
+                new ConfigDescription(global::Runic.Localization.RunicText.Get("text_b742263852e4"), new AcceptableValueRange<float>(0.5f, 50f)));
             StockSchedulerMaximumOperations = config.Bind(
                 "Stock Scheduler",
                 "MaximumOperationsPerQuantum",
                 64,
                 new ConfigDescription(
-                    "Global cap shared by fire/lamp, direct-recipe, timed-cooking, and Fermenter operations in one scheduler quantum. Each loaded station receives at most one operation per quantum.",
+                    global::Runic.Localization.RunicText.Get("text_068b1732652e"),
                     new AcceptableValueRange<int>(1, 256)));
             ShowStatusOverlay = config.Bind(
                 "UI",
                 "ShowStatusOverlay",
                 true,
-                "Append the most recent compact automation result to station hover text.");
+                global::Runic.Localization.RunicText.Get("text_cd1e98bd2869"));
             ShowControlHints = config.Bind(
                 "UI",
                 "ShowControlHints",
                 true,
-                "Show the two-step Alt+mouse link workflow, Shift+Alt+mouse unlink workflow, current link counts, and empty roles.");
+                global::Runic.Localization.RunicText.Get("text_cacc8f89d5aa"));
             VerboseLogging = config.Bind(
                 "Diagnostics",
                 "VerboseLogging",
                 false,
-                "Log link and transfer transitions. Per-frame and container-scan logging is never emitted.");
+                global::Runic.Localization.RunicText.Get("text_76ee087725ff"));
         }
     }
 }

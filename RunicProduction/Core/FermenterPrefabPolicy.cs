@@ -52,7 +52,7 @@ namespace RunicProduction.Core
                 StringSplitOptions.RemoveEmptyEntries);
             if (entries.Length > MaximumEntries)
             {
-                failure = $"The Fermenter {label} list exceeds {MaximumEntries} entries.";
+                failure = global::Runic.Localization.RunicText.Format("text_ba18174f07f4", label, MaximumEntries);
                 return false;
             }
             foreach (string raw in entries)
@@ -60,7 +60,7 @@ namespace RunicProduction.Core
                 string value = raw.Trim();
                 if (!StockDomainValidation.IsExactPrefabId(value))
                 {
-                    failure = $"The Fermenter {label} list contains an invalid exact prefab ID.";
+                    failure = global::Runic.Localization.RunicText.Format("text_9e88129d9347", label);
                     return false;
                 }
                 values.Add(value);

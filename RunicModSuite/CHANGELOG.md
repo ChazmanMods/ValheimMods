@@ -1,4 +1,75 @@
+## 1.2.44
+
+- Updated included mods for language-file support and the September 24 fixes.
+
 # Changelog
+
+## 1.2.43 - 2026-09-20
+
+- Updated RunicProduction to 1.0.12 to fix fermenter content storage on current Valheim.
+- Updated RunicInteraction to 1.0.9: auto-close only affects player-built doors, excluding generated dungeon, cave, and ruin doors.
+- Existing stranded fermenter batches may need recovery; the update does not automatically recover them.
+- All other dependency versions and the client/server module split are retained.
+
+## 1.2.42 - 2026-09-19
+
+- Updated dependencies: RunicCrafting 1.1.3, RunicProduction 1.0.11, RunicSigns 1.2.6, RunicStorage 1.3.4.
+- RunicStorage adds configurable ItemDrawers Quick Stack/restocking, the spawned-item deposit fix, and curved container labels with fine +/- bend controls.
+- RunicCrafting adds independent configurable custom-container sources for crafting and building.
+- RunicProduction adds independent custom-container support while retaining beehive collection, cooking XP, station sounds, and existing production workflows.
+- RunicSigns adds finer bending with +/- controls.
+- These component versions were confirmed working in-game by the author.
+- Preserved the suite module split and Sentinel roles. Update participating clients and servers together and restart after updating.
+
+## 1.2.41 - 2026-09-18
+
+- Updated dependencies: RunicAwareness 1.0.3, RunicInteraction 1.0.8, RunicInventory 1.1.9, RunicPortals 1.2.9, RunicSafety 1.0.8, RunicSigns 1.2.5, RunicWorldEngine 1.2.2.
+- Includes the latest Valheim 1.0.15 compatibility updates and live sign designer.
+- Preserved the existing client/server module split and Sentinel roles.
+
+## 1.2.40 - 2026-09-17
+
+- Updated RunicWorldEngine to 1.2.1 to restore the optional player-cap override on Valheim 1.0.14.
+- All other dependency versions are unchanged.
+
+## 1.2.39 - 2026-09-17
+
+- Updated RunicBuildCamera to 1.0.4 for activation focus recovery, visible toggle feedback and camera failure logging.
+- Preserves all other dependency versions, including the Valheim 1.0.14 fixes.
+
+## 1.2.38 - 2026-09-17
+
+- Updated Valheim 1.0.14 compatibility fixes: Chazman-RunicInteraction-1.0.6, Chazman-RunicInventory-1.1.7, Chazman-RunicPortals-1.2.7, Chazman-RunicSafety-1.0.6.
+- Preserved emoji, precision rotation and other existing dependency versions.
+
+## 1.2.37 - 2026-09-17
+
+- Updated to Chazman-RunicPrecisionBuildTool-2.0.6.
+- Updated to Chazman-RunicSigns-1.1.0.
+- Updated to Chazman-RunicStorage-1.3.0.
+- Adds full-color emoji pickers to signs and chest labels, preserving sign placement sizing and Quick Stack-only slot protection.
+- Adds the F4 Local/World rotation toggle and matching axis guides.
+- Preserves all other dependency versions, including RunicProduction 1.0.9.
+
+## 1.2.36 - 2026-09-16
+
+- Updated RunicProduction to 1.0.9 for native automated station sounds: kiln/smelter loading and output, cooking/oven loading and collection, fermenter filling and tapping, and crafting effects.
+- Preserves existing fire, torch, and lamp refueling sounds without duplicating them. Effects do not replay completed item transfers.
+- Update participating clients and servers together and restart after updating. Existing links and configuration are retained.
+
+## 1.2.35 - 2026-09-15
+
+- Updated to Chazman-RunicAgriculture-1.0.4.
+- Updated to Chazman-RunicCrafting-1.1.1.
+- Updated to Chazman-RunicInteraction-1.0.5.
+- Updated to Chazman-RunicInventory-1.1.6.
+- Updated to Chazman-RunicPortals-1.2.6.
+- Updated to Chazman-RunicProduction-1.0.7.
+- Updated to Chazman-RunicSentinel-1.4.2.
+- Added Chazman-RunicSigns-1.0.4.
+- Updated to Chazman-RunicStorage-1.2.5.
+- Corrected dedicated-server, player, and listen-host installation guidance to prevent the full Sentinel / SentinelServer conflict that disables F3.
+- Preserved dependency-only packaging and existing configuration.
 
 ## 1.2.34 - 2026-09-14
 
@@ -123,7 +194,6 @@
 
 - Updated every bundled Runic package for Valheim 1.0 and BepInExPack Valheim 5.4.2350.
 - Updated the full Sentinel package to 1.3.1, including the Valheim 1.0 admission handshake and chunked-world backup path.
-- Revalidated all 16 exact Runic dependency pins against the matching Client and Server Suite variants.
 
 ## 1.2.10 - 2026-09-09
 
@@ -131,8 +201,6 @@
   by cooking, crafting, storage, and interaction consumers.
 - Updated Runic Portals to 1.2.0 with its point-and-click portal configuration interface.
 - Updated the combined Runic Sentinel package to 1.3.0.
-- Revalidated all 16 exact Runic dependency pins against the matching Client and Server Suite
-  variants.
 
 ## 1.2.9 - 2026-09-07
 

@@ -25,6 +25,12 @@ internal static class Program
         Game.m_worldLevel=0;
         RunicCrafting.Configuration.SafeMaximumCandidates=64;
         RunicCrafting.Configuration.SafeMaximumReturned=32;
+        RunicCrafting.Configuration.PullPrefabIds.Value="piece_drawer";
+        RunicCrafting.Configuration.Enabled.Value=true;
+        PostCraftRefreshRuntime.Reset();
+        CraftingRuntime.HasMaterialOperation=false;
+        InventoryGui.instance=new InventoryGui(); InventoryGui.Visible=true;
+        Runic.Compatibility.ModdedContainerCompatibility.StoragePullIds=null;
         player = Player.m_localPlayer = new Player(); station = new CraftingStation();
         query = new ContainerQueryRuntime(new WorkshopAccessRuntime());
         ContainerSpatialIndex.Queries=ValheimReflection.Reads=ValheimReflection.AccessChecks=ValheimReflection.WritableRefreshes=0;
@@ -57,9 +63,11 @@ internal static class Program
             foreach(var source in first) Check(source is ReadOnlyMaterialSource && !source.TryTake("Wood",1,out _),"Refresh result exposed writable inventory");
         }
         finally { PreviewRefreshRuntime.End(scope); }
-        Check(!PreviewRefreshRuntime.Cache.Active && PreviewRefreshRuntime.Cache.Count==0,"Refresh leaked");
+        Check(!PreviewRefreshRuntime.Cache.Active,"Refresh scope leaked");
         Resolve(); Resolve();
-        Check(ContainerSpatialIndex.Queries==3,"Out-of-refresh queries were cached");
+        Check(ContainerSpatialIndex.Queries==1,"Separate same-frame previews did not share sources");
+        Time.frameCount++; Resolve();
+        Check(ContainerSpatialIndex.Queries==2,"Next frame reused old sources");
     }
     private static void ScopeAndContextIsolation()
     {
@@ -72,7 +80,7 @@ internal static class Program
         Check(ContainerSpatialIndex.Queries==5,"Anchor/range/origin/world-level contexts collided");
         PreviewRefreshRuntime.End(scope);
         scope=PreviewRefreshRuntime.Begin(); Resolve(); PreviewRefreshRuntime.End(scope);
-        Check(ContainerSpatialIndex.Queries==6,"New refresh reused old query in same frame");
+        Check(ContainerSpatialIndex.Queries==5,"Same-frame refresh repeated unchanged query");
     }
     private static void MutationAndAccessRevocationInvalidate()
     {
@@ -155,7 +163,7 @@ internal static class Program
         if(memo && UiPreviewCache.TryGet(key,out var cached)) return cached.Available;
         long epoch=UiPreviewCache.Epoch;
         var sources=query.ResolveSources(player,anchor,origin,radius,requirements,"ui",stationless,out _,
-            allowRefreshCache:!PreviewRefreshRuntime.InAction);
+            allowRefreshCache:true);
         plans++;
         bool available=new ExactMaterialPlanner().TryPlan(requirements,sources.Select(s=>s.Snapshot()),out _,out string reason);
         if(memo) UiPreviewCache.Store(key,available,reason,epoch);
@@ -202,7 +210,7 @@ internal static class Program
         {
             original=ContainerSpatialIndex.Queries;
             UiAnswer(wood); UiAnswer(wood);
-            Check(ContainerSpatialIndex.Queries==original+2,"Action reused memo or refresh sources");
+            Check(ContainerSpatialIndex.Queries==original+1,"Action preview did not share fresh read-only sources");
         }
         finally { PreviewRefreshRuntime.ExitAction(); }
         PreviewRefreshRuntime.End(scope);
@@ -247,9 +255,32 @@ internal static class Program
         Check(!UiAnswer(wood,stationless:true),"Lost player ownership reused availability");
         PreviewRefreshRuntime.End(scope);
     }
+    private static void CraftingOwnsCustomContainerSelection()
+    {
+        var drawer = ContainerSpatialIndex.Containers[0]; drawer.Drawer = true;
+        foreach (bool writable in new[] { false, true }) {
+            Runic.Compatibility.ModdedContainerCompatibility.StoragePullIds = "";
+            RunicCrafting.Configuration.PullPrefabIds.Value = "other; piece_drawer";
+            PreviewRefreshRuntime.Invalidate();
+            Check(Resolve(writable:writable).Any(s => s.SourceId == drawer.Id),
+                "Storage disabled Crafting's configured drawer");
+            Runic.Compatibility.ModdedContainerCompatibility.StoragePullIds = "piece_drawer";
+            RunicCrafting.Configuration.PullPrefabIds.Value = "";
+            PreviewRefreshRuntime.Invalidate();
+            var sources = Resolve(writable:writable);
+            Check(!sources.Any(s => s.SourceId == drawer.Id), "Storage enabled a drawer disabled in Crafting");
+            Check(sources.Any(s => s.SourceId == ContainerSpatialIndex.Containers[1].Id),
+                "Disabling custom adapters disabled ordinary containers");
+            RunicCrafting.Configuration.PullPrefabIds.Value = "piece_draw;*";
+            PreviewRefreshRuntime.Invalidate();
+            Check(!Resolve(writable:writable).Any(s => s.SourceId == drawer.Id), "Unlisted drawer selected");
+        }
+    }
     private static int Main()
     {
-        Action[] tests={BurstSharesAllResources,ScopeAndContextIsolation,MutationAndAccessRevocationInvalidate,
+        Action[] tests={SeparateBuildCallsShareUntilMutation,ActionPreviewBurstStillChecksWrites,
+            DeferredRefreshCoalescesAndUnwinds,DeferredRefreshCancelsOnContextChange,
+            CraftingOwnsCustomContainerSelection,BurstSharesAllResources,ScopeAndContextIsolation,MutationAndAccessRevocationInvalidate,
             MutationDuringBuildIsNotPublished,WritablePathAlwaysResolvesFresh,LimitsAndStationlessAccessArePreserved,
             EndRunsAfterExceptionAndLimitsStayBounded,FiveSecondUiWorkloadReusesAnswersAcrossFrames,
             AnswerMutationMovementAndActionsStayFresh,FreshCraftDecisionBypassesAllAnswerAndRefreshCaches,
@@ -258,5 +289,96 @@ internal static class Program
         foreach(var test in tests) { Reset(); try { test(); Console.WriteLine("PASS "+test.Method.Name); } catch(Exception ex) { failures++; Console.WriteLine("FAIL "+test.Method.Name+": "+ex); } }
         Console.WriteLine((tests.Length-failures)+"/"+tests.Length+" refresh integration tests passed.");
         return failures==0?0:1;
+    }
+
+    private static void SeparateBuildCallsShareUntilMutation()
+    {
+        // Model Show All calling separate preview hooks for hundreds of pieces.
+        for (int i=0;i<400;i++)
+        {
+            long scope=PreviewRefreshRuntime.Begin();
+            Resolve(new[] { new MaterialRequirement(i%2==0?"Wood":"Stone",i+1) });
+            PreviewRefreshRuntime.End(scope);
+        }
+        Check(ContainerSpatialIndex.Queries==1,"Build calls repeated scans in the same frame");
+        ContainerSpatialIndex.Containers[0].Access=false;
+        PreviewRefreshRuntime.Invalidate(); // Between scopes, e.g. multiplayer access change.
+        Check(Resolve().All(s=>s.SourceId!="chest:0"),"Between-scope invalidation lost");
+        Check(ContainerSpatialIndex.Queries==2,"Access change failed to rebuild");
+        Time.frameCount++; Resolve();
+        Check(ContainerSpatialIndex.Queries==3,"Frame boundary reused snapshot");
+        Player.m_localPlayer=player=new Player(); Resolve();
+        Check(ContainerSpatialIndex.Queries==4,"Player change reused snapshot");
+        ZNet.instance=new ZNet(); Resolve();
+        Check(ContainerSpatialIndex.Queries==5,"Session change reused snapshot");
+        ObjectDB.instance=new ObjectDB(); Resolve();
+        Check(ContainerSpatialIndex.Queries==6,"Database change reused snapshot");
+    }
+
+    private static void ActionPreviewBurstStillChecksWrites()
+    {
+        Resolve();
+        PreviewRefreshRuntime.EnterAction();
+        try
+        {
+            for(int i=0;i<100;i++) Resolve();
+            Check(ContainerSpatialIndex.Queries==2,"Craft action preview burst did not share");
+            Check(Resolve().All(s=>s is ReadOnlyMaterialSource),"Preview is writable");
+            ContainerSpatialIndex.Containers[0].Busy=true;
+            var writable=Resolve(writable:true);
+            Check(writable.All(s=>s.SourceId!="chest:0"),"Writer reused cached busy chest");
+            Resolve(writable:true);
+            Check(ContainerSpatialIndex.Queries==4,"Writer cached sources");
+            Resolve(); Resolve();
+            Check(ContainerSpatialIndex.Queries==5,"Preview not rebuilt after write");
+        }
+        finally { PreviewRefreshRuntime.ExitAction(); }
+        Resolve(); Check(ContainerSpatialIndex.Queries==6,"Transaction exit retained preview");
+    }
+
+    private static void DeferredRefreshCoalescesAndUnwinds()
+    {
+        var gui=InventoryGui.instance;
+        PostCraftRefreshRuntime.Schedule(player); PostCraftRefreshRuntime.Schedule(player);
+        PostCraftRefreshRuntime.Tick(); Time.frameCount++; PostCraftRefreshRuntime.Tick();
+        Check(gui.Refreshes==0,"Refresh ran in craft completion frame");
+        Time.frameCount++;
+        PreviewRefreshRuntime.EnterAction();
+        PostCraftRefreshRuntime.Tick(); Check(gui.Refreshes==0,"Refresh ran inside action");
+        PreviewRefreshRuntime.ExitAction();
+        CraftingRuntime.HasMaterialOperation=true;
+        PostCraftRefreshRuntime.Tick(); Check(gui.Refreshes==0,"Refresh ran before lease completion");
+        CraftingRuntime.HasMaterialOperation=false;
+        gui.DuringRefresh=()=> {
+            Check(PostCraftRefreshRuntime.Refreshing,"Reentry guard missing inside callback");
+            PostCraftRefreshRuntime.Schedule(player); PostCraftRefreshRuntime.Tick();
+            for(int i=0;i<50;i++) Resolve();
+            throw new InvalidOperationException("callback");
+        };
+        int before=ContainerSpatialIndex.Queries;
+        PostCraftRefreshRuntime.Tick();
+        Check(gui.Refreshes==1 && ContainerSpatialIndex.Queries==before+1,"Deferred burst did not coalesce/cache");
+        Check(!PostCraftRefreshRuntime.Refreshing && !PreviewRefreshRuntime.Cache.Active,"Exception leaked guard/scope");
+        Time.frameCount+=3; PostCraftRefreshRuntime.Tick();
+        Check(gui.Refreshes==1,"Recursive callback left queued refresh");
+        gui.DuringRefresh=null;
+        PostCraftRefreshRuntime.Schedule(player); Time.frameCount+=2; PostCraftRefreshRuntime.Tick();
+        Check(gui.Refreshes==2,"Later legitimate refresh suppressed");
+    }
+
+    private static void DeferredRefreshCancelsOnContextChange()
+    {
+        Action[] changes={ ()=>InventoryGui.Visible=false,
+            ()=>player.Station=new CraftingStation(), ()=>Player.m_localPlayer=new Player(),
+            ()=>ZNet.instance=new ZNet(), ()=>InventoryGui.instance=new InventoryGui(),
+            ()=>RunicCrafting.Configuration.Enabled.Value=false };
+        foreach(var change in changes)
+        {
+            Reset();
+            var gui=InventoryGui.instance;
+            PostCraftRefreshRuntime.Schedule(player); change(); Time.frameCount+=2;
+            PostCraftRefreshRuntime.Tick();
+            Check(gui.Refreshes==0,"Stale UI context refreshed");
+        }
     }
 }

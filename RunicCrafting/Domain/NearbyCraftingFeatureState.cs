@@ -86,12 +86,12 @@ namespace RunicCrafting.Domain
             if (!state.IsReady)
             {
                 int carriedMissing = Math.Max(0, required - carried);
-                return required + "\nC:" + carried + " " + state.DisplayLabel + " M:" + carriedMissing;
+                return required + global::Runic.Localization.RunicText.Get("text_05ea4adbf842") + carried + " " + state.DisplayLabel + global::Runic.Localization.RunicText.Get("text_7f12d05bb8e9") + carriedMissing;
             }
 
             int total = carried > int.MaxValue - nearby ? int.MaxValue : carried + nearby;
             int missing = Math.Max(0, required - total);
-            return required + "\nC:" + carried + " N:" + nearby + " T:" + total + " M:" + missing;
+            return required + global::Runic.Localization.RunicText.Get("text_05ea4adbf842") + carried + global::Runic.Localization.RunicText.Get("text_32b92abd3124") + nearby + global::Runic.Localization.RunicText.Get("text_60c3c36a1516") + total + global::Runic.Localization.RunicText.Get("text_7f12d05bb8e9") + missing;
         }
 
         /// <summary>
@@ -118,13 +118,13 @@ namespace RunicCrafting.Domain
         {
             Validate(required, carried, nearby, state);
             if (!state.IsReady)
-                return "Runic materials — Carried: " + carried + " | " +
-                       state.DisplayLabel + " | Required: " + required + " | Missing: " +
+                return global::Runic.Localization.RunicText.Get("text_7c92f6f8705f") + carried + " | " +
+                       state.DisplayLabel + global::Runic.Localization.RunicText.Get("text_5dd09a8f2ef1") + required + global::Runic.Localization.RunicText.Get("text_2b424dbfbb5a") +
                        Math.Max(0, required - carried);
 
             int total = AddSaturated(carried, nearby);
-            return "Runic materials — Carried: " + carried + " | Nearby: " + nearby +
-                   " | Total: " + total + " | Required: " + required + " | Missing: " +
+            return global::Runic.Localization.RunicText.Get("text_7c92f6f8705f") + carried + global::Runic.Localization.RunicText.Get("text_5baa162b70f4") + nearby +
+                   global::Runic.Localization.RunicText.Get("text_fb434ab77a6d") + total + global::Runic.Localization.RunicText.Get("text_5dd09a8f2ef1") + required + global::Runic.Localization.RunicText.Get("text_2b424dbfbb5a") +
                    Math.Max(0, required - total);
         }
 

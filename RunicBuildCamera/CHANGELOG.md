@@ -1,4 +1,15 @@
+## 1.0.5
+
+- Keep input binding identifiers stable when translated language files are installed.
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
+
+## 1.0.4 - 2026-09-17
+
+- Refresh current window focus each frame so a missed startup focus callback cannot leave activation disabled.
+- Show and log activation, exit and blocked-toggle reasons instead of silently ignoring the shortcut.
+- Log camera-update exceptions when restoring the normal camera.
 
 ## 1.0.3 - 2026-09-11
 
@@ -9,7 +20,6 @@
 
 ## 1.0.2 - 2026-09-09
 
-- Re-audited every camera, placement, pickup, and input contract against the installed Valheim 1.0.7 assemblies.
 - Updated version-type handling for Valheim 1.0 and the BepInEx dependency to 5.4.2350.
 
 ## 1.0.1 - 2026-09-05

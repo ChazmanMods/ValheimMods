@@ -9,11 +9,11 @@ using RunicCrafting.Integration;
 namespace RunicCrafting
 {
     [BepInPlugin(Guid, Name, Version)]
-    public sealed class Plugin : BaseUnityPlugin
+public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "chazman.RunicCrafting";
         public const string Name = "Runic Crafting";
-        public const string Version = "1.1.0";
+        public const string Version = "1.1.7";
 
         internal static ManualLogSource Log { get; private set; }
 
@@ -23,8 +23,10 @@ namespace RunicCrafting
 
         private void Awake()
         {
+            RunicAutomation.MutationGate.Diagnostic = message => { if (message.Contains("Indeterminate")) Logger.LogError(message); else Logger.LogDebug(message); };
             Log = Logger;
             Configuration.Bind(Config);
+            CraftingAuthorityPolicy.Register();
             Config.SettingChanged += OnSettingChanged;
             _configurationSubscribed = true;
             Logger.LogInfo(Name + " configuration: " + Configuration.StateSummary + ".");
@@ -50,6 +52,7 @@ namespace RunicCrafting
         {
             ValheimReflection.MaintainPreviewCacheContext();
             UiPreviewCache.Maintain();
+            if (_harmony != null) PostCraftRefreshRuntime.Tick();
             CachePerformance.Update();
             if (_harmony != null) AreaRepairRuntime.Tick();
             string notice = Interlocked.Exchange(ref _pendingHudNotice, null);
@@ -85,6 +88,7 @@ namespace RunicCrafting
 
         private void Shutdown()
         {
+            RunicAutomation.ContainerAuthority.UnregisterPolicy("crafting");
             if (_configurationSubscribed)
             {
                 Config.SettingChanged -= OnSettingChanged;

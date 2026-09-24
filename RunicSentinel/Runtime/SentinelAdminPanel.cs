@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using BepInEx.Configuration;
 using HarmonyLib;
 using RunicSentinel.Core;
@@ -7,7 +8,7 @@ using UnityEngine;
 
 namespace RunicSentinel.Runtime
 {
-    internal sealed class SentinelAdminPanel : IDisposable
+    internal sealed partial class SentinelAdminPanel : IDisposable
     {
         private static SentinelAdminPanel _active;
         private readonly object _callbackGate = new object();
@@ -16,6 +17,10 @@ namespace RunicSentinel.Runtime
         private readonly SentinelAdminControl _control;
         private Rect _window = new Rect(0f, 0f, 980f, 740f);
         private Vector2 _scroll;
+        private bool _sizedWindow, _resizingWindow,_fitWindow;
+        private Vector2 _resizeMouse, _resizeSize;
+        private float _bodyHeight;
+        private Vector2 _footerScroll;
         private SentinelAdminDocument _document;
         private bool _open;
         private bool _requesting;
@@ -24,6 +29,21 @@ namespace RunicSentinel.Runtime
         private int _tab;
         private bool _capEnabled;
         private string _capPlayers = "10";
+        private string _commandLine = string.Empty;
+        private string _commandSearch = string.Empty;
+        private string _selectedCommand = "devcommands";
+        private bool _commandBusy;
+        private Vector2 _commandScroll;
+        private Vector2 _commandOutputScroll;
+        private string _lastCommandOutput="", _commandArguments="";
+        private readonly List<string> _commandHistory=new List<string>();
+        private int _commandHistoryIndex;
+        private bool _sentinelModesActive, _modeLeasePending;
+        private bool _ownsDebugMode, _ownsNoCost, _ownsFlight;
+        private float _nextModeLease;
+        private ZNet _modeNetwork;
+        private Player _modePlayer;
+        private IReadOnlyList<Terminal.ConsoleCommand> _commandCatalog;
         private string _status = "Press F3 to authenticate with the server.";
         private GUISkin _skin;
         private GUIStyle _windowStyle;
@@ -46,17 +66,22 @@ namespace RunicSentinel.Runtime
         internal SentinelAdminPanel(SentinelAdminControl control)
         {
             _control = control ?? throw new ArgumentNullException(nameof(control));
+            SentinelCommandConsole.Reset();
             _active = this;
+            RunicSentinel.Input.ModalGameplayInput.IsOpen = () => IsOpen;
         }
 
         internal static bool IsOpen => _active != null && _active._open;
 
         internal static bool BlocksLocalPlayer(Character character) =>
-            IsOpen && character != null && ReferenceEquals(character, Player.m_localPlayer);
+            character != null && ReferenceEquals(character, Player.m_localPlayer) && RunicSentinel.Input.ModalGameplayInput.Blocked;
 
         internal void Tick()
         {
             DrainCallbacks();
+            TickPlayers();
+            TickPlayerActions();
+            TickCommandLease();
             KeyboardShortcut shortcut = SentinelConfig.AdminPanelKey?.Value ??
                                         new KeyboardShortcut(KeyCode.F3);
             if (shortcut.IsDown())
@@ -79,15 +104,23 @@ namespace RunicSentinel.Runtime
             }
             RenewCursorLease();
             EnsureStyles();
-            float width = Mathf.Min(1020f, Screen.width - 32f);
-            float height = Mathf.Min(760f, Screen.height - 32f);
-            _window.width = width;
-            _window.height = height;
+            if(_fitWindow){_window=new Rect(16,16,Screen.width-32,Screen.height-32);_fitWindow=false;}
+            if(!_sizedWindow){_window.width=Mathf.Min(1380,Screen.width-32);_window.height=Screen.height-48;_sizedWindow=true;}
+            Event resizeEvent=Event.current;
+            if(resizeEvent.type==EventType.MouseDown&&resizeEvent.button==0&&new Rect(_window.xMax-28,_window.yMax-28,28,28).Contains(resizeEvent.mousePosition))
+            {_resizingWindow=true;_resizeMouse=resizeEvent.mousePosition;_resizeSize=_window.size;resizeEvent.Use();}
+            if(_resizingWindow&&resizeEvent.type==EventType.MouseDrag){_window.size=_resizeSize+(resizeEvent.mousePosition-_resizeMouse);resizeEvent.Use();}
+            if(_resizingWindow&&resizeEvent.type==EventType.MouseUp){_resizingWindow=false;resizeEvent.Use();}
+            float width = Mathf.Clamp(_window.width,Mathf.Min(820,Screen.width-32),Screen.width-32);
+            float height = Mathf.Clamp(_window.height,Mathf.Min(720,Screen.height-32),Screen.height-32);
+            _window.width=width;_window.height=height;
             _window.x = Mathf.Clamp(_window.x, 16f, Math.Max(16f, Screen.width - width - 16f));
             _window.y = Mathf.Clamp(_window.y, 16f, Math.Max(16f, Screen.height - height - 16f));
             GUISkin previous = GUI.skin;
+            Color previousColor=GUI.color, previousBackground=GUI.backgroundColor, previousContent=GUI.contentColor;
             try
             {
+                GUI.color=GUI.backgroundColor=GUI.contentColor=Color.white;
                 GUI.skin = _skin;
                 _window = GUI.Window(
                     730311, _window, DrawWindow, GUIContent.none, _windowStyle);
@@ -95,6 +128,7 @@ namespace RunicSentinel.Runtime
             finally
             {
                 GUI.skin = previous;
+                GUI.color=previousColor;GUI.backgroundColor=previousBackground;GUI.contentColor=previousContent;
             }
         }
 
@@ -109,16 +143,16 @@ namespace RunicSentinel.Runtime
         {
             if (_requesting) return;
             _requesting = true;
-            _status = "Authenticating administrator with the authoritative server…";
+            _status = global::Runic.Localization.RunicText.Get("text_c242cf73ecfb");
             _control.RequestStatus((ok, document, reason) => Enqueue(() =>
             {
                 _requesting = false;
                 if (!ok || document == null)
                 {
-                    _status = "Access denied: " + reason;
-                    Console.instance?.AddString("Runic Sentinel: " + reason);
+                    _status = global::Runic.Localization.RunicText.Get("text_db62ea842b2c") + reason;
+                    Console.instance?.AddString(global::Runic.Localization.RunicText.Get("text_73cc85d79b09") + reason);
                     Player.m_localPlayer?.Message(MessageHud.MessageType.Center,
-                        "Runic Sentinel: server adminlist.txt or a signed Sentinel role is required. See F5 for details.");
+                        global::Runic.Localization.RunicText.Get("text_fdc92c944fa9"));
                     return;
                 }
                 _document = document;
@@ -129,74 +163,103 @@ namespace RunicSentinel.Runtime
                 _window.y = (Screen.height - _window.height) * 0.5f;
                 _status = document.Status;
                 _open = true;
+                RunicSentinel.Input.ModalGameplayInput.CaptureOpen();
                 RenewCursorLease();
             }));
         }
 
         private void DrawWindow(int id)
         {
+            _hoverText="";
+            GUILayout.BeginArea(new Rect(18,14,_window.width-36,142));
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical();
-            GUILayout.Label("RUNIC SENTINEL FORGE", _title);
-            GUILayout.Label("Server Administrator  •  Raven's Gate", _subtitle);
+            GUILayout.Label("Runic Sentinel", _title);
+            GUILayout.Label(ServerTitle()+" · "+PT("Server administration"), _subtitle);
             GUILayout.EndVertical();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Close", _button, GUILayout.Width(88f), GUILayout.Height(34f)))
+            if(GUILayout.Button(PT("Fit screen"),_button,GUILayout.Width(115),GUILayout.Height(34)))
+            {_fitWindow=true;}
+            if (GUILayout.Button(global::Runic.Localization.RunicText.Get("text_7d9eb7acb13e"), _button, GUILayout.Width(88f), GUILayout.Height(34f)))
                 Close();
             GUILayout.EndHorizontal();
             GUILayout.Space(8f);
 
             GUILayout.BeginHorizontal();
-            string[] tabs = { "Status", "Mod Policy", "People", "Enforcement", "Admin Tools", "Server Cap" };
+            string[] tabs = { global::Runic.Localization.RunicText.Get("text_920e413c7d41"), global::Runic.Localization.RunicText.Get("text_ce9c9bfcb7f7"), global::Runic.Localization.RunicText.Get("text_7db20897053b"), global::Runic.Localization.RunicText.Get("text_bda2e3e6c900"), global::Runic.Localization.RunicText.Get("text_af0c3ba6a2ca"), global::Runic.Localization.RunicText.Get("text_04bd3db80e01"), global::Runic.Localization.RunicText.Get("text_b269dc4e81a5"), global::Runic.Localization.RunicText.Get("text_84e12ac655dd") };
             for (int index = 0; index < tabs.Length; index++)
+            {
+                if (index == 4) { GUILayout.EndHorizontal(); GUILayout.BeginHorizontal(); }
                 if (GUILayout.Button(
                         tabs[index],
                         _tab == index ? _selectedTabStyle : _tabStyle,
                         GUILayout.Height(36f)))
                     _tab = index;
+            }
             GUILayout.EndHorizontal();
             GUILayout.Space(8f);
-
-            GUILayout.BeginVertical(_contentStyle);
-            _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.ExpandHeight(true));
+            GUILayout.EndVertical();GUILayout.EndArea();
+            _bodyHeight=_window.height-294;
+            GUILayout.BeginArea(new Rect(18,160,_window.width-36,_window.height-274),_contentStyle);
+            if(_tab!=7&&_tab!=6&&_tab!=2)_scroll = GUILayout.BeginScrollView(_scroll, GUILayout.ExpandHeight(true));
             if (_tab == 0) DrawStatus();
             else if (_tab == 1) DrawMods();
             else if (_tab == 2) DrawPeople();
             else if (_tab == 3) DrawEnforcement();
             else if (_tab == 4) DrawTools();
-            else DrawCapacity();
-            GUILayout.EndScrollView();
-            GUILayout.EndVertical();
-            GUILayout.Space(8f);
+            else if (_tab == 5) DrawCapacity();
+            else if (_tab == 6) DrawCommands();
+            else DrawPlayers();
+            if(_tab!=7&&_tab!=6&&_tab!=2)GUILayout.EndScrollView();
+            GUILayout.EndArea();
 
-            GUILayout.BeginVertical(_footerStyle);
-            GUILayout.Label(_status ?? string.Empty, _statusStyle, GUILayout.MinHeight(34f));
+            GUILayout.BeginArea(new Rect(18,_window.height-106,_window.width-36,82),_footerStyle);
+            _footerScroll=GUILayout.BeginScrollView(_footerScroll);
+            GUILayout.Label(_status ?? string.Empty, _statusStyle);
+            GUILayout.EndScrollView();
             GUILayout.BeginHorizontal();
             GUILayout.Label(
-                "Every operation is independently re-authorized by the server.",
+                global::Runic.Localization.RunicText.Get("text_783e643a93b5"),
                 _label);
             GUILayout.FlexibleSpace();
             GUI.enabled = !_requesting && _document.ManagedSigningKey;
-            if (_tab != 5 && GUILayout.Button(
-                    "Apply & Sign Policy", _button, GUILayout.Width(190f), GUILayout.Height(38f)))
+            if ((_tab==1||_tab==3) && GUILayout.Button(
+                    global::Runic.Localization.RunicText.Get("text_cdc94fbbd3c7"), _button, GUILayout.Width(190f), GUILayout.Height(38f)))
                 Apply();
             GUI.enabled = true;
             GUILayout.EndHorizontal();
-            GUILayout.EndVertical();
-            GUILayout.EndVertical();
+            GUILayout.EndArea();
+            GUI.Label(new Rect(_window.width-27,_window.height-25,24,24),"◢",_label);
+            if(Event.current.type==EventType.Repaint&&!string.IsNullOrEmpty(_hoverText))
+            {
+                var mouse=Event.current.mousePosition;
+                var tipStyle=new GUIStyle(_contentStyle){font=_label.font,fontSize=14,wordWrap=true,normal={textColor=Color.white}};
+                float tipHeight=Math.Min(_window.height-40,Math.Max(70,tipStyle.CalcHeight(new GUIContent(_hoverText),395)));
+                GUI.Box(new Rect(Mathf.Clamp(mouse.x+12,10,_window.width-410),Mathf.Clamp(mouse.y+18,10,_window.height-tipHeight-10),395,tipHeight),_hoverText,tipStyle);
+            }
+            if(_noCommand)
+            {
+                var popup=new Rect((_window.width-340)/2,(_window.height-120)/2,340,120);
+                GUI.Box(popup,GUIContent.none,_contentStyle);
+                GUI.Label(new Rect(popup.x+16,popup.y+16,308,35),PT("No command is selected."),_label);
+                if(GUI.Button(new Rect(popup.x+110,popup.y+65,120,34),PT("OK"),_button))_noCommand=false;
+            }
             GUI.DragWindow(new Rect(0f, 0f, _window.width - 110f, 58f));
         }
 
         private void DrawStatus()
         {
-            Header("Raven's Gate status");
+            Header(ServerTitle()+" "+PT("Status"));
+            GUILayout.Label(PT("A quick health check: who is connected, which world is running, and whether the server is enforcing its configured mod policy."),_label);
+            Row(PT("World"),_document.WorldName);Row(PT("Connected players"),_document.OnlinePlayers);Row(PT("Server uptime (days.hours:minutes:seconds)"),_document.ServerUptime);
+            if(GUILayout.Button(PT("Refresh server status"),_button))Refresh();
             Row("Administrator access", _document.AdministratorSource);
             if (_document.SetupAvailable)
             {
-                GUILayout.Label("Your server administrator identity is verified. One-time setup creates a private signing key on the server and registers your authenticated account. It backs up the loaded world and leaves the admission mode unchanged.", _label);
+                GUILayout.Label(global::Runic.Localization.RunicText.Get("text_3a253877c0cc"), _label);
                 GUI.enabled = !_requesting;
-                if (GUILayout.Button("Set Up Sentinel", _button, GUILayout.Height(42f)))
+                if (GUILayout.Button(global::Runic.Localization.RunicText.Get("text_5c1723db193f"), _button, GUILayout.Height(42f)))
                     RunTool("bootstrap");
                 GUI.enabled = true;
                 GUILayout.Space(8f);
@@ -206,80 +269,87 @@ namespace RunicSentinel.Runtime
             Row("Runtime integrity", _document.Integrity);
             Row("Admission transport", _document.Status);
             Row("Last admission denial", Empty(_document.LastDenial));
-            Row("Server-managed signing key", _document.ManagedSigningKey ? "Present" : "Not initialized");
+            Row("Server-managed signing key", _document.ManagedSigningKey ? global::Runic.Localization.RunicText.Get("text_43f9b89c0b9d") : global::Runic.Localization.RunicText.Get("text_cff9e8597307"));
             Row("Public-key pin", Empty(_document.SigningKeyPin));
             GUILayout.Space(10f);
-            GUILayout.Label("The exact DLL list is admission evidence reported by each client. It does not " +
-                            "turn a client into a trusted machine. Gameplay security comes from server-owned " +
-                            "authorization and validation in every Runic endpoint.", _section);
+            GUILayout.Label(global::Runic.Localization.RunicText.Get("text_deb5c0c4ad7f") +
+                            global::Runic.Localization.RunicText.Get("text_f1b3b57ae085") +
+                            global::Runic.Localization.RunicText.Get("text_e5a33a5d35fa"), _section);
             if (!_document.ManagedSigningKey && !_document.SetupAvailable)
-                GUILayout.Label("Signing is not ready. Refresh after the server snapshot loads. Existing policy or key files must be repaired by the server owner; setup will not replace them.", _statusStyle);
+                GUILayout.Label(global::Runic.Localization.RunicText.Get("text_3ebd86d2be3d"), _statusStyle);
         }
 
         private void DrawMods()
         {
-            Header("Signed mod passport");
-            LabeledField("Profile name", ref _document.Profile);
-            LabeledField("Expires (Unix seconds; 0 = never)", ref _document.ExpiresUnixSeconds);
-            GUILayout.Label("Unknown mods", _section);
-            Choice(ref _document.UnknownMods, "Forbidden", "Quarantined", "Unmanaged");
-            PolicyArea("Required / whitelist — id|version|sha256", ref _document.RequiredMods);
-            PolicyArea("Approved optional — id|version|sha256", ref _document.OptionalMods);
-            PolicyArea("Gray list / unmanaged — id|version|sha256", ref _document.GrayListMods);
-            PolicyArea("Forbidden — id|version|sha256", ref _document.ForbiddenMods);
-            GUILayout.Label("Detected server profile and most recent client report (read-only)", _section);
+            Header(global::Runic.Localization.RunicText.Get("text_86cfd5006284"));
+            LabeledField(global::Runic.Localization.RunicText.Get("text_d3663280e101"), ref _document.Profile);
+            GUILayout.Label(PT("Policy label: a name for this server's signed mod rules. It is not your mod-manager profile, server name or world name."),_label);
+            LabeledField(global::Runic.Localization.RunicText.Get("text_2b8f0dcb651f"), ref _document.ExpiresUnixSeconds);
+            GUILayout.Label(global::Runic.Localization.RunicText.Get("text_3f81e2fda079"), _section);
+            Choice(ref _document.UnknownMods, global::Runic.Localization.RunicText.Get("text_78342a0905a7"), global::Runic.Localization.RunicText.Get("text_bb132e07e0f3"), global::Runic.Localization.RunicText.Get("text_4b8d64fae5d1"));
+            DrawNamedMods();
+            if (_advancedMods) {
+            PolicyArea(global::Runic.Localization.RunicText.Get("text_23bfd517366c"), ref _document.RequiredMods);
+            PolicyArea(global::Runic.Localization.RunicText.Get("text_8f4856f991c3"), ref _document.OptionalMods);
+            PolicyArea(global::Runic.Localization.RunicText.Get("text_ba98fbfedc19"), ref _document.GrayListMods);
+            PolicyArea(global::Runic.Localization.RunicText.Get("text_4535e1d8f4f6"), ref _document.ForbiddenMods);
+            GUILayout.Label(global::Runic.Localization.RunicText.Get("text_f38b150c10f1"), _section);
             GUILayout.TextArea(_document.DetectedProfile, _textArea, GUILayout.MinHeight(150f));
-            GUILayout.Label("Standalone transport (server-owned, read-only)", _section);
+            }
+            GUILayout.Label(global::Runic.Localization.RunicText.Get("text_8a8a65f20f55"), _section);
             GUILayout.TextArea(_document.Modules, _textArea, GUILayout.MinHeight(120f));
         }
 
-        private void DrawPeople()
-        {
-            Header("Signed identities");
-            GUILayout.Label("Administrators — authority|subject", _section);
-            GUILayout.Label(
-                "These signed roles grant Sentinel access independently of the server adminlist. Server administrators also inherit access unless UseServerAdminList is disabled on the server. To revoke all access, remove both grants. Signed bans take precedence.", _label);
-            _document.Administrators = GUILayout.TextArea(_document.Administrators, _textArea,
-                GUILayout.MinHeight(220f));
-            GUILayout.Space(12f);
-            GUILayout.Label("Banned users — authority|subject", _section);
-            _document.BannedUsers = GUILayout.TextArea(_document.BannedUsers, _textArea,
-                GUILayout.MinHeight(220f));
-        }
+        private void DrawPeople() => DrawPlayers();
 
         private void DrawEnforcement()
         {
-            Header("Automatic enforcement");
-            GUILayout.Label("Admission mode", _section);
+            Header(global::Runic.Localization.RunicText.Get("text_4355872828d2"));
+            GUILayout.Label(PT("Admission decides whether a client can join. Runtime enforcement decides how repeated rejected requests escalate. These controls do not detect every cheat and do not automatically ban someone for movement observations."),_label);
+            Row(PT("Current policy verification"),_document.Integrity);Row(PT("Last rejected connection"),Empty(_document.LastDenial));
+            if(GUILayout.Button(PT("Refresh findings"),_button))Refresh();
+            GUILayout.Label(PT("Recent findings · UTC time | source | rule | confidence | action"),_section);
+            GUILayout.TextArea(string.IsNullOrWhiteSpace(_document.RecentFindings)?PT("No findings in the current server evidence buffer."):_document.RecentFindings,new GUIStyle(_textArea){wordWrap=true,richText=false},GUILayout.MinHeight(100));
+            GUILayout.Label(global::Runic.Localization.RunicText.Get("text_174e67d083dc"), _section);
             Row("Effective startup value", _document.AdmissionMode);
             GUILayout.Label(
-                "Change Remote Admission / Policy in the server configuration, then restart.",
+                global::Runic.Localization.RunicText.Get("text_fff2b03ff839"),
                 _label);
-            LabeledField("Runtime DLL/policy check interval (5–300 seconds)",
+            LabeledField(global::Runic.Localization.RunicText.Get("text_fda70487ca13"),
                 ref _document.IntegritySeconds);
-            LabeledField("Very-high-confidence findings before disconnect (1–10)",
+            GUILayout.Label(PT("Seconds between integrity checks. Lower values check more often and cost more work; higher values delay detection of changes. Keep the current value unless measurements justify changing it."),_label);
+            LabeledField(global::Runic.Localization.RunicText.Get("text_ce572a1e223c"),
                 ref _document.VeryHighThreshold);
-            LabeledField("High-confidence findings before disconnect (1–20)",
+            GUILayout.Label(PT("Very-high-confidence rejected requests allowed in the window before disconnect. Lower is stricter; higher gives more tolerance for repeated requests."),_label);
+            LabeledField(global::Runic.Localization.RunicText.Get("text_c2c87e10a280"),
                 ref _document.HighThreshold);
-            LabeledField("Graduated-enforcement window (10–600 seconds)",
+            GUILayout.Label(PT("High-confidence rejected requests before disconnect. Very-high-confidence findings count here too. Review evidence before making this more aggressive."),_label);
+            LabeledField(global::Runic.Localization.RunicText.Get("text_1a20d7b5c8c5"),
                 ref _document.EnforcementWindowSeconds);
+            GUILayout.Label(PT("How long repeated violations are counted together. A longer window accumulates more violations. Conclusive findings disconnect immediately. The current escalation provider is Runic Portals; this is not a generic suspicion score for every mod."),_label);
             _document.BackupTransitions = GUILayout.Toggle(_document.BackupTransitions,
-                " Require a verified world backup before policy/modpack transitions");
+                global::Runic.Localization.RunicText.Get("text_f0da290b24d3"));
             GUILayout.Space(14f);
-            GUILayout.Label("Conclusive violations disconnect immediately. Lesser findings are blocked " +
-                            "first and disconnect only after the configured threshold. All decisions are " +
-                            "recorded in the bounded security flight recorder.", _section);
+            GUILayout.Label(global::Runic.Localization.RunicText.Get("text_ca5dbc5182f1") +
+                            global::Runic.Localization.RunicText.Get("text_96dcc12cf5ff") +
+                            global::Runic.Localization.RunicText.Get("text_8042abad232d"), _section);
         }
 
         private void DrawTools()
         {
-            Header("Server-owned administrator tools");
-            Tool("Create Support Report", "report",
-                "Writes bounded policy, profile, integrity, and enforcement evidence.");
-            Tool("Create Production/Portal Network Map", "networks",
-                "Writes the administrator-only live network topology snapshot on the server.");
-            Tool("Create Verified World Backup", "backup",
-                "Creates and validates a Runic Safety backup of the currently loaded world.");
+            Header(global::Runic.Localization.RunicText.Get("text_cc258f92057a"));
+            Tool(global::Runic.Localization.RunicText.Get("text_4f174908bfdf"), "report",
+                global::Runic.Localization.RunicText.Get("text_0c4a58b30ef8"));
+            Tool(global::Runic.Localization.RunicText.Get("text_2b739bce943f"), "networks",
+                global::Runic.Localization.RunicText.Get("text_c2c69222ec18"));
+            Tool(global::Runic.Localization.RunicText.Get("text_de09b77b6298"), "backup",
+                global::Runic.Localization.RunicText.Get("text_55edd433edd5"));
+            GUILayout.Label(PT("Reports are backed up on the server and downloaded to your machine. They explain coverage, findings and next steps. Network reports inspect existing connections; they do not create or change networks."),_label);
+            GUILayout.BeginHorizontal();
+            if(GUILayout.Button(PT("People & access"),_button))_tab=2;
+            if(GUILayout.Button(PT("Inspect server health"),_button))_tab=0;
+            if(GUILayout.Button(PT("Prepare world save"),_button)){_commandLine="save";_tab=6;}
+            GUILayout.EndHorizontal();DrawReportViewer();
         }
 
         private void ResetCapacityDraft()
@@ -288,12 +358,87 @@ namespace RunicSentinel.Runtime
             _capPlayers = _document.CapacitySavedPlayers;
         }
 
+        private void DrawCommands() => DrawCommandsWorkspace();
+
+        private void RunCommand()
+        {
+            if (_commandBusy || !_open) return;
+            if(_commandLine.Contains(";")||_commandLine.Contains("<input")||RunicSentinel.Devcommands.AliasManager.AliasKeys.Contains(_commandLine.Split(' ')[0]))
+            {Console.instance.TryRunCommand(_commandLine);return;}
+            if(!RunicSentinel.Devcommands.TerminalUtils.SkipProcessing(_commandLine))_commandLine=RunicSentinel.Devcommands.TryRunCommand.CheckLogic(_commandLine);
+            if (!SentinelCommandProvider.Available(out string provider))
+            { SentinelCommandConsole.Write(provider); return; }
+            string executionLine=_commandLine.StartsWith("server ",StringComparison.OrdinalIgnoreCase)?_commandLine.Substring(7).Trim():_commandLine;
+            var selectedHandler=SentinelCommandConsole.Catalog().FirstOrDefault(c=>c.Command.Equals(executionLine.Split(' ')[0],StringComparison.OrdinalIgnoreCase));
+            if(SentinelCommandProvider.ExecutesOnServer(_commandLine)&&selectedHandler?.IsCheat==true&&!Achievements.IsCheatedAtAll())
+            {SentinelCommandConsole.Write(PT("Run confirmcheats explicitly before using cheat commands. Valheim permanently marks this character as having used cheats."));return;}
+            if(SentinelCommandRequest.TryNormalize(_commandLine,out string history))
+            {if(_commandHistory.Count==0||_commandHistory[_commandHistory.Count-1]!=history)_commandHistory.Add(history);if(_commandHistory.Count>50)_commandHistory.RemoveAt(0);_commandHistoryIndex=_commandHistory.Count;}
+            ZNet network = ZNet.instance;
+            ZRpc serverRpc = network != null && !network.IsServer() ? network.GetServerPeer()?.m_rpc : null;
+            _commandBusy = true;
+            _status = global::Runic.Localization.RunicText.Get("text_d7b616054795");
+            string route="";
+            SentinelCommandRequest.Dispatch(_commandLine,
+                (command, callback) => _control.AuthorizeCommand(command,
+                    (accepted, reason) => Enqueue(() => {route=reason;callback(accepted,reason);})),
+                () => _open && network != null && ReferenceEquals(network, ZNet.instance) &&
+                      (network.IsServer() || ReferenceEquals(serverRpc, network.GetServerPeer()?.m_rpc)),
+                command=>
+                {
+                    if(route==SentinelCommandProvider.ClientRoute)
+                    {
+                        bool beforeDebug=Player.m_debugMode;
+                        bool beforeNoCost=Player.m_localPlayer!=null&&Player.m_localPlayer.NoCostCheat();
+                        bool beforeFlight=Player.m_localPlayer!=null&&Player.m_localPlayer.IsDebugFlying();
+                        SentinelCommandConsole.Execute(command);
+                        string commandName=command.Split(' ')[0].ToLowerInvariant();
+                        if(commandName=="debugmode"||commandName=="nocost"||commandName=="fly")
+                        {
+                            if(commandName=="debugmode")_ownsDebugMode=Player.m_debugMode&&(_ownsDebugMode||!beforeDebug);
+                            if(commandName=="nocost")_ownsNoCost=Player.m_localPlayer.NoCostCheat()&&(_ownsNoCost||!beforeNoCost);
+                            if(commandName=="fly")_ownsFlight=Player.m_localPlayer.IsDebugFlying()&&(_ownsFlight||!beforeFlight);
+                            _sentinelModesActive=_ownsDebugMode||_ownsNoCost||_ownsFlight;_modeNetwork=ZNet.instance;_modePlayer=Player.m_localPlayer;_nextModeLease=Time.realtimeSinceStartup+10;
+                        }
+                    }
+                    else if(route.StartsWith(SentinelCommandProvider.ServerRoute,StringComparison.Ordinal))
+                    {SentinelCommandConsole.Write("> "+command);SentinelCommandConsole.Write(route.Substring(SentinelCommandProvider.ServerRoute.Length));}
+                    else throw new InvalidOperationException("The server did not return a compatible Sentinel command result. Update both Sentinel packages.");
+                },
+                (accepted, reason) =>
+                {
+                    _commandBusy = false;
+                    _status = reason;
+                    SentinelCommandConsole.Write(reason);
+                });
+        }
+        private string ServerTitle()=>!string.IsNullOrWhiteSpace(_document?.ServerName)?_document.ServerName:!string.IsNullOrWhiteSpace(_document?.WorldName)?_document.WorldName:PT("Server");
+
+        private void TickCommandLease()
+        {
+            if(!_sentinelModesActive)return;
+            if(_modeNetwork==null||!ReferenceEquals(_modeNetwork,ZNet.instance)||_modePlayer==null||_modePlayer!=Player.m_localPlayer)
+            {EndCommandLease();return;}
+            if(_modeLeasePending||Time.realtimeSinceStartup<_nextModeLease)return;
+            _modeLeasePending=true;_nextModeLease=Time.realtimeSinceStartup+10;
+            _control.RequestStatus((ok,document,reason)=>Enqueue(()=>
+            {_modeLeasePending=false;if(!ok)EndCommandLease();}));
+        }
+        private void EndCommandLease()
+        {
+            _sentinelModesActive=false;if(_ownsDebugMode)Player.m_debugMode=false;
+            if(_modePlayer!=null)
+            {if(_ownsNoCost)_modePlayer.SetNoPlacementCost(false);if(_ownsFlight&&_modePlayer.IsDebugFlying())_modePlayer.ToggleDebugFly();}
+            _ownsDebugMode=_ownsNoCost=_ownsFlight=false;
+            _modePlayer=null;_modeNetwork=null;
+        }
+
         private void DrawCapacity()
         {
-            Header("Server player cap");
+            Header(global::Runic.Localization.RunicText.Get("text_07b97caf5500"));
             if (!_document.CapacitySupported)
             {
-                GUILayout.Label("The server's Sentinel does not support cap administration. Update the host to RunicSentinel 1.4.0 or RunicSentinelServer 1.1.0.", _label);
+                GUILayout.Label(global::Runic.Localization.RunicText.Get("text_b4318c5f814c"), _label);
             }
             else
             {
@@ -303,41 +448,41 @@ namespace RunicSentinel.Runtime
                     Row("Host World Engine", _document.CapacityVersion);
                     Row("Players currently connected", _document.CapacityCurrentPlayers);
                     Row("Running player cap", _document.CapacityActivePlayers);
-                    Row("Validated running override", _document.CapacityActiveEnabled ? "On" : "Off / unavailable — see status above");
-                    Row("Saved for next startup", _document.CapacitySavedEnabled ? _document.CapacitySavedPlayers + " players (override on)" : "Override off (vanilla limit)");
-                    Row("Restart status", _document.CapacityRestartRequired ? "Restart required for saved settings / integrity recovery" : "No cap restart pending");
+                    Row("Validated running override", _document.CapacityActiveEnabled ? global::Runic.Localization.RunicText.Get("text_130011756125") : global::Runic.Localization.RunicText.Get("text_9ffabc8bbeb9"));
+                    Row("Saved for next startup", _document.CapacitySavedEnabled ? _document.CapacitySavedPlayers + global::Runic.Localization.RunicText.Get("text_72fa4e4815f0") : global::Runic.Localization.RunicText.Get("text_8cb8bdc66109"));
+                    Row("Restart status", _document.CapacityRestartRequired ? global::Runic.Localization.RunicText.Get("text_5d5dd678d836") : global::Runic.Localization.RunicText.Get("text_f13b36899a76"));
                     GUILayout.Space(12f);
                     GUI.enabled = !_requesting;
-                    _capEnabled = GUILayout.Toggle(_capEnabled, " Enable World Engine's player-cap override after restart");
-                    GUILayout.Label("Maximum players (2–64)", _section);
+                    _capEnabled = GUILayout.Toggle(_capEnabled, global::Runic.Localization.RunicText.Get("text_5c3a1a8fd7fe"));
+                    GUILayout.Label(global::Runic.Localization.RunicText.Get("text_10d70ff390b0"), _section);
                     _capPlayers = GUILayout.TextField(_capPlayers ?? "", 2, _textField, GUILayout.Width(110f), GUILayout.Height(32f));
                     bool valid = SentinelCapacitySettings.TryPlayers(_capPlayers, out int players);
-                    if (!valid) GUILayout.Label("Enter a whole number from 2 to 64.", _statusStyle);
+                    if (!valid) GUILayout.Label(global::Runic.Localization.RunicText.Get("text_40ee3533484e"), _statusStyle);
                     if (_capEnabled && valid && int.TryParse(_document.CapacityCurrentPlayers, out int current) && players < current)
-                        GUILayout.Label("This is below the current player count. Nobody will be kicked now; fewer slots will be available after restart.", _statusStyle);
+                        GUILayout.Label(global::Runic.Localization.RunicText.Get("text_349e2d3e9f1f"), _statusStyle);
                     bool changed = _capEnabled != _document.CapacitySavedEnabled || _capPlayers != _document.CapacitySavedPlayers;
                     GUI.enabled = !_requesting && valid && changed;
-                    if (GUILayout.Button("Save for Next Restart", _button, GUILayout.Width(250f), GUILayout.Height(40f))) SaveCapacity(players);
+                    if (GUILayout.Button(global::Runic.Localization.RunicText.Get("text_268393176bda"), _button, GUILayout.Width(250f), GUILayout.Height(40f))) SaveCapacity(players);
                     GUI.enabled = true;
                     GUILayout.Space(8f);
-                    GUILayout.Label("Only the host's cap settings are saved. This does not restart the server, disconnect players, grant administrator access, or change Sentinel's mod policy. World Engine validates the complete cap patch set at the next startup.", _label);
-                    GUILayout.Label("The dedicated PlayFab host slot is reserved automatically. Enter the number of human players, not players plus one.", _label);
+                    GUILayout.Label(global::Runic.Localization.RunicText.Get("text_306da1e9a5bf"), _label);
+                    GUILayout.Label(global::Runic.Localization.RunicText.Get("text_fd0ba8053f2e"), _label);
                 }
             }
             GUILayout.Space(12f);
             GUI.enabled = !_requesting;
-            if (GUILayout.Button("Refresh Server Settings (discard edits)", _button, GUILayout.Width(330f), GUILayout.Height(36f))) Refresh();
+            if (GUILayout.Button(global::Runic.Localization.RunicText.Get("text_1b9fe32a224e"), _button, GUILayout.Width(330f), GUILayout.Height(36f))) Refresh();
             GUI.enabled = true;
         }
 
         private void SaveCapacity(int players)
         {
             _requesting = true;
-            _status = "Saving the authoritative server's cap settings for its next restart…";
+            _status = global::Runic.Localization.RunicText.Get("text_36e9cfca1d27");
             _control.SaveCapacity(_document.CapacityRevision, _capEnabled, players, (ok, message) => Enqueue(() =>
             {
                 _requesting = false;
-                _status = (ok ? "Saved: " : "Rejected: ") + message;
+                _status = (ok ? global::Runic.Localization.RunicText.Get("text_4d9f3906b5b2") : global::Runic.Localization.RunicText.Get("text_9ee721835d15")) + message;
                 if (ok) Refresh();
             }));
         }
@@ -346,7 +491,7 @@ namespace RunicSentinel.Runtime
         {
             GUILayout.BeginHorizontal();
             GUI.enabled = !_requesting;
-            if (GUILayout.Button(label, _button, GUILayout.Width(280f), GUILayout.Height(40f)))
+            if (GUILayout.Button(label, new GUIStyle(_button){wordWrap=true}, GUILayout.Width(Math.Min(390,_window.width*.42f)), GUILayout.Height(52f)))
                 RunTool(tool);
             GUI.enabled = true;
             GUILayout.Label(explanation, _label, GUILayout.ExpandWidth(true));
@@ -357,11 +502,11 @@ namespace RunicSentinel.Runtime
         private void Apply()
         {
             _requesting = true;
-            _status = "Validating, backing up, signing, and applying on the server…";
+            _status = global::Runic.Localization.RunicText.Get("text_b32435fa642e");
             _control.Apply(_document, (ok, message) => Enqueue(() =>
             {
                 _requesting = false;
-                _status = (ok ? "Success: " : "Rejected: ") + message;
+                _status = (ok ? global::Runic.Localization.RunicText.Get("text_ff068f9c8efc") : global::Runic.Localization.RunicText.Get("text_9ee721835d15")) + message;
                 if (ok) Refresh();
             }));
         }
@@ -369,11 +514,12 @@ namespace RunicSentinel.Runtime
         private void RunTool(string tool)
         {
             _requesting = true;
-            _status = tool == "bootstrap" ? "Creating the server signing key and verified backup. Please wait; first-time setup can take a moment…" : "Running server tool…";
+            _status = tool == "bootstrap" ? global::Runic.Localization.RunicText.Get("text_150b3572d136") : global::Runic.Localization.RunicText.Get("text_1754c1cbd234");
             _control.RunTool(tool, (ok, message) => Enqueue(() =>
             {
                 _requesting = false;
-                _status = (ok ? "Success: " : "Failed: ") + message;
+                _status = (ok ? global::Runic.Localization.RunicText.Get("text_ff068f9c8efc") : global::Runic.Localization.RunicText.Get("text_c5bc264875d7")) + message;
+                if(ok&&(tool=="report"||tool=="networks")){ReceiveToolReport(message);return;}
                 if (tool == "bootstrap") Refresh();
             }));
         }
@@ -385,13 +531,14 @@ namespace RunicSentinel.Runtime
             {
                 _requesting = false;
                 if (ok && document != null) { _document = document; ResetCapacityDraft(); }
-                else _status = "Refresh failed: " + reason;
+                else _status = global::Runic.Localization.RunicText.Get("text_2cb29d4771e2") + reason;
             }));
         }
 
         private void Close()
         {
             if (!_open) return;
+            RunicSentinel.Input.ModalGameplayInput.CaptureOpen();
             _open = false;
             Cursor.visible = _cursorVisible;
             Cursor.lockState = _cursorLock;
@@ -507,6 +654,7 @@ namespace RunicSentinel.Runtime
             _skin.toggle.hover.textColor = Color.white;
             _skin.toggle.onHover.textColor = Color.white;
             _skin.settings.selectionColor = new Color(0.65f, 0.38f, 0.08f, 0.85f);
+            ApplyVanillaMenuAssets();
         }
 
         private void Header(string text) { GUILayout.Label(text, _heading); GUILayout.Space(8f); }
@@ -654,7 +802,7 @@ namespace RunicSentinel.Runtime
             Mathf.Clamp01(color.g + amount * 0.72f),
             Mathf.Clamp01(color.b + amount * 0.42f),
             color.a);
-        private static string Empty(string value) => string.IsNullOrEmpty(value) ? "None" : value;
+        private static string Empty(string value) => string.IsNullOrEmpty(value) ? global::Runic.Localization.RunicText.Get("text_dc937b598926") : value;
         private void Enqueue(Action action) { lock (_callbackGate) _callbacks.Enqueue(action); }
         private void DrainCallbacks()
         {
@@ -672,8 +820,11 @@ namespace RunicSentinel.Runtime
 
         public void Dispose()
         {
+            EndCommandLease();
             Close();
+            SentinelCommandConsole.Reset();
             if (ReferenceEquals(_active, this)) _active = null;
+            RunicSentinel.Input.ModalGameplayInput.Reset();
             lock (_callbackGate) _callbacks.Clear();
             if (_skin != null) UnityEngine.Object.Destroy(_skin);
             _skin = null;

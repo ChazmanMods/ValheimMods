@@ -5,7 +5,7 @@
     <RootNamespace>RunicSentinel</RootNamespace>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <DefineConstants>$(DefineConstants);RUNIC_SENTINEL_SERVER_ONLY</DefineConstants>
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
     <VALHEIM_INSTALL Condition="'$(VALHEIM_INSTALL)' == ''">E:\SteamLibrary\steamapps\common\Valheim</VALHEIM_INSTALL>
@@ -13,6 +13,15 @@
     <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json" HintPath="$(GAME_MANAGED)/Newtonsoft.Json.dll" Private="false" />
+    <Compile Include="../RunicSentinel/Runtime/SentinelJson.cs" Link="Authority/Runtime/SentinelJson.cs" />
+    <Compile Include="../RunicSentinel/Runtime/SentinelPeople.cs" Link="Authority/Runtime/SentinelPeople.cs" />
+    <Compile Include="../RunicSentinel/Runtime/SentinelReadableReport.cs" Link="Authority/Runtime/SentinelReadableReport.cs" />
+    <Compile Include="../RunicSentinel/Runtime/SentinelPlayerReports.cs" Link="Authority/Runtime/SentinelPlayerReports.cs" />
+    <Compile Include="../RunicSentinel/Runtime/SentinelModChoices.cs" Link="Authority/Runtime/SentinelModChoices.cs" />
+    <Compile Include="../RunicSentinel/Runtime/SentinelCommandProvider.cs" Link="Authority/Runtime/SentinelCommandProvider.cs" />
+    <Compile Include="../RunicSentinel/Core/SentinelCommandRequest.cs" Link="Authority/Core/SentinelCommandRequest.cs" />
+    <Compile Include="../RunicSentinel/Core/SentinelCommandRouting.cs" Link="Authority/Core/SentinelCommandRouting.cs" />
     <Compile Include="..\RunicSentinel\Configuration.cs" Link="Authority\Configuration.cs" />
     <Compile Include="..\RunicSentinel\Api\SentinelIntegrationApi.cs" Link="Authority\Api\SentinelIntegrationApi.cs" />
     <Compile Include="..\RunicSentinel\Contracts\SecurityContracts.cs" Link="Authority\Contracts\SecurityContracts.cs" />
@@ -50,9 +59,9 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="false" />
-    <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="false" />
-    <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="false" />
-    <Reference Include="assembly_utils" HintPath="$(GAME_MANAGED)\assembly_utils.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="../RunicSentinel.Devcommands.Shared/refs/0Harmony.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="../RunicSentinel.Devcommands.Shared/refs/assembly_valheim.dll" Private="false" />
+    <Reference Include="assembly_utils" HintPath="../RunicSentinel.Devcommands.Shared/refs/assembly_utils.dll" Private="false" />
     <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />
     <Reference Include="com.rlabrecque.steamworks.net" HintPath="$(GAME_MANAGED)\com.rlabrecque.steamworks.net.dll" Private="false" />
@@ -60,4 +69,17 @@
   <ItemGroup>
     <ProjectReference Include="..\RunicSafety\RunicSafety.csproj" Private="false" />
   </ItemGroup>
-</Project>
+  <ItemGroup>
+    <Compile Include="../Shared/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Translations/RunicSentinelServer/English.json" LogicalName="Runic.Localization.English.json" />
+    <None Update="Translations/**/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup><Reference Include="assembly_guiutils" HintPath="../RunicSentinel.Devcommands.Shared/refs/assembly_guiutils.dll" Private="false" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../RunicSentinelAdmission.Shared/PlayerActionProtocol.cs" Link="PlayerActions/PlayerActionProtocol.cs" />
+    <Compile Include="../RunicSentinel/Runtime/SentinelPlayerCommandService.cs" Link="Authority/Runtime/SentinelPlayerCommandService.cs" />
+  </ItemGroup>
+<ItemGroup><Compile Include="../RunicSentinel.Devcommands.Shared/**/*.cs" Exclude="../RunicSentinel.Devcommands.Shared/obj/**;../RunicSentinel.Devcommands.Shared/bin/**" Link="Commands/%(RecursiveDir)%(Filename)%(Extension)" />
+ <PackageReference Include="YamlDotNet" Version="16.1.3" />
+<PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44" PrivateAssets="all" />
+ </ItemGroup><ItemGroup><Reference Include="SoftReferenceableAssets" HintPath="$(GAME_MANAGED)/SoftReferenceableAssets.dll" Private="false" /><Reference Include="Splatform" HintPath="$(GAME_MANAGED)/Splatform.dll" Private="false" /><Reference Include="UnityEngine.UI" HintPath="$(GAME_MANAGED)/UnityEngine.UI.dll" Private="false" /><Reference Include="Unity.InputSystem" HintPath="$(GAME_MANAGED)/Unity.InputSystem.dll" Private="false" /><Reference Include="UnityEngine.PhysicsModule" HintPath="$(GAME_MANAGED)/UnityEngine.PhysicsModule.dll" Private="false" /><Reference Include="UnityEngine.InputLegacyModule" HintPath="$(GAME_MANAGED)/UnityEngine.InputLegacyModule.dll" Private="false" /><Reference Include="Unity.TextMeshPro" HintPath="$(GAME_MANAGED)/Unity.TextMeshPro.dll" Private="false" /><Reference Include="gui_framework" HintPath="$(GAME_MANAGED)/gui_framework.dll" Private="false" /><Reference Include="UnityEngine.IMGUIModule" HintPath="$(GAME_MANAGED)/UnityEngine.IMGUIModule.dll" Private="false" /><Reference Include="UnityEngine.TextRenderingModule" HintPath="$(GAME_MANAGED)/UnityEngine.TextRenderingModule.dll" Private="false" /></ItemGroup></Project>

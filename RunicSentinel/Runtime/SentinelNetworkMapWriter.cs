@@ -10,8 +10,8 @@ using UnityEngine;
 namespace RunicSentinel.Runtime
 {
     /// <summary>
-    /// Produces one server-local, on-demand snapshot. It never runs from Update and never sends
-    /// topology to clients, so production and portal layout remains an operator-only diagnostic.
+    /// Produces an on-demand server snapshot. Only authenticated administrators can
+    /// request or download this diagnostic; it never runs from Update.
     /// </summary>
     internal static class SentinelNetworkMapWriter
     {
@@ -67,7 +67,7 @@ namespace RunicSentinel.Runtime
                     if (!TryReadProductionTarget(record, role, out string linkId, out target))
                         target = "record-invalid";
                     builder.Append("production-edge=").Append(Id(pair.Key)).Append('|')
-                        .Append(zdo.GetPrefab().ToString(CultureInfo.InvariantCulture)).Append('|')
+                        .Append(ZNetScene.instance?.GetPrefab(zdo.GetPrefab())?.name??zdo.GetPrefab().ToString(CultureInfo.InvariantCulture)).Append('|')
                         .Append(roleName).Append('|').Append(Safe(linkId, 128)).Append('|')
                         .Append(Safe(target, 160)).Append('|').Append(Position(zdo.GetPosition())).Append('\n');
                 }

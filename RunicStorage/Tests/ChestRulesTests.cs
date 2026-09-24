@@ -63,7 +63,7 @@ internal static class ChestRulesTests
         Check(!ChestRules.TryDecode(new string('A', 65537), out _));
         Check(!ChestRules.TryDecode("not base64", out _));
         Check(!ChestRules.TryDecode(encoded.Substring(0, encoded.Length - 4), out _));
-        var bytes = Convert.FromBase64String(encoded); bytes[0] = 4;
+        var bytes = Convert.FromBase64String(encoded); bytes[0] = 6;
         Check(!ChestRules.TryDecode(Convert.ToBase64String(bytes), out _));
         rules.Size = float.NaN;
         bool failed = false; try { rules.Encode(); } catch { failed = true; } Check(failed);

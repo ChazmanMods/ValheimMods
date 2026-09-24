@@ -1,4 +1,18 @@
+## 1.2.3
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
+
+## 1.2.2 - 2026-09-18
+
+- Replaced the exact game-version allowlist with startup API validation. Compatible future patches no longer require a version-only update.
+- Incompatible APIs still fail closed; World Engine retains its exact method-body audit.
+
+## 1.2.1 - 2026-09-17
+
+- Fixed the optional player-cap override rejecting Valheim 1.0.14 and blocking hosting or new admissions.
+- Retained Valheim 1.0.12 support and all method-body, loaded-IL, conflict, and admission-integrity checks. Unknown builds remain rejected.
 
 ## 1.2.0 - 2026-09-12
 

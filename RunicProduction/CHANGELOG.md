@@ -1,4 +1,50 @@
+## 1.0.15
+
+- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
+
 # Changelog
+
+## 1.0.14 - 2026-09-23
+
+- Improve coordination with Crafting and Storage when they use the same chests.
+- Wait for linked chests to synchronize before moving ingredients, fuel or finished items.
+- Reduce repeated checks of idle or blocked stations and spread automation work across updates.
+- Handle interrupted transfers more carefully and pause affected production when a failed transfer needs inspection.
+- Show clearer status when a linked station or chest is waiting for an absent player's network ownership to recover. Finished smelter items can still drop normally when storage is unavailable.
+- Preserve existing production links, stock targets and ItemDrawers assignments.
+- No extra Runic mod is required.
+## 1.0.12 - 2026-09-20
+
+- Fixed fermenters consuming a mead base while displaying Empty on current Valheim: automation now reads and writes the native numeric prefab ID, including collection and rollback. Legacy string-format game APIs remain supported.
+- Empty fermenters no longer stall on a leftover fermentation timestamp after manual tapping.
+- Unknown items and stranded old-format batches stop further input consumption rather than overwriting their state. Existing affected fermenters may require batch recovery; this update does not automatically recover them.
+- Retained ItemDrawers support, station effects, beehive outputs, and cooking experience from 1.0.11.
+
+## 1.0.11 - 2026-09-19
+
+- Added independent Modded Containers.AllowedPrefabIds configuration, defaulting to piece_drawer for Makail ItemDrawers. Applies to linked roles and nearby ingredient sources.
+- Synchronize ItemDrawers through its own save format. Preserve oversized stacks and assigned empty drawers through planning, consumption, output publication and rollback; honor drawer capacity and normal chest stack limits.
+- Refuse mismatched item types and metadata that ItemDrawers cannot save. Attributed direct-recipe outputs still require a normal destination chest.
+- Match timed cooking/fermenter output-capacity preflight to their actual unattributed output metadata.
+
+## 1.0.10 - 2026-09-19
+
+- Added Output chest links for beehives, preserving native honey production and world drop scaling. Full or unavailable storage leaves honey in the hive.
+- Automated cooking now awards native loading and collection Cooking XP to the online player who configured the corresponding link, including server-owned stations.
+- XP is awarded only after committed transfers; retries and blocked storage do not award XP.
+
+## 1.0.9 - 2026-09-16
+
+- Restored cooking-station and oven loading, refueling, and collection effects for automated transfers.
+- Restored fermenter filling, tapping, and batch-output effects, and crafting-station effects for automated recipes.
+- Preserved the existing native refueling effects for fires, torches, and lamps, and native cooking-done, overcooking, and ambient effects without duplicating them.
+- New effects run only after confirmed commits, at the station or its slot/output point. Cosmetic failures cannot roll back or repeat item transfers. Instant automated fermenter/crafting transactions play their effects at commit without changing production timing.
+
+## 1.0.8 - 2026-09-16
+
+- Restored native kiln and smelter loading, fueling, and production effects for automated transfers, including output routed directly into linked chests and onward through production chains.
+- Effects play only after confirmed transfers. Blocked or rolled-back transfers stay silent; normal world-drop output keeps its vanilla effects.
+- Effect failures cannot roll back or replay completed item transfers.
 
 ## 1.0.7 - 2026-09-14
 
@@ -31,16 +77,12 @@
 ## 1.0.2 - 2026-09-09
 
 - Updated cheated-state provenance, queue, slot, item insertion, and inventory notification integration for Valheim 1.0.
-- Re-audited the installed Valheim 1.0.7 client and dedicated-server assemblies and updated the BepInEx dependency to 5.4.2350.
-
 ## 1.0.1 - 2026-09-04
 
 - Fixed one Alt+mouse press being observed by both `Player.SetControls` and `Player.Update`, which
   could immediately cancel a newly armed production link before the player could select a chest.
 - Kept an accepted link gesture captured until its physical mouse button is released, preserving
   action suppression and the intended two-step station-to-chest workflow.
-- Rewrote the package introduction and description around player-facing production automation,
-  connected workflows, and existing Valheim machines while retaining the technical safety details.
 
 ## 1.0.0 - 2026-08-29
 
@@ -70,8 +112,7 @@
   Resin from player-facing Input chests with the existing reserve and rollback rules.
 - Added station-specific hover guidance for Input, throughput Output, and exemplar-backed
   Replenishment setup; enabled bounded nearby recipe ingredients by default.
-- Verified exemplar-driven food and mead-base recipes plus fermenter input and matching multi-chest
-  mead output in the focused workflow regressions.
+
 - Added exact station-level Alt mouse links: Left selects Input, Right selects Output, and Middle
   selects Replenishment. Repeating the same gesture on a chest within 30 seconds commits it;
   Shift+Alt at both steps removes that exact role link.

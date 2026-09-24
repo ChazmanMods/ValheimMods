@@ -11,7 +11,7 @@ namespace RunicDisplayStands
     {
         public const string PluginGUID = "chazman.RunicDisplayStands";
         public const string PluginName = "RunicDisplayStands";
-        public const string PluginVersion = "1.3.8";
+        public const string PluginVersion = "1.3.9";
 
         public static Plugin Instance;
         internal static BepInEx.Logging.ManualLogSource Log;
@@ -36,7 +36,7 @@ namespace RunicDisplayStands
                 "Stand Prefabs",
                 "itemstand,itemstandh,ArmorStand",
                 new ConfigDescription(
-                    "Comma separated list of prefab names that should be treated as item/armor stands.",
+                    global::Runic.Localization.RunicText.Get("text_a5f39c09729f"),
                     null,
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
 
@@ -44,13 +44,13 @@ namespace RunicDisplayStands
                 "General",
                 "Gamepad Support",
                 true,
-                "Enable controller-friendly interact prompts and alt-take binding.");
+                global::Runic.Localization.RunicText.Get("text_58fec321de23"));
 
             CfgTakeOneKey = Config.Bind(
                 "General",
                 "Take One Item Key",
                 new KeyboardShortcut(UnityEngine.KeyCode.LeftAlt),
-                "Hold this while interacting with a stand to take a single item instead of opening it.");
+                global::Runic.Localization.RunicText.Get("text_01ab013c2d3d"));
 
             RebuildStandPrefabSet();
             CfgStandPrefabs.SettingChanged += (_, _) => RebuildStandPrefabSet();

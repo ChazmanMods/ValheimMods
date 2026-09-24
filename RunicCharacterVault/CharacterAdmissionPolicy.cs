@@ -51,8 +51,8 @@ namespace RunicCharacterVault
                 string names = string.Join(", ", existingProfileNames
                     .Select(name => name.ToUpperInvariant()));
                 return existingProfileNames.Count == 1
-                    ? $"You already have a character: {names}. You cannot create more."
-                    : $"You already have characters: {names}. You cannot create more.";
+                    ? global::Runic.Localization.RunicText.Format("text_cf24dc035c05", names)
+                    : global::Runic.Localization.RunicText.Format("text_b99199e4c3cc", names);
             }
             if (admission != CharacterAdmission.RejectUnregisteredProfile)
             {
@@ -61,7 +61,7 @@ namespace RunicCharacterVault
 
             if (existingProfileNames == null || existingProfileNames.Count == 0)
             {
-                return "This server has not imported your character. Ask its administrator to enable AllowExistingCharacters in Character Vault. Your character has not been reset.";
+                return global::Runic.Localization.RunicText.Get("text_25ddcadc5976");
             }
 
             string message = existingProfileNames.Count == 1
@@ -83,8 +83,9 @@ namespace RunicCharacterVault
 
         internal CharacterAdmission Decide(bool hasStoredProfile, string accountId,
             bool createdThisSession, bool allowMultipleCharacters, bool enrollmentAvailable,
-            bool allowExistingCharacters = false)
+            bool allowExistingCharacters = false, bool isServerAdmin = false)
         {
+            allowMultipleCharacters |= isServerAdmin;
             bool accountHasProfile = !hasStoredProfile &&
                 !allowMultipleCharacters && _profiles.HasProfile(accountId);
             return CharacterAdmissionPolicy.Decide(hasStoredProfile, createdThisSession,

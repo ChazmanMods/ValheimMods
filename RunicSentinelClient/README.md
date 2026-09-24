@@ -1,4 +1,4 @@
-# Runic Sentinel Client 1.0.1
+# Runic Sentinel Client 1.0.3
 
 Runic Sentinel Client is the small player-side counterpart for a server using Runic Sentinel's
 admission workflow. It observes the BepInEx plugins loaded in the local process, hashes their DLLs
@@ -7,9 +7,6 @@ authoritative server issues a private direct-connection challenge.
 
 Version 1.0.1 targets Valheim 1.0.7 and preserves Valheim's native invite secret when an approved
 Required-mode admission resumes the 1.0 server handshake.
-
-The report is compatibility evidence from a client-controlled process, not unforgeable proof. The
-server reconstructs the canonical profile and makes every policy, role, ban, and admission decision.
 
 ## Deliberately not included
 
@@ -41,3 +38,19 @@ files are needed on the client. Server operators should leave admission Optional
 reviewed and signed an expected client profile.
 
 Questions and logs: [Runic Mods Discord](https://discord.gg/7HKHTCdFqY)
+
+## Language files
+
+This version follows Valheim's selected language using files in `Translations/RunicSentinelClient` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+
+## Support My Work
+
+Enjoying the mods? You can support my work and future creations. Thank you for playing!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)
+
+## Selected-player actions
+
+Administrators use the Players or People dossier in RunicSentinel 1.4.6 with RunicSentinelServer 1.1.6. Inline tools target the selected online character: teleport to them, bring them, move them to coordinates/another player, raise or lower/reset a skill, heal, clear food/status, set adrenaline, and apply a registered status effect. Skill changes follow native 0–100 clamping and character-save behavior.
+
+The affected player needs either full RunicSentinel 1.4.6 or lightweight RunicSentinelClient 1.0.3 for character actions. Native teleport does not require the new receiver. Client-side cheat actions require the affected player's own prior confirmcheats acknowledgment; the administrator cannot silently acknowledge it for them. The UI disables unavailable receivers and waits for the exact target client's result. A timeout or disconnect is explicitly unconfirmed, not success. No arbitrary remote console execution is provided. Requests and replies are recorded in player activity.
