@@ -19,8 +19,9 @@ namespace RunicSentinelClient.Tests
         private static readonly string HashA = new string('a', 64);
         private static readonly string HashB = new string('b', 64);
 
-        private static int Main()
+        private static int Main(string[] args)
         {
+            if (args.Length == 1 && args[0] == "--building-limits") return RunicSentinel.Tests.BuildingLimitsTests.Run();
             var tests = new Action[]
             {
                 ProfileCanonicalizationIsStable,
@@ -335,7 +336,7 @@ namespace RunicSentinelClient.Tests
                 File.ReadAllText(Path.Combine(root, "RunicSentinelClient", "manifest.json")));
             Equal("RunicSentinelClient",
                 manifest.RootElement.GetProperty("name").GetString());
-            Equal("1.0.3",
+            Equal("1.0.4",
                 manifest.RootElement.GetProperty("version_number").GetString());
             string[] dependencies = manifest.RootElement.GetProperty("dependencies")
                 .EnumerateArray().Select(value => value.GetString()).ToArray();

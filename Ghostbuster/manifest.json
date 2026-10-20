@@ -1,0 +1,7 @@
+{
+  "name": "Ghostbuster",
+  "version_number": "1.0.0",
+  "website_url": "",
+  "description": "Server-side fix for stale player ghosts left at portal entrances after teleporting. No gameplay changes.",
+  "dependencies": ["denikson-BepInExPack_Valheim-5.4.2350"]
+}

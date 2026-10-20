@@ -7,6 +7,42 @@ namespace RunicCrafting.Tests
 {
     internal static class ManualInteractionTests
     {
+        internal static void ReservedRowsUseRealBackpackPlacement()
+        {
+            foreach (int reserved in new[] { 1, 3 })
+            {
+                RunicAutomation.MutationGate.EndSession();
+                var source=Bag(); source.GetAllItems().Add(Stack());
+                var target=new Inventory("backpack",null,8,6){ReservedBottomRows=reserved};
+                var shadow=new CraftingInventorySnapshot(target).CreateShadow();
+                shadow.AddItem(Stack(1));
+                TestAssert.Equal(5,shadow.GetAllItems().Single().m_gridPos.y);
+                TestAssert.True(Move(source,target,out string reason));
+                TestAssert.Equal("one-item-staged",reason);
+                TestAssert.Equal(5-reserved,target.GetAllItems().Single().m_gridPos.y);
+                TestAssert.Equal(4,source.GetAllItems().Single().m_stack);
+                TestAssert.False(RunicAutomation.MutationGate.IsBlocked(target));
+                TestAssert.True(RunicAutomation.MutationGate.Current==null);
+            }
+        }
+
+        internal static void ForeignCallbackChangesStillBlockAndLogCause()
+        {
+            RunicAutomation.MutationGate.EndSession();
+            var source=Bag(); source.GetAllItems().Add(Stack()); var target=Bag();
+            string diagnostics="";
+            RunicAutomation.MutationGate.Diagnostic=s=>diagnostics+=s;
+            target.m_onChanged=()=>target.GetAllItems().Single().m_customData["foreign"]="keep";
+            TestAssert.False(Move(source,target,out string reason));
+            TestAssert.True(reason.StartsWith("recovery-needs-inspection:"));
+            TestAssert.True(RunicAutomation.MutationGate.IsBlocked(target));
+            TestAssert.True(RunicAutomation.MutationGate.Current==null);
+            TestAssert.True(diagnostics.Contains("transfer-publication-changed"));
+            TestAssert.Equal("keep",target.GetAllItems().Single().m_customData["foreign"]);
+            RunicAutomation.MutationGate.Diagnostic=null;
+            RunicAutomation.MutationGate.EndSession();
+        }
+
         private static Inventory Bag(int width=8) => new Inventory("manual-test", null, width, 1);
         private static ItemDrop.ItemData Stack(int amount=5) => new ItemDrop.ItemData
             { Prefab=1, m_stack=amount, m_durability=19.753f, m_cheated=true, m_crafterID=123,

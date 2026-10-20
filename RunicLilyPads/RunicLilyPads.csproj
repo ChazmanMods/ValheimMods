@@ -11,6 +11,7 @@
     <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Solo\BepInEx</BEPINEX_PROFILE>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Assets/BuildIcons/*.png" LogicalName="WaterGardens.BuildIcons.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Audio/night_ambience_*.wav" LogicalName="WaterGardens.Audio.%(Filename)%(Extension)" />
     <Compile Remove="Tests/**/*.cs" />
     <Compile Remove="StoneLantern.cs" />

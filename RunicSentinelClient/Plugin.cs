@@ -7,11 +7,12 @@ using UnityEngine;
 namespace RunicSentinelClient
 {
     [BepInPlugin(Guid, Name, Version)]
+    [BepInDependency("chazman.RunicSentinel", BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "chazman.RunicSentinelClient";
         public const string Name = "Runic Sentinel Client";
-        public const string Version = "1.0.3";
+        public const string Version = "1.0.5";
 
         private Harmony _harmony;
         private readonly RunicSentinel.PlayerActions.PlayerActionReceiver _playerReceiver=new RunicSentinel.PlayerActions.PlayerActionReceiver();
@@ -51,9 +52,14 @@ namespace RunicSentinelClient
             }
         }
 
+        private static bool FullPlayerReceiverActive()
+        {
+            var property=Type.GetType("RunicSentinel.Plugin, RunicSentinel",false)?.GetProperty("PlayerActionsAvailable",System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.Static);
+            return property!=null&&(bool)property.GetValue(null);
+        }
         private void Update()
         {
-            try { ActiveRuntime?.Tick(); if(ActiveRuntime!=null)_playerReceiver.Tick(); }
+            try { ActiveRuntime?.Tick(); if(FullPlayerReceiverActive())_playerReceiver.Dispose();else if(ActiveRuntime!=null)_playerReceiver.Tick(); }
             catch (Exception exception)
             {
                 Logger.LogWarning(
@@ -69,6 +75,7 @@ namespace RunicSentinelClient
             _playerReceiver.Dispose();
             try { _harmony?.UnpatchSelf(); } catch { }
             _harmony = null;
+            RunicSentinel.Runtime.SentinelBuildingLimits.Reset();
             try { ActiveRuntime?.Dispose(); } catch { }
             ActiveRuntime = null;
         }

@@ -19,6 +19,8 @@ $mod = [Mono.Cecil.AssemblyDefinition]::ReadAssembly([IO.Path]::GetFullPath($dll
 try {
     $contracts = @(
         @('Sign','Awake',0), @('Sign','SetText',1), @('TextInput','RequestText',3),
+        @('Player','SetupPlacementGhost',0), @('Player','UpdatePlacementGhost',1),
+        @('Player','PlacePiece',5), @('Piece','GetCreator',0),
         @('GameCamera','UpdateMouseCapture',0), @('Player','TakeInput',0),
         @('PlayerController','TakeInput',1), @('Player','SetControls',12),
         @('ZInput','GetKeyDown',2), @('ZInput','GetButtonDown',1),
@@ -31,6 +33,17 @@ try {
         if ($method.Count -ne 1) { throw "Missing or ambiguous installed method: $($contract -join ':')" }
     }
     $areas = ($game.MainModule.Types | Where-Object Name -eq 'PrivateArea').Fields | Where-Object Name -eq 'm_allAreas'
+    $player = $game.MainModule.Types | Where-Object Name -eq 'Player'
+    $ghost = $player.Fields | Where-Object Name -eq 'm_placementGhost'
+    if (!$ghost -or $ghost.FieldType.FullName -ne 'UnityEngine.GameObject') { throw 'Placement ghost field changed.' }
+    $place = $player.Methods | Where-Object Name -eq 'PlacePiece'
+    $calls = @($place.Body.Instructions | Where-Object { $_.Operand -is [Mono.Cecil.MethodReference] } | ForEach-Object { $_.Operand.FullName })
+    $creatorIndex = -1; $placedIndex = -1
+    for ($i=0; $i -lt $calls.Count; $i++) {
+        if ($calls[$i] -like '*Piece::SetCreator(*') { $creatorIndex=$i }
+        if ($calls[$i] -eq 'System.Void IPlaced::OnPlaced()') { $placedIndex=$i }
+    }
+    if ($creatorIndex -lt 0 -or $placedIndex -le $creatorIndex) { throw 'Native sign placement creator/callback order changed.' }
     if (!$areas -or $areas.FieldType.FullName -ne 'System.Collections.Generic.List`1<PrivateArea>') { throw 'Ward collection contract changed.' }
     $request = ($game.MainModule.Types | Where-Object Name -eq 'TextInput').Methods | Where-Object Name -eq 'RequestText'
     if ($request.Parameters[0].Name -ne 'sign' -or $request.Parameters[0].ParameterType.FullName -ne 'TextReceiver') { throw 'Editor interception signature changed.' }

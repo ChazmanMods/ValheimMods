@@ -45,6 +45,8 @@ public partial class Smoke
         if(System.IO.File.Exists(System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath,"../performance-only"))){yield return StartCoroutine(CheckPerformance(asm,position));yield break;}
         if(System.IO.File.Exists(System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath,"../presentation-only"))){player.transform.position=position+new Vector3(-2,1,0);if(System.IO.File.Exists(System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath,"../water-only"))){yield return StartCoroutine(CheckPondControls(asm,player,position));yield break;}yield return StartCoroutine(CheckWind(asm,ids,position));yield return StartCoroutine(CheckFlora(asm,position));yield return StartCoroutine(CheckShoreAndStone(asm,position));yield return StartCoroutine(CheckPondControls(asm,player,position));yield return StartCoroutine(CheckWaterfallAudio(asm,player,position));yield return StartCoroutine(CheckFeatures(asm,player));yield break;}
         Logger.LogInfo("WORLD TEST terrain position "+position+" player "+player.transform.position);
+        yield return StartCoroutine(CheckInvulnerableGardens(position));
+        if(Environment.GetEnvironmentVariable("WATERGARDENS_HEALTH_ONLY")=="1")yield break;
         var visualMethod=typeof(WearNTear).GetMethod("SetHealthVisual",BindingFlags.Instance|BindingFlags.NonPublic);
         var contactMethod=asm.GetType("RunicLilyPads.PondPlacement").GetMethod("HasSurfaceContact",BindingFlags.Static|BindingFlags.NonPublic);
         for(int i=0;i<ids.Length;i++){

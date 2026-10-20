@@ -49,10 +49,15 @@ public class GhostFeatures
     return zdos.All(zdo => zdo.GetBool(ZDOVars.s_inBed) || zdo.GetBool(HashIgnoreSleep));
   }
 
+#if !RUNIC_SENTINEL_SERVER_ONLY
+  // These hooks act on the local player only; a dedicated server has no local player.
+  private static bool LocalPlayerReady() => Player.m_localPlayer &&
+    Player.m_localPlayer.m_nview && Player.m_localPlayer.m_nview.IsValid();
+
   [HarmonyPatch(typeof(Player), nameof(Player.SetGhostMode)), HarmonyPostfix]
   static void SetGhostModePostfix(Player __instance)
   {
-    if (__instance != Player.m_localPlayer) return;
+    if (__instance != Player.m_localPlayer || !LocalPlayerReady()) return;
 
     __instance.m_nview?.GetZDO()?.Set(HashGhost, __instance.InGhostMode());
     if (Settings.GhostIgnoreSleep)
@@ -62,7 +67,7 @@ public class GhostFeatures
   [HarmonyPatch(typeof(ZDOMan), nameof(ZDOMan.SendZDOs)), HarmonyPrefix]
   static void SendZDOsPrefix()
   {
-    if (!Player.m_localPlayer || !Player.m_localPlayer.m_nview) return;
+    if (!LocalPlayerReady()) return;
     if (Player.m_localPlayer.InGhostMode() && Settings.GhostInvisibility)
     {
       var zdo = Player.m_localPlayer.m_nview.GetZDO();
@@ -80,7 +85,7 @@ public class GhostFeatures
   [HarmonyPatch(typeof(ZDOMan), nameof(ZDOMan.SendZDOs)), HarmonyPostfix]
   static void SendZDOsPostfix()
   {
-    if (!Player.m_localPlayer || !Player.m_localPlayer.m_nview) return;
+    if (!LocalPlayerReady()) { PreviousGhostY = null; return; }
     if (PreviousGhostY.HasValue)
     {
       Player.m_localPlayer.m_nview.GetZDO().m_position.y = PreviousGhostY.Value;
@@ -91,7 +96,7 @@ public class GhostFeatures
   [HarmonyPatch(typeof(ZNet), nameof(ZNet.SendPeriodicData)), HarmonyPrefix]
   static void SendPeriodicDataPrefix(ZNet __instance)
   {
-    if (!Player.m_localPlayer || !Player.m_localPlayer.m_nview) return;
+    if (!LocalPlayerReady()) return;
     if (Player.m_localPlayer.InGhostMode() && Settings.GhostInvisibility)
     {
       PreviousPublicReferencePosition = __instance.m_publicReferencePosition;
@@ -108,6 +113,7 @@ public class GhostFeatures
       PreviousPublicReferencePosition = null;
     }
   }
+#endif
 
   [HarmonyPatch(typeof(SpawnSystem), nameof(SpawnSystem.GetPlayersInZone)), HarmonyPostfix]
   static void GetPlayersInZonePostfix(List<Player> players)

@@ -1,0 +1,10 @@
+using RunicSentinel.Devcommands;
+int passed=0;void Check(bool condition,string name){if(!condition)throw new Exception(name);passed++;System.Console.WriteLine("PASS "+name);}
+var t=new Terminal();MultiCommands.Handle(t,new[]{"first","wait 1000","second"});MultiCommands.Execute(.02f);Check(t.Commands.SequenceEqual(new[]{"first"}),"First command dispatched alone");MultiCommands.Execute(5);Check(t.Commands.Count==1,"Authorization pending prevents later commands and waits");SentinelBridge.Busy=false;MultiCommands.Execute(.02f);MultiCommands.Execute(.5f);Check(t.Commands.Count==1,"Wait begins after previous command completes");MultiCommands.Execute(.6f);Check(t.Commands.SequenceEqual(new[]{"first","second"}),"Next command follows completed wait");SentinelBridge.Busy=false;
+foreach(var invalid in new[]{"NaN","Infinity","-1","word"}){MultiCommands.Clear();t=new Terminal();MultiCommands.Handle(t,new[]{"wait "+invalid,"forbidden"});MultiCommands.Execute(.02f);MultiCommands.Execute(10);Check(t.Commands.Count==0&&t.Messages.Count>0,"Invalid wait terminates chain: "+invalid);}
+MultiCommands.Clear();t=new Terminal();MultiCommands.Handle(t,new[]{"wait 1000","forbidden"});MultiCommands.Execute(.02f);MultiCommands.Clear();MultiCommands.Execute(10);Check(t.Commands.Count==0,"Disconnect clear prevents delayed execution");
+MultiCommands.Clear();t=new Terminal();MultiCommands.Handle(t,Enumerable.Repeat("x",129).ToArray());MultiCommands.Execute(.02f);Check(t.Commands.Count==0&&t.Messages.Count==1,"Oversized chain rejected before dispatch");
+MultiCommands.Clear();t=new Terminal();for(int i=0;i<17;i++)MultiCommands.Handle(t,new[]{"wait 1000","x"});Check(t.Messages.Count==1,"Bounded number of pending chains");MultiCommands.Clear();
+System.Console.WriteLine($"{passed}/11 chain tests passed.");
+public class Terminal{public List<string> Commands=new(),Messages=new();public void AddString(string s)=>Messages.Add(s);public void TryRunCommand(string s){Commands.Add(s);SentinelBridge.Busy=true;}}
+namespace RunicSentinel.Devcommands{public static class Settings{public static bool MultiCommand=true;}public static class SentinelBridge{public static bool Busy;}}

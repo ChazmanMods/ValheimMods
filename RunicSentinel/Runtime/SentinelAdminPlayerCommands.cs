@@ -10,6 +10,7 @@ namespace RunicSentinel.Runtime
     {
         private string _skill="Run",_skillFilter="",_skillAmount="1",_playerActionMessage="",_playerActionId="";
         private string _teleportX="",_teleportY="",_teleportZ="",_teleportAccount="",_adrenaline="100",_statusEffect="",_statusFilter="";
+        private string _statusDuration="",_statusIntensity="";
         private bool _playerActionBusy,_playerActionPolling,_showSkills,_showDestinations,_showStatuses;
         private int _skillPage,_statusPage;
         private float _playerActionNextPoll;
@@ -46,6 +47,16 @@ namespace RunicSentinel.Runtime
             if(!player.playerActionsReady)GUILayout.Label(PT("Character actions require this player's updated Sentinel client. Teleport works through the native server connection."),_label);
             GUILayout.Label(PT("Client-side cheat actions require the affected player's own confirmcheats acknowledgment. Skill changes are saved with their character; they are not temporary session bonuses."),_label);
             GUI.enabled=player.online&&player.playerActionsReady&&!_playerActionBusy;
+            GUILayout.Label(PT("Character modes"),_section);
+            foreach(string mode in new[]{"god","ghost","fly","nocost"})
+            {
+                GUILayout.BeginHorizontal();GUILayout.Label(PT(mode=="nocost"?"No-cost":char.ToUpperInvariant(mode[0])+mode.Substring(1)),_label,GUILayout.Width(100));
+                if(GUILayout.Button(PT("On"),_button))PlayerAction(player,mode,"on");
+                if(GUILayout.Button(PT("Off"),_button))PlayerAction(player,mode,"off");
+                GUILayout.EndHorizontal();
+            }
+            if(GUILayout.Button(PT("Refresh character mode status"),_button))PlayerAction(player,"modes","");
+            GUILayout.Label(PT("Mode grants last for this connection and character. The result below reports the selected player's actual state."),_label);
             GUILayout.BeginHorizontal();
             if(GUILayout.Button(PT("Skill")+": "+_skill,_button))_showSkills=!_showSkills;
             GUILayout.Label(PT("Change"),_label,GUILayout.Width(65));_skillAmount=GUILayout.TextField(_skillAmount,5,_textField,GUILayout.Width(65));
@@ -78,7 +89,17 @@ namespace RunicSentinel.Runtime
                 foreach(var effect in effects.Skip(_statusPage*12).Take(12))if(GUILayout.Button(new GUIContent(effect.name,Localization.instance.Localize(effect.m_tooltip)),_tabStyle)){_statusEffect=effect.name;_showStatuses=false;}
                 if(effects.Length>12){GUILayout.BeginHorizontal();if(GUILayout.Button(PT("Previous"),_button))_statusPage=Math.Max(0,_statusPage-1);if(GUILayout.Button(PT("Next"),_button))_statusPage=Math.Min((effects.Length-1)/12,_statusPage+1);GUILayout.EndHorizontal();}
             }
-            if(GUILayout.Button(PT("Apply selected status effect"),_button))PlayerAction(player,"addstatus",_statusEffect);
+            GUILayout.BeginHorizontal();GUILayout.Label(PT("Duration (seconds)"),_label);_statusDuration=GUILayout.TextField(_statusDuration,16,_textField);GUILayout.EndHorizontal();
+            GUILayout.Label(PT("Leave blank for the effect's default duration; 0 means indefinite. 3600 seconds is one hour."),_label);
+            var selectedEffect=ObjectDB.instance?.m_StatusEffects.FirstOrDefault(e=>e!=null&&e.name==_statusEffect);
+            bool hasIntensity=selectedEffect is SE_Shield||selectedEffect is SE_Burning||selectedEffect is SE_Poison;
+            if(hasIntensity){GUILayout.BeginHorizontal();GUILayout.Label(PT(selectedEffect is SE_Shield?"Damage absorption":"Total effect damage"),_label);_statusIntensity=GUILayout.TextField(_statusIntensity,16,_textField);GUILayout.EndHorizontal();GUILayout.Label(PT("Optional intensity. Leave blank to use the effect's default."),_label);}
+            if(GUILayout.Button(PT("Apply selected status effect"),_button))
+            {
+                string duration=_statusDuration.Trim(),intensity=hasIntensity?_statusIntensity.Trim():"";
+                if(intensity.Length>0&&duration.Length==0)duration=selectedEffect.m_ttl.ToString(CultureInfo.InvariantCulture);
+                PlayerAction(player,"addstatus",_statusEffect+(duration.Length>0?" "+duration:"")+(intensity.Length>0?" "+intensity:""));
+            }
             GUI.enabled=true;if(!string.IsNullOrEmpty(_playerActionMessage))GUILayout.Label(_playerActionMessage,_statusStyle);
             GUILayout.EndVertical();
         }

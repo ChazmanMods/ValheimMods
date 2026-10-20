@@ -10,7 +10,9 @@ namespace RunicStorage.Engine
         SortOpenedContainer = 3,
         Consolidate = 4,
         Search = 5,
-        StoreAllOpenedContainer = 6
+        StoreAllOpenedContainer = 6,
+        QuickStackSingle = 7,
+        SortCarriedInventory = 8
     }
 
     internal enum StorageInputOrigin
@@ -34,7 +36,8 @@ namespace RunicStorage.Engine
         ControllerSort = 1 << 7,
         ControllerConsolidate = 1 << 8,
         ControllerSearch = 1 << 9,
-        KeyboardStoreAll = 1 << 10
+        KeyboardStoreAll = 1 << 10,
+        KeyboardSortPersonal = 1 << 11
     }
 
     internal enum StorageRouteOutcome
@@ -136,6 +139,9 @@ namespace RunicStorage.Engine
                 StorageActionEdges.ControllerSort,
                 StorageActionKind.SortOpenedContainer);
             if (request.IsPresent) return request;
+            request = Select(edges, StorageActionEdges.KeyboardSortPersonal,
+                StorageActionEdges.None, StorageActionKind.SortCarriedInventory);
+            if (request.IsPresent) return request;
             request = Select(
                 edges,
                 StorageActionEdges.KeyboardStoreAll,
@@ -183,14 +189,17 @@ namespace RunicStorage.Engine
                 return Blocked(request, StorageRouteReason.StoreOpen);
             if (context.MapOpen)
                 return Blocked(request, StorageRouteReason.MapOpen);
-            if (request.Action == StorageActionKind.Consolidate &&
+            if ((request.Action == StorageActionKind.Consolidate || request.Action == StorageActionKind.SortCarriedInventory) &&
                 !context.LocalPlayerOwnershipAvailable)
                 return Blocked(request, StorageRouteReason.LocalPlayerOwnershipRequired);
             if (request.Action != StorageActionKind.Search &&
                 request.Action != StorageActionKind.Consolidate &&
+                request.Action != StorageActionKind.SortCarriedInventory &&
                 request.Action != StorageActionKind.StoreAllOpenedContainer &&
                 !context.MutationAuthorityAvailable)
                 return Blocked(request, StorageRouteReason.HostAuthorityRequired);
+
+            if (request.Action == StorageActionKind.SortCarriedInventory) return Execute(request);
 
             if (request.Action == StorageActionKind.SortOpenedContainer)
             {
@@ -198,6 +207,11 @@ namespace RunicStorage.Engine
                     return Blocked(request, StorageRouteReason.SortRequiresOpenedContainer);
                 return Execute(request);
             }
+
+            if (request.Action == StorageActionKind.QuickStackSingle)
+                return context.InventoryOpen
+                    ? Execute(request)
+                    : Blocked(request, StorageRouteReason.InventoryOpen);
 
             if (request.Action == StorageActionKind.StoreAllOpenedContainer)
             {
@@ -248,8 +262,10 @@ namespace RunicStorage.Engine
             switch (action)
             {
                 case StorageActionKind.QuickStack: return "quick-stack";
+                case StorageActionKind.QuickStackSingle: return "quick-stack-single";
                 case StorageActionKind.Restock: return "restock";
                 case StorageActionKind.SortOpenedContainer: return "sort-opened-container";
+                case StorageActionKind.SortCarriedInventory: return "sort-inventory";
                 case StorageActionKind.Consolidate: return "consolidate";
                 case StorageActionKind.Search: return "search";
                 case StorageActionKind.StoreAllOpenedContainer: return "store-all-opened-container";

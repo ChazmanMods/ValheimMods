@@ -35,6 +35,32 @@ namespace RunicStorage.Runtime
             AccessTools.Field(typeof(InventoryGui), "m_dragItem") ??
             throw new MissingFieldException(typeof(InventoryGui).FullName, "m_dragItem");
 
+        private static readonly FieldInfo LastRevisionField =
+            AccessTools.Field(typeof(Container), "m_lastRevision") ??
+            throw new MissingFieldException(typeof(Container).FullName, "m_lastRevision");
+
+        // Refresh only this candidate before matching or checking capacity. Native Load
+        // reads the already received ZDO payload; no ownership request or network wait.
+        internal static bool TryReadCurrentInventory(Container container, out Inventory inventory)
+        {
+            inventory = null;
+            ZNetView view = ValheimContainerIdentity.NetworkView(container);
+            if (container == null || view == null || !view.IsValid() || view.GetZDO() == null ||
+                (bool)LoadingField.GetValue(container)) return false;
+            try
+            {
+                if (Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(container))
+                    return Runic.Compatibility.ModdedContainerCompatibility.TryRefresh(container, out inventory);
+                // Preserve an initialized local owner's live inventory. The MaxValue
+                // sentinel identifies a chest that has not performed its first Load/Save.
+                if (!view.IsOwner() || (uint)LastRevisionField.GetValue(container) == uint.MaxValue)
+                    LoadMethod.Invoke(container, Array.Empty<object>());
+                inventory = container.GetInventory();
+                return inventory != null;
+            }
+            catch { inventory = null; return false; }
+        }
+
         internal static bool TryGetSynchronizedServerInventory(
             Container container,
             out Inventory inventory) =>
@@ -104,17 +130,10 @@ namespace RunicStorage.Runtime
             {
                 if (Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(container))
                     return Runic.Compatibility.ModdedContainerCompatibility.TryRefresh(container, out inventory);
-                LoadMethod.Invoke(container, Array.Empty<object>());
+                if (existingOwnerOnly) LoadMethod.Invoke(container, Array.Empty<object>());
                 inventory = container.GetInventory();
                 if (inventory == null) return false;
-                byte[] persistedBytes = zdo.GetByteArray(ZDOVars.s_items);
-                string persisted = persistedBytes == null || persistedBytes.Length == 0
-                    ? string.Empty
-                    : Convert.ToBase64String(persistedBytes);
-                return string.IsNullOrEmpty(persisted)
-                    ? inventory.GetAllItems().Count == 0
-                    : StorageInventoryPayloadComparison.MatchesLoaded(
-                        persistedBytes, ValheimContainerService.SaveInventory(inventory).GetArray());
+                return true;
             }
             catch
             {

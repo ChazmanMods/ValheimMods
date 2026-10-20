@@ -1,4 +1,5 @@
 {
+  "storage_not_ready": "Nearby storage is busy or awaiting synchronization. Retry shortly.",
   "text_03c143087092": "; rejected[",
   "text_05ea4adbf842": "\nC:",
   "text_14a24eb3ec32": "Log preview-cache hits, source-query counts, chest loads and source-query time once every five seconds for performance testing.",
@@ -65,5 +66,6 @@
   "text_f3a2af40e71b": "Area repair: sent ",
   "text_f4640532ec20": "Use accessible nearby containers for crafting materials that are missing from your backpack.",
   "text_fb434ab77a6d": " | Total: ",
-  "text_fed7032e1f9c": "Repaired {0} items"
+  "text_fed7032e1f9c": "Repaired {0} items",
+  "manual_transfer_recovery_required": "Runic Crafting: a nearby-item transfer needs recovery. Further transfers are paused; check the log before retrying."
 }

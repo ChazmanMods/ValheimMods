@@ -314,3 +314,13 @@ claims, and fail-closed schema-1 recovery.
 Installed-Valheim structural and crash-cut coverage for durable headers, endpoint claims, ownership
 handoff, vanilla guards, and exact recovery lives in the consuming Production and gameplay
 integration suites.
+
+## Support Chazman's Mods
+
+If you enjoy my Valheim mods and want to support continued development, testing, multiplayer compatibility, and new projects, I would appreciate it.
+
+Support is completely optional. Playing the mods, reporting bugs, sharing feedback, and recommending them to other players helps just as much.
+
+Thanks for supporting Chazman's Mods and the continued development of RunicSuite, ArcaneDecor, and other projects!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

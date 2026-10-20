@@ -79,36 +79,47 @@ namespace RunicSentinel.Runtime
         private void DrawCommandsWorkspace()
         {
             _commandCatalog=SentinelCommandConsole.Catalog();
-            float top=Math.Max(250,_bodyHeight*.48f);
+            DrawCommandLayoutControls();
+            var layout = new RunicSentinel.Core.CommandWorkspaceLayout(_window.width-104, _bodyHeight-CommandSize(44), _commandDrawScale, _commandColumns, _commandRows);
+            float top=layout.TopHeight;
             GUILayout.BeginHorizontal(GUILayout.Height(top));
-            GUILayout.BeginVertical(_row,GUILayout.Width((_window.width-90)*.50f),GUILayout.Height(top));
+            GUILayout.BeginVertical(_row,GUILayout.Width(layout.ConsoleWidth),GUILayout.Height(top));
             GUILayout.Label(PT("Console"),_heading);
             string output=SentinelCommandConsole.Output+BuildSuggestions();
             if(output!=_lastCommandOutput){_lastCommandOutput=output;_commandOutputScroll.y=float.MaxValue;}
-            _commandOutputScroll=GUILayout.BeginScrollView(_commandOutputScroll,GUILayout.Height(Math.Max(65,top-166)));
+            _commandOutputScroll=GUILayout.BeginScrollView(_commandOutputScroll,GUILayout.Height(Math.Max(CommandSize(65),top-CommandSize(260))));
             GUILayout.TextArea(output.Length==0?PT("Type a command or choose one from the guide."):output,new GUIStyle(_textArea){wordWrap=true,richText=false},GUILayout.ExpandHeight(true));
             GUILayout.EndScrollView();
-            GUI.SetNextControlName("sentinel-command-input");_commandLine=GUILayout.TextField(_commandLine,1024,_textField,GUILayout.Height(30));
+            GUI.SetNextControlName("sentinel-command-input");_commandLine=GUILayout.TextField(_commandLine,1024,_textField,GUILayout.MinHeight(CommandSize(30)));
             bool enter=Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Return&&GUI.GetNameOfFocusedControl()=="sentinel-command-input";
             if(enter)Event.current.Use();
             if(Event.current.type==EventType.KeyDown&&GUI.GetNameOfFocusedControl()=="sentinel-command-input"&&_commandHistory.Count>0&&(Event.current.keyCode==KeyCode.UpArrow||Event.current.keyCode==KeyCode.DownArrow))
             {_commandHistoryIndex=Mathf.Clamp(_commandHistoryIndex+(Event.current.keyCode==KeyCode.UpArrow?-1:1),0,_commandHistory.Count);_commandLine=_commandHistoryIndex==_commandHistory.Count?"":_commandHistory[_commandHistoryIndex];Event.current.Use();}
             GUILayout.BeginHorizontal();GUI.enabled=!_commandBusy;
-            if(GUILayout.Button(_commandBusy?PT("Running…"):PT("Run"),_button,GUILayout.Height(32))||enter)RunCommand();
-            GUI.enabled=true;if(GUILayout.Button(PT("Clear Output"),_button,GUILayout.Width(160),GUILayout.Height(32))){SentinelCommandConsole.Reset();_commandLine="";_suggestionLine="";_suggestions="";}
+            if(GUILayout.Button(_commandBusy?PT("Running…"):PT("Run"),_button,GUILayout.MinHeight(CommandSize(32)))||enter)RunCommand();
+            GUI.enabled=true;if(GUILayout.Button(PT("Clear Output"),_button,GUILayout.Width(CommandSize(160)),GUILayout.MinHeight(CommandSize(32)))){SentinelCommandConsole.Reset();_commandLine="";_suggestionLine="";_suggestions="";}
             GUILayout.EndHorizontal();GUILayout.BeginHorizontal();GUI.enabled=!_commandBusy;
-            foreach(string name in new[]{"devcommands","debugmode","nocost"})if(GUILayout.Button(name,_button,GUILayout.Height(30))){_commandLine=name;RunCommand();}
+            string[] modes={"devcommands","debugmode","nocost","god","ghost","fly","freefly"};
+            for(int i=0;i<modes.Length;i++)
+            {
+                if(i==3||i==5){GUILayout.EndHorizontal();GUILayout.BeginHorizontal();}
+                string name=modes[i];var p=Player.m_localPlayer;
+                bool enabled=name=="devcommands"?Terminal.m_cheat:name=="debugmode"?Player.m_debugMode:name=="freefly"?GameCamera.InFreeFly():p!=null&&(name=="god"?p.InGodMode():name=="ghost"?p.InGhostMode():name=="fly"?p.IsDebugFlying():p.NoCostCheat());
+                string label=name=="devcommands"?"Devcommands":name=="debugmode"?"Debug":name=="nocost"?"No-cost":name=="freefly"?"Freefly":char.ToUpperInvariant(name[0])+name.Substring(1);
+                if(GUILayout.Button(PT(label)+": "+PT(enabled?"On":"Off"),enabled?_selectedTabStyle:_button,GUILayout.MinHeight(CommandSize(30)))){_commandLine=name;RunCommand();}
+            }
             GUI.enabled=true;GUILayout.EndHorizontal();GUILayout.EndVertical();
-            GUILayout.BeginVertical(_row,GUILayout.Height(top));GUILayout.Label(PT("Command guide"),_heading);
+            DrawCommandDivider(true, layout);
+            GUILayout.BeginVertical(_row,GUILayout.Width(layout.GuideWidth),GUILayout.Height(top));GUILayout.Label(PT("Command guide"),_heading);
             _commandSearch=GUILayout.TextField(_commandSearch,128,_textField);
             var selected=_commandCatalog.FirstOrDefault(c=>c.Command==_selectedCommand);
-            _commandScroll=GUILayout.BeginScrollView(_commandScroll,GUILayout.Height(Math.Max(60,top-182)));
+            _commandScroll=GUILayout.BeginScrollView(_commandScroll,GUILayout.Height(Math.Max(CommandSize(60),top-CommandSize(200))));
             if(!_showCommandArguments)
             {
                 foreach(var command in _commandCatalog.Where(c=>c.Command.IndexOf(_commandSearch,StringComparison.OrdinalIgnoreCase)>=0||(c.Description??"").IndexOf(_commandSearch,StringComparison.OrdinalIgnoreCase)>=0))
                 {
                     GUILayout.BeginHorizontal();if(HoverButton(command.Command,command.Description,command.Command==_selectedCommand?LeftSelected:LeftButton)){_selectedCommand=command.Command;_commandArguments="";}
-                    if(HasArguments(command)&&GUILayout.Button(PT("Arguments"),_button,GUILayout.Width(125))){if(_selectedCommand!=command.Command)_commandArguments="";_selectedCommand=command.Command;_showCommandArguments=true;_argumentFilter="";_argumentPage=0;_selectedArgument=0;}
+                    if(HasArguments(command)&&GUILayout.Button(PT("Arguments"),_button,GUILayout.Width(CommandSize(125)))){if(_selectedCommand!=command.Command)_commandArguments="";_selectedCommand=command.Command;_showCommandArguments=true;_argumentFilter="";_argumentPage=0;_selectedArgument=0;}
                     GUILayout.EndHorizontal();
                 }
             }
@@ -151,12 +162,15 @@ namespace RunicSentinel.Runtime
             }
             GUILayout.EndScrollView();
             GUILayout.Label(selected==null?PT("Select a command"):selected.Command+" · "+(SentinelCommandProvider.ExecutesOnServer(selected.Command)?PT("Server"):PT("Your character")),_section);
-            _commandArguments=GUILayout.TextField(_commandArguments,900,_textField,GUILayout.Height(28));
+            _commandArguments=GUILayout.TextField(_commandArguments,900,_textField,GUILayout.MinHeight(CommandSize(28)));
             GUI.enabled=selected!=null;
-            if(GUILayout.Button(PT("Insert into console"),_button,GUILayout.Height(34)))
+            if(GUILayout.Button(PT("Insert into console"),_button,GUILayout.MinHeight(CommandSize(34))))
             {_commandLine=selected.Command+(string.IsNullOrWhiteSpace(_commandArguments)?"":" "+_commandArguments.Trim());GUI.FocusControl("sentinel-command-input");}
             GUI.enabled=true;GUILayout.EndVertical();GUILayout.EndHorizontal();
-            GUILayout.Space(6);_catalogScroll=GUILayout.BeginScrollView(_catalogScroll,GUILayout.Height(Math.Max(70,_bodyHeight-top-12)));
+            // The tab itself scrolls when the console and catalog exceed the window.
+            // Keep the catalog usable instead of reducing it to a clipped header.
+            DrawCommandDivider(false, layout);
+            _catalogScroll=GUILayout.BeginScrollView(_catalogScroll,GUILayout.Width(layout.Width),GUILayout.Height(layout.CatalogHeight));
             DrawContentCatalog();GUILayout.EndScrollView();
         }
     }

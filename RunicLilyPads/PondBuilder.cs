@@ -17,45 +17,38 @@ namespace RunicLilyPads
             var triangles=new int[Segments*3];var uv=new Vector2[points.Length];
             for(int i=0;i<points.Length;i++)uv[i]=new Vector2(points[i].x,points[i].z)*.2f;
             for(int i=0;i<Segments;i++){triangles[i*3]=0;triangles[i*3+1]=(i+1)%Segments+1;triangles[i*3+2]=i+1;}
-            var mesh=live?PondNetwork.Surface(owner):new Mesh{name="WaterGardens pond surface",vertices=points,triangles=triangles,uv=uv};mesh.RecalculateNormals();mesh.RecalculateBounds();owner.OwnSurface(mesh);
+            var mesh=live?PondNetwork.Surface(owner):new Mesh{name="WaterGardens pond surface",vertices=points,triangles=triangles,uv=uv};mesh.RecalculateNormals();mesh.RecalculateTangents();mesh.RecalculateBounds();owner.OwnSurface(mesh);
             var surface=new GameObject("pond_water");surface.transform.SetParent(parent,false);surface.transform.localPosition=Vector3.up*(live?-.15f:.04f);surface.layer=LayerMask.NameToLayer(live?"Water":"ghost");
             surface.AddComponent<MeshFilter>().sharedMesh=mesh;
             var material=new Material(GardenPrefabs.Water);owner.OwnSurface(material);var renderer=surface.AddComponent<MeshRenderer>();renderer.sharedMaterial=material;
+            renderer.lightProbeUsage=UnityEngine.Rendering.LightProbeUsage.Off;
+            if(Player.m_localPlayer)renderer.probeAnchor=Player.m_localPlayer.transform;
             ConfigureClearWater(material);
-            material.SetFloat("_UseGlobalWind",0);material.SetFloatArray("_depth",new[]{s.Depth/10,s.Depth/10,s.Depth/10,s.Depth/10});
             if(!live)return;
+            OutdoorWater.Bind(renderer);
+            // Retain the native animated pond material; river integration changes geometry only.
             PondNetwork.Waterfalls(owner,surface.transform);
+            var controller=owner.GetComponent<IGardenController>();
+            if(controller!=null){controller.BuildLiquid(surface.transform,renderer);return;}
             for(int i=0;i<Segments;i++){
                 Vector3 a=points[i+1],b=points[(i+1)%Segments+1];
                 var go=new GameObject("pond_water_volume");go.SetActive(false);go.transform.SetParent(surface.transform,false);go.layer=LayerMask.NameToLayer("WaterVolume");
-                var prism=Prism(a,b,s.Depth+.2f);owner.OwnSurface(prism);
+                float top=Mathf.Max(0,mesh.bounds.max.y),bottom=Mathf.Min(0,mesh.bounds.min.y)-s.Depth-.2f;
+                var prism=Prism(a,b,top-bottom,top);owner.OwnSurface(prism);
                 var col=go.AddComponent<MeshCollider>();col.sharedMesh=prism;col.convex=true;col.isTrigger=true;
-                var water=go.AddComponent<WaterVolume>();water.m_waterSurface=renderer;water.m_forceDepth=s.Depth/10;water.m_useGlobalWind=false;water.m_surfaceOffset=0;
+                var water=go.AddComponent<WaterVolume>();water.m_waterSurface=renderer;water.m_forceDepth=0;water.m_useGlobalWind=true;water.m_surfaceOffset=0;
                 go.SetActive(true);
                 // Water-layer triggers let the hammer's normal water ray place lily pads here.
                 var hit=new GameObject("water_placement_surface");hit.transform.SetParent(surface.transform,false);hit.layer=LayerMask.NameToLayer("Water");
                 var thin=Prism(a,b,.03f);owner.OwnSurface(thin);var c=hit.AddComponent<MeshCollider>();c.sharedMesh=thin;c.convex=true;c.isTrigger=true;
             }
         }
-        internal static void ConfigureClearWater(Material material)
-        {
-            // Cave water turns gray and opaque within one meter. Use the native shader's
-            // outdoor depth range so the bed remains visible throughout our 0.4-3m basins.
-            material.SetFloat("_DepthFade",20f);
-            material.SetColor("_ColorTop",new Color(.315f,.524f,.361f,1));
-            material.SetColor("_ColorBottom",new Color(.098f,.196f,.169f,1));
-            material.SetColor("_ColorBottomShallow",new Color(.196f,.176f,.106f,1));
-            material.SetColor("_SurfaceColor",new Color(.5f,.5f,.5f,1));
-            material.SetFloat("_NormalPower",.35f);
-            material.SetFloat("_NormalScale",.04f);
-            material.SetFloat("_RefractionScale",.05f);
-            material.SetFloat("_FoamDepth",.05f);
-            material.SetColor("_FoamColor",new Color(.84f,.84f,.84f,.2f));
-        }
-        static Mesh Prism(Vector3 a,Vector3 b,float depth)
+        internal static void ConfigureClearWater(Material material)=>OutdoorWater.Apply(material);
+        static Mesh Prism(Vector3 a,Vector3 b,float depth,float top=0)
         {
             Vector3 down=Vector3.down*depth;
-            var m=new Mesh{name="pond sector",vertices=new[]{Vector3.zero,b,a,down,b+down,a+down},triangles=new[]{0,1,2,3,5,4,0,3,4,0,4,1,1,4,5,1,5,2,2,5,3,2,3,0}};
+            var up=Vector3.up*top;
+            var m=new Mesh{name="pond sector",vertices=new[]{up,b+up,a+up,up+down,b+up+down,a+up+down},triangles=new[]{0,1,2,3,5,4,0,3,4,0,4,1,1,4,5,1,5,2,2,5,3,2,3,0}};
             m.RecalculateNormals();m.RecalculateBounds();return m;
         }
     }
@@ -90,7 +83,11 @@ namespace RunicLilyPads
                 int index=z*(width+1)+x;var world=origin+new Vector3(x*spacing-half,0,z*spacing-half);
                                 double original=___m_heights[index]+origin.y,result=double.PositiveInfinity;
                 foreach(var group in groups)if(PondMergeMath.Affects(group,world.x,world.z))result=Math.Min(result,PondMergeMath.Bed(group,world.x,world.z,original));
-                if(!double.IsPositiveInfinity(result))___m_heights[index]=(float)result-origin.y;
+                if(!double.IsPositiveInfinity(result)){
+
+
+                    ___m_heights[index]=(float)result-origin.y;
+                }
             }
             for(int z=0;z<___m_paintMask.height;z++)for(int x=0;x<___m_paintMask.width;x++){
                 var world=origin+new Vector3((x+.5f)*spacing-half,0,(z+.5f)*spacing-half);double distance=2;

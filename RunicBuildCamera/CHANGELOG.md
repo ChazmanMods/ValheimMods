@@ -1,55 +1,49 @@
-## 1.0.5
-
-- Keep input binding identifiers stable when translated language files are installed.
-- Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.
-
 # Changelog
 
-## 1.0.4 - 2026-09-17
+## 1.0.8
 
-- Refresh current window focus each frame so a missed startup focus callback cannot leave activation disabled.
-- Show and log activation, exit and blocked-toggle reasons instead of silently ignoring the shortcut.
-- Log camera-update exceptions when restoring the normal camera.
+- Camera pickups now respect enabled player-built wards. Owners and permitted players retain access.
+- Game-created wards do not block camera pickups.
+- Overlapping player wards each require permission.
 
-## 1.0.3 - 2026-09-11
+## 1.0.7
 
-- Fixed the detached camera blocking the hammer's hotbar unequip action and switching items.
-- Fixed intermittent missed put-away input by releasing the camera before Valheim processes the same keypress.
-- Controller hotbar use now exits the detached camera before using the selected item.
-- Preserved Valheim's menu, chat, and controller radial input rules on Valheim 1.0.12.
+- Excluded fish, including pufferfish and anglerfish, from camera pickups.
+- Removed the building-only restriction that prevented collection of ordinary loose items.
+- Added a notice when the player's auto-pickup toggle is off.
 
-## 1.0.2 - 2026-09-09
+## 1.0.6
 
-- Updated version-type handling for Valheim 1.0 and the BepInEx dependency to 5.4.2350.
+- Improved collection of underwater loose items.
+- Improved pickup reliability in crowded areas.
 
-## 1.0.1 - 2026-09-05
+## 1.0.5
 
-- Reworked the Thunderstore description and README opening to lead with the player problem, the mod's core benefit, major features, in-game feel, and then safety and compatibility details.
-- Description-only package update. The plugin DLL and gameplay behavior are byte-for-byte unchanged from 1.0.0.
+- Added language files with English fallback.
+- Kept control bindings consistent across languages.
+
+## 1.0.4
+
+- Fixed camera activation after changing window focus.
+- Added feedback when toggling the camera or when activation is unavailable.
+
+## 1.0.3
+
+- Fixed putting away the hammer and switching hotbar items while using the camera.
+- Improved keyboard and controller exit controls.
+
+## 1.0.2
+
+- Updated compatibility for Valheim 1.0 and BepInExPack 5.4.2350.
+
+## 1.0.1
+
+- Updated the mod description and feature guide.
 
 ## 1.0.0
 
-- Promote the completed standalone Runic Build Camera feature set to its first stable release.
-- Preserve the bounded detached-camera, remote-action, loose-item pickup, and Wisplight behavior
-  established in the initial preview without adding a Runic foundation dependency.
+- Released the standalone building camera with remote building, optional loose-item pickup, and Wisplight support.
 
 ## 0.1.0
 
-- Establish the standalone chazman.RunicBuildCamera plugin identity with no dependency on Runic
-  Precision Build Tool or the Runic foundation packages.
-- Add a detached camera for Valheim's normal building workflow, with configurable movement speed,
-  fast movement, world-relative movement, and independent mouse and controller look inversion.
-- Bound camera travel to 60 metres by default and 100 metres at the hard maximum.
-- Support placement and removal targeting through the camera with a separate 100-metre default and
-  hard maximum.
-- Keep only build inputs live during a camera session so camera look/movement cannot trigger avatar
-  use, hotbar, walk-toggle, auto-pickup-toggle, or body-look actions.
-- Raise effective crafting-station range only inside the scoped remote call without changing any
-  station field, while exact player reach is restored through success, exception, and unload.
-- Add optional, interval-limited pickup checks for loose world items around the detached camera;
-  chests and other containers are outside the feature.
-- Add optional follow behavior for the player's existing Wisplight demister with a configurable
-  range multiplier.
-- Add concise diagnostics with opt-in verbose state-transition logging.
-- Document that the avatar remains vulnerable, client-side limits are not server enforcement, and
-  the implementation has an explicit clean-room boundary.
+- Added the detached camera, configurable movement and look controls, remote building actions, loose-item pickup, and Wisplight support.

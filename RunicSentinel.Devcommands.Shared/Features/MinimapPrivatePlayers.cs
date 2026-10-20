@@ -6,10 +6,11 @@ using RunicSentinel.Devcommands.Service;
 using UnityEngine;
 namespace RunicSentinel.Devcommands;
 ///<summary>Server side code to include private player positions.</summary>
-[HarmonyPatch(typeof(ZNet), nameof(ZNet.UpdatePlayerList))]
+[HarmonyPatch(typeof(ZNet), nameof(ZNet.SendPlayerList))]
 public class Server_UpdatePrivatePositions
 {
-  static void Postfix(ZNet __instance)
+  // Refresh optional map data when broadcasting, not while constructing the login player list.
+  static void Prefix(ZNet __instance)
   {
     if (!__instance.IsServer() || !Settings.ShowPrivatePlayers) return;
     var idToPeer = __instance.m_peers.Where(peer => peer.IsReady() && peer.m_characterID != ZDOID.None).ToDictionary(peer => peer.m_characterID, static peer => peer);
@@ -42,7 +43,7 @@ public class SendPrivatePositionsToAdmins
   {
     var count = obj.m_players.Count(p => !p.m_publicPosition);
     if (count == 0) return;
-    var peers = obj.m_peers.Where(peer => peer.IsReady() && SentinelBridge.AllowRpc(peer.m_rpc)).ToList();
+    var peers = obj.m_peers.Where(peer => peer.IsReady() && peer.m_characterID != ZDOID.None && SentinelBridge.AllowRpc(peer.m_rpc)).ToList();
     if (peers.Count == 0) return;
     ZPackage pkg = new();
     pkg.Write(count);

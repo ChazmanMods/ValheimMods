@@ -1,0 +1,12 @@
+bin/
+obj/
+ShaderProject/Library/
+ShaderProject/Logs/
+ShaderProject/Temp/
+ShaderProject/UserSettings/
+ShaderProject2022/
+Work/
+Tests/runtime/
+Tests/bin/
+Tests/obj/
+package/

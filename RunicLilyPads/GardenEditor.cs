@@ -21,7 +21,7 @@ namespace RunicLilyPads
         {
             if(settings.Track==0){Player.m_localPlayer?.Message(MessageHud.MessageType.Center,global::Runic.Localization.RunicText.Get("text_4f7f167be4f3"));return;}
             if(!preview){preview=new GameObject("WaterGardens sound preview").AddComponent<AudioSource>();Object.DontDestroyOnLoad(preview.gameObject);preview.playOnAwake=false;preview.spatialBlend=0;}
-            preview.Stop();preview.clip=GardenAudio.Get(settings.Track);preview.volume=settings.Volume*Plugin.MasterVolume.Value;preview.pitch=settings.Speed;preview.loop=false;
+            preview.Stop();preview.clip=GardenAudio.Get(settings.Track);WaterAudio.SetVolume(preview,settings.Volume*Plugin.MasterVolume.Value);preview.pitch=settings.Speed;preview.loop=false;
             previewUntil=Time.unscaledTime+6;preview.Play();
         }
         void OnDestroy(){if(preview)Object.Destroy(preview.gameObject);preview=null;}
@@ -30,6 +30,6 @@ namespace RunicLilyPads
     [HarmonyPatch(typeof(GameCamera),"UpdateMouseCapture")]
     static class GardenCursor{static void Postfix(){GardenEditor.KeepCursor();FeatureEditor.KeepCursor();GardenTreeEditor.KeepCursor();}}
     [HarmonyPatch(typeof(ZInput),"GetKeyDown",typeof(KeyCode),typeof(bool))]
-    static class GardenEscape{static void Postfix(KeyCode key,ref bool __result){if(key==KeyCode.Escape&&(GardenEditor.IsOpen||FeatureEditor.IsOpen||GardenTreeEditor.IsOpen))__result=false;}}
+    static class GardenEscape{static void Postfix(KeyCode key,ref bool __result){if(key==KeyCode.Escape&&GardenMenuCursor.IsOpen)__result=false;}}
 }
 

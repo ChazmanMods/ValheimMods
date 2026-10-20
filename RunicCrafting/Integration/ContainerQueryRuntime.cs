@@ -10,6 +10,7 @@ namespace RunicCrafting.Integration
     internal sealed class ContainerQueryRuntime
     {
         private readonly WorkshopAccessRuntime _workshopAccess;
+        internal readonly HashSet<string> UnavailableResources = new HashSet<string>(StringComparer.Ordinal);
 
         internal ContainerQueryRuntime(WorkshopAccessRuntime workshopAccess) =>
             _workshopAccess = workshopAccess ?? throw new ArgumentNullException(nameof(workshopAccess));
@@ -26,6 +27,11 @@ namespace RunicCrafting.Integration
             bool requireWritable = false,
             bool allowRefreshCache = true)
         {
+            if (AuthorityCraftExecution.Active)
+            {
+                reasonCode = "durably-reserved-materials";
+                return AuthorityCraftExecution.Sources(player, requirements);
+            }
             if (requireWritable)
             {
                 PreviewRefreshRuntime.Invalidate();
@@ -80,6 +86,7 @@ namespace RunicCrafting.Integration
             bool stationlessAccessAuthorized, out string reasonCode,
             bool requireWritable, bool allPreviewResources)
         {
+            UnavailableResources.Clear();
             var result = new List<IMutableMaterialSource>();
             reasonCode = "ok";
             if (!ValheimReflection.CanMutateLocalPlayer(player))
@@ -114,6 +121,10 @@ namespace RunicCrafting.Integration
                     ValheimReflection.CanMutateLocalPlayer(player) &&
                     (station == null || _workshopAccess.Evaluate(
                         station, player, WorkshopAction.StationUse).Allowed)));
+
+            if (!requireWritable && player.InPlaceMode())
+                result.Add(new ReadOnlyMaterialSource(new PreviewMaterialCounts(AuthorityBuildingExecution.Materials(player), Game.m_worldLevel)
+                    .ToSnapshot("runic.reserved-building", MaterialSourceKind.NearbyContainer, 0f)));
 
             if (station == null && !stationlessAccessAuthorized)
             {
@@ -156,10 +167,17 @@ namespace RunicCrafting.Integration
             foreach (Container container in candidates)
             {
                 if (returned >= Configuration.SafeMaximumReturned) break;
-                if (!IsEligibleContainer(container, player, origin, radius, out string rejection, requireWritable))
+                if (!IsEligibleContainer(container, player, origin, radius, out string rejection, false))
                 {
                     rejectionCounts.TryGetValue(rejection, out int count);
                     rejectionCounts[rejection] = count + 1;
+                    if (requireWritable && rejection == "waiting-for-container-synchronization")
+                    {
+                        CraftingDiagnostics.TraceGate("container-authority", RunicAutomation.ContainerAuthority.Describe(container));
+                        if (ValheimReflection.TryReadContainerInventory(container, out PreviewMaterialCounts unavailable))
+                            foreach (string resource in resources)
+                                if (unavailable.Count(resource) > 0) UnavailableResources.Add(resource);
+                    }
                     continue;
                 }
 
@@ -206,13 +224,18 @@ namespace RunicCrafting.Integration
                                   station, player, WorkshopAction.StationUse).Allowed &&
                               _workshopAccess.Evaluate(
                                   station, player, WorkshopAction.LocalMaterialUse).Allowed) &&
-                        IsEligibleContainer(captured, player, origin, radius, out _, true),
+                        IsEligibleContainer(captured, player, origin, radius, out _, false),
                     () => ValheimReflection.CanMutateLocalPlayer(player) &&
                         ReferenceEquals(captured.GetInventory(), capturedInventory) &&
                         capturedView.IsValid() && capturedView.IsOwner() &&
                         ReferenceEquals(capturedView.GetZDO(), capturedZdo) &&
                         capturedZdo.OwnerRevision == capturedOwnerRevision &&
-                        !captured.IsInUse() && capturedZdo.GetInt(ZDOVars.s_inUse, 0) == 0));
+                        (!captured.IsInUse() || capturedView.IsOwner()),
+                    () => {
+                        bool acquired = IsEligibleContainer(captured, player, origin, radius, out _, true);
+                        if (acquired) capturedOwnerRevision = capturedZdo.OwnerRevision;
+                        return acquired;
+                    }));
                 returned++;
             }
 
@@ -263,12 +286,9 @@ namespace RunicCrafting.Integration
                 rejectionReason = "missing-zdo";
                 return false;
             }
-            if (container.IsInUse() || zdo.GetInt(ZDOVars.s_inUse, 0) != 0 ||
+            if ((container.IsInUse() || zdo.GetInt(ZDOVars.s_inUse, 0) != 0) && !view.IsOwner() ||
                 container.m_wagon != null && container.m_wagon.InUse())
-            {
-                rejectionReason = "in-use";
-                return false;
-            }
+            { rejectionReason = "in-use"; return false; }
             if (Configuration.ExcludePersonalContainers.Value &&
                 container.m_privacy == Container.PrivacySetting.Private)
             {
@@ -289,7 +309,7 @@ namespace RunicCrafting.Integration
             }
             if (!requireWritable) return true;
             if (!RunicAutomation.ContainerAuthority.TryAcquire(container, "crafting",
-                    RunicAutomation.ContainerAuthority.PlayerContext(player), player.GetPlayerID()))
+                    RunicAutomation.ContainerAuthority.PlayerContext(player), player.GetPlayerID(), allowInUse: view.IsOwner()))
             {
                 rejectionReason = "waiting-for-container-synchronization";
                 return false;
@@ -297,11 +317,6 @@ namespace RunicCrafting.Integration
             if (!view.IsOwner() || zdo.GetOwner() != ZNet.GetUID())
             {
                 rejectionReason = "ownership-claim-failed";
-                return false;
-            }
-            if (!ValheimReflection.RefreshOwnedContainer(container, zdo))
-            {
-                rejectionReason = "synchronization-failed";
                 return false;
             }
             return true;

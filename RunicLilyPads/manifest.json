@@ -1,8 +1,8 @@
 {
   "name": "ArcaneDecor_WaterGardens",
-  "version_number": "1.0.2",
+  "version_number": "1.2.1",
   "website_url": "https://github.com/ChazmanMods/ValheimMods",
-  "description": "Build water gardens with 50 pieces: connected ponds, waterfalls, floating lilies, swaying plants, glowing lanterns, fountains and night ambience.",
+  "description": "Water garden pieces, native menus, connected ponds, and 20 m river configuration stones for ArcaneWaters.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2350",
     "ValheimModding-Jotunn-2.30.1"

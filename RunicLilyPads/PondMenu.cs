@@ -5,13 +5,14 @@ using UnityEngine.UI;
 using Jotunn.Managers;
 namespace RunicLilyPads
 {
-    internal sealed class PondMenu:IDisposable
+    public sealed class PondMenu:IDisposable
     {
         readonly GameObject canvas;readonly RectTransform panel;readonly TMP_FontAsset font;
         static readonly Color Ink=new Color(.82f,.79f,.66f),ButtonColor=new Color(.22f,.27f,.28f,1);
-        PondMenu(float height){            var sign=PrefabManager.Instance.GetPrefab("sign")?.GetComponent<Sign>();font=sign?sign.m_textWidget.font:TMP_Settings.defaultFontAsset;
+        public PondMenu(float height){            var sign=PrefabManager.Instance.GetPrefab("sign")?.GetComponent<Sign>();font=sign?sign.m_textWidget.font:TMP_Settings.defaultFontAsset;
             foreach(var f in Resources.FindObjectsOfTypeAll<TMP_FontAsset>())if(f.name.IndexOf("Norse",StringComparison.OrdinalIgnoreCase)>=0&&f.name.IndexOf("Bold",StringComparison.OrdinalIgnoreCase)<0){font=f;break;}
             canvas=new GameObject("WaterGardens pond menu",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
+            canvas.AddComponent<GardenMenuCursor>();
             var c=canvas.GetComponent<Canvas>();c.renderMode=RenderMode.ScreenSpaceOverlay;c.sortingOrder=1000;
             var scaler=canvas.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1920,1080);scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;scaler.matchWidthOrHeight=1;
             panel=Rect(canvas.transform,16,16,580,height);Box(panel,new Color(.045f,.05f,.045f,1));
@@ -44,19 +45,19 @@ namespace RunicLilyPads
             Label(panel,global::Runic.Localization.RunicText.Get("text_afcffb913d6c"),22,192,536,48,18);
             Button(global::Runic.Localization.RunicText.Get("text_a497f8c5bf73"),22,266,262,42,save);Button(global::Runic.Localization.RunicText.Get("text_19766ed6ccb2"),296,266,262,42,cancel);
         }
-        internal PondMenu(GardenPiece target,GardenSettings draft,Action save,Action cancel):this(1040){            Label(panel,target.Shape<0?global::Runic.Localization.RunicText.Get("text_a3a74fe11cae"):global::Runic.Localization.RunicText.Get("text_903f033ec09d"),22,18,536,38,30);
+        internal PondMenu(GardenPiece target,GardenSettings draft,Action save,Action cancel):this(1040){            Label(panel,target.RiverSection?"RIVER GARDEN · 20 m":target.Shape<0?global::Runic.Localization.RunicText.Get("text_a3a74fe11cae"):global::Runic.Localization.RunicText.Get("text_903f033ec09d"),22,18,536,38,30);
             Label(panel,global::Runic.Localization.RunicText.Get("text_fb2784e0597c"),22,64,536,28,18);
             float y=106;
-            Slider("Pond width",target.Shape<0?global::Runic.Localization.RunicText.Get("text_523487a5de21"):global::Runic.Localization.RunicText.Get("text_3019947b6daf"),4,24,draft.Width,v=>draft.Width=Round(v,.25f),()=>draft.Width.ToString("0.0")+" m",ref y);
-            if(target.Shape>=0){
-                Slider("Pond depth",global::Runic.Localization.RunicText.Get("text_f1dbc33978a9"),.4f,3,draft.Depth,v=>draft.Depth=Round(v,.1f),()=>draft.Depth.ToString("0.0")+" m",ref y);
+            if(!target.RiverSection)Slider("Pond width",target.Shape<0?global::Runic.Localization.RunicText.Get("text_523487a5de21"):global::Runic.Localization.RunicText.Get("text_3019947b6daf"),4,24,draft.Width,v=>draft.Width=Round(v,.25f),()=>draft.Width.ToString("0.0")+" m",ref y);
+            if(target.Shape>=0||target.RiverSection){
+                if(!target.RiverSection)Slider("Pond depth",global::Runic.Localization.RunicText.Get("text_f1dbc33978a9"),.4f,3,draft.Depth,v=>draft.Depth=Round(v,.1f),()=>draft.Depth.ToString("0.0")+" m",ref y);
                 Slider("Flowers and buds",global::Runic.Localization.RunicText.Get("text_ac6979f09ecf"),.15f,1.5f,draft.FlowerScale,v=>draft.FlowerScale=Round(v,.05f),()=>Mathf.RoundToInt(draft.FlowerScale*100)+"%",ref y);
-                Label(panel,global::Runic.Localization.RunicText.Get("text_25b9e32a4fcb"),22,y,536,25,17);y+=30;
+                Label(panel,target.RiverSection?"Controls manually placed pieces along 20 m of river.":global::Runic.Localization.RunicText.Get("text_25b9e32a4fcb"),22,y,536,25,17);y+=30;
                 Toggle(global::Runic.Localization.RunicText.Get("text_51148564b900"),()=>draft.FloatLanterns,v=>draft.FloatLanterns=v,ref y);
                 Toggle(global::Runic.Localization.RunicText.Get("text_c86dc62b39c2"),()=>draft.FloatFountains,v=>draft.FloatFountains=v,ref y);
                 Toggle(global::Runic.Localization.RunicText.Get("text_b9d1cbfcfe7b"),()=>draft.FloatStatues,v=>draft.FloatStatues=v,ref y);
-                Slider("Waterfall volume",global::Runic.Localization.RunicText.Get("text_5b47bceaed7f"),0,1,draft.WaterfallVolume,v=>draft.WaterfallVolume=v,()=>Mathf.RoundToInt(draft.WaterfallVolume*100)+"%",ref y);
-                Slider("Waterfall distance",global::Runic.Localization.RunicText.Get("text_7dd70deb027c"),5,100,draft.WaterfallRange,v=>draft.WaterfallRange=Mathf.Round(v),()=>draft.WaterfallRange.ToString("0")+" m",ref y);
+                Slider("Waterfall volume",target.RiverSection?"River sound volume":global::Runic.Localization.RunicText.Get("text_5b47bceaed7f"),0,1,draft.WaterfallVolume,v=>draft.WaterfallVolume=v,()=>Mathf.RoundToInt(draft.WaterfallVolume*100)+"%",ref y);
+                Slider("Waterfall distance",target.RiverSection?"River sound distance":global::Runic.Localization.RunicText.Get("text_7dd70deb027c"),5,100,draft.WaterfallRange,v=>draft.WaterfallRange=Mathf.Round(v),()=>draft.WaterfallRange.ToString("0")+" m",ref y);
             }
             y+=8;var track=Label(panel,Track(draft.Track),22,y,536,28,20);y+=32;
             Button(global::Runic.Localization.RunicText.Get("text_ea1256d4fffa"),22,y,262,36,()=>{draft.Track=(draft.Track+7)%8;track.text=Track(draft.Track);});
@@ -84,6 +85,10 @@ namespace RunicLilyPads
             TMP_Text text=null;var button=Button("",22,y,536,34,()=>{set(!get());text.text=caption+": "+(get()?global::Runic.Localization.RunicText.Get("text_130011756125"):global::Runic.Localization.RunicText.Get("text_ca7981b46ecf"));});text=button.GetComponentInChildren<TMP_Text>();text.text=caption+": "+(get()?global::Runic.Localization.RunicText.Get("text_130011756125"):global::Runic.Localization.RunicText.Get("text_ca7981b46ecf"));y+=42;
         }
         Button Button(string text,float x,float y,float w,float h,Action action){var r=Rect(panel,x,y,w,h);var image=Box(r,ButtonColor);var button=r.gameObject.AddComponent<Button>();button.targetGraphic=image;var colors=button.colors;colors.highlightedColor=new Color(1.2f,1.2f,1.2f);button.colors=colors;button.onClick.AddListener(()=>action());var label=Label(r,text,4,0,w-8,h,20);label.alignment=TextAlignmentOptions.Center;return button;}
+        public TMP_Text Heading(string text,float y=18,int size=30,float height=40)=>Label(panel,text,22,y,536,height,size);
+        public void Action(string text,float y,Action action)=>Button(text,22,y,536,38,action);
+        public void Option(string text,Func<bool> get,Action<bool> set,ref float y)=>Toggle(text,get,set,ref y);
+        public void Range(string text,float min,float max,float value,Action<float> set,Func<string> display,ref float y)=>Slider(text,text,min,max,value,set,display,ref y);
         TMP_Text Label(Transform parent,string text,float x,float y,float w,float h,int size){var r=Rect(parent,x,y,w,h);var label=r.gameObject.AddComponent<TextMeshProUGUI>();label.font=font;label.text=text;label.fontSize=size;label.color=Ink;label.raycastTarget=false;label.alignment=TextAlignmentOptions.MidlineLeft;label.textWrappingMode=TextWrappingModes.Normal;return label;}
         static RectTransform Rect(Transform parent,float x,float y,float w,float h){var go=new GameObject("Control",typeof(RectTransform));var r=go.GetComponent<RectTransform>();r.SetParent(parent,false);r.anchorMin=r.anchorMax=r.pivot=new Vector2(0,1);r.anchoredPosition=new Vector2(x,-y);r.sizeDelta=new Vector2(w,h);return r;}
         static Image Box(RectTransform rect,Color color){var image=rect.gameObject.AddComponent<Image>();image.color=color;return image;}

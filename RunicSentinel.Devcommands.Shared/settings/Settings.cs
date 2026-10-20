@@ -8,7 +8,14 @@ namespace RunicSentinel.Devcommands;
 #nullable disable
 public static class Settings
 {
-  public static bool IsEnabled(int hash, bool localValue) => PermissionManager.Instance.IsFeatureEnabledByHash(PermissionHash.Section, hash, localValue);
+  public static bool IsEnabled(int hash, bool localValue)
+  {
+#if !RUNIC_SENTINEL_SERVER_ONLY
+    string mode=hash==PermissionHash.God?"god":hash==PermissionHash.Ghost?"ghost":hash==PermissionHash.Fly?"fly":hash==PermissionHash.NoCost?"nocost":null;
+    if(mode!=null&&RunicSentinel.PlayerActions.PlayerActionReceiver.Granted(mode))return localValue;
+#endif
+    return PermissionManager.Instance.IsFeatureEnabledByHash(PermissionHash.Section,hash,localValue);
+  }
 
   public static ConfigEntry<bool> configMapCoordinates;
   public static bool MapCoordinates => IsEnabled(PermissionHash.MapCoordinates, configMapCoordinates.Value);

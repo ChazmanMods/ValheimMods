@@ -18,7 +18,7 @@ namespace RunicCrafting.Integration
         private static readonly MethodInfo SmelterFuel = AccessTools.Method(typeof(Smelter), "GetFuel");
         [ThreadStatic] private static bool _preparing;
 
-        internal static void PrepareCooking(CookingStation station, Humanoid user)
+        internal static void PrepareCooking(CookingStation station, Humanoid user, Action resume)
         {
             if (!Configuration.CookFromContainers.Value || !CanPrepare(station, user, out Player player)) return;
             if (!ManualInteractionPolicy.ShouldLoadCooking((bool)Done.Invoke(station, null),
@@ -27,33 +27,33 @@ namespace RunicCrafting.Integration
                 Cookable.Invoke(station, new object[] { player.GetInventory() }) != null)) return;
             if (station.m_conversion == null || station.m_conversion.Count > 256) return;
             foreach (CookingStation.ItemConversion conversion in station.m_conversion)
-                if (conversion?.m_from != null && Pull(station, player, conversion.m_from)) return;
+                if (conversion?.m_from != null && Pull(station, player, conversion.m_from, resume)) return;
         }
 
-        internal static void PrepareCookingFuel(CookingStation station, Humanoid user, ItemDrop.ItemData item)
+        internal static void PrepareCookingFuel(CookingStation station, Humanoid user, ItemDrop.ItemData item, Action resume)
         {
             if (item != null || !Configuration.RefuelFromContainers.Value || !station.m_useFuel ||
                 !CanPrepare(station, user, out Player player)) return;
             float fuel = (float)CookingFuel.Invoke(station, null);
-            if (ManualInteractionPolicy.HasFuelRoom(fuel, station.m_maxFuel)) Pull(station, player, station.m_fuelItem);
+            if (ManualInteractionPolicy.HasFuelRoom(fuel, station.m_maxFuel)) Pull(station, player, station.m_fuelItem, resume);
         }
 
-        internal static void PrepareSmelterFuel(Smelter station, Humanoid user, ItemDrop.ItemData item)
+        internal static void PrepareSmelterFuel(Smelter station, Humanoid user, ItemDrop.ItemData item, Action resume)
         {
             if (item != null || !Configuration.RefuelFromContainers.Value ||
                 !CanPrepare(station, user, out Player player)) return;
             float fuel = (float)SmelterFuel.Invoke(station, null);
-            if (ManualInteractionPolicy.HasFuelRoom(fuel, station.m_maxFuel)) Pull(station, player, station.m_fuelItem);
+            if (ManualInteractionPolicy.HasFuelRoom(fuel, station.m_maxFuel)) Pull(station, player, station.m_fuelItem, resume);
         }
 
-        internal static void PrepareFire(Fireplace station, Humanoid user, bool hold, bool alt, float lastUse)
+        internal static void PrepareFire(Fireplace station, Humanoid user, bool hold, bool alt, float lastUse, Action resume)
         {
             if (!Configuration.RefuelFromContainers.Value || !station.m_canRefill || station.m_infiniteFuel ||
                 !CanPrepare(station, user, out Player player)) return;
             float fuel = station.GetComponent<ZNetView>().GetZDO().GetFloat(ZDOVars.s_fuel);
             if (ManualInteractionPolicy.ShouldRefuelFire(station.m_canRefill, station.m_infiniteFuel,
                 hold, alt, station.m_canTurnOff, fuel, station.m_maxFuel,
-                station.m_holdRepeatInterval, Time.time - lastUse)) Pull(station, player, station.m_fuelItem);
+                station.m_holdRepeatInterval, Time.time - lastUse)) Pull(station, player, station.m_fuelItem, resume);
         }
 
         private static bool CanPrepare(Component station, Humanoid user, out Player player)
@@ -69,7 +69,7 @@ namespace RunicCrafting.Integration
             return true;
         }
 
-        private static bool Pull(Component station, Player player, ItemDrop fuelOrInput)
+        private static bool Pull(Component station, Player player, ItemDrop fuelOrInput, Action resume)
         {
             if (fuelOrInput?.m_itemData?.m_shared == null ||
                 player.GetInventory().HaveItem(fuelOrInput.m_itemData.m_shared.m_name)) return false;
@@ -85,7 +85,8 @@ namespace RunicCrafting.Integration
                     "runic.crafting.manual-use", true, out _, requireWritable: true);
                 foreach (ValheimMaterialSource source in sources.OfType<ValheimMaterialSource>())
                 {
-                    if (source.Snapshot().Kind != MaterialSourceKind.NearbyContainer) continue;
+                    var snapshot = source.Snapshot();
+                    if (snapshot.Kind != MaterialSourceKind.NearbyContainer || snapshot.Available(resource) < 1) continue;
                     if (source.TryStageOne(player.GetInventory(), resource, ItemAllowed, out string reason))
                     {
                         CraftingDiagnostics.TraceAction("manual-use", "one-item-staged:" + resource);
@@ -96,6 +97,13 @@ namespace RunicCrafting.Integration
                         player.Message(MessageHud.MessageType.TopLeft, global::Runic.Localization.RunicText.Get("text_a062aa7a3467"));
                         return false;
                     }
+                    if (reason == "endpoint-needs-inspection" || reason.StartsWith("recovery-needs-inspection:", StringComparison.Ordinal))
+                    {
+                        Plugin.Log?.LogError("Nearby cooking/refueling stopped: " + reason + "; resource=" + resource);
+                        player.Message(MessageHud.MessageType.TopLeft, global::Runic.Localization.RunicText.Get("manual_transfer_recovery_required"));
+                        return false;
+                    }
+                    if (reason == "mutation-busy") return false;
                 }
                 CraftingDiagnostics.TraceGate("manual-use", "no-eligible-source:" + resource);
                 return false;
@@ -124,34 +132,45 @@ namespace RunicCrafting.Integration
                 Plugin.Log?.LogWarning("Nearby cooking/refueling preparation stopped; vanilla interaction remains available: " + exception);
             }
         }
+        internal static Action Resume(Component station, Humanoid user, MethodBase method, object[] arguments)
+        {
+            var args = (object[])arguments.Clone();
+            return () => Guard(() =>
+            {
+                if (!CanPrepare(station, user, out _)) return;
+                _preparing = true;
+                try { method.Invoke(station, args); }
+                finally { _preparing = false; }
+            });
+        }
     }
 
     [HarmonyPatch(typeof(CookingStation), "OnInteract", typeof(Humanoid))]
     internal static class NearbyCookingInteractionPatch
     {
         [HarmonyPriority(Priority.Last)]
-        private static void Prefix(CookingStation __instance, Humanoid user, bool __runOriginal)
-        { if (__runOriginal) ManualInteractionRuntime.Guard(() => ManualInteractionRuntime.PrepareCooking(__instance, user)); }
+        private static void Prefix(CookingStation __instance, Humanoid user, bool __runOriginal, MethodBase __originalMethod, object[] __args)
+        { if (__runOriginal) ManualInteractionRuntime.Guard(() => ManualInteractionRuntime.PrepareCooking(__instance, user, ManualInteractionRuntime.Resume(__instance, user, __originalMethod, __args))); }
     }
     [HarmonyPatch(typeof(CookingStation), "OnAddFuelSwitch", typeof(Switch), typeof(Humanoid), typeof(ItemDrop.ItemData))]
     internal static class NearbyOvenFuelPatch
     {
         [HarmonyPriority(Priority.Last)]
-        private static void Prefix(CookingStation __instance, Humanoid user, ItemDrop.ItemData item, bool __runOriginal)
-        { if (__runOriginal) ManualInteractionRuntime.Guard(() => ManualInteractionRuntime.PrepareCookingFuel(__instance, user, item)); }
+        private static void Prefix(CookingStation __instance, Humanoid user, ItemDrop.ItemData item, bool __runOriginal, MethodBase __originalMethod, object[] __args)
+        { if (__runOriginal) ManualInteractionRuntime.Guard(() => ManualInteractionRuntime.PrepareCookingFuel(__instance, user, item, ManualInteractionRuntime.Resume(__instance, user, __originalMethod, __args))); }
     }
     [HarmonyPatch(typeof(Smelter), "OnAddFuel", typeof(Switch), typeof(Humanoid), typeof(ItemDrop.ItemData))]
     internal static class NearbySmelterFuelPatch
     {
         [HarmonyPriority(Priority.Last)]
-        private static void Prefix(Smelter __instance, Humanoid user, ItemDrop.ItemData item, bool __runOriginal)
-        { if (__runOriginal) ManualInteractionRuntime.Guard(() => ManualInteractionRuntime.PrepareSmelterFuel(__instance, user, item)); }
+        private static void Prefix(Smelter __instance, Humanoid user, ItemDrop.ItemData item, bool __runOriginal, MethodBase __originalMethod, object[] __args)
+        { if (__runOriginal) ManualInteractionRuntime.Guard(() => ManualInteractionRuntime.PrepareSmelterFuel(__instance, user, item, ManualInteractionRuntime.Resume(__instance, user, __originalMethod, __args))); }
     }
     [HarmonyPatch(typeof(Fireplace), "Interact", typeof(Humanoid), typeof(bool), typeof(bool))]
     internal static class NearbyFireFuelPatch
     {
         [HarmonyPriority(Priority.Last)]
-        private static void Prefix(Fireplace __instance, Humanoid user, bool hold, bool alt, float ___m_lastUseTime, bool __runOriginal)
-        { if (__runOriginal) ManualInteractionRuntime.Guard(() => ManualInteractionRuntime.PrepareFire(__instance, user, hold, alt, ___m_lastUseTime)); }
+        private static void Prefix(Fireplace __instance, Humanoid user, bool hold, bool alt, float ___m_lastUseTime, bool __runOriginal, MethodBase __originalMethod, object[] __args)
+        { if (__runOriginal) ManualInteractionRuntime.Guard(() => ManualInteractionRuntime.PrepareFire(__instance, user, hold, alt, ___m_lastUseTime, ManualInteractionRuntime.Resume(__instance, user, __originalMethod, __args))); }
     }
 }

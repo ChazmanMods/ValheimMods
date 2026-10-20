@@ -245,14 +245,67 @@ namespace RunicCrafting.Integration
                 multiplier);
     }
 
+    [HarmonyPatch]
+    internal static class ReservedConsumptionCallPatch
+    {
+        private static readonly MethodInfo Consume = AccessTools.Method(typeof(Player), nameof(Player.ConsumeResources),
+            new[] { typeof(Piece.Requirement[]), typeof(int), typeof(int), typeof(int) });
+        private static readonly MethodInfo ConsumeOnce = AccessTools.Method(typeof(ReservedConsumptionCallPatch), nameof(ConsumeReservedOrNative));
+        private static readonly Lazy<MethodInfo> ReturnBottle = new Lazy<MethodInfo>(() =>
+        {
+            // Optional installed-mod callback: preserve Valharvest's actual bottle
+            // return behavior when the ingredients have already been paid by Runic.
+            var type = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType("Valharvest.Scripts.ReturnEmptyBottle+ConsumeResourcesPatch", false))
+                .FirstOrDefault(t => t != null);
+            return type == null ? null : AccessTools.Method(type, "Prefix",
+                new[] { typeof(Player), typeof(IEnumerable<Piece.Requirement>), typeof(int) });
+        });
+
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(Player), "UpdatePlacement");
+            yield return AccessTools.Method(typeof(InventoryGui), "DoCrafting", new[] { typeof(Player) });
+        }
+
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod)
+        {
+            var codes = new List<CodeInstruction>(instructions);
+            int replaced = 0;
+            foreach (var code in codes)
+                if (code.Calls(Consume))
+                {
+                    // HarmonyX runs every prefix even after one returns false.
+                    // Bypass the redundant consumption call only for an exact paid
+                    // lease; ordinary actions still invoke all native/modded hooks.
+                    code.opcode = OpCodes.Call;
+                    code.operand = ConsumeOnce;
+                    replaced++;
+                }
+            if (replaced == 0)
+                throw new MissingMethodException(__originalMethod.DeclaringType.FullName + "." + __originalMethod.Name + " has no audited ConsumeResources call.");
+            return codes;
+        }
+
+        private static void ConsumeReservedOrNative(Player player, Piece.Requirement[] requirements, int qualityLevel, int itemQuality, int multiplier)
+        {
+            if (CraftingRuntime.BeforeVanillaConsume(player, requirements, qualityLevel, itemQuality, multiplier))
+                player.ConsumeResources(requirements, qualityLevel, itemQuality, multiplier);
+            else
+                ReturnBottle.Value?.Invoke(null, new object[] { player, requirements, qualityLevel });
+        }
+    }
+
     [HarmonyPatch(typeof(Player), "UpdatePlacement")]
     internal static class PlayerUpdatePlacementPatch
     {
-        private static void Prefix() => CraftingRuntime.BeginPlacementScope();
+        private static void Prefix(Player __instance, bool takeInput)
+        { AuthorityBuildingExecution.Enter(__instance, takeInput); CraftingRuntime.BeginPlacementScope(); }
 
-        private static Exception Finalizer(Exception __exception)
+        private static Exception Finalizer(Player __instance, Exception __exception)
         {
-            CraftingRuntime.FinishPlacementScope(__exception);
+            try { CraftingRuntime.FinishPlacementScope(__exception); }
+            finally { AuthorityBuildingExecution.Exit(__instance); }
             return __exception;
         }
     }
@@ -325,8 +378,9 @@ namespace RunicCrafting.Integration
             try
             {
                 if (CraftingRuntime.BeforePlacePiece(__instance, piece, out string reason)) return true;
+                if (reason == "nearby-placement-pending") { __result = false; return false; }
                 __instance.Message(
-                    MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_b642674f3672") + reason);
+                    MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_b642674f3672") + CraftingRuntime.FailureMessage(reason));
                 __result = false;
                 return false;
             }

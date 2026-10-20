@@ -4,6 +4,51 @@ using RunicStorage.Runtime;
 
 internal static class TransferRegressionTests
 {
+    internal static void RecoveryDenialAndChestOnlyScopeAreDistinct()
+    {
+        RunicAutomation.MutationGate.EndSession();
+        var player=new Player{Inventory=Bag(Item(1,2,0))};Player.m_localPlayer=player;
+        RunicAutomation.MutationGate.Block(player.Inventory);
+        Check(!StorageMutationLease.TryBegin(player,out _,out var denial)&&denial==StorageMutationDenial.RecoveryRequired,"Recovery must not be reported as an active operation.");
+        Check(RunicAutomation.MutationGate.Current==null,"Blocked inventory has no active operation.");
+        RunicAutomation.MutationGate.EndSession();
+        Check(StorageMutationLease.TryBegin(player,out var sort,out _,trackPlayer:false),"Chest sort scope starts.");
+        using(sort)
+        {
+            var chest=Bag();RunicAutomation.MutationGate.Current.Track(chest);
+            RunicAutomation.MutationGate.Current.Complete(RunicAutomation.MutationOutcome.Indeterminate);
+            Check(!RunicAutomation.MutationGate.IsBlocked(player.Inventory),"Chest sort failure must not block the untouched backpack.");
+        }
+        Check(StorageMutationLease.TryBegin(player,out var next),"Backpack remains usable.");
+        using(next)
+            Check(!StorageMutationLease.TryBegin(player,out _,out denial)&&denial==StorageMutationDenial.OperationActive,"Actual contention is distinct.");
+        RunicAutomation.MutationGate.EndSession();
+    }
+
+    internal static void SingleStackSelectionConservesOtherStacks()
+    {
+        var selected = Item(1, 10, 0);
+        var sameResource = Item(1, 20, 1);
+        var otherResource = Item(2, 7, 2);
+        var source = Bag(selected, sameResource, otherResource);
+        var target = Bag(Item(1, 48, 0));
+        var selectedOnly = RunicStorage.Engine.QuickStackSelection.Capture(source.GetAllItems(), true, selected);
+        Check(selectedOnly.Count == 1 && ReferenceEquals(selectedOnly[0], selected), "Selection must use identity, not item type.");
+        // A partial first destination followed by another destination must not widen selection.
+        Check(ValheimContainerService.MoveUpTo(source, target, selectedOnly[0], 2) == 2, "Partial deposit failed.");
+        var second = Bag();
+        Check(ValheimContainerService.MoveUpTo(source, second, selectedOnly[0], 8) == 8, "Remaining deposit failed.");
+        Check(source.GetAllItems().Count == 2 && sameResource.m_stack == 20 && otherResource.m_stack == 7,
+            "Unselected stacks must remain unchanged, including the same item type.");
+        source.GetAllItems().Add(Item(1, 9, 0));
+        Check(RunicStorage.Engine.QuickStackSelection.Capture(source.GetAllItems(), true, selected).Count == 0,
+            "A stale retry must not select a replacement in the same slot.");
+        Check(RunicStorage.Engine.QuickStackSelection.Capture(source.GetAllItems(), true, (ItemDrop.ItemData)null).Count == 0,
+            "A missing selection must not become Quick Stack All.");
+        Check(RunicStorage.Engine.QuickStackSelection.Capture(source.GetAllItems(), false, (ItemDrop.ItemData)null).Count == 3,
+            "Quick Stack All must still include every carried stack.");
+    }
+
     private static void Check(bool condition, string message) { if(!condition)throw new InvalidOperationException(message); }
     private static ItemDrop.ItemData Item(int prefab, int count, int x, float durability=0f) => new ItemDrop.ItemData { Prefab=prefab,m_stack=count,m_gridPos=new Vector2i(x,0),m_durability=durability };
     private static Inventory Bag(params ItemDrop.ItemData[] items) {var i=new Inventory("test",null,8,4);i.GetAllItems().AddRange(items);return i;}
@@ -115,18 +160,18 @@ internal static class TransferRegressionTests
         Check(threw,"Snapshot cannot be applied to a different inventory.");
     }
 
-    internal static void ChestPayloadAllowsOnlyNativeRounding()
+    internal static void ChestPayloadIgnoresDurability()
     {
         var tool=Item(2,1,0,10.029f);tool.m_customData["lock"]="yes";
         var source=Bag(tool,Item(1,10,1));var before=Bytes(source);var loaded=Bag();loaded.Load(new ZPackage(before));
         var after=Bytes(loaded);
-        Check(!before.SequenceEqual(after)&&StorageInventoryPayloadComparison.MatchesLoaded(before,after),"Accept precisely one native codec round trip.");
+        Check(!before.SequenceEqual(after)&&StorageInventoryPayloadComparison.MatchesLoaded(before,after),"Accept native durability rounding.");
         loaded.GetAllItems()[1].m_stack++;
         Check(!StorageInventoryPayloadComparison.MatchesLoaded(before,Bytes(loaded)),"Reject quantity change.");
         loaded.Load(new ZPackage(before));loaded.GetAllItems()[0].m_customData["lock"]="bad";
         Check(!StorageInventoryPayloadComparison.MatchesLoaded(before,Bytes(loaded)),"Reject metadata change.");
         loaded.Load(new ZPackage(before));loaded.GetAllItems()[0].m_durability+=1f;
-        Check(!StorageInventoryPayloadComparison.MatchesLoaded(before,Bytes(loaded)),"Reject arbitrary durability tolerance.");
+        Check(StorageInventoryPayloadComparison.MatchesLoaded(before,Bytes(loaded)),"Ignore durability changes.");
         Check(!StorageInventoryPayloadComparison.MatchesLoaded(before,after.Take(after.Length-1).ToArray()),"Reject truncated payload.");
     }
 

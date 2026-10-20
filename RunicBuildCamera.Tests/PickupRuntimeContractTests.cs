@@ -16,34 +16,50 @@ namespace RunicBuildCamera.Tests
             TestRunner.Run("pickup buffers and mutation budget are hard-bounded", PickupWorkIsHardBounded);
             TestRunner.Run("pickup uses installed private auto-pickup fields exactly", AutoPickupFieldsResolveExactly);
             TestRunner.Run("pickup discovers from the detached camera", PickupDiscoversFromCamera);
-            TestRunner.Run("pickup validates each item and ward independently", PickupValidatesEveryTarget);
+            TestRunner.Run("pickup validates loose items without building-only ward rules", PickupValidatesEveryTarget);
             TestRunner.Run("ownership request precedes eligibility commit and pickup", OwnershipPrecedesCommit);
             TestRunner.Run("pickup cooldown storage is bounded and resettable", CooldownsAreBoundedAndResettable);
-            TestRunner.Run("pickup handles only loose ItemDrop rigidbodies", PickupHandlesOnlyLooseDrops);
+            TestRunner.Run("pickup registry includes drops without physics colliders", PickupUsesLoadedDrops);
             TestRunner.Run("pickup runtime never accesses containers", PickupNeverAccessesContainers);
             TestRunner.Run("pickup faults reset transient state", PickupFaultsResetState);
+            TestRunner.Run("player ward pickup adapter matches installed game", PlayerWardAdapterMatchesGame);
+        }
+
+        private static void PlayerWardAdapterMatchesGame()
+        {
+            FieldInfo areas = typeof(PrivateArea).GetField("m_allAreas", BindingFlags.Static | BindingFlags.NonPublic);
+            TestAssert.NotNull(areas, "PrivateArea registry missing.");
+            TestAssert.True(areas.IsStatic);
+            TestAssert.Equal(typeof(List<PrivateArea>), areas.FieldType);
+            TestAssert.NotNull(typeof(PrivateArea).GetMethod("IsEnabled", BindingFlags.Instance | BindingFlags.NonPublic).CreateDelegate(typeof(Func<PrivateArea, bool>)), "Enabled delegate failed.");
+            TestAssert.NotNull(typeof(PrivateArea).GetMethod("IsInside", BindingFlags.Instance | BindingFlags.NonPublic).CreateDelegate(typeof(Func<PrivateArea, Vector3, float, bool>)), "Inside delegate failed.");
+            TestAssert.NotNull(typeof(PrivateArea).GetMethod("HaveLocalAccess", BindingFlags.Instance | BindingFlags.NonPublic).CreateDelegate(typeof(Func<PrivateArea, bool>)), "Access delegate failed.");
+            MethodInfo allows = typeof(PlayerWardPickupAccess).GetMethod("Allows",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            TestAssert.True(IlReader.Calls(allows, typeof(Piece), nameof(Piece.IsPlacedByPlayer)));
+            MethodInfo evaluate = typeof(RemotePickupRuntime).GetMethod("TryEvaluate",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            TestAssert.True(IlReader.Calls(evaluate, typeof(PlayerWardPickupAccess), "Allows"));
         }
 
         private static void PickupWorkIsHardBounded()
         {
             Type runtime = typeof(RemotePickupRuntime);
             FieldInfo buffer = runtime.GetField(
-                "ColliderBuffer", BindingFlags.Static | BindingFlags.NonPublic);
-            TestAssert.Equal(typeof(Collider[]), TestAssert.NotNull(
-                buffer, "Pickup collider buffer is missing.").FieldType);
+                "ItemBuffer", BindingFlags.Static | BindingFlags.NonPublic);
+            TestAssert.Equal(typeof(ItemDrop[]), TestAssert.NotNull(
+                buffer, "Pickup candidate buffer is missing.").FieldType);
             MethodInfo scan = runtime.GetMethod("Scan", BindingFlags.Static | BindingFlags.NonPublic);
             TestAssert.True(IlReader.LoadsInt32(scan, PickupPolicy.MaximumAttemptsPerScan),
                 "Per-scan mutation limit is no longer compiled into the scan loop.");
-            TestAssert.True(IlReader.Calls(
-                scan, typeof(Physics), nameof(Physics.OverlapSphereNonAlloc)),
-                "Pickup discovery allocates instead of using the bounded non-allocating overlap API.");
-            TestAssert.False(IlReader.Calls(scan, typeof(Physics), nameof(Physics.OverlapSphere)),
-                "Pickup discovery uses the allocating overlap API.");
+            TestAssert.True(IlReader.Calls(scan, typeof(PickupScanWindow), "CopyNext"));
+            TestAssert.False(IlReader.Calls(scan, typeof(Physics), nameof(Physics.OverlapSphereNonAlloc)),
+                "Collider-only discovery can miss drops and starve a saturated buffer.");
 
             MethodBase initializer = TestAssert.NotNull(
                 runtime.TypeInitializer, "Pickup runtime static initializer is missing.");
-            TestAssert.True(IlReader.LoadsInt32(initializer, PickupPolicy.ColliderCapacity),
-                "Collider buffer capacity drifted from the policy contract.");
+            TestAssert.True(IlReader.LoadsInt32(initializer, PickupPolicy.CandidateCapacity),
+                "Candidate buffer capacity drifted from the policy contract.");
         }
 
         private static void AutoPickupFieldsResolveExactly()
@@ -51,17 +67,17 @@ namespace RunicBuildCamera.Tests
             const BindingFlags AllFields = BindingFlags.Public | BindingFlags.NonPublic |
                                            BindingFlags.Instance | BindingFlags.Static;
             FieldInfo enabled = typeof(Player).GetField("m_enableAutoPickup", AllFields);
-            FieldInfo mask = typeof(Player).GetField("m_autoPickupMask", AllFields);
             TestAssert.NotNull(enabled, "Installed Player.m_enableAutoPickup is missing.");
-            TestAssert.NotNull(mask, "Installed Player.m_autoPickupMask is missing.");
             TestAssert.Equal(typeof(bool), enabled.FieldType);
-            TestAssert.True(enabled.IsStatic, "Installed auto-pickup enable flag changed ownership.");
-            TestAssert.Equal(typeof(int), mask.FieldType);
-            TestAssert.False(mask.IsStatic, "Installed auto-pickup layer mask changed ownership.");
+            TestAssert.True(enabled.IsStatic);
+            FieldInfo registry = typeof(ItemDrop).GetField("s_instances", AllFields);
+            TestAssert.NotNull(registry, "Installed item registry is missing.");
+            TestAssert.True(registry.IsStatic);
+            TestAssert.Equal(typeof(List<ItemDrop>), registry.FieldType);
 
             MethodBase initializer = typeof(RemotePickupRuntime).TypeInitializer;
             TestAssert.True(IlReader.LoadsString(initializer, "m_enableAutoPickup"));
-            TestAssert.True(IlReader.LoadsString(initializer, "m_autoPickupMask"));
+            TestAssert.True(IlReader.LoadsString(initializer, "s_instances"));
             TestAssert.True(IlReader.Calls(initializer, typeof(AccessTools), nameof(AccessTools.Field)));
 
             MethodInfo reader = typeof(RemotePickupRuntime).GetMethod(
@@ -83,7 +99,7 @@ namespace RunicBuildCamera.Tests
                 string.Equals(parameter.Name, "cameraPosition", StringComparison.Ordinal));
             TestAssert.Equal(typeof(Vector3), camera.ParameterType);
             TestAssert.True(IlReader.Calls(
-                scan, typeof(Physics), nameof(Physics.OverlapSphereNonAlloc)));
+                scan, typeof(PickupScanWindow), "CopyNext"));
         }
 
         private static void PickupValidatesEveryTarget()
@@ -92,7 +108,7 @@ namespace RunicBuildCamera.Tests
                 "TryEvaluate", BindingFlags.Static | BindingFlags.NonPublic);
             IReadOnlyList<MethodBase> calls = IlReader.Calls(evaluate);
             int range = IlReader.CallIndex(calls, typeof(PickupPolicy), "IsWithinRange");
-            int ward = IlReader.CallIndex(calls, typeof(PrivateArea), nameof(PrivateArea.CheckAccess));
+
             int unique = FindCall(calls, nameof(Player.HaveUniqueKey));
             int capacity = FindCall(calls, nameof(Inventory.CanAddItem));
             int weight = FindCall(calls, nameof(Inventory.GetTotalWeight));
@@ -100,8 +116,13 @@ namespace RunicBuildCamera.Tests
             int piece = IlReader.CallIndex(calls, typeof(ItemDrop), nameof(ItemDrop.IsPiece));
             int tar = IlReader.CallIndex(calls, typeof(ItemDrop), nameof(ItemDrop.InTar));
             int policy = IlReader.CallIndex(calls, typeof(PickupPolicy), "Evaluate");
-            TestAssert.True(range >= 0 && ward > range,
-                "Ward access must be checked at each finite in-range target position.");
+            TestAssert.True(range >= 0);
+            TestAssert.False(IlReader.Calls(evaluate, typeof(PrivateArea), nameof(PrivateArea.CheckAccess)),
+                "Loose pickup must not add the building-only ward restriction.");
+            TestAssert.True(calls.OfType<MethodInfo>().Any(method =>
+                method.Name == "GetComponent" && method.IsGenericMethod &&
+                method.GetGenericArguments().Contains(typeof(Fish))),
+                "Fish actors must not bypass fishing rules through ItemDrop pickup.");
             TestAssert.True(unique >= 0 && capacity > unique && weight > capacity && maxWeight > weight,
                 "Unique, inventory capacity, and carry-weight checks drifted.");
             TestAssert.True(piece >= 0 && tar > piece && policy > tar,
@@ -156,15 +177,13 @@ namespace RunicBuildCamera.Tests
                 nameof(Dictionary<ZDOID, object>.Clear)));
         }
 
-        private static void PickupHandlesOnlyLooseDrops()
+        private static void PickupUsesLoadedDrops()
         {
-            MethodInfo resolve = typeof(RemotePickupRuntime).GetMethod(
-                "ResolveLooseItem", BindingFlags.Static | BindingFlags.NonPublic);
-            TestAssert.True(IlReader.Calls(resolve, typeof(Collider), "get_attachedRigidbody"));
-            TestAssert.True(IlReader.Calls(resolve, typeof(Component), "GetComponent"),
-                "Loose pickup does not resolve ItemDrop from the physics body.");
-            TestAssert.True(IlReader.ReferencesType(resolve, typeof(FloatingTerrainDummy)),
-                "Floating terrain proxy items no longer resolve through their parent drop.");
+            MethodInfo scan = typeof(RemotePickupRuntime).GetMethod(
+                "Scan", BindingFlags.Static | BindingFlags.NonPublic);
+            TestAssert.True(IlReader.Calls(scan, typeof(Behaviour), "get_isActiveAndEnabled"));
+            TestAssert.True(IlReader.Calls(scan, typeof(GameObject), "get_activeInHierarchy"));
+            TestAssert.False(IlReader.Calls(scan, typeof(Collider), "get_attachedRigidbody"));
         }
 
         private static void PickupNeverAccessesContainers()

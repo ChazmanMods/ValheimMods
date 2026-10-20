@@ -1,8 +1,10 @@
-# ArcaneDecor: WaterGardens 1.0.2
+# ArcaneDecor: WaterGardens 1.2.1
 
 Build a quiet corner of Valheim with flowering water lilies, flowing ponds, glowing lanterns, fountains, and fireflies.
 
-WaterGardens adds **50 placeable garden pieces** to the hammer's **Water Garden** category. Combine ponds into a larger garden, decorate their banks, and give each space its own atmosphere with adjustable lighting and sound.
+WaterGardens adds **51 placeable garden pieces** to the hammer's **Water Garden** category. Combine ponds into a larger garden, decorate their banks, and give each space its own atmosphere with adjustable lighting and sound.
+
+Ponds now use Valheim's outdoor water appearance, with animated ripples, reflections and clear shallows. ArcaneWaters 0.7.0 rivers meet ponds at their water level using the same water material. Pond edits update nearby connections, and existing saved ponds receive the new appearance when loaded.
 
 ## A garden that moves with the world
 
@@ -189,3 +191,12 @@ This version follows Valheim's selected language using files in `Translations/Ar
 Enjoying the mods? You can support my work and future creations. Thank you for playing!
 
 [Support My Work](https://buymeacoffee.com/the_artful_engineer)
+
+
+## ArcaneWaters river gardens
+
+With ArcaneWaters 0.3.1 installed, build **River Garden Stone** (4 Stone) beside a river. Its E menu controls manually placed pieces for 10 m along the channel in each direction, across bends and adjoining river sections. At junctions this is a 10 m path distance into each connected branch.
+
+Adjust flower size, floating lanterns/fountains/statues, river sound volume/distance, seven ambience tracks, playback speed, audible distance, firefly count and night-only ambience. Place all lilies, reeds, cattails, statues and other decor manually with the hammer. The stone does not spawn decorations or water. More stones control additional sections; the latest saved stone wins overlapping settings.
+
+WaterGardens remains usable by itself. ArcaneWaters integration requires both ArcaneWaters 0.3.1 and WaterGardens 1.1.1 on the server and clients.

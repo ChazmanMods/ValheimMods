@@ -283,6 +283,19 @@ namespace RunicSentinel.Runtime
             Submit("capacity", bytes, new Pending { Result = callback });
         }
 
+        internal void SaveBuilding(BuildingSettings settings, Action<bool, string> callback)
+        {
+            byte[] bytes;
+            try { bytes = settings.Encode(); BuildingSettings.Decode(bytes); }
+            catch (Exception error) { callback(false, error.Message); return; }
+            if (TryExecuteLocal("building", bytes, out bool ok, out byte[] response, out string reason))
+            {
+                callback(ok, ok ? SentinelAdminProtocol.DecodeMessage(response) : reason);
+                return;
+            }
+            Submit("building", bytes, new Pending { Result = callback });
+        }
+
         private bool TryExecuteLocal(
             string action, byte[] payload, out bool accepted, out byte[] response, out string reason)
         {
@@ -388,6 +401,9 @@ namespace RunicSentinel.Runtime
                     SentinelAdminDocument status = _managed.CreateDocument(
                         "Authenticated by " + authority + " backend identity.");
                     SentinelCapacityBridge.Populate(status);
+#if !RUNIC_SENTINEL_SERVER_ONLY
+                    SentinelBuildingBridge.Populate(status);
+#endif
                     // Include the first roster in the already authenticated status response.
                     // Subsequent updates use the smaller, read-only players request.
                     status.Players = SentinelPeople.List(_runtime,_managed);
@@ -434,6 +450,10 @@ namespace RunicSentinel.Runtime
                     response = SentinelAdminProtocol.EncodeMessage(SentinelPlayerReports.Detail(new System.Text.UTF8Encoding(false, true).GetString(payload), _runtime));
                 else if (action == "player-report" && payload.Length <= 512)
                     response = SentinelAdminProtocol.EncodeMessage(SentinelPlayerReports.Create(new System.Text.UTF8Encoding(false, true).GetString(payload), _runtime));
+#if !RUNIC_SENTINEL_SERVER_ONLY
+                else if (action == "building")
+                    response = SentinelAdminProtocol.EncodeMessage(SentinelBuildingBridge.Save(payload));
+#endif
                 else if (action == "capacity" && SentinelCapacityProtocol.TryDecode(payload, out string revision, out bool enabled, out int players))
                     response = SentinelAdminProtocol.EncodeMessage(SentinelCapacityBridge.Save(revision, enabled, players));
                 else if (action == "tool" && SentinelAdminProtocol.TryDecodeTool(payload, out string tool))
@@ -510,7 +530,7 @@ namespace RunicSentinel.Runtime
                     package.ReadInt() != WireSchema) return false;
                 id = package.ReadString(); action = package.ReadString(); issued = package.ReadLong();
                 payload = package.ReadByteArray();
-                return CanonicalId(id) && (action == "status" || action == "apply" || action == "tool" || action == "capacity" || action == "command" || action == "player-report" || action == "players" || action == "player-detail" || action == "person" || action=="report-read" || action=="player-action" || action=="player-action-result") &&
+                return CanonicalId(id) && (action == "status" || action == "apply" || action == "tool" || action == "capacity" || action == "building" || action == "command" || action == "player-report" || action == "players" || action == "player-detail" || action == "person" || action=="report-read" || action=="player-action" || action=="player-action-result") &&
                        payload != null && payload.Length <= SentinelAdminProtocol.MaximumWireBytes &&
                        package.ReadInt() == TerminalMarker && package.GetPos() == package.Size();
             }
@@ -760,3 +780,4 @@ namespace RunicSentinel.Runtime
         }
     }
 }
+

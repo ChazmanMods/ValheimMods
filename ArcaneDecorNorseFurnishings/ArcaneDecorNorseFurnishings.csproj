@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><AssemblyName>ArcaneDecorNorseFurnishings</AssemblyName><LangVersion>latest</LangVersion><Version>0.1.1</Version><GameManaged>E:\SteamLibrary\steamapps\common\Valheim\valheim_Data\Managed</GameManaged><BepRoot>C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Solo\BepInEx</BepRoot></PropertyGroup>
+ <ItemGroup>
+  <Reference Include="BepInEx" HintPath="$(BepRoot)\core\BepInEx.dll" Private="false" />
+  <Reference Include="Jotunn" HintPath="$(BepRoot)\plugins\ValheimModding-Jotunn\Jotunn.dll" Private="false" />
+  <Reference Include="assembly_valheim" HintPath="$(GameManaged)\assembly_valheim.dll" Private="false" />
+  <Reference Include="assembly_utils" HintPath="$(GameManaged)\assembly_utils.dll" Private="false" />
+  <Reference Include="UnityEngine" HintPath="$(GameManaged)\UnityEngine.dll" Private="false" />
+  <Reference Include="UnityEngine.CoreModule" HintPath="$(GameManaged)\UnityEngine.CoreModule.dll" Private="false" />
+  <Reference Include="UnityEngine.AssetBundleModule" HintPath="$(GameManaged)\UnityEngine.AssetBundleModule.dll" Private="false" />
+  <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GameManaged)\UnityEngine.PhysicsModule.dll" Private="false" />
+  <Reference Include="UnityEngine.ImageConversionModule" HintPath="$(GameManaged)\UnityEngine.ImageConversionModule.dll" Private="false" />
+  <Compile Remove="Diagnostics/**/*.cs;Baseline-0.1.0/**/*.cs" />
+  <EmbeddedResource Include="Assets/bed.meshbin;Assets/bed-texture.png;Assets/bed-icon.png" LogicalName="NorseFurnishings.%(Filename)%(Extension)" />
+ </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+{
+  "name": "BetterSigns",
+  "version_number": "0.2.0",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Modular signs for storage, doors, mail, roads, glass, and large-format signboards with an easy visual text editor.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333",
+    "ValheimModding-Jotunn-2.29.1"
+  ]
+}

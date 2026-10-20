@@ -1,7 +1,7 @@
 using UnityEngine;
 namespace RunicProduction.Integration
 {
-    // All inventory consumers use the same owner-approved receipt protocol.
+    // Native fallback shares access checks and Valheim ownership across consumers.
     internal static class ProductionChestHandoff
     {
         private static bool _active;

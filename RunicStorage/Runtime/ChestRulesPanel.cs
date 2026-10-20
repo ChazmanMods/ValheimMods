@@ -378,8 +378,8 @@ internal sealed class ChestRulesPanel : IDisposable
     { var r = Rect(name, parent, 0, 0, 0, 0); var image = r.gameObject.AddComponent<Image>(); image.color = color; return image; }
     private TMP_Text Text(Transform parent, string value, float x, float y, float w, float h, int size = 18)
     {
-        var r = Rect("Text", parent, x, y, w, h); var text = r.gameObject.AddComponent<TextMeshProUGUI>();
-        text.font = _theme.Font ? _theme.Font : TMP_Settings.defaultFontAsset; text.text = value; text.fontSize = size;
+        var r = Rect("Text", parent, x, y, w, h); var text = StorageTextFactory.Add(r.gameObject, _theme.Font);
+        text.text = value; text.fontSize = size;
         text.color = new Color(1, .85f, .57f); text.richText = false; text.raycastTarget = false;
         text.alignment = TextAlignmentOptions.MidlineLeft; text.overflowMode = TextOverflowModes.Ellipsis; return text;
     }

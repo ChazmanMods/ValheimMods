@@ -52,7 +52,8 @@ namespace RunicProduction.Integration
             StockStationPrefabPolicy cookingInputStations,
             StockStationPrefabPolicy fermenterInputStations,
             out ReplenishmentPlan plan,
-            out string failure)
+            out string failure,
+            bool requirePhysical = true)
         {
             plan = null;
             failure = string.Empty;
@@ -113,7 +114,7 @@ namespace RunicProduction.Integration
                         cookingInputStations,
                         fermenterInputStations,
                         out ReplenishmentTargetAuthorization target,
-                        out _))
+                        out _, requirePhysical))
                     targets[exemplar] = target;
             }
             if (targets.Count > ReplenishmentPlan.MaximumTargets)

@@ -1,0 +1,325 @@
+{
+  "commit": "b6b55fef1e8636b540a6d016a4729ca8cdf2e60b",
+  "entries": [
+    {
+      "unicode": 127830,
+      "name": "Meat",
+      "group": "Food"
+    },
+    {
+      "unicode": 127831,
+      "name": "Poultry",
+      "group": "Food"
+    },
+    {
+      "unicode": 128031,
+      "name": "Fish",
+      "group": "Food"
+    },
+    {
+      "unicode": 127838,
+      "name": "Bread",
+      "group": "Food"
+    },
+    {
+      "unicode": 129472,
+      "name": "Cheese",
+      "group": "Food"
+    },
+    {
+      "unicode": 129370,
+      "name": "Egg",
+      "group": "Food"
+    },
+    {
+      "unicode": 127812,
+      "name": "Mushroom",
+      "group": "Food"
+    },
+    {
+      "unicode": 127822,
+      "name": "Apple",
+      "group": "Food"
+    },
+    {
+      "unicode": 127827,
+      "name": "Berry",
+      "group": "Food"
+    },
+    {
+      "unicode": 129362,
+      "name": "Cucumber",
+      "group": "Food"
+    },
+    {
+      "unicode": 129365,
+      "name": "Carrot",
+      "group": "Food"
+    },
+    {
+      "unicode": 127805,
+      "name": "Corn",
+      "group": "Food"
+    },
+    {
+      "unicode": 127855,
+      "name": "Honey",
+      "group": "Food"
+    },
+    {
+      "unicode": 127866,
+      "name": "Ale",
+      "group": "Food"
+    },
+    {
+      "unicode": 127858,
+      "name": "Soup",
+      "group": "Food"
+    },
+    {
+      "unicode": 127815,
+      "name": "Grapes",
+      "group": "Food"
+    },
+    {
+      "unicode": 129717,
+      "name": "Wood",
+      "group": "Materials"
+    },
+    {
+      "unicode": 129704,
+      "name": "Stone",
+      "group": "Materials"
+    },
+    {
+      "unicode": 128293,
+      "name": "Fire",
+      "group": "Materials"
+    },
+    {
+      "unicode": 128167,
+      "name": "Water",
+      "group": "Materials"
+    },
+    {
+      "unicode": 127806,
+      "name": "Grain",
+      "group": "Materials"
+    },
+    {
+      "unicode": 127793,
+      "name": "Seedling",
+      "group": "Materials"
+    },
+    {
+      "unicode": 127803,
+      "name": "Flower",
+      "group": "Materials"
+    },
+    {
+      "unicode": 127794,
+      "name": "Fir",
+      "group": "Materials"
+    },
+    {
+      "unicode": 127795,
+      "name": "Tree",
+      "group": "Materials"
+    },
+    {
+      "unicode": 127811,
+      "name": "Leaves",
+      "group": "Materials"
+    },
+    {
+      "unicode": 128142,
+      "name": "Gem",
+      "group": "Materials"
+    },
+    {
+      "unicode": 129521,
+      "name": "Brick",
+      "group": "Materials"
+    },
+    {
+      "unicode": 129525,
+      "name": "Thread",
+      "group": "Materials"
+    },
+    {
+      "unicode": 129526,
+      "name": "Yarn",
+      "group": "Materials"
+    },
+    {
+      "unicode": 129718,
+      "name": "Feather",
+      "group": "Materials"
+    },
+    {
+      "unicode": 129460,
+      "name": "Bone",
+      "group": "Materials"
+    },
+    {
+      "unicode": 129683,
+      "name": "Axe",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128296,
+      "name": "Hammer",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128295,
+      "name": "Wrench",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128297,
+      "name": "Parts",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 129522,
+      "name": "Magnet",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 127993,
+      "name": "Bow",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128737,
+      "name": "Shield",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128481,
+      "name": "Sword",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 129514,
+      "name": "Potion",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 129520,
+      "name": "Tools",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 127890,
+      "name": "Backpack",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128094,
+      "name": "Shoes",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128081,
+      "name": "Crown",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128141,
+      "name": "Ring",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128273,
+      "name": "Key",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 128274,
+      "name": "Lock",
+      "group": "Equipment"
+    },
+    {
+      "unicode": 127968,
+      "name": "Home",
+      "group": "Places"
+    },
+    {
+      "unicode": 127984,
+      "name": "Castle",
+      "group": "Places"
+    },
+    {
+      "unicode": 128682,
+      "name": "Door",
+      "group": "Places"
+    },
+    {
+      "unicode": 128719,
+      "name": "Bed",
+      "group": "Places"
+    },
+    {
+      "unicode": 128230,
+      "name": "Storage",
+      "group": "Places"
+    },
+    {
+      "unicode": 128674,
+      "name": "Ship",
+      "group": "Places"
+    },
+    {
+      "unicode": 128758,
+      "name": "Canoe",
+      "group": "Places"
+    },
+    {
+      "unicode": 129517,
+      "name": "Compass",
+      "group": "Places"
+    },
+    {
+      "unicode": 128506,
+      "name": "Map",
+      "group": "Places"
+    },
+    {
+      "unicode": 127956,
+      "name": "Mountain",
+      "group": "Places"
+    },
+    {
+      "unicode": 127754,
+      "name": "Ocean",
+      "group": "Places"
+    },
+    {
+      "unicode": 128128,
+      "name": "Danger",
+      "group": "Places"
+    },
+    {
+      "unicode": 128683,
+      "name": "Forbidden",
+      "group": "Places"
+    },
+    {
+      "unicode": 128681,
+      "name": "Flag",
+      "group": "Places"
+    },
+    {
+      "unicode": 128161,
+      "name": "Idea",
+      "group": "Places"
+    },
+    {
+      "unicode": 127775,
+      "name": "Star",
+      "group": "Places"
+    }
+  ]
+}

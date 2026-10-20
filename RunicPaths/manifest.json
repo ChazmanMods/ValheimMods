@@ -1,0 +1,9 @@
+{
+  "name": "RunicPaths",
+  "version_number": "0.3.1",
+  "website_url": "",
+  "description": "Test build: prepare persistent POI roads before play; cached terrain generation, shared seams and obstacle relocation without map reveal.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

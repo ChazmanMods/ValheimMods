@@ -12,6 +12,7 @@ internal sealed class SignSettings
     internal float Scale = 1, TextSize = 1, Horizontal, Vertical, Depth;
     internal int Color = 9, Background, Alignment = 1;
     internal bool Bold, Italic;
+    internal bool VanillaCompatible;
     internal bool Fit = true;
     internal int OffsetUnit, Effect; // bit 1: outline, bit 2: shadow
     internal float CurveVertical, CurveDepth;
@@ -34,8 +35,9 @@ internal sealed class SignSettings
     internal string Encode()
     {
         if (!Valid) throw new ArgumentException("Invalid sign settings.");
-        return string.Join("|", "4", F(Scale), F(TextSize), F(Horizontal), F(Vertical),
+        string encoded = string.Join("|", VanillaCompatible ? "5" : "4", F(Scale), F(TextSize), F(Horizontal), F(Vertical),
             Color, Background, Alignment, Bold ? 1 : 0, Italic ? 1 : 0, Fit ? 1 : 0, OffsetUnit, Effect, Ink, F(Opacity), SignFormatting.EncodeRuns(Runs), F(CurveVertical), F(CurveDepth), F(Depth));
+        return VanillaCompatible ? encoded + "|1" : encoded;
     }
     private static string F(float value) => value.ToString("R", CultureInfo.InvariantCulture);
 
@@ -49,7 +51,9 @@ internal sealed class SignSettings
         bool v2 = p.Length == 16 && p[0] == "2";
         bool v3 = p.Length == 18 && p[0] == "3";
         bool v4 = p.Length == 19 && p[0] == "4";
-        if (!legacy && !v2 && !v3 && !v4) return false;
+        bool v5 = p.Length == 20 && p[0] == "5" && p[19] == "1";
+        if (!legacy && !v2 && !v3 && !v4 && !v5) return false;
+        settings.VanillaCompatible = v5;
         if (!Float(p[1], out settings.Scale) || !Float(p[2], out settings.TextSize) ||
             !Float(p[3], out settings.Horizontal) || !Float(p[4], out settings.Vertical) ||
             !int.TryParse(p[5], out settings.Color) || !int.TryParse(p[6], out settings.Background) ||
@@ -62,8 +66,8 @@ internal sealed class SignSettings
                 !SignFormatting.TryDecodeRuns(p[15], out settings.Runs)) return false;
             settings.Fit = p[10] == "1"; settings.Ink = p[13];
         }
-        if ((v3 || v4) && (!Float(p[16], out settings.CurveVertical) || !Float(p[17], out settings.CurveDepth))) return false;
-        if (v4 && !Float(p[18], out settings.Depth)) return false;
+        if ((v3 || v4 || v5) && (!Float(p[16], out settings.CurveVertical) || !Float(p[17], out settings.CurveDepth))) return false;
+        if ((v4 || v5) && !Float(p[18], out settings.Depth)) return false;
         return settings.Valid;
     }
     private static bool Float(string s, out float f) => float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out f);

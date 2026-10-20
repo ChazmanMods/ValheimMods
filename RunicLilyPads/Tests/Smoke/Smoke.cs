@@ -24,6 +24,11 @@ public partial class Smoke:BaseUnityPlugin
         int errors=0;
         foreach(string id in ids){var p=PrefabManager.Instance.GetPrefab(id);if(!p||p.GetComponentsInChildren<MeshFilter>(true).Length==0){Logger.LogError("SMOKE FAIL prefab "+id);errors++;}else Logger.LogInfo("SMOKE PASS prefab "+id);}
         var asm=Array.Find(AppDomain.CurrentDomain.GetAssemblies(),a=>a.GetName().Name=="ArcaneDecorWaterGardens");
+        if(Environment.GetEnvironmentVariable("WATERGARDENS_HEALTH_ONLY")=="1"){
+            yield return StartCoroutine(CheckWorld(ids,asm));
+            Logger.LogInfo(worldErrors==0?"SMOKE COMPLETE PASS":"SMOKE COMPLETE FAIL "+worldErrors);
+            Application.Quit(worldErrors==0?0:2);yield break;
+        }
         try{var audio=asm.GetType("RunicLilyPads.GardenAudio").GetMethod("Get",BindingFlags.NonPublic|BindingFlags.Static);for(int i=1;i<=9;i++){var clip=(AudioClip)audio.Invoke(null,new object[]{i});if(!clip||clip.samples<100)throw new Exception("clip "+i);Logger.LogInfo("SMOKE PASS audio "+clip.name+" "+clip.length);}}
         catch(Exception e){errors++;Logger.LogError("SMOKE FAIL audio "+e);}
         var audioTest=new GameObject("embedded_audio_playback_test");var output=audioTest.AddComponent<AudioSource>();output.loop=true;output.volume=0;

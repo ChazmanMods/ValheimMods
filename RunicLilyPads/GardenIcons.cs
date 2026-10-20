@@ -50,6 +50,7 @@ namespace RunicLilyPads
         }
         internal static void Pond(GameObject root,int shape){
             if(AssignServerIcon(root))return;
+            if(AssignPoolArtwork(root,shape))return;
             var preview=new GameObject("pond_thumbnail");var owned=new List<Object>();
             try{
                 // A miniature basin uses the same outline calculation as the placed pond.
@@ -72,6 +73,23 @@ namespace RunicLilyPads
                 }
                 Assign(root,preview,true);
             }finally{Object.DestroyImmediate(preview);foreach(var item in owned)Object.DestroyImmediate(item);}
+        }
+        // Loaded once at prefab registration, never when opening the hammer menu.
+        static bool AssignPoolArtwork(GameObject root,int shape){
+            string[] shapes={"round","oval","kidney","wild"};
+            if(shape<0||shape>=shapes.Length)return false;
+            string key="pool-"+shapes[shape];
+            using(var stream=typeof(Plugin).Assembly.GetManifestResourceStream("WaterGardens.BuildIcons."+key+".png")){
+                if(stream==null)return false;
+                using(var bytes=new System.IO.MemoryStream()){
+                    stream.CopyTo(bytes);
+                    var texture=new Texture2D(2,2,TextureFormat.RGBA32,false){name=key,filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp};
+                    if(!ImageConversion.LoadImage(texture,bytes.ToArray(),false)){Object.Destroy(texture);return false;}
+                    var icon=Sprite.Create(texture,new Rect(0,0,texture.width,texture.height),new Vector2(.5f,.5f));
+                    icon.name=key;root.GetComponent<Piece>().m_icon=icon;
+                    return true;
+                }
+            }
         }
     }
 }

@@ -2,6 +2,16 @@
 
 Runic mods for building, crafting, storage, exploration and server administration, created by Charles Sammons (Chazman).
 
+## Current source
+
+Source synchronized October 20, 2026. The [source catalog](./docs/SOURCE-CATALOG.json) records the imported module versions and their workspace provenance.
+
+Recent source includes RunicStorage 2.3.5, RunicCrafting 2.3.2, RunicProduction 2.3.4, RunicSentinel 1.6.1, RunicPrecisionBuildTool 2.0.9, and RunicSigns 1.2.9. Standalone Arcane mods, Paths, Settlements, Ghostbuster, Hall of Heroes, Wife Companion, and Companion Forge are included in their own directories.
+
+WaterGardens base source is in `RunicLilyPads/`; subsequent ivy, fish-motion, and Arcane Lilies patch sources are in [WaterGardensPatches](./WaterGardensPatches/). See its build notes for the incremental patch order.
+
+The downloads below refer to the published September 24 release. Source synchronization does not replace those release assets.
+
 ## Downloads
 
 [Download the latest release](https://github.com/ChazmanMods/ValheimMods/releases/tag/runic-2026-09-24) · [Browse Thunderstore](https://thunderstore.io/c/valheim/p/Chazman/)

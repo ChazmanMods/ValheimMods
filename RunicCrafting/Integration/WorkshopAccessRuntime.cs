@@ -65,6 +65,21 @@ namespace RunicCrafting.Integration
             return IsCanonicalGroupId(value) ? value : string.Empty;
         }
 
+        internal static WorkshopAccessDecision EvaluateAuthority(ZDO station, string actor, WorkshopAction action)
+        {
+            if (station == null || !long.TryParse(actor, out long principal))
+                return new WorkshopAccessDecision(false, action, "invalid-context");
+            var use = ReadPolicy(station, StationUseKey, Configuration.DefaultStationUse.Value);
+            var materials = ReadPolicy(station, LocalMaterialsKey, Configuration.DefaultLocalMaterialUse.Value);
+            bool available = false, member = false;
+            if ((action == WorkshopAction.StationUse ? use : materials) == WorkshopPolicyKind.Group)
+                available = TryResolveGroup(ReadGroupId(station), principal, out member);
+            return new WorkshopAccessEvaluator().Evaluate(new WorkshopAccessProfile(
+                station.GetLong(ZDOVars.s_creator).ToString(CultureInfo.InvariantCulture), use, materials, ReadApproved(station)),
+                action, actor, new WorkshopAccessContext(
+                    RunicAutomation.Operations.NetworkInventoryAccess.WardAllows(station.GetPosition(), principal), available, member));
+        }
+
         private static WorkshopPolicyKind ReadPolicy(
             ZDO zdo,
             string key,

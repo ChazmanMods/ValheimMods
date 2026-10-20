@@ -1,0 +1,20 @@
+[
+  {
+    "resource": "waterfall_001.wav",
+    "source": "WG_Waterfall_001.mp3",
+    "source_sha256": "ea96e9a82a61938f73c0a26b12e54917eea03f7b1be5f05d0bfd6f4f56fdc9e5",
+    "seconds": 136.06142857142856,
+    "crossfade_seconds": 0.35,
+    "peak_dbfs": -13.238407009300357,
+    "rms_dbfs": -37.58333798063451
+  },
+  {
+    "resource": "waterfall_002.wav",
+    "source": "WG_Waterfall_002.mp3",
+    "source_sha256": "4d0c7b2400ff91d737a9b609d2903572eb81ea085c1e3ed241ee6fe24a0b4202",
+    "seconds": 25.234013605442176,
+    "crossfade_seconds": 0.35,
+    "peak_dbfs": -9.409565736170693,
+    "rms_dbfs": -24.056180349035778
+  }
+]

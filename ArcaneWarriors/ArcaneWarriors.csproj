@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>ArcaneWarriors</AssemblyName>
+    <RootNamespace>ArcaneWarriors</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx" HintPath="C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Solo\BepInEx\core\BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Solo\BepInEx\core\0Harmony.dll" Private="false" />
+    <Reference Include="Jotunn" HintPath="C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Solo\BepInEx\plugins\ValheimModding-Jotunn\Jotunn.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="E:\SteamLibrary\steamapps\common\Valheim\valheim_Data\Managed\assembly_valheim.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="E:\SteamLibrary\steamapps\common\Valheim\valheim_Data\Managed\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="E:\SteamLibrary\steamapps\common\Valheim\valheim_Data\Managed\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AssetBundleModule" HintPath="E:\SteamLibrary\steamapps\common\Valheim\valheim_Data\Managed\UnityEngine.AssetBundleModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AudioModule" HintPath="E:\SteamLibrary\steamapps\common\Valheim\valheim_Data\Managed\UnityEngine.AudioModule.dll" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="E:\SteamLibrary\steamapps\common\Valheim\valheim_Data\Managed\UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="UnityEngine.ParticleSystemModule" HintPath="E:\SteamLibrary\steamapps\common\Valheim\valheim_Data\Managed\UnityEngine.ParticleSystemModule.dll" Private="false" />
+  </ItemGroup>
+</Project>

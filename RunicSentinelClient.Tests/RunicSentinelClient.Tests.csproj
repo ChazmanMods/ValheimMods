@@ -12,6 +12,7 @@
     <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../RunicSentinel.Tests/BuildingLimitsTests.cs" Link="BuildingLimitsTests.cs" />
     <ProjectReference Include="..\RunicSentinelClient\RunicSentinelClient.csproj" />
     <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="true" />
     <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="true" />

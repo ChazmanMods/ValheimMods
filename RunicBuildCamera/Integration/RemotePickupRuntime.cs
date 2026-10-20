@@ -9,7 +9,7 @@ namespace RunicBuildCamera.Integration
 {
     /// <summary>
     /// Bounded camera-centred pickup for ordinary loose ItemDrop instances. Discovery is local,
-    /// but every target must independently pass its current ward, ownership, inventory, weight,
+    /// but every target must independently pass its current ownership, inventory, weight,
     /// and distance checks before the ordinary Humanoid.Pickup path is allowed to run.
     /// </summary>
     internal static class RemotePickupRuntime
@@ -26,21 +26,30 @@ namespace RunicBuildCamera.Integration
             internal long Ordinal { get; }
         }
 
-        private static readonly Collider[] ColliderBuffer =
-            new Collider[PickupPolicy.ColliderCapacity];
+        private static readonly ItemDrop[] ItemBuffer =
+            new ItemDrop[PickupPolicy.CandidateCapacity];
         private static readonly HashSet<ZDOID> SeenThisScan = new HashSet<ZDOID>();
         private static readonly Dictionary<ZDOID, CooldownEntry> Cooldowns =
             new Dictionary<ZDOID, CooldownEntry>();
         private static readonly FieldInfo EnableAutoPickupField =
             AccessTools.Field(typeof(Player), "m_enableAutoPickup");
-        private static readonly FieldInfo AutoPickupMaskField =
-            AccessTools.Field(typeof(Player), "m_autoPickupMask");
+        private static readonly FieldInfo ItemInstancesField =
+            AccessTools.Field(typeof(ItemDrop), "s_instances");
 
         private static bool _subscribed;
         private static bool _wasActive;
         private static Player _lastPlayer;
         private static float _nextScanAt;
         private static long _cooldownOrdinal;
+        private static int _scanCursor;
+        private static int _pendingCount;
+        private static int _pendingIndex;
+        private static float _nextDiagnosticAt;
+        private static float _nextWarningAt;
+        private static bool _autoPickupOffShown;
+
+        internal static void ReportFailure(Exception exception) =>
+            Report("Camera pickup update failed: " + exception);
 
         internal static void Tick()
         {
@@ -54,9 +63,10 @@ namespace RunicBuildCamera.Integration
                           BuildCameraConfig.PickupEnabled != null &&
                           BuildCameraConfig.PickupEnabled.Value &&
                           hasContext;
+            if (!active) _autoPickupOffShown = false;
             if (!active || player == null || player != Player.m_localPlayer ||
                 player.IsTeleporting() ||
-                !TryReadAutoPickupState(player, out bool autoPickupEnabled, out int pickupMask) ||
+                !TryReadAutoPickupState(player, out bool autoPickupEnabled) ||
                 !autoPickupEnabled)
             {
                 if (_wasActive || _lastPlayer != null || Cooldowns.Count != 0)
@@ -89,7 +99,7 @@ namespace RunicBuildCamera.Integration
             Inventory inventory = player.GetInventory();
             if (inventory == null) return;
 
-            Scan(player, inventory, cameraPosition, range, interval, now, pickupMask);
+            Scan(player, inventory, cameraPosition, range, interval, now);
         }
 
         internal static void Reset()
@@ -113,20 +123,27 @@ namespace RunicBuildCamera.Integration
             Vector3 cameraPosition,
             float range,
             float interval,
-            float now,
-            int pickupMask)
+            float now)
         {
             int count;
             try
             {
-                count = Physics.OverlapSphereNonAlloc(
-                    cameraPosition,
-                    range,
-                    ColliderBuffer,
-                    pickupMask);
+                var items = ItemInstancesField?.GetValue(null) as List<ItemDrop>;
+                if (items == null)
+                {
+                    Report("Camera pickup could not read Valheim's loaded item registry.");
+                    return;
+                }
+                if (_pendingIndex >= _pendingCount)
+                {
+                    _pendingCount = PickupScanWindow.CopyNext(items, ItemBuffer, ref _scanCursor);
+                    _pendingIndex = 0;
+                }
+                count = _pendingCount;
             }
-            catch
+            catch (Exception exception)
             {
+                Report("Camera pickup discovery failed: " + exception);
                 return;
             }
 
@@ -136,16 +153,13 @@ namespace RunicBuildCamera.Integration
 
             try
             {
-                int boundedCount = Math.Min(count, ColliderBuffer.Length);
-                for (int index = 0;
-                     index < boundedCount && attempts < PickupPolicy.MaximumAttemptsPerScan;
-                     index++)
+                int boundedCount = Math.Min(count, ItemBuffer.Length);
+                while (_pendingIndex < boundedCount && attempts < PickupPolicy.MaximumAttemptsPerScan)
                 {
-                    Collider collider = ColliderBuffer[index];
-                    if (!collider) continue;
-
-                    ItemDrop itemDrop = ResolveLooseItem(collider);
-                    if (!itemDrop) continue;
+                    ItemDrop itemDrop = ItemBuffer[_pendingIndex];
+                    ItemBuffer[_pendingIndex++] = null;
+                    if (!itemDrop || !itemDrop.isActiveAndEnabled ||
+                        !itemDrop.gameObject.activeInHierarchy) continue;
 
                     ZNetView view = itemDrop.GetComponent<ZNetView>();
                     ZDO zdo = view != null && view.IsValid() ? view.GetZDO() : null;
@@ -199,14 +213,16 @@ namespace RunicBuildCamera.Integration
                             itemDrop.gameObject,
                             autoequip: true,
                             autoPickupDelay: true);
+                        if (!pickedUp) Report("Camera pickup declined by the normal pickup path or another mod.", false);
                         SetCooldown(
                             zdo.m_uid,
                             pickedUp
                                 ? PickupPolicy.CompletedPickupRetryAt(now)
                                 : PickupPolicy.FailedPickupRetryAt(now));
                     }
-                    catch
+                    catch (Exception exception)
                     {
+                        Report("Camera pickup failed: " + exception);
                         SetCooldown(zdo.m_uid, PickupPolicy.FailedPickupRetryAt(now));
                     }
                 }
@@ -214,8 +230,6 @@ namespace RunicBuildCamera.Integration
             finally
             {
                 SeenThisScan.Clear();
-                for (int index = 0; index < Math.Min(count, ColliderBuffer.Length); index++)
-                    ColliderBuffer[index] = null;
             }
         }
 
@@ -241,12 +255,13 @@ namespace RunicBuildCamera.Integration
                                PickupPolicy.IsWithinRange(
                                    (targetPosition - cameraPosition).sqrMagnitude,
                                    range);
-            bool wardAllows = withinRange &&
-                              PrivateArea.CheckAccess(
-                                  targetPosition,
-                                  0f,
-                                  flash: false,
-                                  wardCheck: true);
+            // Fish are actors with their own interaction/fishing rules, even though they also have ItemDrop.
+            bool isFish = itemDrop.GetComponent<Fish>() != null;
+            if (withinRange && !isFish && !PlayerWardPickupAccess.Allows(targetPosition))
+            {
+                Report("Camera pickup rejected " + shared.m_name + ": PlayerWardDenied", false);
+                return false;
+            }
             bool uniqueOrQuest = shared.m_questItem ||
                                  player.HaveUniqueKey(shared.m_name);
             bool canAdd = inventory.CanAddItem(item);
@@ -262,7 +277,7 @@ namespace RunicBuildCamera.Integration
             PickupCandidateFacts facts = new PickupCandidateFacts(
                 hasValidNetworkIdentity: !id.IsNone(),
                 isWithinRange: withinRange,
-                wardAllows: wardAllows,
+                isFish: isFish,
                 autoPickupEnabled: itemDrop.m_autoPickup,
                 isPiece: itemDrop.IsPiece(),
                 isInTar: itemDrop.InTar(),
@@ -270,21 +285,11 @@ namespace RunicBuildCamera.Integration
                 inventoryCanAdd: canAdd,
                 wouldExceedCarryWeight: tooHeavy,
                 isCoolingDown: coolingDown);
-            return PickupPolicy.Evaluate(in facts) == PickupRejectionReason.None;
-        }
-
-        private static ItemDrop ResolveLooseItem(Collider collider)
-        {
-            Rigidbody body = collider.attachedRigidbody;
-            if (!body) return null;
-
-            ItemDrop itemDrop = body.GetComponent<ItemDrop>();
-            if (itemDrop) return itemDrop;
-
-            FloatingTerrainDummy dummy = body.GetComponent<FloatingTerrainDummy>();
-            return dummy && dummy.m_parent
-                ? dummy.m_parent.gameObject.GetComponent<ItemDrop>()
-                : null;
+            PickupRejectionReason reason = PickupPolicy.Evaluate(in facts);
+            if (withinRange && reason != PickupRejectionReason.None &&
+                reason != PickupRejectionReason.CoolingDown)
+                Report("Camera pickup rejected " + shared.m_name + ": " + reason, false);
+            return reason == PickupRejectionReason.None;
         }
 
         private static void SetCooldown(ZDOID id, float retryAt)
@@ -351,35 +356,52 @@ namespace RunicBuildCamera.Integration
             _lastPlayer = null;
             _nextScanAt = 0f;
             _cooldownOrdinal = 0L;
+            _scanCursor = 0;
+            _pendingCount = 0;
+            _pendingIndex = 0;
             Cooldowns.Clear();
             SeenThisScan.Clear();
-            Array.Clear(ColliderBuffer, 0, ColliderBuffer.Length);
+            Array.Clear(ItemBuffer, 0, ItemBuffer.Length);
         }
 
-        private static bool TryReadAutoPickupState(
-            Player player,
-            out bool enabled,
-            out int pickupMask)
+        private static bool TryReadAutoPickupState(Player player, out bool enabled)
         {
             enabled = false;
-            pickupMask = 0;
-            if (player == null || EnableAutoPickupField == null || AutoPickupMaskField == null ||
-                EnableAutoPickupField.FieldType != typeof(bool) ||
-                AutoPickupMaskField.FieldType != typeof(int) ||
-                !EnableAutoPickupField.IsStatic || AutoPickupMaskField.IsStatic)
+            if (player == null || EnableAutoPickupField == null ||
+                EnableAutoPickupField.FieldType != typeof(bool) || !EnableAutoPickupField.IsStatic)
+            {
+                Report("Camera pickup could not read Valheim's auto-pickup setting.");
                 return false;
-
+            }
             try
             {
                 enabled = (bool)EnableAutoPickupField.GetValue(null);
-                pickupMask = (int)AutoPickupMaskField.GetValue(player);
-                return pickupMask != 0;
+                if (!enabled && !_autoPickupOffShown)
+                    player.Message(MessageHud.MessageType.TopLeft, "$hud_autopickup: $hud_off");
+                _autoPickupOffShown = !enabled;
+                if (!enabled) Report("Camera pickup paused: player auto-pickup is off.", false);
+                return true;
             }
-            catch
+            catch (Exception exception)
             {
-                enabled = false;
-                pickupMask = 0;
+                Report("Camera pickup state read failed: " + exception);
                 return false;
+            }
+        }
+
+        private static void Report(string message, bool warning = true)
+        {
+            if (warning)
+            {
+                if (Time.time < _nextWarningAt) return;
+                _nextWarningAt = Time.time + 5f;
+                Diagnostics.Warn(message);
+            }
+            else
+            {
+                if (Time.time < _nextDiagnosticAt) return;
+                _nextDiagnosticAt = Time.time + 5f;
+                Diagnostics.Verbose(message);
             }
         }
 

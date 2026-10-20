@@ -4,6 +4,8 @@
     <AssemblyName>RunicSentinel</AssemblyName>
     <RootNamespace>RunicSentinel</RootNamespace>
     <LangVersion>latest</LangVersion>
+    <!-- Publicized compile references require unverifiable IL metadata on Mono. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>disable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>

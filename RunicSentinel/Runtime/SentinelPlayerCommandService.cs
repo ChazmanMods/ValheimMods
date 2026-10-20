@@ -27,7 +27,7 @@ namespace RunicSentinel.Runtime
             foreach(var pair in _operations.ToArray())
             {
                 var op=pair.Value;
-                if(!op.Done&&(op.Deadline<now||!peers.Contains(op.Peer)||op.Character!=op.Peer.m_playerID))
+                if(!op.Done&&(op.Deadline<now||!peers.Contains(op.Peer)||op.Character!=SentinelPlayerIdentity.CharacterId(op.Peer)))
                 {op.Done=true;op.Message="No completion confirmed: player disconnected, changed character, or timed out. Do not assume the action ran.";}
                 if(op.Deadline+60<now)_operations.Remove(pair.Key);
             }
@@ -40,16 +40,18 @@ namespace RunicSentinel.Runtime
         private void Hello(ZRpc rpc,ZPackage p)
         {
             if(!Exact(rpc,out var client)||p==null||p.Size()>64)return;
-            try{int schema=p.ReadInt();long character=p.ReadLong();if(schema!=PlayerActionProtocol.Schema||p.GetPos()!=p.Size()||character!=client.Peer.m_playerID)return;client.Character=character;client.Seen=DateTimeOffset.UtcNow.ToUnixTimeSeconds();}catch{}
+            try{int schema=p.ReadInt();long character=p.ReadLong();if(schema!=PlayerActionProtocol.Schema||p.GetPos()!=p.Size()||character==0||character!=SentinelPlayerIdentity.CharacterId(client.Peer))return;
+                if(client.Character!=character)UnityEngine.Debug.Log("Sentinel player actions ready for "+client.Peer.m_playerName);
+                client.Character=character;client.Seen=DateTimeOffset.UtcNow.ToUnixTimeSeconds();}catch{}
         }
         internal bool Ready(string account,string character)
-        {return _clients.Values.Any(c=>c.Seen>=DateTimeOffset.UtcNow.ToUnixTimeSeconds()-15&&c.Character==c.Peer.m_playerID&&c.Character.ToString()==character&&Identity(c.Peer)==account&&c.Peer.IsReady());}
+        {return _clients.Values.Any(c=>c.Character!=0&&c.Seen>=DateTimeOffset.UtcNow.ToUnixTimeSeconds()-15&&c.Character==SentinelPlayerIdentity.CharacterId(c.Peer)&&c.Character.ToString()==character&&Identity(c.Peer)==account&&c.Peer.IsReady());}
         private static string Identity(ZNetPeer peer)=>SentinelTransportIdentity.TryResolvePeer(peer,out string a,out string s,out _)?a+":"+s:"";
         internal string Start(string request,string owner)
         {
             var fields=request.Split('\n');if(fields.Length!=4)throw new InvalidOperationException("Invalid player action request.");
             string target=fields[0],character=fields[1],action=fields[2],args=PlayerActionProtocol.Validate(fields[2],fields[3]);
-            if(!Ready(target,character))throw new InvalidOperationException("The selected character is not ready or needs RunicSentinel 1.4.6 / RunicSentinelClient 1.0.3. Wait for the client handshake after joining.");
+            if(!Ready(target,character))throw new InvalidOperationException("No current readiness handshake matches the selected character. Wait after spawning, then refresh Players. The player needs full RunicSentinel or RunicSentinelClient 1.0.4 or later (full RunicSentinel 1.6.0).");
             var client=_clients.Values.Single(c=>Identity(c.Peer)==target&&c.Character.ToString()==character);
             if(_operations.Count>=64)throw new InvalidOperationException("Player action capacity reached. Wait before sending another action.");
             string id=Guid.NewGuid().ToString("N");long deadline=DateTimeOffset.UtcNow.ToUnixTimeSeconds()+30;
@@ -65,7 +67,7 @@ namespace RunicSentinel.Runtime
             try
             {
                 string id=p.ReadString();bool ok=p.ReadBool();string message=p.ReadString();
-                if(p.GetPos()!=p.Size()||message.Length>600||!_operations.TryGetValue(id,out var op)||op.Done||op.Deadline<DateTimeOffset.UtcNow.ToUnixTimeSeconds()||!ReferenceEquals(op.Peer,client.Peer)||op.Character!=client.Peer.m_playerID)return;
+                if(p.GetPos()!=p.Size()||message.Length>600||!_operations.TryGetValue(id,out var op)||op.Done||op.Deadline<DateTimeOffset.UtcNow.ToUnixTimeSeconds()||!ReferenceEquals(op.Peer,client.Peer)||op.Character!=SentinelPlayerIdentity.CharacterId(client.Peer))return;
                 op.Done=true;op.Success=ok;op.Message=message;
                 SentinelPlayerReports.Record(op.Owner,"Player command result",op.Action+" -> "+op.Target+": "+(ok?"client confirmed: ":"client rejected: ")+message);
                 if(op.Owner!=op.Target)SentinelPlayerReports.Record(op.Target,"Administrator action",op.Action+" requested by "+op.Owner+": "+(ok?"client confirmed: ":"client rejected: ")+message);

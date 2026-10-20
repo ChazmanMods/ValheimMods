@@ -7,8 +7,8 @@ namespace RunicSentinel.PlayerActions
     internal static class PlayerActionProtocol
     {
         internal const string CapabilityRpc="runic.sentinel.player.capability.v1",ActionRpc="runic.sentinel.player.action.v1",ResultRpc="runic.sentinel.player.result.v1";
-        internal const int Schema=1,MaximumBytes=4096;
-        internal static readonly string[] Actions={"raiseskill","resetskill","heal","puke","clearstatus","adrenaline","addstatus"};
+        internal const int Schema=2,MaximumBytes=4096;
+        internal static readonly string[] Actions={"raiseskill","resetskill","heal","puke","clearstatus","adrenaline","addstatus","god","ghost","fly","nocost","modes"};
         internal static string[] SkillsList()=>Enum.GetNames(typeof(Skills.SkillType)).Where(n=>n!="None").ToArray();
         internal static string Validate(string action,string args)
         {
@@ -23,8 +23,13 @@ namespace RunicSentinel.PlayerActions
             }
             else if(action=="adrenaline")
             {if(!int.TryParse(args,NumberStyles.None,CultureInfo.InvariantCulture,out int level)||level<0||level>100)throw new InvalidOperationException("Adrenaline must be from 0 to 100.");}
+            else if(action=="god"||action=="ghost"||action=="fly"||action=="nocost")
+            {if(args!="on"&&args!="off")throw new InvalidOperationException("Choose On or Off.");}
             else if(action=="addstatus")
-            {if(args.Length==0||args.Any(c=>!(char.IsLetterOrDigit(c)||c=='_'||c=='-'||c=='.')))throw new InvalidOperationException("Choose a registered status effect name.");}
+            {
+                if(parts.Length<1||parts.Length>3||parts[0].Any(c=>!(char.IsLetterOrDigit(c)||c=='_'||c=='-'||c=='.')))throw new InvalidOperationException("Choose a registered status effect name, optionally followed by duration and intensity.");
+                for(int i=1;i<parts.Length;i++)if(!float.TryParse(parts[i],NumberStyles.Float,CultureInfo.InvariantCulture,out float value)||float.IsNaN(value)||float.IsInfinity(value)||value<0)throw new InvalidOperationException("Duration and intensity must be finite, nonnegative numbers.");
+            }
             else if(args.Length!=0)throw new InvalidOperationException("This action takes no arguments.");
             return string.Join(" ",parts);
         }

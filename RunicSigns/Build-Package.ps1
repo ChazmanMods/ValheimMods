@@ -25,6 +25,6 @@ try {
     Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
     & ./Tests/Test-ReleasePackage.ps1 -Path $zip
     Get-FileHash -LiteralPath $zip -Algorithm SHA256
-    Write-Output "Thunderstore release package: $zip"
-    Write-Output 'Prepared for manual upload; not published.'
+    Write-Output "Thunderstore package: $zip"
+    Write-Output 'Validated package ready for Thunderstore upload.'
 } finally { Pop-Location }

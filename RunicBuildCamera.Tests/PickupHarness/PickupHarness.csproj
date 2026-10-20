@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../RunicBuildCamera/Integration/RemotePickupRuntime.cs" Link="RemotePickupRuntime.cs" />
+    <Compile Include="../../RunicBuildCamera/Integration/PlayerWardPickupAccess.cs" Link="PlayerWardPickupAccess.cs" />
+    <Compile Include="../../RunicBuildCamera/Core/PickupPolicy.cs" Link="PickupPolicy.cs" />
+    <Compile Include="../../RunicBuildCamera/Core/PickupScanWindow.cs" Link="PickupScanWindow.cs" />
+  </ItemGroup>
+</Project>

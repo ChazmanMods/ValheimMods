@@ -17,6 +17,7 @@ public sealed class ZPackage
     public int Size() => (int)stream.Length;
     public ZPackage() : this(Array.Empty<byte>()) { }
     public ZPackage(byte[] bytes) { stream=new MemoryStream(); stream.Write(bytes); stream.Position=0; reader=new BinaryReader(stream); writer=new BinaryWriter(stream); }
+    public void Write(bool x)=>writer.Write(x);
     public void Write(int x)=>writer.Write(x);
     public void Write(ushort x)=>writer.Write(x);
     public void Write(byte x)=>writer.Write(x);

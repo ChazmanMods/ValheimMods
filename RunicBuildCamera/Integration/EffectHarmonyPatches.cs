@@ -15,8 +15,9 @@ namespace RunicBuildCamera.Integration
                 RemotePickupRuntime.Tick();
                 DemisterRuntime.RefreshActiveState();
             }
-            catch
+            catch (System.Exception exception)
             {
+                RemotePickupRuntime.ReportFailure(exception);
                 RemotePickupRuntime.Reset();
                 DemisterRuntime.OnCameraExit();
             }

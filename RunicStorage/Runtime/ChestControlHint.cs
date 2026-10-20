@@ -33,8 +33,8 @@ internal sealed class ChestControlHint : MonoBehaviour, IPointerEnterHandler, IP
             var box = new GameObject("Help", typeof(RectTransform), typeof(Image)); box.transform.SetParent(_popup.transform, false);
             _box = (RectTransform)box.transform; _box.pivot = Vector2.zero;
             var bg = box.GetComponent<Image>(); bg.color = new Color(.06f, .04f, .025f, .98f); bg.raycastTarget = false;
-            var label = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)); label.transform.SetParent(_box, false);
-            var text = label.GetComponent<TextMeshProUGUI>(); text.font = Font; text.fontSize = 18; text.richText = false;
+            var label = new GameObject("Text", typeof(RectTransform)); label.transform.SetParent(_box, false);
+            var text = StorageTextFactory.Add(label, Font); text.fontSize = 18; text.richText = false;
             text.color = new Color(1, .9f, .7f); text.text = Help; text.raycastTarget = false;
             float height = Mathf.Clamp(text.GetPreferredValues(Help, 330, 1000).y + 24, 54, 240);
             _box.sizeDelta = new Vector2(354, height);

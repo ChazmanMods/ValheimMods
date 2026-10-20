@@ -1,0 +1,9 @@
+bin/
+obj/
+package/
+dist/
+Tests/**/bin/
+Tests/**/obj/
+Tests/*runtime/
+Tools/Models/AW_*/
+*.log

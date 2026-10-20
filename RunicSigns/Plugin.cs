@@ -11,7 +11,7 @@ namespace RunicSigns;
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string Guid = "chazman.RunicSigns";
-    public const string Version = "1.2.7";
+    public const string Version = "1.2.9";
     private Harmony _harmony;
     internal static BepInEx.Logging.ManualLogSource Log;
     private void Awake()

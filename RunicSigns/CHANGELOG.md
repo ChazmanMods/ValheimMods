@@ -1,3 +1,16 @@
+## 1.2.9 - Vanilla multiline offset fix
+
+- Fix vertical positioning in vanilla viewer mode: use fixed line height so baseline offsets do not expand each line's spacing and cancel movement on lower lines.
+- Derive spacing from the font's line-height metric and largest selected text size. Preserve explicit line breaks and literal tags when reopening the caption.
+- Reopen and save existing vanilla-compatible signs to replace their previously exported formatting; installing the update alone does not rewrite world signs.
+## 1.2.8 - Vanilla compatibility test build
+
+- Added per-sign vanilla viewer mode: saves supported text styling and horizontal/vertical layout as native sign tags.
+- Uses vanilla ownership/text saving so an unmodded owner or server needs no custom save RPC.
+- Preview uses vanilla appearance, including its original font tint, board size and sprite assets; unsupported controls are disabled.
+- Preserves full-feature mode and existing version-1 through version-4 designs. Version-5 metadata remembers compatible designs for editing.
+- Bounds exported captions and preserves literal tags, permission-filtered text, selected styles and line breaks.
+- Requires live multiplayer/visual verification before public release.
 ## 1.2.7
 
 - Added per-mod language files using Valheim's selected language, with English fallback and no new plugin dependency.

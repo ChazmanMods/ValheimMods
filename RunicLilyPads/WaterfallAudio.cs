@@ -24,8 +24,8 @@ namespace RunicLilyPads
             bool near=Player.m_localPlayer&&(Player.m_localPlayer.transform.position-transform.position).sqrMagnitude<(range+2)*(range+2);
             // Fade the old sound out before switching, then fade the new one in.
             if(currentTrack!=desiredTrack&&source.volume<=.001f){source.Stop();source.clip=null;currentTrack=desiredTrack;}
-            float target=near&&currentTrack==desiredTrack?volume:0;
-            source.volume=Mathf.MoveTowards(source.volume,target,Time.deltaTime*.8f);
+            float target=near&&currentTrack==desiredTrack?volume*Plugin.MasterVolume.Value:0;
+            WaterAudio.SetVolume(source,target,Time.deltaTime*.8f);
             if(target>0){if(!source.clip)source.clip=GardenAudio.Get(currentTrack);if(source.clip&&!source.isPlaying)source.Play();}
             else if(source.volume<=.001f&&source.isPlaying)source.Stop();
         }

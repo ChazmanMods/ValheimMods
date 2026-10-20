@@ -1,4 +1,4 @@
-# RunicSigns 1.2.7
+# RunicSigns 1.2.9
 
 Create and edit sign designs directly in Valheim with live previews, styled text, emojis, effects, and precise placement controls. Requires BepInExPack Valheim 5.4.2350. Install one copy of RunicSigns; remove BetterSigns before installing.
 
@@ -16,15 +16,25 @@ F8 and bracket shortcuts can be rebound in the RunicSigns BepInEx config under P
 
 Cyan and other exact colors now use a private neutral font-face material so the original sign tint does not multiply the chosen color.
 
-## Multiplayer and saved designs
+## Vanilla-compatible signs (1.2.9 test build)
 
-Install the same RunicSigns version on the server and participating clients. Normal sign ownership and ward permissions still apply. Save commits an existing sign design; Cancel restores its saved appearance.
+In the designer, click **Viewers: RunicSigns players** to switch to **Viewers: vanilla players (ON)**, then save or use the design for placement. Existing signs keep their original mode until you change it.
+
+This mode writes built-in formatting tags into the ordinary synchronized sign caption. Only the designer needs RunicSigns; viewers and the server do not need it for these signs. This is a client authoring tool, not a server-only visual editor.
+
+Vanilla players can see text colors/opacity, sizes, bold/italic, individual word styling, alignment, explicit line breaks, and horizontal/vertical positioning. Colors retain vanilla's font tint. Horizontal positioning uses native indentation and vertical positioning uses baseline offsets, so switching an existing design can change its layout; adjust it in the vanilla preview. Normal sign culling and font glyph availability still apply.
+
+Board resizing, depth movement, background panels, outline/shadow effects, curves, and bundled emoji artwork are not applied in this mode. Those settings stay in the design for switching back; the board remains its ordinary size. Hide it behind scenery for floating portal labels. Text uses native layout; long captions can still wrap to the board width, and Enter adds a line break. Automatic Fit is unavailable. Vertical offsets keep line spacing fixed so the caption moves together.
+
+Formatting counts toward a 4096-character saved-caption budget; the editor refuses an oversized export rather than truncating it. Vanilla's small text editor can truncate/rewrite tags if someone edits the sign without RunicSigns. Use RunicSigns to edit these designs. Normal ward access, authorship, filtering, and muted-player restrictions still apply. Vanilla saves use the game's ownership path, with a local stale-edit check; they do not provide the custom multiplayer edit lease used by full-feature signs.
+
+Full-feature signs still require compatible RunicSigns installations on participating clients and the server. This test build passes automated checks but still requires a two-client in-game visual/multiplayer test before release.
 
 ## Compatibility
 
 Outline/shadow use the font shader; bundled emoji sprites bend with the caption but retain their own artwork material. Very strong depth curves can intersect nearby scenery.
 
-Existing version-1, version-2 and version-3 styles are readable. Saving a design writes version-4 style data. Earlier RunicSigns releases cannot display/edit that new styling; ordinary caption text remains in the native sign data. Placement drafts are session-local, not config templates.
+Existing version-1, version-2 and version-3 styles are readable. Full-feature designs continue to write version-4 style data; vanilla-compatible designs write version-5 editor metadata alongside the portable caption. Earlier RunicSigns releases cannot display/edit that new styling; ordinary caption text remains in the native sign data. Placement drafts are session-local, not config templates.
 
 Before downgrading or uninstalling, back up your world. Older releases cannot render the newer style metadata, although native caption text remains available.
 

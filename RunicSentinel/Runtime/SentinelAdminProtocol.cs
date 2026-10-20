@@ -35,6 +35,7 @@ namespace RunicSentinel.Runtime
         internal string SigningKeyPin = string.Empty;
         internal string Status = string.Empty;
         internal string ServerName="",WorldName="",OnlinePlayers="",ServerUptime="",RecentFindings="";
+        internal string BuildingSaved = "", BuildingActive = "", BuildingStatus = "";
         internal bool CapacitySupported, CapacityAvailable, CapacitySavedEnabled, CapacityActiveEnabled, CapacityRestartRequired;
         internal string CapacityVersion = "", CapacityRevision = "", CapacitySavedPlayers = "", CapacityActivePlayers = "", CapacityStatus = "", CapacityCurrentPlayers = "";
     }
@@ -78,6 +79,9 @@ namespace RunicSentinel.Runtime
                 ["key-pin"] = value.SigningKeyPin,
                 ["status"] = value.Status,
                 ["server-name"]=value.ServerName,["world-name"]=value.WorldName,["online-players"]=value.OnlinePlayers,["server-uptime"]=value.ServerUptime,["recent-findings"]=value.RecentFindings,
+                ["building-saved"] = value.BuildingSaved,
+                ["building-active"] = value.BuildingActive,
+                ["building-status"] = value.BuildingStatus,
                 ["cap-supported"] = value.CapacitySupported ? "1" : "0",
                 ["cap-available"] = value.CapacityAvailable ? "1" : "0",
                 ["cap-saved-enabled"] = value.CapacitySavedEnabled ? "1" : "0",
@@ -150,6 +154,9 @@ namespace RunicSentinel.Runtime
                 SigningKeyPin = Get(fields, "key-pin"),
                 Status = Get(fields, "status"),
                 ServerName=Get(fields,"server-name"),WorldName=Get(fields,"world-name"),OnlinePlayers=Get(fields,"online-players"),ServerUptime=Get(fields,"server-uptime"),RecentFindings=Get(fields,"recent-findings"),
+                BuildingSaved = Get(fields, "building-saved"),
+                BuildingActive = Get(fields, "building-active"),
+                BuildingStatus = Get(fields, "building-status"),
                 CapacitySupported = Get(fields, "cap-supported") == "1",
                 CapacityAvailable = Get(fields, "cap-available") == "1",
                 CapacitySavedEnabled = Get(fields, "cap-saved-enabled") == "1",

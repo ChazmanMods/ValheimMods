@@ -1,3 +1,30 @@
+## 1.6.1
+
+- Added Commands text sizing and draggable section dividers with linked neighboring sizes and scrolling for smaller windows.
+
+- Added taller-building support, terrain-raise and digging-depth controls in F3 → World, above player-cap settings.
+- Host-authorized settings apply after restart, with configuration backups and stale-edit protection.
+- Applied terrain limits to editing, existing excavations, heightmap rebuilds and the digging stop check.
+- Ordinary players need only RunicSentinelClient 1.0.5; full Sentinel runs on the host.
+- Removed recipient administrator-action popups and synchronous action-generated HUD notices while retaining administrator replies and normal gameplay notices.
+- Retained transparent Sentinel icons.
+
+## 1.6.0
+
+- Added God, Ghost, Fly and Freefly buttons with current On/Off state in Commands.
+- Added selected-player God, Ghost, Fly and No-cost On/Off controls and a mode-status request.
+- Added selected-player status-effect duration and supported intensity fields.
+- Character mode grants restore prior settings on disconnect or character change.
+- Prevented duplicate character-action receivers when both client packages are installed.
+
+## 1.5.2
+
+- Fixed devcommands activation after administrator authorization, allowing god and ghost mode to toggle normally.
+
+## 1.5.1
+- Corrected Mono runtime access metadata for the integrated command features.
+- Wait for a valid local network object before applying ghost updates; send private map positions only to spawned, authorized peers.
+
 ## 1.5.0
 - Integrated Server Devcommands 1.109 command and feature baseline into Sentinel; no separate Server Devcommands plugin is required.
 - Added status-effect duration and intensity, command aliases/chains/waits, bindings, parameter autocomplete, command permissions and gameplay options.
@@ -201,3 +228,5 @@
 - Added deterministic loaded-plugin attestation, fresh-nonce response, admission policy, and a 256-entry evidence ledger.
 - Published `security.attestation`, `security.admission`, and `security.evidence` protocol 1.0 services.
 - Deliberately deferred connection enforcement until an authenticated server/client transport exists.
+
+

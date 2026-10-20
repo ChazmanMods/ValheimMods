@@ -36,7 +36,7 @@ namespace RunicWorldEngine.Integration
                     {
                         var method = typeof(ZNet).Module.ResolveMethod(site.Token);
                         byte[] loaded = method.GetMethodBody()?.GetILAsByteArray();
-                        if (loaded == null || !loaded.SequenceEqual(CapacityAudit.MethodCode(image, site.Rva)))
+                        if (loaded == null || !Enumerable.SequenceEqual(loaded, CapacityAudit.MethodCode(image, site.Rva)))
                             throw new InvalidOperationException("Loaded/preloader-modified capacity body differs from audit: " + method.Name);
                         RejectForeignPatches(method);
                         Targets.Add(method, site);

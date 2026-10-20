@@ -86,3 +86,13 @@ RunicCrafting and RunicProduction are optional integrations. This mod guards the
 Server-owned policy and matching-version admission prevent ordinary client configuration bypass. They are not an anti-cheat system against deliberately altered clients; Valheim runs player skills and many interactions on the owning client. Use the server's existing character/admission controls where stronger enforcement is required.
 
 See TESTING.md for actual verification and the remaining multiplayer acceptance pass. The package does not deploy itself or modify existing worlds.
+
+## Support Chazman's Mods
+
+If you enjoy my Valheim mods and want to support continued development, testing, multiplayer compatibility, and new projects, I would appreciate it.
+
+Support is completely optional. Playing the mods, reporting bugs, sharing feedback, and recommending them to other players helps just as much.
+
+Thanks for supporting Chazman's Mods and the continued development of RunicSuite, ArcaneDecor, and other projects!
+
+[Support My Work](https://buymeacoffee.com/the_artful_engineer)

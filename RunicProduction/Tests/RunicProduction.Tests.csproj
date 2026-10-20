@@ -24,4 +24,4 @@
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="true" />
     <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GAME_MANAGED)\UnityEngine.PhysicsModule.dll" Private="true" />
   </ItemGroup>
-<ItemGroup><Compile Include="../../Shared/Tests/LocalizedSource.cs" /></ItemGroup></Project>
+<ItemGroup><Compile Include="../../Shared/Tests/LocalizedSource.cs" /></ItemGroup><ItemGroup><Compile Include="../../Shared/InventorySafety/InventoryMetadataComparison.cs" /></ItemGroup></Project>

@@ -1,4 +1,4 @@
-# Runic Awareness 1.0.2 maintainer verification record
+# Runic Awareness 1.0.3 maintainer verification record
 
 This is an internal release record, not a player installation checklist.
 

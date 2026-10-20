@@ -188,7 +188,7 @@ namespace RunicSentinel.Runtime
             GUILayout.Space(10);GUILayout.Label(PT("RECENT ACTIVITY"),_section);
             if(!string.IsNullOrEmpty(_detailError))GUILayout.Label(_detailError,_label);
             var activity=_playerDetail?.activity??Array.Empty<SentinelActivityRecord>();
-            foreach(var item in activity.Reverse().Take(5))
+            foreach(var item in Enumerable.Reverse(activity).Take(5))
             {GUILayout.BeginHorizontal(_row);GUILayout.Label(TimeLabel(item.utc),_value,GUILayout.Width(82));GUILayout.Label(item.detail,_label);GUILayout.EndHorizontal();}
             if(activity.Length==0)GUILayout.Label(_playerDetailBusy?PT("Loading activity…"):PT("No recorded activity available."),_label);
             GUILayout.Space(12);GUI.enabled=!_playerBusy;

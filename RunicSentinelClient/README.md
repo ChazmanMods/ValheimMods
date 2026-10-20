@@ -1,47 +1,28 @@
-# Runic Sentinel Client 1.0.3
+# Runic Sentinel Client 1.0.5
 
-Runic Sentinel Client is the small player-side counterpart for a server using Runic Sentinel's
-admission workflow. It observes the BepInEx plugins loaded in the local process, hashes their DLLs
-on a bounded background worker, and reports the resulting ID, version, and SHA-256 profile when the
-authoritative server issues a private direct-connection challenge.
-
-Version 1.0.1 targets Valheim 1.0.7 and preserves Valheim's native invite secret when an approved
-Required-mode admission resumes the 1.0 server handshake.
-
-## Deliberately not included
-
-This package contains no server policy engine, administrator channel, signing or private-key code,
-backup integration, enforcement service, evidence recorder, support report, topology exporter, or
-in-game administrator UI. It does not receive the server's policy, signature, public key, private
-key, administrator list, or ban list.
-
-The lightweight and full Sentinel packages may coexist in an administrator profile. Each checks
-the exact direct-RPC handler before registering, so one active v2 responder owns the endpoint and
-the other defers without overwriting it. This also avoids mistaking an installed-but-disabled or
-legacy full Sentinel for an active responder. The lightweight runtime remains inert whenever the
-local Valheim process is the authoritative server or listen host.
-
-## Connection behavior
-
-- The client registers one bounded v2 method on the connection's direct `ZRpc`; it does not use
-  routed world RPCs.
-- A server challenge is valid for at most two minutes and is bound to one random request and nonce.
-- Reports contain at most 512 plugins and the complete frame is capped at 256 KiB.
-- In Required mode, an accepted server decision may explicitly direct the client to resume the
-  native `ServerHandshake` exactly once. Optional decisions never request that resume.
-- The client never decides that it should be admitted and never supplies an identity or role.
+The lightweight companion for players joining a Runic Sentinel server. It reports the installed mod profile when the server requests it and receives administrator-authorized character actions.
 
 ## Installation
 
-Install the package in the player profile through Thunderstore Mod Manager or r2modman. No policy
-files are needed on the client. Server operators should leave admission Optional until they have
-reviewed and signed an expected client profile.
+Install through r2modman or Thunderstore Mod Manager. Players use this package; administrators use full **RunicSentinel** for the F3 dashboard. Keep your existing configuration when updating. The lightweight client remains inactive on a dedicated server or listen host.
 
-Questions and logs: [Runic Mods Discord](https://discord.gg/7HKHTCdFqY)
+## Host-controlled building and terrain limits
+
+Players need only this **RunicSentinelClient 1.0.5** package to use the building-height and digging-depth feature. Full Sentinel is not required on ordinary players' computers.
+
+The host runs the matching **RunicSentinel 1.6.1** and enables custom limits in **F3 → World → Building and terrain**, saves the settings and restarts the host. This client receives and acknowledges those settings before world admission and applies the same terrain and structural-support patches. No client setting or administrator permission is needed. Joining a vanilla-limit host uses vanilla limits; disconnect and world changes reset received settings.
+
+If both full Sentinel and Client are installed, Client defers these patches to an active full Sentinel implementation, avoiding duplicate support scaling. The lightweight package adds no server administration or host configuration controls.
+
+## Player actions
+
+Your server administrator can select your online character to raise or reset skills, heal, clear food or status effects, set adrenaline, apply status effects, and enable or disable God, Ghost, Fly or No-cost. Cheat actions require your own `confirmcheats` acknowledgment in F5. Skill changes are saved with your character.
 
 ## Language files
 
-This version follows Valheim's selected language using files in `Translations/RunicSentinelClient` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+The mod follows Valheim's selected language. Translation files are in `Translations/RunicSentinelClient` beside the DLL. Missing translations use English. See `TRANSLATING.md` for instructions.
+
+Questions and logs: [Runic Mods Discord](https://discord.gg/7HKHTCdFqY)
 
 ## Support My Work
 
@@ -49,8 +30,15 @@ Enjoying the mods? You can support my work and future creations. Thank you for p
 
 [Support My Work](https://buymeacoffee.com/the_artful_engineer)
 
-## Selected-player actions
+## Character mode and status controls
 
-Administrators use the Players or People dossier in RunicSentinel 1.4.6 with RunicSentinelServer 1.1.6. Inline tools target the selected online character: teleport to them, bring them, move them to coordinates/another player, raise or lower/reset a skill, heal, clear food/status, set adrenaline, and apply a registered status effect. Skill changes follow native 0–100 clamping and character-save behavior.
+Use RunicSentinel 1.6.1 on the administrator client, RunicSentinel 1.6.1 on the dedicated server, and RunicSentinelClient 1.0.5 or full RunicSentinel 1.6.1 on each player receiving character actions.
 
-The affected player needs either full RunicSentinel 1.4.6 or lightweight RunicSentinelClient 1.0.3 for character actions. Native teleport does not require the new receiver. Client-side cheat actions require the affected player's own prior confirmcheats acknowledgment; the administrator cannot silently acknowledge it for them. The UI disables unavailable receivers and waits for the exact target client's result. A timeout or disconnect is explicitly unconfirmed, not success. No arbitrary remote console execution is provided. Requests and replies are recorded in player activity.
+In **Players**, select an online character and choose **On** or **Off** beside God, Ghost, Fly or No-cost. **Refresh character mode status** reports that character's current modes. Grants last for the current connection and character; previous mode settings are restored on disconnect or character change. The affected player must run `confirmcheats` in their own F5 console before receiving cheat actions.
+
+Choose a status effect and enter **Duration (seconds)**. Leave duration blank for the effect's default, or enter `0` for indefinite duration. `3600` is one hour. Shields offer damage absorption; Burning and Poison offer total effect damage. Leave intensity blank for the effect's default. When intensity is entered without duration, the selected effect's default duration is used.
+
+The full administrator client takes ownership of character actions when both Sentinel client packages are installed.
+
+
+Administrator actions no longer show Sentinel recipient popups or synchronous action-generated HUD notices. Normal gameplay notices remain active, and success/failure replies still reach the administrator. Host building settings are available in the full Sentinel **F3 → World → Building and terrain** section.

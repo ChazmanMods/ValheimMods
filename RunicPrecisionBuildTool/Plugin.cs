@@ -19,11 +19,12 @@ namespace QuietBuildRotation
     {
         public const string Guid = "chazman.RunicPrecisionBuildTool";
         public const string Name = "Runic Precision Build Tool";
-        public const string Version = "2.0.7";
+        public const string Version = "2.0.9";
 
         internal static ManualLogSource Log { get; private set; }
 
         private Harmony _harmony;
+        private bool _startupPending;
         private string _lastConflictReport;
 
         private void Awake()
@@ -74,6 +75,17 @@ namespace QuietBuildRotation
                 Logger.LogInfo($"{Name} v{Version} loaded with Runic manipulation disabled.");
                 return;
             }
+
+            // PatchAll may queue work when StartupAccelerator batches Harmony patches.
+            // Keep every gameplay hook gated until Start, after chainloader completion.
+            _startupPending = true;
+            Logger.LogInfo($"{Name} v{Version} patches requested; verification pending until startup completes.");
+        }
+
+        private void Start()
+        {
+            if (!_startupPending) return;
+            _startupPending = false;
 
             if (!PlacementAdapter.CompleteRuntimeVerification(Guid, out string verificationError))
             {
@@ -136,6 +148,7 @@ namespace QuietBuildRotation
 
         private void OnDestroy()
         {
+            _startupPending = false;
             PluginConfig.Changed -= OnConfigurationChanged;
             PlacementRuntime.Shutdown();
             OrientationPresenter.Destroy();

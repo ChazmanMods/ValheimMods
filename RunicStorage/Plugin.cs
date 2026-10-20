@@ -13,14 +13,15 @@ using ItemData = ItemDrop.ItemData;
 
 namespace RunicStorage;
 
-[BepInPlugin("chazman.RunicStorage", "Runic Storage", "1.3.7")]
+[BepInPlugin("chazman.RunicStorage", "Runic Storage", "2.3.5")]
+[BepInIncompatibility("chazman.SmartSort")]
 public sealed class Plugin : BaseUnityPlugin
 {
 	public const string Guid = "chazman.RunicStorage";
 
 	public const string Name = "Runic Storage";
 
-	public const string Version = "1.3.7";
+	public const string Version = "2.3.5";
 
 	private readonly List<KeybindingRegistration> _keybindingRegistrations = new List<KeybindingRegistration>();
 
@@ -35,6 +36,9 @@ public sealed class Plugin : BaseUnityPlugin
 	private readonly StorageInputReader _inputReader = new StorageInputReader();
 
 	private StorageActions _actions;
+    private SmartSortOrganizer _smartSort;
+    private InventoryTrash _trash;
+	internal static StorageActions ActiveActions { get; private set; }
 	private StorageSearchPanel _searchPanel;
 	private ChestRulesPanel _rulesPanel;
 	private static ChestRulesPanel ActiveRulesPanel;
@@ -47,16 +51,21 @@ public sealed class Plugin : BaseUnityPlugin
 
 	private static StorageSearchPanel ActiveSearchPanel { get; set; }
 
-	internal static bool SearchPanelOpen => (ActiveSearchPanel?.IsOpen ?? false) || (ActiveRulesPanel?.IsOpen ?? false);
-	internal static bool RulesPanelOpen => ActiveRulesPanel?.IsOpen ?? false;
+	internal static bool SearchPanelOpen => (ActiveSearchPanel?.IsOpen ?? false) || (ActiveRulesPanel?.IsOpen ?? false) || InventoryTrash.ModalOpen;
+	internal static bool RulesPanelOpen => (ActiveRulesPanel?.IsOpen ?? false) || InventoryTrash.ModalOpen;
 
 	private void Awake()
 	{
-            RunicAutomation.MutationGate.Diagnostic = message => { if (message.Contains("Indeterminate")) Logger.LogError(message); else Logger.LogDebug(message); };
+            RunicAutomation.MutationGate.Diagnostic = message => { if (message.Contains("Indeterminate")) Logger.LogError(message); else if (PluginConfig.DebugTransfers?.Value == true) Logger.LogInfo(message); else Logger.LogDebug(message); };
 		Log = Logger;
 		PluginConfig.Bind(Config);
+        SmartSortDiagnostics.Bind(Config);
+        _smartSort = new SmartSortOrganizer(Config);
+        _trash = new InventoryTrash(Config);
 		StorageAuthorityPolicy.Register();
 		ChestGroupRuntime.Bind(Config);
+        StorageAuthorityCommands.Register();
+        MultiAccessChestPresence.Register();
 		try
 		{
 			Config.SettingChanged += OnSettingChanged;
@@ -69,10 +78,12 @@ public sealed class Plugin : BaseUnityPlugin
 			ActiveSearchPanel = _searchPanel;
 			Runic.Shared.ModalGameplayInput.IsOpen = () => SearchPanelOpen;
 			_actions = new StorageActions(Index, _searchPanel);
+			ActiveActions = _actions;
 			RegisterKeybindings();
 			_harmony.PatchAll(typeof(Plugin).Assembly);
+			RunicAutomation.Operations.InventoryOperationNetwork.RegisterModule("storage");
 			Index.RefreshLoadedContainers();
-			Logger.LogInfo((object)$"Runic Storage v{Version} ready: chest hover, Quick Stack, Restock, Search, Sort, Store All, and Consolidate use guarded native ownership.");
+			Logger.LogInfo((object)$"Runic Storage v{Version} ready: server inventory authority, multi-access chests, SmartSort, Quick Stack, Restock, Search, Sort, Store All, and Consolidate.");
 			if (!ContainerHoverContents.IsSupported)
 			{
 				Logger.LogWarning((object)"Chest-content hover is unavailable because its installed Container/PrivateArea adapter signatures did not match. Other Storage features remain enabled.");
@@ -95,11 +106,13 @@ public sealed class Plugin : BaseUnityPlugin
 		try
 		{
 			ShowReadyMessage();
+            _trash?.Tick();
 			_searchPanel?.Tick();
 			_rulesPanel?.Tick();
 			if (SearchPanelOpen) return;
 			StorageRouteContext context = CaptureRouteContext();
-			_actions.TickDeferredActions(context);
+            if (_smartSort.Handle(context)) return;
+			
 			StorageActionEdges num = _inputReader.ReadKeyboardEdges();
 			StorageActionEdges storageActionEdges = _inputReader.ReadControllerEdges(context);
 			StorageActionEdges edges = num | storageActionEdges;
@@ -111,7 +124,7 @@ public sealed class Plugin : BaseUnityPlugin
 			StorageRouteDecision storageRouteDecision = StorageActionRouter.Route(request, context);
 			if (PluginConfig.DebugTransfers.Value)
 			{
-				Logger.LogInfo((object)("input-detected edges=" + StorageInputReader.DescribeEdges(edges) + " selected=" + StorageActionDiagnostics.ActionCode(request.Action) + " source=" + StorageActionDiagnostics.OriginCode(request.Origin) + " route=" + storageRouteDecision.Outcome.ToString().ToLowerInvariant() + " reason=" + StorageActionDiagnostics.RouteReasonCode(storageRouteDecision.Reason)));
+				Logger.LogInfo((object)("input-detected edges=" + StorageInputReader.DescribeEdges(edges) + " selected=" + StorageActionDiagnostics.ActionCode(storageRouteDecision.Request.Action) + " source=" + StorageActionDiagnostics.OriginCode(request.Origin) + " route=" + storageRouteDecision.Outcome.ToString().ToLowerInvariant() + " reason=" + StorageActionDiagnostics.RouteReasonCode(storageRouteDecision.Reason)));
 			}
 			if (storageRouteDecision.Outcome != StorageRouteOutcome.Execute)
 			{
@@ -126,7 +139,7 @@ public sealed class Plugin : BaseUnityPlugin
 				}
 				return;
 			}
-			switch (request.Action)
+			switch (storageRouteDecision.Request.Action)
 			{
 			case StorageActionKind.QuickStack:
 				_actions.QuickStack();
@@ -137,7 +150,10 @@ public sealed class Plugin : BaseUnityPlugin
 			case StorageActionKind.Restock:
 				_actions.Restock();
 				break;
-			case StorageActionKind.SortOpenedContainer:
+			case StorageActionKind.SortCarriedInventory:
+                _actions.SortCarriedInventory();
+                break;
+            case StorageActionKind.SortOpenedContainer:
 				_actions.SortOpenedContainer();
 				break;
 			case StorageActionKind.Consolidate:
@@ -161,7 +177,7 @@ public sealed class Plugin : BaseUnityPlugin
 
 	private void OnGUI()
 	{
-		try { _searchPanel?.Draw(); _rulesPanel?.Draw(); }
+		try { _searchPanel?.Draw(); _rulesPanel?.Draw(); _smartSort?.Draw(); }
 		catch (Exception ex)
 		{
 			Logger.LogWarning((object)("Storage search list closed after a UI error: " + ex.Message));
@@ -170,8 +186,13 @@ public sealed class Plugin : BaseUnityPlugin
 		}
 	}
 
+	private void LateUpdate() => SmartSortDiagnostics.Tick();
+
 	private void OnDestroy()
 	{
+        SmartSortDiagnostics.Stop();
+        _trash?.Clear();
+        InventoryTrash.Active = null;
 		Shutdown();
 		Runic.Shared.EmojiRenderer.Release();
 	}
@@ -187,6 +208,7 @@ public sealed class Plugin : BaseUnityPlugin
 		RegisterKey("quick-stack", "Quick Stack", PluginConfig.QuickStackKey.Value);
 		RegisterKey("restock", "Restock", PluginConfig.RestockKey.Value);
 		RegisterKey("sort", "Sort Opened Container", PluginConfig.SortOpenedContainerKey.Value);
+        RegisterKey("sort-personal", "Sort Personal Inventory", PluginConfig.SortPersonalInventoryKey.Value);
 		RegisterKey("store-all", "Store All Into Opened Container", PluginConfig.StoreAllOpenedContainerKey.Value);
 		RegisterKey("consolidate", "Consolidate Carried Stacks", PluginConfig.ConsolidateKey.Value);
 		RegisterKey("search", "Search Nearby Storage", PluginConfig.SearchKey.Value);
@@ -356,7 +378,7 @@ public sealed class Plugin : BaseUnityPlugin
 		//IL_0245: Unknown result type (might be due to invalid IL or missing references)
 		//IL_0261: Unknown result type (might be due to invalid IL or missing references)
 		string text = (PluginConfig.ControllerShortcuts.Value ? ("hold " + PluginConfig.ControllerModifier.Value + ": quick=" + PluginConfig.ControllerQuickStack.Value + ", restock=" + PluginConfig.ControllerRestock.Value + ", sort=" + PluginConfig.ControllerSort.Value + ", consolidate=" + PluginConfig.ControllerConsolidate.Value + ", search=" + PluginConfig.ControllerSearch.Value) : "disabled");
-		Logger.LogInfo((object)($"Storage configuration ({reason}): Enabled={PluginConfig.Enabled.Value}; " + $"Range={PluginConfig.RangeMeters.Value:0.##}m; MaxCandidates={PluginConfig.MaximumCandidates.Value}; " + $"ProtectHotbar={PluginConfig.ProtectHotbar.Value}; DebugTransfers={PluginConfig.DebugTransfers.Value}; " + $"Hover=[enabled={PluginConfig.ShowContentsOnHover.Value}, kinds={PluginConfig.HoverMaximumItemKinds.Value}, " + $"perLine={PluginConfig.HoverItemsPerLine.Value}, characters={PluginConfig.HoverMaximumCharacters.Value}, " + $"stacks={PluginConfig.HoverMaximumStacksExamined.Value}, " + $"snapshotCharacters={PluginConfig.HoverMaximumSnapshotCharacters.Value}, " + string.Format("retry={0:0.##}s, signatures={1}]; ", PluginConfig.HoverRefreshIntervalSeconds.Value, ContainerHoverContents.IsSupported ? "ready" : "unavailable") + "keyboard=[quick " + ShortcutLabel(PluginConfig.QuickStackKey.Value) + ", restock " + ShortcutLabel(PluginConfig.RestockKey.Value) + ", sort " + ShortcutLabel(PluginConfig.SortOpenedContainerKey.Value) + ", store-all " + ShortcutLabel(PluginConfig.StoreAllOpenedContainerKey.Value) + ", consolidate " + ShortcutLabel(PluginConfig.ConsolidateKey.Value) + ", search " + ShortcutLabel(PluginConfig.SearchKey.Value) + "]; controller=[" + text + "]; controller-validation=" + _inputReader.ControllerStatusSummary() + "."));
+		Logger.LogInfo((object)($"Storage configuration ({reason}): Enabled={PluginConfig.Enabled.Value}; " + $"Range={PluginConfig.RangeMeters.Value:0.##}m; MaxCandidates={PluginConfig.MaximumCandidates.Value}; " + $"ProtectHotbar={PluginConfig.ProtectHotbar.Value}; DebugTransfers={PluginConfig.DebugTransfers.Value}; " + $"Hover=[enabled={PluginConfig.ShowContentsOnHover.Value}, kinds={PluginConfig.HoverMaximumItemKinds.Value}, " + $"perLine={PluginConfig.HoverItemsPerLine.Value}, characters={PluginConfig.HoverMaximumCharacters.Value}, " + $"stacks={PluginConfig.HoverMaximumStacksExamined.Value}, " + $"snapshotCharacters={PluginConfig.HoverMaximumSnapshotCharacters.Value}, " + string.Format("retry={0:0.##}s, signatures={1}]; ", PluginConfig.HoverRefreshIntervalSeconds.Value, ContainerHoverContents.IsSupported ? "ready" : "unavailable") + "keyboard=[quick " + ShortcutLabel(PluginConfig.QuickStackKey.Value) + ", restock " + ShortcutLabel(PluginConfig.RestockKey.Value) + ", chest-sort " + ShortcutLabel(PluginConfig.SortOpenedContainerKey.Value) + ", personal-sort " + ShortcutLabel(PluginConfig.SortPersonalInventoryKey.Value) + ", store-all " + ShortcutLabel(PluginConfig.StoreAllOpenedContainerKey.Value) + ", consolidate " + ShortcutLabel(PluginConfig.ConsolidateKey.Value) + ", search " + ShortcutLabel(PluginConfig.SearchKey.Value) + "]; controller=[" + text + "]; controller-validation=" + _inputReader.ControllerStatusSummary() + "."));
 	}
 
 	private static string ShortcutLabel(KeyboardShortcut shortcut)
@@ -394,6 +416,7 @@ public sealed class Plugin : BaseUnityPlugin
 		}
 		DisposeKeybindings();
 		_actions = null;
+		ActiveActions = null;
 		_rulesPanel?.Dispose();
 		_rulesPanel = null;
 		ActiveRulesPanel = null;
@@ -406,3 +429,4 @@ public sealed class Plugin : BaseUnityPlugin
 		Log = null;
 	}
 }
+

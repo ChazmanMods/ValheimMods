@@ -1,3 +1,18 @@
+## 1.0.5
+
+- Receive host-controlled building, terrain-raise and digging limits without full Sentinel on ordinary players' computers.
+- Apply terrain and support limits, including existing excavations, and reset received settings when leaving the host.
+- Defer to an active full Sentinel installation to avoid duplicate support scaling.
+- Removed recipient administrator-action popups and synchronous action-generated HUD notices; normal gameplay notices remain active.
+- Retained the transparent Client icon. No administration interface or host configuration is required on ordinary clients.
+
+## 1.0.4
+
+- Added server-authorized God, Ghost, Fly and No-cost actions and mode-status reporting.
+- Added duration and supported intensity for status effects.
+- Restored previous mode settings on disconnect or character change.
+- Deferred character actions to the full Sentinel client when both packages are installed.
+
 ## 1.0.3
 
 - Add selected-player actions through a bounded, exact-server/character RPC receiver: raise/reset skills, heal, clear food/status, adrenaline and registered status effects.
@@ -13,8 +28,6 @@
 
 - Updated the native handshake resume for Valheim 1.0.7's new invite-secret argument and capture
   that bounded value before the initial handshake is sent.
-- Added an installed-assembly contract test for the exact handshake and private field used by the
-  responder.
 - Updated the release dependency floor to BepInExPack Valheim 5.4.2350.
 
 ## 1.0.0 - 2026-09-07
@@ -33,3 +46,5 @@
 - Kept the plugin inert on authoritative processes and made its direct handler coexist safely with
   full or legacy Runic Sentinel installations without relying on load-order suppression.
 - Excluded server policy, administration, private keys, backups, enforcement, reports, and UI.
+
+

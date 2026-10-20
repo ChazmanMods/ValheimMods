@@ -12,7 +12,7 @@ namespace QuietBuildRotation.Tests
     {
         internal static void Register()
         {
-            TestRunner.Run("Precision Build runtime and package are 2.0.7", VersionIdentityIsExact);
+            TestRunner.Run("Precision Build runtime and package are 2.0.9", VersionIdentityIsExact);
             TestRunner.Run("startup reports the actual Valheim build instead of a fixed label", StartupVersionIsExact);
             TestRunner.Run("manifest has BepInEx as its only dependency", ManifestDependenciesAreExact);
             TestRunner.Run("module has no Runic runtime assembly references", FoundationReferencesAreExact);
@@ -28,23 +28,23 @@ namespace QuietBuildRotation.Tests
             TestRunner.Run("safe utilities contain no remote or durable operation surface", RemoteUndoBoundaryIsDurable);
             TestRunner.Run("catalog localization uses bounded direct Translate only", CatalogLocalizationIsBounded);
             TestRunner.Run("release documentation states native-owner utility behavior truthfully", DocumentationIsTruthful);
-            TestRunner.Run("configuration example exposes every 2.0.7 release control", ConfigurationExampleIsComplete);
+            TestRunner.Run("configuration example exposes every 2.0.9 release control", ConfigurationExampleIsComplete);
             TestRunner.Run("published icon is an exact 256 by 256 PNG", IconDimensionsAreExact);
         }
 
         private static void VersionIdentityIsExact()
         {
             TestAssert.Equal("chazman.RunicPrecisionBuildTool", Plugin.Guid);
-            TestAssert.Equal("2.0.7", Plugin.Version);
+            TestAssert.Equal("2.0.9", Plugin.Version);
             Assembly assembly = typeof(Plugin).Assembly;
-            TestAssert.Equal(new System.Version(2, 0, 7, 0), assembly.GetName().Version);
+            TestAssert.Equal(new System.Version(2, 0, 9, 0), assembly.GetName().Version);
             TestAssert.Equal("Runic Precision Build Tool",
                 assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product);
-            TestAssert.Equal("2.0.7",
+            TestAssert.Equal("2.0.9",
                 assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
             using JsonDocument json = JsonDocument.Parse(File.ReadAllText(Module("manifest.json")));
             TestAssert.Equal("RunicPrecisionBuildTool", json.RootElement.GetProperty("name").GetString());
-            TestAssert.Equal("2.0.7", json.RootElement.GetProperty("version_number").GetString());
+            TestAssert.Equal("2.0.9", json.RootElement.GetProperty("version_number").GetString());
         }
 
         private static void StartupVersionIsExact()
@@ -347,7 +347,7 @@ namespace QuietBuildRotation.Tests
             });
             foreach (string required in new[]
                      {
-                         "2.0.7", "bounded", "dedicated", "native", "vanilla",
+                         "2.0.9", "bounded", "dedicated", "native", "vanilla",
                          "undo", "area repair", "favorites", "recent", "snap",
                          "current owner", "BepInEx", "standalone"
                      })

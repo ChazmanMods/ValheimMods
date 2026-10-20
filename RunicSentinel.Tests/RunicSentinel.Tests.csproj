@@ -8,6 +8,7 @@
     <GAME_MANAGED>$(VALHEIM_INSTALL)\valheim_Data\Managed</GAME_MANAGED>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="0Harmony" HintPath="../RunicSentinel.Devcommands.Shared/refs/0Harmony.dll" Private="true" />
     <Compile Remove="DedicatedHarness\**\*.cs" />
     <Compile Remove="AdministratorHarness\**\*.cs" />
     <Compile Remove="CommandHarness\**\*.cs" />

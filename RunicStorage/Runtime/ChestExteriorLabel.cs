@@ -163,16 +163,16 @@ internal sealed class ChestExteriorLabel : MonoBehaviour
             var image = backing.GetComponent<Image>(); labelBackground = image; image.color = rules.Background == 1 ? Color.white : Color.black;
             image.raycastTarget = false;
         }
-        var textObject = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        var textObject = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer));
         textObject.transform.SetParent(area, false);
-        var text = textObject.GetComponent<TextMeshProUGUI>();
-        text.rectTransform.anchorMin = Vector2.zero; text.rectTransform.anchorMax = Vector2.one;
-        text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
+        var textRect = textObject.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero; textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = textRect.offsetMax = Vector2.zero;
         var sign = ZNetScene.instance ? ZNetScene.instance.GetPrefab("sign") : null;
         var signText = sign ? sign.GetComponentInChildren<TMP_Text>(true) : null;
         var font = signText ? signText.font : TMP_Settings.defaultFontAsset;
         if (!font) font = StorageSearchVanillaTheme.Create().Font;
-        text.font = font;
+        var text = StorageTextFactory.Add(textObject, font);
         Runic.Shared.EmojiRenderer.Attach(text);
         text.alignment = TextAlignmentOptions.Center;
         text.fontSize = ChestLabelLayout.FontSize(rules.Size);

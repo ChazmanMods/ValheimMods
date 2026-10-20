@@ -100,13 +100,13 @@ namespace RunicCrafting
             RefreshDerivedSettings();
         }
 
-        internal static float SafeRangeCap => Math.Max(1f, Math.Min(50f, RangeCapMeters.Value));
-        internal static float SafeInteractionRange => Math.Max(1f, Math.Min(SafeRangeCap, InteractionRangeMeters.Value));
-        internal static int SafeMaximumCandidates => Math.Max(1, Math.Min(256, MaximumCandidateContainers.Value));
+        internal static float SafeRangeCap => Integration.AuthorityMaterialSettings.Current?.Range ?? Math.Max(1f, Math.Min(50f, RangeCapMeters.Value));
+        internal static float SafeInteractionRange => Integration.AuthorityMaterialSettings.Current?.Interaction ?? Math.Max(1f, Math.Min(SafeRangeCap, InteractionRangeMeters.Value));
+        internal static int SafeMaximumCandidates => Integration.AuthorityMaterialSettings.Current?.Candidates ?? Math.Max(1, Math.Min(256, MaximumCandidateContainers.Value));
         internal static int SafeMaximumReturned =>
-            Math.Max(1, Math.Min(Math.Min(128, SafeMaximumCandidates), MaximumReturnedContainers.Value));
+            Integration.AuthorityMaterialSettings.Current?.Returned ?? Math.Max(1, Math.Min(Math.Min(128, SafeMaximumCandidates), MaximumReturnedContainers.Value));
         internal static float SafeStationlessBuildRange =>
-            Math.Max(1f, Math.Min(SafeRangeCap, StationlessBuildRangeMeters.Value));
+            Integration.AuthorityMaterialSettings.Current?.Stationless ?? Math.Max(1f, Math.Min(SafeRangeCap, StationlessBuildRangeMeters.Value));
 
         internal static void RefreshDerivedSettings() =>
             StationlessPolicy = StationlessPiecePolicy.Parse(

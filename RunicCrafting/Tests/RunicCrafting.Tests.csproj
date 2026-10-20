@@ -36,4 +36,4 @@
     <Compile Include="../../Shared/Tests/LocalizationStub.cs" />
     <EmbeddedResource Include="../Translations/RunicCrafting/English.json" LogicalName="Runic.Localization.English.json" />
   </ItemGroup>
-</Project>
+<ItemGroup><Compile Include="../../Shared/InventorySafety/InventoryMetadataComparison.cs" /></ItemGroup></Project>

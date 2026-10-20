@@ -39,7 +39,7 @@ namespace RunicSentinel.Runtime
         private readonly List<string> _commandHistory=new List<string>();
         private int _commandHistoryIndex;
         private bool _sentinelModesActive, _modeLeasePending;
-        private bool _ownsDebugMode, _ownsNoCost, _ownsFlight;
+        private bool _ownsDebugMode, _ownsNoCost, _ownsFlight, _ownsGod, _ownsGhost, _ownsFreefly;
         private float _nextModeLease;
         private ZNet _modeNetwork;
         private Player _modePlayer;
@@ -187,7 +187,7 @@ namespace RunicSentinel.Runtime
             GUILayout.Space(8f);
 
             GUILayout.BeginHorizontal();
-            string[] tabs = { global::Runic.Localization.RunicText.Get("text_920e413c7d41"), global::Runic.Localization.RunicText.Get("text_ce9c9bfcb7f7"), global::Runic.Localization.RunicText.Get("text_7db20897053b"), global::Runic.Localization.RunicText.Get("text_bda2e3e6c900"), global::Runic.Localization.RunicText.Get("text_af0c3ba6a2ca"), global::Runic.Localization.RunicText.Get("text_04bd3db80e01"), global::Runic.Localization.RunicText.Get("text_b269dc4e81a5"), global::Runic.Localization.RunicText.Get("text_84e12ac655dd") };
+            string[] tabs = { global::Runic.Localization.RunicText.Get("text_920e413c7d41"), global::Runic.Localization.RunicText.Get("text_ce9c9bfcb7f7"), global::Runic.Localization.RunicText.Get("text_7db20897053b"), global::Runic.Localization.RunicText.Get("text_bda2e3e6c900"), global::Runic.Localization.RunicText.Get("text_af0c3ba6a2ca"), PT("World"), global::Runic.Localization.RunicText.Get("text_b269dc4e81a5"), global::Runic.Localization.RunicText.Get("text_84e12ac655dd") };
             for (int index = 0; index < tabs.Length; index++)
             {
                 if (index == 4) { GUILayout.EndHorizontal(); GUILayout.BeginHorizontal(); }
@@ -202,7 +202,7 @@ namespace RunicSentinel.Runtime
             GUILayout.EndVertical();GUILayout.EndArea();
             _bodyHeight=_window.height-294;
             GUILayout.BeginArea(new Rect(18,160,_window.width-36,_window.height-274),_contentStyle);
-            if(_tab!=7&&_tab!=6&&_tab!=2)_scroll = GUILayout.BeginScrollView(_scroll, GUILayout.ExpandHeight(true));
+            if(_tab!=7&&_tab!=2)_scroll = GUILayout.BeginScrollView(_scroll, GUILayout.ExpandHeight(true));
             if (_tab == 0) DrawStatus();
             else if (_tab == 1) DrawMods();
             else if (_tab == 2) DrawPeople();
@@ -211,7 +211,7 @@ namespace RunicSentinel.Runtime
             else if (_tab == 5) DrawCapacity();
             else if (_tab == 6) DrawCommands();
             else DrawPlayers();
-            if(_tab!=7&&_tab!=6&&_tab!=2)GUILayout.EndScrollView();
+            if(_tab!=7&&_tab!=2)GUILayout.EndScrollView();
             GUILayout.EndArea();
 
             GUILayout.BeginArea(new Rect(18,_window.height-106,_window.width-36,82),_footerStyle);
@@ -354,11 +354,12 @@ namespace RunicSentinel.Runtime
 
         private void ResetCapacityDraft()
         {
+            ResetBuildingDraft();
             _capEnabled = _document.CapacitySavedEnabled;
             _capPlayers = _document.CapacitySavedPlayers;
         }
 
-        private void DrawCommands() => DrawCommandsWorkspace();
+        private void DrawCommands() => DrawResizableCommands();
 
         private void RunCommand()
         {
@@ -391,14 +392,18 @@ namespace RunicSentinel.Runtime
                         bool beforeDebug=Player.m_debugMode;
                         bool beforeNoCost=Player.m_localPlayer!=null&&Player.m_localPlayer.NoCostCheat();
                         bool beforeFlight=Player.m_localPlayer!=null&&Player.m_localPlayer.IsDebugFlying();
+                        bool beforeGod=Player.m_localPlayer!=null&&Player.m_localPlayer.InGodMode(),beforeGhost=Player.m_localPlayer!=null&&Player.m_localPlayer.InGhostMode(),beforeFreefly=GameCamera.InFreeFly();
                         SentinelCommandConsole.Execute(command);
                         string commandName=command.Split(' ')[0].ToLowerInvariant();
-                        if(commandName=="debugmode"||commandName=="nocost"||commandName=="fly")
+                        if(commandName=="debugmode"||commandName=="nocost"||commandName=="fly"||commandName=="god"||commandName=="ghost"||commandName=="freefly")
                         {
                             if(commandName=="debugmode")_ownsDebugMode=Player.m_debugMode&&(_ownsDebugMode||!beforeDebug);
                             if(commandName=="nocost")_ownsNoCost=Player.m_localPlayer.NoCostCheat()&&(_ownsNoCost||!beforeNoCost);
                             if(commandName=="fly")_ownsFlight=Player.m_localPlayer.IsDebugFlying()&&(_ownsFlight||!beforeFlight);
-                            _sentinelModesActive=_ownsDebugMode||_ownsNoCost||_ownsFlight;_modeNetwork=ZNet.instance;_modePlayer=Player.m_localPlayer;_nextModeLease=Time.realtimeSinceStartup+10;
+                            if(commandName=="god")_ownsGod=Player.m_localPlayer.InGodMode()&&(_ownsGod||!beforeGod);
+                            if(commandName=="ghost")_ownsGhost=Player.m_localPlayer.InGhostMode()&&(_ownsGhost||!beforeGhost);
+                            if(commandName=="freefly")_ownsFreefly=GameCamera.InFreeFly()&&(_ownsFreefly||!beforeFreefly);
+                            _sentinelModesActive=_ownsDebugMode||_ownsNoCost||_ownsFlight||_ownsGod||_ownsGhost||_ownsFreefly;_modeNetwork=ZNet.instance;_modePlayer=Player.m_localPlayer;_nextModeLease=Time.realtimeSinceStartup+10;
                         }
                     }
                     else if(route.StartsWith(SentinelCommandProvider.ServerRoute,StringComparison.Ordinal))
@@ -428,13 +433,15 @@ namespace RunicSentinel.Runtime
         {
             _sentinelModesActive=false;if(_ownsDebugMode)Player.m_debugMode=false;
             if(_modePlayer!=null)
-            {if(_ownsNoCost)_modePlayer.SetNoPlacementCost(false);if(_ownsFlight&&_modePlayer.IsDebugFlying())_modePlayer.ToggleDebugFly();}
-            _ownsDebugMode=_ownsNoCost=_ownsFlight=false;
+            {if(_ownsGod)_modePlayer.SetGodMode(false);if(_ownsGhost)_modePlayer.SetGhostMode(false);if(_ownsNoCost)_modePlayer.SetNoPlacementCost(false);if(_ownsFlight&&_modePlayer.IsDebugFlying())_modePlayer.ToggleDebugFly();}
+            if(_ownsFreefly&&GameCamera.instance!=null&&GameCamera.InFreeFly())GameCamera.instance.ToggleFreeFly();
+            _ownsDebugMode=_ownsNoCost=_ownsFlight=_ownsGod=_ownsGhost=_ownsFreefly=false;
             _modePlayer=null;_modeNetwork=null;
         }
 
         private void DrawCapacity()
         {
+            DrawBuilding();
             Header(global::Runic.Localization.RunicText.Get("text_07b97caf5500"));
             if (!_document.CapacitySupported)
             {
@@ -538,6 +545,8 @@ namespace RunicSentinel.Runtime
         private void Close()
         {
             if (!_open) return;
+            if (_commandDividerControl != 0 && GUIUtility.hotControl == _commandDividerControl) GUIUtility.hotControl = 0;
+            _commandDividerControl = 0;
             RunicSentinel.Input.ModalGameplayInput.CaptureOpen();
             _open = false;
             Cursor.visible = _cursorVisible;
@@ -895,3 +904,4 @@ namespace RunicSentinel.Runtime
             !SentinelAdminPanel.BlocksLocalPlayer(__instance);
     }
 }
+

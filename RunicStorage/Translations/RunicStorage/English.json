@@ -1,4 +1,5 @@
 {
+  "quick_stack_single_modifier": "Hold these keys and left-click a carried stack to Quick Stack only that stack into nearby storage. Works with or without a chest open. Set to None to disable. Left and right Ctrl/Shift/Alt are interchangeable. Existing item protections apply.",
   "text_00417195b1e2": "Smaller",
   "text_02145dcee5cc": "Runic Storage stopped safely; completed moves may remain. Check BepInEx/LogOutput.log.",
   "text_022702280f9d": "Named font color for the complete Alt+F nearby-item window. Configuration Manager presents the available colors as a dropdown.",
@@ -253,5 +254,7 @@
   "text_ff366cfba8cd": "Review your explicit Always accept items and selected groups. Click an entry to remove that rule. This is not a complete list of all items that could match.",
   "text_ff38805f2729": "Comma-separated prefab/name targets, for example Wood=50,Stone=50.",
   "text_ff9350be804b": "Runic Storage: the opened container is already empty.",
-  "text_ffe302f8f00a": "Move the label down 0.05 metres on the selected chest face (limit 1 metre)."
+  "text_ffe302f8f00a": "Move the label down 0.05 metres on the selected chest face (limit 1 metre).",
+  "storage_recovery_required": "Runic Storage: a previous transfer needs recovery; further backpack transfers are paused. Check the log and rejoin after resolving the cause.",
+  "storage_operation_active": "Runic Storage: another Runic inventory operation is active; try again shortly."
 }

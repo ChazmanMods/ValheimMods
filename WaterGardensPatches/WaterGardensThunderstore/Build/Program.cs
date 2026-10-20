@@ -1,0 +1,7 @@
+using Mono.Cecil;using Mono.Cecil.Cil;using System.Security.Cryptography;
+using var a=AssemblyDefinition.ReadAssembly(args[0]);var m=a.MainModule;
+var code=m.Types.SelectMany(t=>t.Methods).ToDictionary(x=>x.FullName,x=>x.HasBody?string.Join("\n",x.Body.Instructions.Select(i=>i.ToString())):"");
+var hashes=m.Resources.OfType<EmbeddedResource>().ToDictionary(r=>r.Name,r=>Convert.ToHexString(SHA256.HashData(r.GetResourceData())));
+var plugin=m.Types.Single(t=>t.CustomAttributes.Any(a=>a.AttributeType.Name=="BepInPlugin"));var attr=plugin.CustomAttributes.Single(a=>a.AttributeType.Name=="BepInPlugin");string guid=(string)attr.ConstructorArguments[0].Value;attr.ConstructorArguments[1]=new CustomAttributeArgument(m.TypeSystem.String,args[2]);
+foreach(var c in a.CustomAttributes.Where(c=>c.AttributeType.Name is "AssemblyProductAttribute" or "AssemblyTitleAttribute"))c.ConstructorArguments[0]=new CustomAttributeArgument(m.TypeSystem.String,args[2]);
+a.Write(args[1]);using var result=AssemblyDefinition.ReadAssembly(args[1]);foreach(var t in result.MainModule.Types)foreach(var x in t.Methods){string value=x.HasBody?string.Join("\n",x.Body.Instructions.Select(i=>i.ToString())):"";if(code[x.FullName]!=value)throw new Exception("Code changed");}foreach(var r in result.MainModule.Resources.OfType<EmbeddedResource>())if(hashes[r.Name]!=Convert.ToHexString(SHA256.HashData(r.GetResourceData())))throw new Exception("Asset changed");Console.WriteLine($"PASS {args[2]}: {code.Count} methods and {hashes.Count} assets unchanged; GUID {guid} retained.");

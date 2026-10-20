@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net9.0</TargetFramework><OutputType>Exe</OutputType><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
+  <ItemGroup><Compile Include="../Route.cs"/><Compile Include="../RiverWaveMath.cs"/><Compile Include="../RiverJoin.cs"/><Compile Include="../HotSpringSettings.cs"/><Compile Include="../HotSpringBankProfile.cs"/><Compile Include="../Pools/GardenSettings.cs"/><Compile Include="Program.cs"/></ItemGroup>
+  <ItemGroup><Compile Include="../PondRiverJoin.cs"/></ItemGroup>
+</Project>

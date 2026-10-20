@@ -26,7 +26,7 @@ namespace RunicProduction.Integration
                 writer.WriteString("RunicProduction.Fermenter");
                 writer.WriteInt32(SchemaVersion);
                 writer.WriteString(station.PrefabId);
-                writer.WriteSingle(2400f);
+                writer.WriteSingle(station.FermentationSeconds);
                 writer.WriteString(conversion.InputPrefabId);
                 writer.WriteString(conversion.OutputPrefabId);
                 writer.WriteInt32(conversion.OutputAmount);

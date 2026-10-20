@@ -150,7 +150,7 @@ internal static class SignFormatting
         for (int i = 0; i < suffix; i++) next[after.Length - 1 - i] = old[before.Length - 1 - i];
         return Compact(next);
     }
-    internal static string Render(string text, SignSettings settings)
+    internal static string Render(string text, SignSettings settings, float vanillaFontSize = 0)
     {
         text ??= "";
         // Use only the string supplied by vanilla's permission/filter pipeline, never raw ZDO text.
@@ -166,11 +166,12 @@ internal static class SignFormatting
             string ink = s.Ink != "" ? s.Ink : settings.Ink != "" ? settings.Ink : LabelColors.Hex[settings.Color];
             int alpha = (int)Math.Round(Convert.ToInt32(ink.Substring(7, 2), 16) * settings.Opacity);
             output.Append("<color=").Append(ink.Substring(0, 7)).Append(alpha.ToString("X2")).Append('>');
-            if (s.Size != 0) output.Append("<size=").Append((s.Size * 100).ToString("0.###", CultureInfo.InvariantCulture)).Append("%>");
+            if (vanillaFontSize > 0) output.Append("<size=").Append((vanillaFontSize * (s.Size == 0 ? 1 : s.Size)).ToString("0.###", CultureInfo.InvariantCulture)).Append('>');
+            else if (s.Size != 0) output.Append("<size=").Append((s.Size * 100).ToString("0.###", CultureInfo.InvariantCulture)).Append("%>");
             if (bold) output.Append("<b>"); if (italic) output.Append("<i>");
             output.Append(text.Substring(i, end - i).Replace("<", "<noparse><</noparse>"));
             if (italic) output.Append("</i>"); if (bold) output.Append("</b>");
-            if (s.Size != 0) output.Append("</size>"); output.Append("</color>");
+            if (s.Size != 0 || vanillaFontSize > 0) output.Append("</size>"); output.Append("</color>");
             i = end;
         }
         return output.ToString();

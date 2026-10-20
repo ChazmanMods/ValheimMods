@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Runic.Compatibility;
+using RunicAutomation.Operations;
 
 namespace RunicProduction.Integration
 {
@@ -32,9 +33,10 @@ namespace RunicProduction.Integration
             return true;
         }
 
-        internal static bool IsDrawer(Inventory inventory) => inventory != null && Shapes.TryGetValue(inventory, out _);
+        internal static bool IsDrawer(Inventory inventory) => ManagedDrawerInventory.IsDrawer(inventory) || inventory != null && Shapes.TryGetValue(inventory, out _);
         internal static void CopyShape(Inventory source, Inventory shadow)
         {
+            ManagedDrawerInventory.CopyShape(source, shadow);
             if (Shapes.TryGetValue(source, out var shape)) Shapes.Add(shadow, shape);
         }
         internal static ItemDrop.ItemData[] CaptureItems(Inventory inventory) =>
@@ -42,6 +44,12 @@ namespace RunicProduction.Integration
 
         internal static void Load(Inventory inventory, StockInventoryState state)
         {
+            if (ManagedDrawerInventory.IsDrawer(inventory))
+            {
+                var restored = NativeInventoryCodec.Load(state.CopyPayload(), 1, 1);
+                inventory.GetAllItems().Clear(); inventory.GetAllItems().AddRange(restored.GetAllItems());
+                ManagedDrawerInventory.CopyShape(restored, inventory); return;
+            }
             if (!Shapes.TryGetValue(inventory, out var shape)) {
                 inventory.Load(new ZPackage(state.CopyPayload())); return;
             }
@@ -55,6 +63,7 @@ namespace RunicProduction.Integration
 
         internal static bool Remove(Inventory inventory, ItemDrop.ItemData item, int amount)
         {
+            if (ManagedDrawerInventory.IsDrawer(inventory)) return inventory.RemoveItem(item, amount);
             if (!IsDrawer(inventory)) return inventory.RemoveItem(item, amount);
             if (amount <= 0 || !inventory.GetAllItems().Contains(item) || item.m_stack < amount) return false;
             item.m_stack -= amount; // Retain the assigned zero-count item.
@@ -66,6 +75,8 @@ namespace RunicProduction.Integration
 
         internal static bool TryAdd(Inventory inventory, ItemDrop.ItemData item, int amount)
         {
+            if (ManagedDrawerInventory.IsDrawer(inventory))
+            { var offered = item.Clone(); offered.m_stack = amount; return ManagedDrawerInventory.Add(inventory, offered); }
             if (!Shapes.TryGetValue(inventory, out var shape) || amount <= 0 || item == null ||
                 inventory.GetAllItems().Count != 1) return false;
             var target = inventory.GetAllItems()[0];
@@ -75,9 +86,9 @@ namespace RunicProduction.Integration
                 (long)target.m_stack + amount > shape.Template.m_shared.m_maxStackSize ||
                 item.m_quality != canonical.m_quality || item.m_variant != canonical.m_variant ||
                 item.m_worldLevel != canonical.m_worldLevel || item.m_crafterID != canonical.m_crafterID ||
-                !string.Equals(item.m_crafterName ?? "", canonical.m_crafterName ?? "", StringComparison.Ordinal) ||
-                item.m_equipped || item.m_cheated || item.m_shared.m_questItem ||
-                !item.m_durability.Equals(canonical.m_durability) ||
+                (item.m_crafterID != 0 && !string.Equals(item.m_crafterName ?? "", canonical.m_crafterName ?? "", StringComparison.Ordinal)) ||
+                item.m_cheated || item.m_shared.m_questItem ||
+
                 (item.m_customData?.Count ?? 0) != (canonical.m_customData?.Count ?? 0) ||
                 (item.m_customData != null && item.m_customData.Any(pair => canonical.m_customData == null ||
                     !canonical.m_customData.TryGetValue(pair.Key, out string value) || value != pair.Value))) return false;

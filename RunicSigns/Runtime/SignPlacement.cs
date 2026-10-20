@@ -72,6 +72,9 @@ internal sealed class SignPlacementPreview : MonoBehaviour
         player.Message(MessageHud.MessageType.TopLeft, global::Runic.Localization.RunicText.Format("text_1c71591837d8", settings.Scale));
     }
     internal void ShowDraft(SignSettings settings, string caption) { _shown = null; _appearance.Apply(settings, caption); }
+    internal string CompatibilityError(SignSettings settings, string caption) =>
+        settings.VanillaCompatible && _appearance.Export(caption, settings).Length > VanillaSignText.Limit
+            ? "Formatted caption is too long for vanilla mode (4096 including tags). Shorten it or simplify word styling." : "";
     private void OnDestroy() => _appearance?.Dispose();
 }
 

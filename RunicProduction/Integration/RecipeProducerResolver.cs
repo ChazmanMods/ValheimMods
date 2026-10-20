@@ -89,7 +89,8 @@ namespace RunicProduction.Integration
             StockStationPrefabPolicy cookingInputStations,
             StockStationPrefabPolicy fermenterInputStations,
             out ReplenishmentTargetAuthorization authorization,
-            out string failure)
+            out string failure,
+            bool requirePhysical = true)
         {
             authorization = null;
             if (authorizedPlayerId == 0L || string.IsNullOrWhiteSpace(authorizedPlayerName))
@@ -108,7 +109,7 @@ namespace RunicProduction.Integration
             Recipe recipe = producer.Recipe;
             // The physical exemplar is the explicit stock target. Enabled recipe, DLC, producer
             // identity, station level, fire/roof, and signature are still revalidated locally.
-            if (!RecipeStationCompatibility.IsPhysicallyUsable(
+            if (requirePhysical && !RecipeStationCompatibility.IsPhysicallyUsable(
                     station, recipe.GetRequiredStationLevel(1), out failure)) return false;
             authorization = new ReplenishmentTargetAuthorization(
                 producer.OutputPrefab,
@@ -131,7 +132,8 @@ namespace RunicProduction.Integration
             StockStationPrefabPolicy cookingInputStations,
             StockStationPrefabPolicy fermenterInputStations,
             out ResolvedRecipeProducer producer,
-            out string failure)
+            out string failure,
+            bool requirePhysical = true)
         {
             producer = null;
             if (authorization == null ||
@@ -164,7 +166,7 @@ namespace RunicProduction.Integration
                 failure = global::Runic.Localization.RunicText.Get("text_8480d3f81560");
                 return false;
             }
-            if (!RecipeStationCompatibility.IsPhysicallyUsable(
+            if (requirePhysical && !RecipeStationCompatibility.IsPhysicallyUsable(
                     station, authorization.RequiredStationLevel, out failure))
             {
                 producer = null;

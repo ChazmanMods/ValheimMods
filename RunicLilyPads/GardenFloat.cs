@@ -13,7 +13,7 @@ namespace RunicLilyPads
                 }
                 if(!float.IsInfinity(low))rockCenter=(low+high)*.5f;
             }}
-        internal bool Floating(GardenPiece pond){var s=pond?PondNetwork.GroupSettings(pond):new GardenSettings();return Kind==0||Kind==1&&s.FloatLanterns||Kind==2&&s.FloatFountains||Kind==3&&s.FloatStatues;}
+        internal bool Floating(GardenPiece pond){var s=RiverGardens.SettingsAt(transform.position)??(pond?PondNetwork.GroupSettings(pond):new GardenSettings());return Kind==0||Kind==1&&s.FloatLanterns||Kind==2&&s.FloatFountains||Kind==3&&s.FloatStatues;}
         internal float Height(){var pond=PondNetwork.At(transform.position);float water=LilyFloat.WaterAt(transform.position);
             bool hasGround=Heightmap.GetHeight(transform.position,out var ground);
             if(water>-1000&&(!hasGround||water>ground+.02f)&&Floating(pond))return Kind==0?water-rockCenter*transform.lossyScale.y:water+.015f;
@@ -26,6 +26,6 @@ namespace RunicLilyPads
     {
         Transform visual;Vector3 scale;float next;
         void Start(){visual=transform.Find("lily_visual/floating_lily");if(!visual)visual=transform.Find("garden_visual");if(visual)scale=visual.localScale;}
-        void Update(){if(!visual||Time.time<next)return;next=Time.time+.5f;var p=PondNetwork.At(transform.position);visual.localScale=scale*(p?PondNetwork.GroupSettings(p).FlowerScale:.5f);}
+        void Update(){if(!visual||Time.time<next)return;next=Time.time+.5f;var p=PondNetwork.At(transform.position);visual.localScale=scale*(RiverGardens.SettingsAt(transform.position)?.FlowerScale??(p?PondNetwork.GroupSettings(p).FlowerScale:.5f));}
     }
 }

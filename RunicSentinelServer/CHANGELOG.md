@@ -1,3 +1,9 @@
+## 1.3.0
+
+- Added authenticated selected-player God, Ghost, Fly and No-cost controls and mode-status results.
+- Added duration and intensity parameters for selected-player status effects.
+- Updated character-action compatibility for RunicSentinel 1.6.0 and RunicSentinelClient 1.0.4.
+
 ## 1.2.0
 - Integrated Server Devcommands 1.109 command and feature baseline into Sentinel; no separate Server Devcommands plugin is required.
 - Added status-effect duration and intensity, command aliases/chains/waits, bindings, parameter autocomplete, command permissions and gameplay options.
@@ -75,3 +81,10 @@
 ## Authority package boundary
 
 - Compiled out client profile reporting and administrator GUI code; the dedicated package only contains authority-side handlers.
+## 1.2.1
+- Fixed private-field access exceptions that interrupted player login and periodic network updates.
+- Removed local-player ghost network hooks from the dedicated server and moved optional position updates out of player-list construction.
+## 1.2.2
+- Resolve character IDs from the current peer-owned character ZDO instead of the unused legacy peer PlayerID field.
+- Restore matching player-action readiness and accurate roster IDs for administrator teleport targeting.
+- Keep exact connection, ownership, character-change and disconnect checks; existing Sentinel Client 1.0.3 and full Sentinel 1.5.1 remain compatible.

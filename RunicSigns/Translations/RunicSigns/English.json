@@ -73,5 +73,12 @@
   "text_f6d39c92cdcf": "Adjustment: coarse",
   "text_f79f5f759f39": "Try 1 for a gentle bend. ± buttons change by 1; decimals are finer.",
   "text_fd60b1e12fd8": "Text formatting reset. Caption and sign layout kept.",
-  "text_febfba761071": "Shadow: "
+  "text_febfba761071": "Shadow: ",
+  "compat_viewers_on": "Viewers: vanilla players (ON)",
+  "compat_viewers_off": "Viewers: RunicSigns players",
+  "compat_board": "Board: vanilla size",
+  "compat_layout": "Vanilla text layout",
+  "compat_background": "No background",
+  "compat_effects": "No custom effects",
+  "compat_status": "Vanilla colors/layout; no board resize, depth, curves or emoji artwork."
 }

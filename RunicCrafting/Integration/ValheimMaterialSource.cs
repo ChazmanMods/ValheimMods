@@ -12,6 +12,7 @@ namespace RunicCrafting.Integration
         private readonly string[] _resourceIds;
         private readonly Func<bool> _eligibility;
         private readonly Func<bool> _stillWritable;
+        private readonly Func<bool> _acquire;
 
         internal ValheimMaterialSource(
             string sourceId,
@@ -19,7 +20,7 @@ namespace RunicCrafting.Integration
             MaterialSourceKind kind,
             float distanceSquared,
             IEnumerable<string> resourceIds,
-            Func<bool> eligibility, Func<bool> stillWritable = null)
+            Func<bool> eligibility, Func<bool> stillWritable = null, Func<bool> acquire = null)
         {
             SourceId = sourceId ?? throw new ArgumentNullException(nameof(sourceId));
             _inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
@@ -28,6 +29,7 @@ namespace RunicCrafting.Integration
             _resourceIds = new List<string>(resourceIds ?? throw new ArgumentNullException(nameof(resourceIds))).ToArray();
             _eligibility = eligibility ?? throw new ArgumentNullException(nameof(eligibility));
             _stillWritable = stillWritable ?? eligibility;
+            _acquire = acquire ?? eligibility;
         }
 
         public string SourceId { get; }
@@ -35,8 +37,11 @@ namespace RunicCrafting.Integration
             !RunicAutomation.MutationGate.IsBlocked(SourceId) && _eligibility();
 
         internal bool TryStageOne(Inventory destination, string resource,
-            Func<ItemDrop.ItemData, bool> permitted, out string reason) =>
-            ManualItemTransfer.TryMoveOne(_inventory, destination, resource, _eligibility, permitted, out reason, _stillWritable);
+            Func<ItemDrop.ItemData, bool> permitted, out string reason)
+        {
+            reason = "source-unavailable";
+            return _acquire() && ManualItemTransfer.TryMoveOne(_inventory, destination, resource, _eligibility, permitted, out reason, _stillWritable);
+        }
 
         public MaterialSourceSnapshot Snapshot()
         {
@@ -54,56 +59,44 @@ namespace RunicCrafting.Integration
             restoreToken = null;
             if (!IsEligible || quantity <= 0) return false;
             RunicAutomation.MutationGate.Current?.Track(_inventory);
-            List<ItemDrop.ItemData> items = _inventory.GetAllItemsInGridOrder();
+            if (!_acquire()) return false;
+            // Ownership refresh may have replaced item references; reselect just this resource.
             var planned = new List<Removal>();
             int remaining = quantity;
-            for (int index = 0; index < items.Count && remaining > 0; index++)
+            foreach (var item in _inventory.GetAllItemsInGridOrder())
             {
-                ItemDrop.ItemData item = items[index];
+                if (remaining == 0) break;
                 if (!ValheimReflection.IsUsableRequirementItem(item, resourceId)) continue;
                 int take = Math.Min(item.m_stack, remaining);
-                planned.Add(new Removal(item, take));
-                remaining -= take;
+                planned.Add(new Removal(item, take)); remaining -= take;
             }
             if (remaining != 0) return false;
-            CraftingInventorySnapshot inventoryBackup;
-            try { inventoryBackup = new CraftingInventorySnapshot(_inventory); }
-            catch { return false; }
-            string expected = null;
+            var token = new InventoryRestoreToken(_inventory);
             bool drawer = Runic.Compatibility.ModdedContainerCompatibility.IsDrawerInventory(_inventory);
-            Action changed = _inventory.m_onChanged;
             try
             {
-                // Stage the exact successor without firing foreign callbacks between removals.
-                Inventory shadow = inventoryBackup.CreateShadow();
-                foreach (Removal removal in planned)
+                foreach (var removal in planned)
                 {
-                    var item = shadow.GetItemAt(removal.Original.m_gridPos.x, removal.Original.m_gridPos.y);
-                    if (item == null || !Remove(shadow, item, removal.Quantity, drawer)) return false;
+                    if (!_inventory.ContainsItem(removal.Original) || removal.Original.m_stack < removal.Quantity)
+                    { token.Restore(); return false; }
+                    var copy = Runic.Compatibility.ModdedContainerCompatibility.TransferTemplate(_inventory, removal.Original).Clone();
+                    int before = removal.Original.m_stack;
+                    bool accepted;
+                    try { accepted = Remove(_inventory, removal.Original, removal.Quantity, drawer); }
+                    finally
+                    {
+                        // Native callbacks can throw after removal. Remember only the actual debit.
+                        int after = _inventory.ContainsItem(removal.Original) ? removal.Original.m_stack : 0;
+                        copy.m_stack = Math.Max(0, before - after);
+                        if (copy.m_stack > 0) token.Add(removal.Original, copy);
+                    }
+                    if (!accepted || copy.m_stack != removal.Quantity)
+                    { token.Restore(); return false; }
                 }
-                expected = ValheimReflection.Fingerprint(shadow);
-                _inventory.m_onChanged = null;
-                foreach (Removal removal in planned)
-                {
-                    if (!Remove(_inventory, removal.Original, removal.Quantity, drawer))
-                        throw new InvalidOperationException("Crafting removal did not match the staged successor.");
-                }
-                _inventory.m_onChanged = changed;
-                ValheimReflection.NotifyInventoryChanged(_inventory);
-                if (!_stillWritable() || ValheimReflection.Fingerprint(_inventory) != expected)
-                    throw new InvalidOperationException("Crafting endpoint changed during publication.");
+                if (drawer) ValheimReflection.NotifyInventoryChanged(_inventory);
             }
-            catch (Exception error)
-            {
-                _inventory.m_onChanged = changed;
-                var recovery = new InventoryRestoreToken(_inventory, inventoryBackup, expected, _stillWritable, SourceId);
-                if (!recovery.Restore())
-                    throw new RunicAutomation.MutationIndeterminateException(SourceId, error);
-                throw;
-            }
-            finally { _inventory.m_onChanged = changed; }
-
-            restoreToken = new InventoryRestoreToken(_inventory, inventoryBackup, expected, _stillWritable, SourceId);
+            catch { token.Restore(); throw; }
+            restoreToken = token;
             return true;
         }
 
@@ -129,41 +122,33 @@ namespace RunicCrafting.Integration
 
         private sealed class InventoryRestoreToken : IMaterialRestoreToken
         {
-            private readonly Inventory _inventory;
-            private readonly CraftingInventorySnapshot _snapshot;
-            private bool _active = true;
-            private readonly string _expected, _sourceId;
-            private readonly Func<bool> _authority;
-
-            internal InventoryRestoreToken(
-                Inventory inventory,
-                CraftingInventorySnapshot snapshot, string expected, Func<bool> authority, string sourceId)
-            {
-                _inventory = inventory;
-                _snapshot = snapshot;
-                _expected = expected; _authority = authority; _sourceId = sourceId;
-            }
-
+            private readonly Inventory inventory;
+            private readonly List<Tuple<ItemDrop.ItemData, ItemDrop.ItemData>> removed = new List<Tuple<ItemDrop.ItemData, ItemDrop.ItemData>>();
+            internal InventoryRestoreToken(Inventory inventory) { this.inventory = inventory; }
+            internal void Add(ItemDrop.ItemData original, ItemDrop.ItemData copy) => removed.Add(Tuple.Create(original, copy));
             public bool Restore()
             {
-                if (!_active) return true;
-                try
+                bool ok = true;
+                foreach (var entry in removed)
                 {
-                    if (!_authority()) throw new InvalidOperationException("Recovery authority lost.");
-                    // An already-restored endpoint needs no publication. Never overwrite unknown state.
-                    try { _snapshot.Verify(_inventory); _active = false; return true; } catch { }
-                    if (_expected == null || ValheimReflection.Fingerprint(_inventory) != _expected)
-                        throw new InvalidOperationException("Recovery state is not the expected successor.");
-                    ValheimReflection.RestoreInventory(_inventory, _snapshot);
-                    _active = false;
-                    return true;
+                    var original = entry.Item1; var copy = entry.Item2;
+                    if (copy.m_stack <= 0) continue;
+                    if (inventory.ContainsItem(original))
+                    {
+                        int fit = Math.Min(copy.m_stack, Math.Max(0, original.m_shared.m_maxStackSize - original.m_stack));
+                        original.m_stack += fit;
+                        copy.m_stack -= fit;
+                        ValheimReflection.NotifyInventoryChanged(inventory);
+                    }
+                    if (copy.m_stack > 0)
+                    {
+                        var attempt = copy.Clone();
+                        bool restored = inventory.AddItem(attempt, original.m_gridPos);
+                        copy.m_stack = restored ? 0 : attempt.m_stack;
+                        ok &= restored;
+                    }
                 }
-                catch
-                {
-                    RunicAutomation.MutationGate.Block(_inventory);
-                    RunicAutomation.MutationGate.Block(_sourceId);
-                    return false;
-                }
+                return ok;
             }
         }
     }

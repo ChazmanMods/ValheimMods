@@ -8,7 +8,12 @@ namespace RunicLilyPads
         static bool dirty;static readonly Dictionary<GardenPiece,List<GardenPiece>> Groups=new Dictionary<GardenPiece,List<GardenPiece>>();
         static readonly Dictionary<GardenPiece,Dictionary<GardenPiece,PondChannel>> Channels=new Dictionary<GardenPiece,Dictionary<GardenPiece,PondChannel>>();
         float next;
-        internal static void MarkDirty(){dirty=true;Groups.Clear();Channels.Clear();}
+        static Bounds changed;
+        internal static void MarkDirty(Vector3 point,float radius){
+            var region=new Bounds(point,new Vector3(radius*2,512,radius*2));
+            if(dirty)changed.Encapsulate(region);else changed=region;
+            dirty=true;Groups.Clear();Channels.Clear();
+        }
         internal static bool TryChannel(GardenPiece high,GardenPiece low,out PondChannel channel){
             if(!Channels.TryGetValue(high,out var entries)){
                 entries=new Dictionary<GardenPiece,PondChannel>();var h=Footprint(high);
@@ -33,7 +38,8 @@ namespace RunicLilyPads
         static int Compare(GardenPiece a,GardenPiece b){int n=a.transform.position.x.CompareTo(b.transform.position.x);if(n!=0)return n;n=a.transform.position.z.CompareTo(b.transform.position.z);if(n!=0)return n;return string.CompareOrdinal(a.GetComponent<ZNetView>().GetZDO()?.m_uid.ToString(),b.GetComponent<ZNetView>().GetZDO()?.m_uid.ToString());}
         internal static bool Covers(GardenPiece a,GardenPiece b)=>a!=b&&(a.WaterHeight>b.WaterHeight+.08f||(Mathf.Abs(a.WaterHeight-b.WaterHeight)<=.08f&&Compare(a,b)>0));
         internal static GardenPiece At(Vector3 point){GardenPiece best=null;foreach(var p in GardenPiece.Ponds)if(p&&p.Live&&Distance(p,point)<1&&(!best||p.WaterHeight>best.WaterHeight))best=p;return best;}
-        internal static float WaterLevel(Vector3 point){
+        internal static float WaterLevel(Vector3 point)=>RawWaterLevel(point);
+        internal static float RawWaterLevel(Vector3 point){
             foreach(var p in GardenPiece.Ponds){if(!p||!p.Live||Distance(p,point)>1.0001)continue;
                 double nearest=double.PositiveInfinity;var group=Group(p);foreach(var q in group)nearest=Math.Min(nearest,PondMergeMath.Edge(Footprint(q),point.x,point.z));
                 double weight=0,height=0;foreach(var q in group){double w=Math.Exp(-(PondMergeMath.Edge(Footprint(q),point.x,point.z)-nearest)*2.4);weight+=w;height+=w*q.WaterHeight;}return (float)(height/weight);
@@ -41,8 +47,10 @@ namespace RunicLilyPads
         }        void Update(){
             if(Time.time<next)return;next=Time.time+.5f;
             foreach(var p in GardenPiece.Ponds)if(p&&p.Live)p.SyncGroup(GroupSettings(p));
-            if(!dirty)return;dirty=false;
-            foreach(var p in GardenPiece.Ponds)if(p&&p.Live){p.RefreshSurface();PondTerrain.Refresh(p.transform.position,18);}
+            if(!dirty)return;dirty=false;RiverGardens.NotifyPondsChanged(changed);
+            foreach(var p in GardenPiece.Ponds)if(p&&p.Live&&changed.Intersects(new Bounds(p.transform.position,new Vector3(p.Settings.Width+8,512,p.Settings.Width+8)))){
+                p.RefreshSurface();PondTerrain.Refresh(p.transform.position,18);
+            }
         }
         internal static Mesh Surface(GardenPiece owner){
             var vertices=new List<Vector3>();var indices=new List<int>();var tex=new List<Vector2>();

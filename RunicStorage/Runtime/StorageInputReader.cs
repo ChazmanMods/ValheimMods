@@ -21,6 +21,8 @@ internal sealed class StorageInputReader
 		//IL_0046: Unknown result type (might be due to invalid IL or missing references)
 		//IL_005b: Unknown result type (might be due to invalid IL or missing references)
 		StorageActionEdges storageActionEdges = StorageActionEdges.None;
+        if (ShortcutDown(PluginConfig.SortPersonalInventoryKey.Value))
+            storageActionEdges |= StorageActionEdges.KeyboardSortPersonal;
 		if (ShortcutDown(PluginConfig.SortOpenedContainerKey.Value))
 		{
 			storageActionEdges |= StorageActionEdges.KeyboardSort;
@@ -104,6 +106,7 @@ internal sealed class StorageInputReader
 			return "none";
 		}
 		List<string> values = new List<string>();
+        Add(values, edges, StorageActionEdges.KeyboardSortPersonal, "keyboard:sort-personal-inventory");
 		Add(values, edges, StorageActionEdges.KeyboardSort, "keyboard:sort-opened-container");
 		Add(values, edges, StorageActionEdges.KeyboardStoreAll, "keyboard:store-all-opened-container");
 		Add(values, edges, StorageActionEdges.KeyboardQuickStack, "keyboard:quick-stack");

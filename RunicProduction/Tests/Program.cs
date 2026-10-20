@@ -8,7 +8,8 @@ namespace RunicProduction.Tests
         private static int _passed;
         private static int _expected;
 
-        private static void Main()
+        private static string _filter = "";
+        private static void Main(string[] args)
         {
             Run("blocked stations back off and removed stations lose schedule state", () =>
             {
@@ -21,7 +22,10 @@ namespace RunicProduction.Tests
                 schedule.Remove(1);
                 if (!schedule.IsDue(1, 0)) throw new Exception("removed station retained state");
             });
+            _filter = args.Length == 0 ? "" : args[0];
             RunAll(NativeCheatChecksTests.Cases());
+            RunAll(FermenterConversionTests.Cases());
+            RunAll(SharedAuthorityContractTests.Cases());
             RunAll(ProductionLinkPressTests.Cases());
             RunAll(ProductionSetupOwnershipTests.Cases());
             RunAll(StandaloneProductionTests.Cases());
@@ -35,7 +39,8 @@ namespace RunicProduction.Tests
             IReadOnlyList<KeyValuePair<string, Action>> tests)
         {
             foreach (KeyValuePair<string, Action> test in tests)
-                Run(test.Key, test.Value);
+                if (_filter.Length == 0 || test.Key.Contains(_filter, StringComparison.OrdinalIgnoreCase))
+                    Run(test.Key, test.Value);
         }
 
         private static void Run(string name, Action test)

@@ -10,22 +10,24 @@ namespace RunicLilyPads
         public int Shape=-1;
         internal GardenSettings Settings=new GardenSettings();
         internal bool Live=>view&&view.IsValid();
+        internal bool RiverSection=>GetComponent<RiverGardenSection>();
         internal float WaterHeight=>transform.position.y-.15f;
         ZNetView view;GameObject generated;AudioSource audioSource;ParticleSystem[] particles=Array.Empty<ParticleSystem>();
         string last="";float check;int playingTrack=-1;bool registered;bool ambienceOn;
-        GardenSettings pending;float pendingDeadline;
+        float previousWidth;
+        GardenSettings pending;float pendingDeadline;internal string PendingControllerData;
         readonly List<Object> assets=new List<Object>();
         internal void Own(Object obj)=>assets.Add(obj);
         readonly List<Object> surfaceAssets=new List<Object>();
         internal void OwnSurface(Object obj)=>surfaceAssets.Add(obj);
         void ClearSurface(){foreach(var a in surfaceAssets)if(a)Object.Destroy(a);surfaceAssets.Clear();}
-        void Start(){view=GetComponent<ZNetView>(); Settings=Plugin.DefaultSettings(); Poll(true);}
+        void Start(){view=GetComponent<ZNetView>(); Settings=Plugin.DefaultSettings(); GetComponent<IGardenController>()?.ConfigureDefaults(Settings); Poll(true);}
         void Update()
         {
             if(Time.time>=check){check=Time.time+.5f;Poll(false);SettleControlStone();}
             if(pending!=null){
                 if(!CanEdit()||Time.time>pendingDeadline)pending=null;
-                else if(view.IsOwner()){view.GetZDO().Set("arcane_garden_settings",pending.Encode());pending=null;Poll(true);}
+                else if(view.IsOwner()){view.GetZDO().Set("arcane_garden_settings",pending.Encode());if(PendingControllerData!=null)view.GetZDO().Set("arcane_pool_controller",PendingControllerData);PendingControllerData=null;pending=null;Poll(true);}
             }
             if(!Live||!Player.m_localPlayer)return;
             bool near=Vector3.Distance(Player.m_localPlayer.transform.position,transform.position)<Settings.Range+10;
@@ -36,7 +38,7 @@ namespace RunicLilyPads
                 float target=active&&Settings.Track>0?Settings.Volume*Plugin.MasterVolume.Value:0;
                 // Nearby sound emitters share the loudness budget to avoid stacked full-volume loops.
                 if(active){int nearby=0;foreach(var g in Active)if(g&&g.Live&&g.Settings.Track>0&&g.Settings.Volume>0&&(!g.Settings.NightOnly||EnvMan.IsNight())&&Vector3.Distance(Player.m_localPlayer.transform.position,g.transform.position)<g.Settings.Range)nearby++;target/=Mathf.Sqrt(Mathf.Clamp(nearby,1,4));}
-                audioSource.volume=Mathf.MoveTowards(audioSource.volume,target,Time.deltaTime*.3f);
+                WaterAudio.SetVolume(audioSource,target,Time.deltaTime*.3f);
                 audioSource.pitch=Settings.Speed;
                 if(active&&Settings.Track>0&&audioSource.clip&&!audioSource.isPlaying)audioSource.Play();
                 if((!active||Settings.Track==0)&&audioSource.volume<=.001f)audioSource.Stop();
@@ -86,11 +88,12 @@ namespace RunicLilyPads
                         foreach(var p in particles){p.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);var main=p.main;main.loop=true;main.playOnAwake=false;main.maxParticles=Settings.Fireflies;main.startLifetime=6;main.simulationSpace=ParticleSystemSimulationSpace.Local;
                             ConfigureFireflyColor(p);
                             var emission=p.emission;emission.rateOverTime=Settings.Fireflies/6f;
-                            var shape=p.shape;shape.enabled=true;shape.shapeType=ParticleSystemShapeType.Box;shape.scale=new Vector3(Settings.Width,.9f,Settings.Width*(float)PondMath.Aspect(Shape));}
+                            var shape=p.shape;shape.enabled=true;shape.shapeType=ParticleSystemShapeType.Box;shape.scale=new Vector3(Settings.Width,.9f,Settings.Width*(float)PondMath.Aspect(Shape));
+                            if(RiverSection)GetComponent<RiverGardenSection>().Configure(p);}
                     }
                 }
             }
-            ambienceOn=false;generated.SetActive(true);if(Shape>=0&&Live){PondTerrain.Refresh(transform.position,18);PondNetwork.MarkDirty();}
+            ambienceOn=false;generated.SetActive(true);if(Shape>=0&&Live){PondTerrain.Refresh(transform.position,18);PondNetwork.MarkDirty(transform.position,Mathf.Max(previousWidth,Settings.Width)+4);previousWidth=Settings.Width;}
         }
         internal static void ConfigureFireflyColor(ParticleSystem p)
         {
@@ -104,28 +107,31 @@ namespace RunicLilyPads
         internal bool CanEdit()=>Live&&Player.m_localPlayer&&Vector3.Distance(Player.m_localPlayer.transform.position,transform.position)<Settings.Width+6&&PrivateArea.CheckAccess(transform.position,Shape>=0?Settings.Width*.7f:0,false);
         internal bool Save(GardenSettings settings)
         {
+            if(RiverSection&&!GetComponent<RiverGardenSection>().CanEdit())return false;
             if(!settings.Valid||!CanEdit()||!PrivateArea.CheckAccess(transform.position,Shape>=0?settings.Width*.7f:0,true))return false;
             if(Shape>=0&&!settings.SameGroup(PondNetwork.GroupSettings(this))){
                 foreach(var pond in PondNetwork.Group(this))if(!PrivateArea.CheckAccess(pond.transform.position,pond.Settings.Width*.7f,true))return false;
                 settings.GroupRevision=Math.Max(DateTime.UtcNow.Ticks,PondNetwork.GroupSettings(this).GroupRevision+1);
             }
-            pending=settings.Copy();pendingDeadline=Time.time+5;view.ClaimOwnership();return true;
+            if(RiverSection)settings.GroupRevision=Math.Max(DateTime.UtcNow.Ticks,Settings.GroupRevision+1);
+            PendingControllerData=null;pending=settings.Copy();pendingDeadline=Time.time+5;view.ClaimOwnership();return true;
         }
-        public string GetHoverName()=>Shape<0?global::Runic.Localization.RunicText.Get("text_c92e4ced068f"):global::Runic.Localization.RunicText.Get("text_98ab40b0cda3");
+        public string GetHoverName()=>GetComponent<IGardenController>()?.PoolName ?? (RiverSection?"River Garden Stone":Shape<0?global::Runic.Localization.RunicText.Get("text_c92e4ced068f"):global::Runic.Localization.RunicText.Get("text_98ab40b0cda3"));
         public float GetHoverOffset()=>0;
         public string GetHoverText()=>GetHoverName()+global::Runic.Localization.RunicText.Get("text_d5c2bb3c1387");
-        public bool Interact(Humanoid user,bool hold,bool alt){if(hold||user!=Player.m_localPlayer||!CanEdit())return false;GardenEditor.Open(this);return true;}
+        public bool Interact(Humanoid user,bool hold,bool alt){if(hold||user!=Player.m_localPlayer||!CanEdit())return false;var controller=GetComponent<IGardenController>();if(controller!=null)return controller.OpenMenu();GardenEditor.Open(this);return true;}
         public bool UseItem(Humanoid user,ItemDrop.ItemData item)=>false;
         internal void SyncGroup(GardenSettings settings){
             if(!Live||!view.IsOwner()||Settings.GroupRevision>=settings.GroupRevision)return;
             Settings.CopyGroupFrom(settings);view.GetZDO().Set("arcane_garden_settings",Settings.Encode());last=Settings.Encode();
         }
+        internal void RefreshRiver(){if(Live&&RiverSection)Rebuild();}
         internal void RefreshSurface(){
             if(!Live||Shape<0||!generated)return;
             var surface=generated.transform.Find("pond_water");if(surface){surface.gameObject.SetActive(false);Object.Destroy(surface.gameObject);}
             ClearSurface();PondBuilder.Build(this,generated.transform,true);
         }
-        void OnDestroy(){ClearSurface();if(GardenEditor.Target==this)GardenEditor.Close();bool pond=Ponds.Remove(this);Active.Remove(this);foreach(var a in assets)if(a)Object.Destroy(a);if(pond){PondTerrain.Refresh(transform.position,18);PondNetwork.MarkDirty();}}
+        void OnDestroy(){ClearSurface();if(GardenEditor.Target==this)GardenEditor.Close();bool pond=Ponds.Remove(this);Active.Remove(this);foreach(var a in assets)if(a)Object.Destroy(a);if(pond){PondTerrain.Refresh(transform.position,18);PondNetwork.MarkDirty(transform.position,Settings.Width+4);}}
     }
 }
 

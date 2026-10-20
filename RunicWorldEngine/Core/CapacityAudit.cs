@@ -31,9 +31,12 @@ namespace RunicWorldEngine.Core
             new Site { Type = "ZPlayFabMatchmaking", Method = "CreateAndJoinNetwork", MemberType = "PlayFab.Party.PlayFabNetworkConfiguration", Member = "set_MaxPlayerCount", Baseline = dedicated ? 11 : 10, Transport = true }
         }.Concat(dedicated ? new[] { new Site { Type = "SteamManager", Method = "Awake", MemberType = "Steamworks.SteamGameServer", Member = "SetMaxPlayerCount", Baseline = 64 } } : Array.Empty<Site>()).ToArray();
 
-        // Whole method bodies + exception regions, independently audited for client/listen and dedicated 1.0.12.
+        // Whole method bodies + exception regions, audited for the supported client/listen and dedicated builds.
+        // Valheim 1.0.20 keeps the same capacity sites; RPC_PeerInfo changes network protocol 40 to 41.
         internal static readonly HashSet<string> Fingerprints = new HashSet<string>(StringComparer.Ordinal)
         {
+            "BA879E8A853D8E50BC7A39A0B476F76062CF2054277E174D871433056007D4D8", // 1.0.20 dedicated RPC_PeerInfo
+            "735D0FC5FF652D03574F6F46D680CAACBB6B75B42EED8AE26086F7B5C682831E", // 1.0.20 client/listen RPC_PeerInfo
             "EC5CA7EC57BA5C5A2EFF1C41FA3C7F6B2D75A497FC990D58F8ADDC3CD54BC7E0",
             "459DD8DBAB089DF496991274244B62297AD68764D988D78475D8251A20343E63",
             "F54B5B813E98AD518E07CF56E69A4864C4515FC3184472D31A4FFC3036D3D2A3",

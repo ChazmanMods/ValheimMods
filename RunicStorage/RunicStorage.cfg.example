@@ -36,8 +36,16 @@ FailedRefreshRetrySeconds = 0.5
 ## None, duplicate modifiers, and using the main key as its own modifier are invalid and inert.
 
 QuickStack = Q + LeftAlt
+
+# Hold these modifiers and left-click a carried stack; None disables this shortcut.
+# Left/right Ctrl, Shift and Alt are interchangeable. Existing protections apply.
+QuickStackSingleModifier = LeftShift + LeftControl
 Restock = R + LeftAlt
+## Sort the open chest.
 SortOpenedContainer = S + LeftAlt
+
+## Sort personal inventory and preserve protected slots.
+SortPersonalInventory = P + LeftShift + LeftControl
 StoreAllOpenedContainer = A + LeftAlt
 ConsolidateCarriedStacks = C + LeftAlt
 Search = F + LeftAlt
@@ -83,3 +91,22 @@ DebugTransfers = false
 QuickStackPrefabIds = piece_drawer
 ## Restock pulls. RunicCrafting 1.1.3+ has its own independent PullPrefabIds setting.
 PullPrefabIds = piece_drawer
+
+
+[SmartSort]
+
+Enabled = true
+## Close inventory. Press to preview, repeat within 30 seconds to apply.
+OrganizeKey = O + LeftAlt
+## Also capped by Storage RangeMeters.
+RangeMeters = 10
+
+[Inventory Trash]
+
+## Shift+Alt+right-click selects eligible carried stacks; trashcan opens confirmation.
+Enabled = true
+
+[SmartSort Diagnostics]
+
+## Optional timing diagnostics for troubleshooting; does not change gameplay.
+PerformanceLogging = false

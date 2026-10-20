@@ -5,6 +5,7 @@ using System.Reflection.Emit;
 
 public sealed class FakePrefab
 {
+    public string name = "fixture";
     public ItemDrop Drop = new ItemDrop();
     public T GetComponent<T>() where T : class => Drop as T;
 }

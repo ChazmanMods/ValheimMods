@@ -31,6 +31,8 @@ namespace RunicProduction.Integration
                 registeredPrefab.GetComponent<WearNTear>() == null)
                 return Fail(global::Runic.Localization.RunicText.Get("text_83029d0196d3"), out failure);
             station = stations[0];
+            if (NativeStationWorld.Enabled)
+                return TryValidateLive(station, prefabId, policy, requireAllowed, out failure);
             if (registeredPrefab.GetComponentsInChildren<Smelter>(true).Length != 0 ||
                 registeredPrefab.GetComponentsInChildren<Fermenter>(true).Length != 0 ||
                 registeredPrefab.GetComponentsInChildren<CraftingStation>(true).Length != 0 ||
@@ -105,6 +107,12 @@ namespace RunicProduction.Integration
             if (station == null || !ValheimAccess.TryGetCookingStationPrefab(
                     station, out prefabId, out GameObject registeredPrefab))
                 return Fail(global::Runic.Localization.RunicText.Get("text_0b1aa3175a03"), out failure);
+            if (NativeStationWorld.Enabled)
+            {
+                var nativeView = ValheimAccess.View(station);
+                if (nativeView == null || !nativeView.IsValid()) return Fail("Native cooking station is not available.", out failure);
+                return TryValidateLive(station, prefabId, policy, requireAllowed, out failure);
+            }
             if (station.gameObject.GetComponent<CookingStation>() != station ||
                 station.gameObject.GetComponents<CookingStation>().Length != 1 ||
                 station.gameObject.GetComponent<ZNetView>() != ValheimAccess.View(station) ||
@@ -197,6 +205,21 @@ namespace RunicProduction.Integration
             if (!ControlInside(station, station.m_addFoodSwitch) ||
                 !ControlInside(station, station.m_addFuelSwitch))
                 return Fail(global::Runic.Localization.RunicText.Get("text_1ed85b29f5ab"), out failure);
+            return true;
+        }
+
+        private static bool TryValidateLive(CookingStation station, string prefabId,
+            CookingStationPrefabPolicy policy, bool requireAllowed, out string failure)
+        {
+            failure = string.Empty;
+            if (requireAllowed && (policy == null || !policy.Allows(prefabId)))
+                return Fail(global::Runic.Localization.RunicText.Get("text_251cbb36b389"), out failure);
+            // Native cooking and its installed patches own visual controls, fire/fuel
+            // combinations, timing and conversions. Automation needs only real slots
+            // and at least one usable input/output; it must not require vanilla UI parts.
+            if (station.m_slots == null || station.m_slots.Length == 0 ||
+                station.m_conversion == null || !station.m_conversion.Any(c => c != null && c.m_from != null && c.m_to != null))
+                return Fail("Native cooking station has no usable slots or conversion.", out failure);
             return true;
         }
 

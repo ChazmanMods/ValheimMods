@@ -112,6 +112,11 @@ namespace RunicProduction.Integration
         internal static StockInventoryState Capture(Inventory inventory)
         {
             if (inventory == null) throw new ArgumentNullException(nameof(inventory));
+            if (RunicAutomation.Operations.ManagedDrawerInventory.IsDrawer(inventory))
+            {
+                byte[] encoded = RunicAutomation.Operations.NativeInventoryCodec.Save(inventory);
+                return new StockInventoryState(encoded, Fingerprint(encoded));
+            }
             var package = new ZPackage();
             inventory.Save(package);
             var drawerItems = ProductionContainerCompatibility.CaptureItems(inventory);
@@ -128,7 +133,8 @@ namespace RunicProduction.Integration
         {
             if (payload == null || payload.Length == 0 || payload.Length > MaximumPayloadBytes)
                 return string.Empty;
-            try { return Convert.ToBase64String(new ZPackage(payload).GenerateHash()); }
+            try { return Convert.ToBase64String(new ZPackage(
+                ProductionInventoryPayloadComparison.ForComparison(payload)).GenerateHash()); }
             catch { return string.Empty; }
         }
     }
@@ -1000,29 +1006,8 @@ namespace RunicProduction.Integration
             return added && payload.m_stack == 0;
         }
 
-        private static bool ExactPersistentMetadataEquals(
-            ItemDrop.ItemData left,
-            ItemDrop.ItemData right)
-        {
-            if (left == null || right == null ||
-                !string.Equals(
-                    ValheimAccess.PrefabName(left),
-                    ValheimAccess.PrefabName(right),
-                    StringComparison.Ordinal) ||
-                left.m_quality != right.m_quality ||
-                left.m_variant != right.m_variant ||
-                left.m_worldLevel != right.m_worldLevel ||
-                left.m_crafterID != right.m_crafterID ||
-                !string.Equals(
-                    left.m_crafterName ?? string.Empty,
-                    right.m_crafterName ?? string.Empty,
-                    StringComparison.Ordinal) ||
-                left.m_pickedUp != right.m_pickedUp ||
-                left.m_equipped != right.m_equipped ||
-                left.m_cheated != right.m_cheated ||
-                !left.m_durability.Equals(right.m_durability)) return false;
-            return DictionaryEquals(left.m_customData, right.m_customData);
-        }
+        private static bool ExactPersistentMetadataEquals(ItemDrop.ItemData left, ItemDrop.ItemData right) =>
+            RunicAutomation.Operations.InventoryMetadataComparison.SameItem(left, right);
 
         private static bool DictionaryEquals(
             IDictionary<string, string> left,

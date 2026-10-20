@@ -1,0 +1,11 @@
+{
+  "name": "RunicHallOfHeroes",
+  "version_number": "0.3.0",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Build heroic halls where equipment remembers deeds and runestones replay a fallen hero's final moments.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333",
+    "ValheimModding-Jotunn-2.29.1",
+    "Chazman-RunicDisplayStands-1.2.6"
+  ]
+}

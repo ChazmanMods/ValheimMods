@@ -18,8 +18,10 @@ namespace RunicSentinel.Tests
     {
         private static readonly RSA SigningKey = CreateSigningKey();
 
-        private static int Main()
+        private static int Main(string[] args)
         {
+            if (args.Length == 1 && args[0] == "--world-panel") return WorldPanelChecks();
+            if (args.Length == 1 && args[0] == "--building-limits") return BuildingLimitsTests.Run();
             var tests = new (string Name, Action Run)[]
             {
                 ("player transport handles vectors, unicode, roles and nested reports", PlayerJsonRoundTrip),
@@ -868,7 +870,7 @@ namespace RunicSentinel.Tests
             Contains(readme, "not unforgeable proof");
             using JsonDocument manifest = JsonDocument.Parse(Read("RunicSentinel", "manifest.json"));
             Equal("RunicSentinel", manifest.RootElement.GetProperty("name").GetString());
-            Equal("1.5.0", manifest.RootElement.GetProperty("version_number").GetString());
+            Equal("1.6.0", manifest.RootElement.GetProperty("version_number").GetString());
             Sequence(
                 new[]
                 {

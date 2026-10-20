@@ -99,6 +99,7 @@ namespace UnityEngine.UI
 }
 namespace TMPro
 {
+    public class TMP_SpriteAsset { }
     public interface ITextPreprocessor { string PreprocessText(string text); }
     public enum TextWrappingModes { Normal, NoWrap }
     public struct TMP_CharacterInfo { public bool isVisible; public int materialReferenceIndex, vertexIndex; }
@@ -109,6 +110,8 @@ namespace TMPro
     public enum TextAlignmentOptions { Left, Center, Right }
     public class TextMeshProUGUI : UnityEngine.Component
     {
+        public TMP_SpriteAsset spriteAsset;
+        public bool tintAllSprites;
         public event Action<TMP_TextInfo> OnPreRenderText;
         public void Generate(TMP_TextInfo info) => OnPreRenderText?.Invoke(info);
         public int GeometryHandlers => OnPreRenderText?.GetInvocationList().Length ?? 0;
@@ -176,7 +179,8 @@ public class Sign : UnityEngine.Component, TextReceiver
     public void SetText(string text)
     {
         if (RejectWrite) return;
-        Writes++; GetComponent<ZNetView>().GetZDO().Set(ZDOVars.s_text,text);
+        Writes++; GetComponent<ZNetView>().GetZDO().SetOwner(ZNet.Session);
+        GetComponent<ZNetView>().GetZDO().Set(ZDOVars.s_text,text);
         // A denied/filtered display must never be overwritten by the mod renderer.
     }
 }
@@ -257,3 +261,14 @@ namespace RunicSigns.Runtime
 }
 
 namespace Runic.Shared { internal static class EmojiRenderer { internal static void Attach(TMPro.TextMeshProUGUI text) { } } }
+namespace Runic.Localization {
+    internal static class RunicText {
+        private static readonly Dictionary<string,string> English = Read();
+        private static Dictionary<string,string> Read() {
+            using var stream = typeof(RunicText).Assembly.GetManifestResourceStream("Test.English.json");
+            return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,string>>(stream);
+        }
+        internal static string Get(string key) => English.TryGetValue(key,out var value) ? value : key;
+        internal static string Format(string key, params object[] values) => string.Format(Get(key),values);
+    }
+}

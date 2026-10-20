@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 
 namespace RunicLilyPads
 {
-    [BepInPlugin(Guid, "ArcaneDecor: WaterGardens", "1.0.2")]
+    [BepInPlugin(Guid, "ArcaneDecor: WaterGardens", "1.2.1")]
     [BepInDependency(Jotunn.Main.ModGuid)]
     public sealed class Plugin : BaseUnityPlugin
     {
@@ -29,7 +29,7 @@ namespace RunicLilyPads
             MasterVolume=Config.Bind("Audio","MasterVolume",1f,new BepInEx.Configuration.ConfigDescription(global::Runic.Localization.RunicText.Get("text_46db60eb2268"),new BepInEx.Configuration.AcceptableValueRange<float>(0,1)));
             DefaultWidth=Config.Bind("Ponds","DefaultWidth",6f,new BepInEx.Configuration.ConfigDescription(global::Runic.Localization.RunicText.Get("text_11f0402a6233"),new BepInEx.Configuration.AcceptableValueRange<float>(4,24)));
             DefaultDepth=Config.Bind("Ponds","DefaultDepth",1.2f,new BepInEx.Configuration.ConfigDescription(global::Runic.Localization.RunicText.Get("text_8ab7fdf8f372"),new BepInEx.Configuration.AcceptableValueRange<float>(.4f,3)));
-            ArcaneDecorWaterGardens.Input.ModalGameplayInput.IsOpen=()=>GardenEditor.IsOpen||FeatureEditor.IsOpen||GardenTreeEditor.IsOpen;
+            ArcaneDecorWaterGardens.Input.ModalGameplayInput.IsOpen=()=>GardenMenuCursor.IsOpen;
             gameObject.AddComponent<GardenEditor>();
             gameObject.AddComponent<FeatureEditor>();gameObject.AddComponent<GardenTreeEditor>();
             gameObject.AddComponent<PondNetwork>();
@@ -71,7 +71,8 @@ namespace RunicLilyPads
         }
         internal static float WaterAt(Vector3 p)
         {
-            float garden=PondNetwork.WaterLevel(p);if(!float.IsNegativeInfinity(garden))return garden;
+            float river=RiverGardens.WaterLevel(p);float garden=PondNetwork.WaterLevel(p);
+            float combined=Mathf.Max(river,garden);if(!float.IsNegativeInfinity(combined))return combined;
             // Probe inside the water volume, including when the placement ray starts above a wave.
             p.y -= 4f;
             return Floating.GetLiquidLevel(p, 1f, LiquidType.Water);

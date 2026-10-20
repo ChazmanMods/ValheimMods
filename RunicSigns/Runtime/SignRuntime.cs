@@ -34,10 +34,12 @@ internal sealed class SignRuntime : MonoBehaviour, IPlaced
         var settings = SignPlacement.CurrentSettings;
         if (!settings.Valid) return;
         if (SignPlacement.HasCaption) {
+            string caption = settings.VanillaCompatible ? _appearance.Export(SignPlacement.Caption, settings) : SignPlacement.Caption;
+            if (settings.VanillaCompatible && caption.Length > VanillaSignText.Limit) return;
             _nativeWrite = true;
-            try { _sign.SetText(SignPlacement.Caption); }
+            try { _sign.SetText(caption); }
             finally { _nativeWrite = false; }
-            if (NativeText != SignPlacement.Caption) return;
+            if (NativeText != caption) return;
         }
         _view.GetZDO().Set(SettingsKey, settings.Encode());
         Render();
@@ -72,12 +74,39 @@ internal sealed class SignRuntime : MonoBehaviour, IPlaced
         if (Saving) return;
         if (!SignAccess.Local(_sign) || !settings.Valid || !SignSettings.ValidText(text))
         { completion(false, "Check sign access and caption (maximum 1024 characters)."); return; }
+        if (settings.VanillaCompatible) {
+            SaveVanilla(settings, text, expectedStyle, expectedText, completion);
+            return;
+        }
         _expectedStyle = expectedStyle; _expectedText = expectedText; _newStyle = settings.Encode(); _newText = text;
         _completion = completion; _pendingToken = Guid.NewGuid().ToString("N");
         _requestedOwner = _view.GetZDO().GetOwner(); _granted = false;
         _requestDeadline = Time.unscaledTime + 8;
         // The owner serializes save attempts before passing ownership, like vanilla containers.
         _view.InvokeRPC(_requestedOwner, RequestRpc, _pendingToken, expectedStyle, expectedText);
+    }
+    internal string CompatibilityError(SignSettings settings, string text) =>
+        settings.VanillaCompatible && _appearance.Export(text, settings).Length > VanillaSignText.Limit
+            ? "Formatted caption is too long for vanilla mode (4096 including tags). Shorten it or simplify word styling." : "";
+    private void SaveVanilla(SignSettings settings, string text, string expectedStyle, string expectedText, Action<bool, string> completion)
+    {
+        string error = EditPolicy.Reject(expectedStyle, Raw, expectedText, NativeText, SignAccess.Local(_sign), Busy);
+        if (error.Length == 0) error = CompatibilityError(settings, text);
+        if (error.Length != 0) { completion(false, error); return; }
+        try {
+            string caption = _appearance.Export(text, settings);
+            // Vanilla SetText claims ownership and preserves authorship/wards. Do not
+            // require custom RPC handlers on an unmodded owner or dedicated server.
+            _nativeWrite = true;
+            _sign.SetText(caption);
+            if (NativeText != caption) { completion(false, "Valheim rejected the caption. Check ward access."); return; }
+            _view.GetZDO().Set(SettingsKey, settings.Encode());
+            _preview = null; _previewCaption = null; _rendered = null; Render();
+            completion(true, "Saved for vanilla players.");
+        } catch (Exception ex) {
+            Plugin.Log.LogError("Vanilla sign save failed: " + ex);
+            completion(false, "Save failed. Reopen the sign to check its current state.");
+        } finally { _nativeWrite = false; }
     }
     private double Now => ZNet.instance.GetTimeSeconds();
     private bool Busy => EditPolicy.LeaseActive(_view.GetZDO().GetString(LeaseKey, ""),

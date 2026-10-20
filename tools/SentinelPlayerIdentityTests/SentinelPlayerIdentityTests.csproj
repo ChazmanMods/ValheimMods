@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup>
+<Compile Include="../../RunicSentinel/Runtime/SentinelPlayerIdentity.cs" Link="SentinelPlayerIdentity.cs" />
+<Compile Include="../../RunicSentinel/Runtime/SentinelPlayerCommandService.cs" Link="SentinelPlayerCommandService.cs" />
+<Compile Include="../../RunicSentinelAdmission.Shared/PlayerActionProtocol.cs" Link="PlayerActionProtocol.cs" />
+</ItemGroup></Project>

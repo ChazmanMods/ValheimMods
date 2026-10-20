@@ -5,6 +5,16 @@ using UnityEngine;
 
 namespace RunicProduction.Integration
 {
+    [HarmonyPatch(typeof(Container), nameof(Container.SetInUse))]
+    internal static class ProductionChestClosedPatch
+    {
+        private static void Prefix(Container __instance, out bool __state) => __state = __instance.IsInUse();
+        private static void Postfix(Container __instance, bool __state)
+        {
+            if (__state && !__instance.IsInUse()) ProductionRuntime.ChestClosed();
+        }
+    }
+
     [HarmonyPatch(typeof(Player), "Awake")]
     internal static class ProductionCookingExperiencePlayerPatch
     {
@@ -12,6 +22,50 @@ namespace RunicProduction.Integration
         {
             try { CookingExperience.Register(__instance); }
             catch (Exception exception) { ProductionRuntime.FailHook("cooking XP registration", exception); }
+        }
+    }
+
+    [HarmonyPatch(typeof(SapCollector), "Awake")]
+    internal static class ProductionSapCollectorRegisterPatch
+    {
+        private static void Postfix(SapCollector __instance)
+        {
+            try { ProductionRuntime.Register(__instance); }
+            catch (Exception exception) { ProductionRuntime.FailHook("SapCollector.Awake", exception); }
+        }
+    }
+
+    [HarmonyPatch(typeof(SapCollector), nameof(SapCollector.GetHoverText))]
+    internal static class ProductionSapCollectorHoverPatch
+    {
+        private static void Postfix(SapCollector __instance, ref string __result) =>
+            ProductionRuntime.AppendHover(__instance, Contracts.ProductionLinkRole.Output, ref __result);
+    }
+
+    [HarmonyPatch(typeof(WispSpawner), "Start")]
+    internal static class ProductionWispSpawnerRegisterPatch
+    {
+        private static void Postfix(WispSpawner __instance)
+        {
+            try { ProductionRuntime.Register(__instance); }
+            catch (Exception exception) { ProductionRuntime.FailHook("WispSpawner.Start", exception); }
+        }
+    }
+
+    [HarmonyPatch(typeof(WispSpawner), nameof(WispSpawner.GetHoverText))]
+    internal static class ProductionWispSpawnerHoverPatch
+    {
+        private static void Postfix(WispSpawner __instance, ref string __result) =>
+            ProductionRuntime.AppendHover(__instance, Contracts.ProductionLinkRole.Output, ref __result);
+    }
+
+    [HarmonyPatch(typeof(LuredWisp), "UpdateTarget")]
+    internal static class ProductionWispCollectionPatch
+    {
+        private static void Postfix(LuredWisp __instance)
+        {
+            try { ProductionRuntime.TryCollectWisp(__instance); }
+            catch (Exception exception) { ProductionRuntime.FailHook("wisp collection", exception); }
         }
     }
 
@@ -210,20 +264,12 @@ namespace RunicProduction.Integration
     [HarmonyPatch(typeof(Smelter), "Spawn")]
     internal static class ProductionSmelterSpawnPatch
     {
-        private static bool Prefix(Smelter __instance, string ore, int stack)
+        private static void Prefix(Smelter __instance, out UnityEngine.Component __state)
         {
-            try
-            {
-                return !ProductionRuntime.TryDepositProducedOutput(
-                    __instance, ore, stack);
-            }
-            catch (Exception exception)
-            {
-                ProductionRuntime.FailStation(
-                    __instance, "Smelter.Spawn", exception);
-                return true;
-            }
+            __state = NativeProductionOutput.Current;
+            NativeProductionOutput.Current = NativeProductionOutput.Collects(__instance) ? __instance : null;
         }
+        private static void Finalizer(UnityEngine.Component __state) => NativeProductionOutput.Current = __state;
     }
 
     [HarmonyPatch(typeof(Smelter), "OnHoverAddOre")]

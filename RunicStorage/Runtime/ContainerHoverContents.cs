@@ -385,6 +385,7 @@ internal static class ContainerHoverContents
 
 	private static bool IsBusy(Container container, ZDO zdo)
 	{
+        if (RunicAutomation.Operations.InventoryOperationNetwork.Ready && RunicAutomation.Operations.NetworkInventoryAccess.Descriptor(zdo) != null) return false;
 		if ((Object)(object)container == (Object)null || container.IsInUse() || ((Object)(object)container.m_wagon != (Object)null && container.m_wagon.InUse()))
 		{
 			return true;

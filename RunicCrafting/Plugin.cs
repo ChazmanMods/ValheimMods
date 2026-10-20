@@ -13,7 +13,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "chazman.RunicCrafting";
         public const string Name = "Runic Crafting";
-        public const string Version = "1.1.7";
+        public const string Version = "2.3.2";
 
         internal static ManualLogSource Log { get; private set; }
 
@@ -23,10 +23,12 @@ public sealed class Plugin : BaseUnityPlugin
 
         private void Awake()
         {
-            RunicAutomation.MutationGate.Diagnostic = message => { if (message.Contains("Indeterminate")) Logger.LogError(message); else Logger.LogDebug(message); };
+            RunicAutomation.MutationGate.Diagnostic = message => { if (message.Contains("Indeterminate")) Logger.LogError(message); else if (Configuration.DetailedLogging?.Value == true) Logger.LogInfo(message); else Logger.LogDebug(message); };
             Log = Logger;
             Configuration.Bind(Config);
             CraftingAuthorityPolicy.Register();
+            AuthorityMaterials.Register();
+            AuthorityCraftExecution.Register();
             Config.SettingChanged += OnSettingChanged;
             _configurationSubscribed = true;
             Logger.LogInfo(Name + " configuration: " + Configuration.StateSummary + ".");
@@ -36,20 +38,22 @@ public sealed class Plugin : BaseUnityPlugin
                 CraftingRuntime.Initialize(Logger);
                 _harmony = new Harmony(Guid);
                 _harmony.PatchAll(typeof(Plugin).Assembly);
+                RunicAutomation.Operations.InventoryOperationNetwork.RegisterModule("crafting");
                 WorkshopAccessCommands.Initialize();
                 Logger.LogInfo(
                     Name + " v" + Version + " ready. " + Configuration.StateSummary +
-                    ". Nearby crafting, building, manual cooking and refueling use guarded native Valheim ownership.");
+                    ". Nearby crafting, building and manual fueling use live native inventories in the original action.");
             }
             catch (Exception exception)
             {
-                Logger.LogError(Name + " startup failed; vanilla behavior remains available: " + exception);
+                Logger.LogError(Name + " startup failed; matching-module inventory handshake is unavailable: " + exception);
                 Shutdown();
             }
         }
 
         private void Update()
         {
+            if (_harmony != null) AuthorityBuildingExecution.Tick();
             ValheimReflection.MaintainPreviewCacheContext();
             UiPreviewCache.Maintain();
             if (_harmony != null) PostCraftRefreshRuntime.Tick();

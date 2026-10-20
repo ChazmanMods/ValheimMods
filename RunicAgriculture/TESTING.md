@@ -1,5 +1,17 @@
 # Runic Agriculture testing
 
+## 1.0.4 row snapping - 2026-09-14
+
+- Release build and 34 focused tests pass. New production geometry tests cover row extension,
+  missing crops with spacing evidence, parallel rows with different spacing, deterministic
+  orientation, rotated even-sized grids, diagonal rejection, and unsafe/oversized evidence.
+- Runtime samples matching loaded seedlings and mature crops within 6m, rejects saturated
+  collider scans, and applies snapped positions through the existing preview/commit validators.
+- Live acceptance remains: extend a row, add a parallel row, repeat on rotated/sloping ground,
+  test even row/column counts, and verify that preview positions match planted positions.
+  Confirm Ctrl bypass, seed usage, blocked occupied cells, and unchanged replant positions.
+- No live install or in-game physics/visual verification was performed for this candidate.
+
 Run the focused static and policy suite once after changing Agriculture:
 
 ```powershell

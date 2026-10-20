@@ -1,4 +1,15 @@
-## Runic Sentinel 1.4.2
+## Runic Sentinel 1.6.1
+
+[Building and Terrain]
+# Host settings; restart after editing. Host: full RunicSentinel. Players: RunicSentinelClient 1.0.5 or matching full Sentinel.
+# Disabled preserves vanilla behavior. Example custom values: 2, 24, 32.
+Enabled = false
+# 1-10. Divides vertical support loss; does not specify an exact height in metres.
+VerticalSupportMultiplier = 1
+# 1-64 metres above ORIGINAL terrain. Vanilla = 8.
+MaximumTerrainRaise = 8
+# 1-64 metres below ORIGINAL terrain. Vanilla = 8.
+MaximumDigDepth = 8
 
 [General]
 # False creates no worker, admission gate, services, UI, transition patch, or operator command.
@@ -41,3 +52,4 @@ FindingWindowSeconds = 60
 [Administrator Panel]
 # The server authorizes adminlist.txt members, the local host, or signed Sentinel roles.
 OpenPanel = F3
+

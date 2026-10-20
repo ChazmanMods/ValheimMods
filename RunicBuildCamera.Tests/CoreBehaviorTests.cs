@@ -30,6 +30,41 @@ namespace RunicBuildCamera.Tests
             TestRunner.Run("pickup range validates finite boundary", PickupRangeValidation);
             TestRunner.Run("pickup scan schedule clamps and saturates", PickupScheduleClampsAndSaturates);
             TestRunner.Run("pickup retry schedules enforce floors", PickupRetrySchedulesEnforceFloors);
+            TestRunner.Run("crowded pickup scans reach every drop", CrowdedPickupScansReachEveryDrop);
+            TestRunner.Run("pickup snapshots survive removal and registry shrink", PickupSnapshotsSurviveRemoval);
+        }
+
+        private static void CrowdedPickupScansReachEveryDrop()
+        {
+            var items = new System.Collections.Generic.List<int>();
+            for (int i = 0; i < 401; i++) items.Add(i);
+            var buffer = new int[PickupPolicy.CandidateCapacity];
+            var seen = new System.Collections.Generic.HashSet<int>();
+            int cursor = 0;
+            for (int scan = 0; scan < 4; scan++)
+            {
+                int count = PickupScanWindow.CopyNext(items, buffer, ref cursor);
+                TestAssert.True(count <= PickupPolicy.CandidateCapacity);
+                for (int i = 0; i < count; i++) seen.Add(buffer[i]);
+            }
+            TestAssert.Equal(401, seen.Count,
+                "Rejected drops at the front must not hide later underwater drops indefinitely.");
+        }
+
+        private static void PickupSnapshotsSurviveRemoval()
+        {
+            var items = new System.Collections.Generic.List<int> { 1, 2, 3, 4, 5 };
+            var buffer = new int[3];
+            int cursor = 0;
+            TestAssert.Equal(3, PickupScanWindow.CopyNext(items, buffer, ref cursor));
+            items.Clear();
+            TestAssert.SequenceEqual(new[] { 1, 2, 3 }, buffer);
+            TestAssert.Equal(0, PickupScanWindow.CopyNext(items, buffer, ref cursor));
+            items.Add(9);
+            cursor = 200;
+            TestAssert.Equal(1, PickupScanWindow.CopyNext(items, buffer, ref cursor));
+            TestAssert.Equal(9, buffer[0]);
+            TestAssert.Equal(0, cursor);
         }
 
         private static void CameraInputAxesAreClamped()
@@ -203,10 +238,10 @@ namespace RunicBuildCamera.Tests
 
         private static void PickupPolicyHasHardBounds()
         {
-            TestAssert.Equal(128, PickupPolicy.ColliderCapacity);
+            TestAssert.Equal(128, PickupPolicy.CandidateCapacity);
             TestAssert.Equal(16, PickupPolicy.MaximumAttemptsPerScan);
             TestAssert.Equal(256, PickupPolicy.MaximumCooldownEntries);
-            TestAssert.True(PickupPolicy.MaximumAttemptsPerScan < PickupPolicy.ColliderCapacity);
+            TestAssert.True(PickupPolicy.MaximumAttemptsPerScan < PickupPolicy.CandidateCapacity);
         }
 
         private static void PickupPolicyAcceptsValidFacts()
@@ -220,7 +255,7 @@ namespace RunicBuildCamera.Tests
             var allBad = Facts(
                 network: false,
                 range: false,
-                ward: false,
+                fish: true,
                 autoPickup: false,
                 piece: true,
                 tar: true,
@@ -233,7 +268,7 @@ namespace RunicBuildCamera.Tests
                 PickupPolicy.Evaluate(in allBad));
 
             AssertRejected(PickupRejectionReason.OutsideRange, Facts(range: false));
-            AssertRejected(PickupRejectionReason.WardDenied, Facts(ward: false));
+            AssertRejected(PickupRejectionReason.Fish, Facts(fish: true));
             AssertRejected(PickupRejectionReason.AutoPickupDisabled, Facts(autoPickup: false));
             AssertRejected(PickupRejectionReason.Piece, Facts(piece: true));
             AssertRejected(PickupRejectionReason.InTar, Facts(tar: true));
@@ -286,7 +321,7 @@ namespace RunicBuildCamera.Tests
         private static PickupCandidateFacts Facts(
             bool network = true,
             bool range = true,
-            bool ward = true,
+            bool fish = false,
             bool autoPickup = true,
             bool piece = false,
             bool tar = false,
@@ -297,7 +332,7 @@ namespace RunicBuildCamera.Tests
             new PickupCandidateFacts(
                 network,
                 range,
-                ward,
+                fish,
                 autoPickup,
                 piece,
                 tar,

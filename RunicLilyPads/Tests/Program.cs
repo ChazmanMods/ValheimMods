@@ -98,5 +98,8 @@ foreach(float threshold in new[]{.25f,1.5f,10f}){
 }
 Check(WaterfallSoundRules.Track(1,1.5f)==9&&WaterfallSoundRules.Track(2,1.5f)==10,"different drops in same group select independently");
 Check(WaterfallSoundRules.Track(2,1.5f)==10&&WaterfallSoundRules.Track(2,3)==9,"threshold change updates sound selection");
-Console.WriteLine("PASS "+checks+" assertions: pond settings, shore height, continuous compact joins, submerged beds and culture independence.");
+Check(GardenHealth.IsPreviouslyRemoved(0f),"legacy zero-health removal remains eligible for cleanup");
+foreach(float health in new[]{-1f,-2f,-4f,1f,100f,float.NaN,float.NegativeInfinity,float.PositiveInfinity})
+ Check(!GardenHealth.IsPreviouslyRemoved(health),"invulnerable, living and unknown health must not trigger legacy cleanup: "+health);
+Console.WriteLine("PASS "+checks+" assertions: pond settings, shore height, continuous compact joins, submerged beds, culture independence and invulnerable-piece cleanup.");
 

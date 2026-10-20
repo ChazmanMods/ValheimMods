@@ -12,7 +12,7 @@ namespace RunicBuildCamera.Core
         None = 0,
         InvalidNetworkIdentity = 1,
         OutsideRange = 2,
-        WardDenied = 3,
+        Fish = 3,
         AutoPickupDisabled = 4,
         Piece = 5,
         InTar = 6,
@@ -27,7 +27,7 @@ namespace RunicBuildCamera.Core
         internal PickupCandidateFacts(
             bool hasValidNetworkIdentity,
             bool isWithinRange,
-            bool wardAllows,
+            bool isFish,
             bool autoPickupEnabled,
             bool isPiece,
             bool isInTar,
@@ -38,7 +38,7 @@ namespace RunicBuildCamera.Core
         {
             HasValidNetworkIdentity = hasValidNetworkIdentity;
             IsWithinRange = isWithinRange;
-            WardAllows = wardAllows;
+            IsFish = isFish;
             AutoPickupEnabled = autoPickupEnabled;
             IsPiece = isPiece;
             IsInTar = isInTar;
@@ -50,7 +50,7 @@ namespace RunicBuildCamera.Core
 
         internal bool HasValidNetworkIdentity { get; }
         internal bool IsWithinRange { get; }
-        internal bool WardAllows { get; }
+        internal bool IsFish { get; }
         internal bool AutoPickupEnabled { get; }
         internal bool IsPiece { get; }
         internal bool IsInTar { get; }
@@ -63,8 +63,8 @@ namespace RunicBuildCamera.Core
     internal static class PickupPolicy
     {
         // Scene discovery and mutation are hard-bounded independently of config.
-        // A saturated overlap buffer simply defers excess objects to a later scan.
-        internal const int ColliderCapacity = 128;
+        // Rotate through loaded drops; retain unprocessed candidates when attempts are capped.
+        internal const int CandidateCapacity = 128;
         internal const int MaximumAttemptsPerScan = 16;
         internal const int MaximumCooldownEntries = 256;
 
@@ -99,8 +99,8 @@ namespace RunicBuildCamera.Core
                 return PickupRejectionReason.InvalidNetworkIdentity;
             if (!facts.IsWithinRange)
                 return PickupRejectionReason.OutsideRange;
-            if (!facts.WardAllows)
-                return PickupRejectionReason.WardDenied;
+            if (facts.IsFish)
+                return PickupRejectionReason.Fish;
             if (!facts.AutoPickupEnabled)
                 return PickupRejectionReason.AutoPickupDisabled;
             if (facts.IsPiece)

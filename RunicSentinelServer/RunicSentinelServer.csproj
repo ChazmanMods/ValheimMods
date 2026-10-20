@@ -4,6 +4,8 @@
     <AssemblyName>RunicSentinelServer</AssemblyName>
     <RootNamespace>RunicSentinel</RootNamespace>
     <LangVersion>latest</LangVersion>
+    <!-- Publicized compile references require unverifiable IL metadata on Mono. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>disable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <DefineConstants>$(DefineConstants);RUNIC_SENTINEL_SERVER_ONLY</DefineConstants>
@@ -18,6 +20,7 @@
     <Compile Include="../RunicSentinel/Runtime/SentinelPeople.cs" Link="Authority/Runtime/SentinelPeople.cs" />
     <Compile Include="../RunicSentinel/Runtime/SentinelReadableReport.cs" Link="Authority/Runtime/SentinelReadableReport.cs" />
     <Compile Include="../RunicSentinel/Runtime/SentinelPlayerReports.cs" Link="Authority/Runtime/SentinelPlayerReports.cs" />
+    <Compile Include="../RunicSentinel/Runtime/SentinelPlayerIdentity.cs" Link="Authority/Runtime/SentinelPlayerIdentity.cs" />
     <Compile Include="../RunicSentinel/Runtime/SentinelModChoices.cs" Link="Authority/Runtime/SentinelModChoices.cs" />
     <Compile Include="../RunicSentinel/Runtime/SentinelCommandProvider.cs" Link="Authority/Runtime/SentinelCommandProvider.cs" />
     <Compile Include="../RunicSentinel/Core/SentinelCommandRequest.cs" Link="Authority/Core/SentinelCommandRequest.cs" />

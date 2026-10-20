@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Mono.Cecil" HintPath="../../../AuditReports/rest-1014/BinaryAudit/bin/Release/net8.0/Mono.Cecil.dll" />
+    <Reference Include="Microsoft.CodeAnalysis" HintPath="C:/Program Files/dotnet/sdk/8.0.407/Roslyn/bincore/Microsoft.CodeAnalysis.dll" />
+    <Reference Include="Microsoft.CodeAnalysis.CSharp" HintPath="C:/Program Files/dotnet/sdk/8.0.407/Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll" />
+  </ItemGroup>
+</Project>

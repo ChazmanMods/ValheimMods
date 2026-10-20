@@ -1,37 +1,13 @@
-# Testing Runic Precision Build Tool 2.0.3
+# Runic Precision Build Tool 2.0.9 verification
 
-Use the audited Valheim 1.0.7 assemblies and configured BepInEx profile. From the repository root,
-run the plugin build once and then its focused suite once:
+Based on the 2.0.8 release source, whose existing compiled DLL SHA256 matched the upload package: 0E04958F9E3E5A7AFBDA7D24F95598206D293001133488A4456210B4F675054E.
 
-```powershell
-dotnet build .\RunicPrecisionBuildTool\RunicPrecisionBuildTool.csproj -c Release --no-restore
-dotnet run --project .\RunicPrecisionBuildTool.Tests\RunicPrecisionBuildTool.Tests.csproj -c Release
-```
+The horizontal panel update preserves the standalone plugin's StartupAccelerator lifecycle, language files, and native placement behavior. Existing bounded undo and area repair continue to require the local peer to be the current owner, including on a dedicated client. Vanilla building remains unchanged when precision mode is off.
 
-The focused suite covers quaternion placement math, world/local translation, independent resets,
-matching, snap-side proof, repeat history, input arbitration, zero-allocation core paths, catalog and
-localization bounds, target caching, installed Valheim signatures/IL, Harmony cleanup and ordering,
-native-owner mutation denial order, dependency metadata, documentation, and the published icon.
+Build: dotnet build RunicPrecisionBuildTool -c Release.
+Focused suite: dotnet run --project RunicPrecisionBuildTool.Tests -c Release.
+Startup lifecycle: dotnet run --project tools/PrecisionStartupRegression -c Release.
 
-The root release's single dedicated-server acceptance matrix verifies transformed placement through
-Valheim's normal commit, local native-owner F11/F12 behavior, denial for pieces not currently owned
-by that peer, ward/range/no-build checks, per-success durability, one-shot undo, collider saturation,
-and coexistence with Build Camera, Crafting, and Agriculture. No separate durable mutation harness
-is used.
+Manual layout checks: show/hide target and axis readouts, change font size, resize the window, inspect long coordinates, and leave Hammer placement. Verify side-by-side columns, screen margins, and restoration of the native panel dimensions.
 
-Useful manual checks before that final matrix are:
-
-- Leave precision mode off and confirm ordinary rotate/place/remove/repair behavior stays vanilla.
-- Press P outside build mode and with non-Hammer tools; it must do nothing. Toggle P across Hammer
-  piece changes and Hammer exit; no state may leak into another session.
-- Exercise every normal/fine rotation and movement chord plus all independent/full resets.
-- Match Keypad0-Keypad9, repeat a two-piece pattern, and confirm native invalid placements still fail.
-- Exercise search, favorites, and recents against changing unlock state. With an empty search query,
-  F6 must cycle all currently unlocked pieces without an error message.
-- Press F11 twice after one eligible placement; only the first action may remove it.
-- Damage many locally owned pieces and use F12; nearest bounded successes each consume one durability
-  charge, while a saturated 256-collider query changes nothing.
-- On a dedicated client, repeat F11/F12 against a locally owned piece and one owned elsewhere; only
-  the native local-owner path may mutate.
-
-Final focused-test totals and multiplayer evidence are recorded by the root release workflow.
+The installed game is 1.0.16; four existing focused test fixtures still require 1.0.15 version/hash values. Live in-game layout verification has not been performed.

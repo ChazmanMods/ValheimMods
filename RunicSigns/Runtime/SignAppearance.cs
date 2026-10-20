@@ -22,6 +22,9 @@ internal sealed class SignAppearance : IDisposable
     private readonly TextOverflowModes _overflow;
     private readonly ITextPreprocessor _preprocessor;
     private readonly Material _baseMaterial;
+    private readonly TMP_SpriteAsset _nativeSprites, _emojiSprites;
+    private readonly bool _nativeTint;
+    private readonly VanillaPreview _vanillaPreview = new();
     private readonly Formatter _formatter = new();
     private Material _effectMaterial;
     private int _effect = -1;
@@ -31,7 +34,9 @@ internal sealed class SignAppearance : IDisposable
     {
         _root = root; _text = text; _scale = root.localScale;
         if (!text) return;
+        _nativeSprites = text.spriteAsset; _nativeTint = text.tintAllSprites;
         Runic.Shared.EmojiRenderer.Attach(text);
+        _emojiSprites = text.spriteAsset;
         _position = text.rectTransform.localPosition;
         _wrapping = text.textWrappingMode;
         text.OnPreRenderText += BendText;
@@ -43,8 +48,18 @@ internal sealed class SignAppearance : IDisposable
     }
     internal void Apply(SignSettings s, string draft = null, Func<bool> permitted = null)
     {
+        if (s.VanillaCompatible) {
+            Restore();
+            if (_text && draft != null) {
+                _vanillaPreview.Text = Export(draft, s); _vanillaPreview.Permitted = permitted;
+                _text.textPreprocessor = _vanillaPreview;
+                _text.havePropertiesChanged = true; _text.SetAllDirty();
+            }
+            return;
+        }
         _root.localScale = _scale * s.Scale;
         if (!_text) return;
+        _text.spriteAsset = _emojiSprites; _text.tintAllSprites = false;
         _formatter.Settings = s; _formatter.Draft = draft; _formatter.Permitted = permitted;
         _text.textPreprocessor = _formatter;
         _text.richText = true; _text.fontStyle = FontStyles.Normal; _text.color = Color.white;
@@ -123,6 +138,7 @@ internal sealed class SignAppearance : IDisposable
         _backgroundMode = 0;
         if (_background) _background.gameObject.SetActive(false);
         if (!_text) return;
+        _text.spriteAsset = _nativeSprites; _text.tintAllSprites = _nativeTint;
         _text.textPreprocessor = _preprocessor; _text.fontSize = _font; _text.fontSizeMin = _min; _text.fontSizeMax = _max;
         _curveVertical = _curveDepth = 0;
         _text.textWrappingMode = _wrapping;
@@ -137,6 +153,15 @@ internal sealed class SignAppearance : IDisposable
         Restore(); if (_text) _text.OnPreRenderText -= BendText;
         if (_background) UnityEngine.Object.Destroy(_background.gameObject);
         if (_effectMaterial) UnityEngine.Object.Destroy(_effectMaterial);
+    }
+    internal string Export(string caption, SignSettings settings) => VanillaSignText.Encode(caption, settings,
+        _font, _text ? _text.rectTransform.rect.size.x : 0, _text ? _text.rectTransform.rect.size.y : 0,
+        !_text || _text.isOrthographic);
+    private sealed class VanillaPreview : ITextPreprocessor
+    {
+        internal string Text;
+        internal Func<bool> Permitted;
+        public string PreprocessText(string text) => Permitted == null || Permitted() ? Text : text;
     }
     private sealed class Formatter : ITextPreprocessor
     {

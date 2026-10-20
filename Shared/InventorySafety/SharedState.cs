@@ -7,6 +7,18 @@ namespace RunicAutomation
     {
         private const string Key = "Runic.InventorySafety.Embedded.v1";
         internal static readonly object Sync = string.Intern(Key);
+        internal static bool TryGet<T>(string name, out T value) where T : class
+        {
+            lock (Sync)
+            {
+                value = null;
+                var state = AppDomain.CurrentDomain.GetData(Key) as Dictionary<string, object>;
+                if (state == null || !state.TryGetValue(name, out object found)) return false;
+                value = found as T; return value != null;
+            }
+        }
+        internal static bool InventoryOperationsActive => TryGet<Dictionary<string, Delegate>>("operations.network.v2", out var routes) &&
+            routes.TryGetValue("ready", out var ready) && ((Func<bool>)ready)();
         internal static T Get<T>(string name, Func<T> create) where T : class
         {
             lock (Sync)

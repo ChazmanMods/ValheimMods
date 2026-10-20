@@ -1,66 +1,56 @@
 # Runic Build Camera
 
-The hardest part of an ambitious Valheim build is often getting your Viking—and the camera—into the one position where the next piece can be seen and placed. Roofs, tall walls, tight interiors, and awkward corners turn perspective into the real construction challenge.
+Move your view around a project while your Viking stays put. Place, repair, and remove building pieces from the angle you need, using Valheim's familiar building controls.
 
-**Runic Build Camera lets your view move around the project while your Viking stays put.** Fly to the useful angle and keep using Valheim's familiar building workflow from there.
+## Features
 
-## Major features
-
-- Toggle a detached camera while building.
-- Place, repair, and remove pieces from the remote view.
-- Configure movement speed, range, inversion, and reference behavior.
-- Optionally collect eligible loose materials near the camera.
-- Optionally carry an equipped Wisplight's mist clearing with the view.
-
-## How it feels in-game
-
-You can inspect the far side of a wall, rise above a roofline, or reach a cramped detail without repeatedly rebuilding scaffolding or repositioning your character. The hammer still feels like the hammer; you simply get a better seat.
-
-## Safety and compatibility
-
-The camera is client-side and range-limited. Normal costs, placement validation, required station types, wards, and removal paths remain in control. Your Viking remains at the original position and stays vulnerable while the camera is away. The mod is standalone and requires only BepInEx and Valheim's shipped assemblies.
-
-## Feature scope
-
-- Enter or leave the detached build camera with a configurable shortcut. The default is B.
-- Move and look from the detached camera while the player remains in the normal building state.
-- Limit camera travel to 60 metres by default, with a non-configurable hard ceiling of 100 metres.
-- Keep placement, repair, and removal targeting available from the camera. The separate 100-metre
-  setting caps avatar-to-target distance; Valheim also limits the ray to 50 metres from the camera.
-- Optionally collect eligible loose world-item drops near the camera on a bounded interval. This
-  does not search, open, or transfer items from chests or other containers.
-- When the player has an active Wisplight demister, optionally move that existing mist-clearing
-  effect to the camera and apply a configurable range multiplier while the camera is active.
-- Configure camera speed, a fast-move multiplier, view-relative or world-relative movement, and
-  independent horizontal and vertical inversion for mouse and controller look.
-- Restore camera-related state when the mode exits instead of leaving a detached effect behind.
-
-Runic Build Camera does not add free materials, bypass recipe costs, replace ward checks, or define
-a custom building protocol. Placement and removal still travel through Valheim's normal gameplay
-paths. During those scoped calls only, loaded workbench, forge, and other build-station ranges are
-treated as at least the configured remote-action distance; their stored range values are never
-changed. The required station type and the piece's other ordinary rules still apply. The avatar
-remains at the original world position and remains vulnerable to creatures, damage, weather, and
-other ordinary gameplay while the camera is detached.
+- Detached building camera with adjustable movement speed and range.
+- Remote placement, repair, and removal using normal building requirements and costs.
+- Optional pickup of loose materials near the camera, including underwater drops.
+- Player ward protection for camera pickups.
+- Optional Wisplight mist clearing that follows the camera.
+- Mouse and controller support with separate look-inversion settings.
 
 ## Controls
 
-Press B while building to toggle the camera with the default configuration. Normal movement and
-look inputs drive the detached camera. The usual jump and crouch inputs move vertically, and the
-usual run input applies the fast-move multiplier. Remapped Valheim inputs remain the source of
-those actions.
+Equip a hammer or another building tool and press **B** to toggle the camera. Close the piece-selection menu to move freely.
 
-To put away your hammer or switch items, use the normal hotbar action; the detached camera
-exits automatically. Keyboard put-away also exits the camera and keeps the same keypress.
-Controller hotbar use follows the same exit behavior. Compatible with Valheim 1.0.14.
+- **Movement and look:** your normal Valheim inputs.
+- **Up and down:** jump and crouch.
+- **Faster movement:** hold run.
+- **Exit:** press B, put away your hammer, or select a hotbar item.
 
-The toggle can be replaced with any BepInEx keyboard shortcut in
-BepInEx/config/chazman.RunicBuildCamera.cfg.
+Your character stays in place and remains vulnerable to damage while you use the camera.
+
+## Picking up items
+
+Enable your character's auto-pickup toggle and leave `PickupEnabled` on. Eligible loose items are collected within `PickupRange` of the camera. Distance includes depth; move the camera closer to submerged items if needed.
+
+Inventory space, carry weight, item eligibility, and other mods' normal pickup restrictions still apply. Fish are excluded, including anglerfish and pufferfish. The camera does not collect from chests or other containers, pick up placed objects, or free items trapped in tar.
+
+**Player wards:** enabled player-built wards block camera pickup unless you own the ward or have permission. Every overlapping player ward must allow access. Disabled wards do not block pickup.
+
+**Game-created wards:** do not block camera pickup. Building actions continue to follow their normal ward restrictions.
+
+## Wisplight
+
+When you have an active Wisplight, its mist-clearing effect can follow the detached camera. Adjust `DemisterRangeMultiplier` to change its range. The effect returns to your character when the camera closes.
+
+## Installation
+
+Install with a Thunderstore-compatible mod manager, or install BepInExPack for Valheim and copy `RunicBuildCamera.dll` and the `Translations` folder into `BepInEx/plugins/RunicBuildCamera`.
+
+Close Valheim before updating. Replace the previous version instead of keeping duplicate copies. Launch once to generate `BepInEx/config/chazman.RunicBuildCamera.cfg`.
+
+**Client-only:** each player who wants the camera installs it locally. The dedicated server does not need this mod. Runic Build Camera is standalone and requires only BepInEx; no other Runic mods are required.
+
+## Compatibility
+
+Do not use Runic Build Camera alongside Build Camera Custom Hammers Edition. Disable or remove that mod first. Runic Precision Build Tool can be used alongside this mod.
 
 ## Configuration
 
-The hard ceilings on camera range and remote action distance are part of the plugin, not merely
-suggested defaults. BepInEx clamps those two settings to 100 metres.
+Edit `BepInEx/config/chazman.RunicBuildCamera.cfg` while the game is closed. A commented example configuration is included.
 
 | Section | Setting | Default | Accepted range or meaning |
 |---|---|---:|---|
@@ -82,66 +72,17 @@ suggested defaults. BepInEx clamps those two settings to 100 metres.
 | Controls | InvertControllerVertical | false | Controller vertical look |
 | Diagnostics | VerboseLogging | false | Additional transition logging, never per-frame logging |
 
-RunicBuildCamera.cfg.example contains the complete commented configuration.
+## Languages
 
-## Compatibility
+The mod follows Valheim's selected language, with English fallback. Language files are in `Translations/RunicBuildCamera` beside the DLL. To add a translation, copy `English.json`, name the copy for the selected language, and translate its values.
 
-Do not install Runic Build Camera alongside Build Camera Custom Hammers Edition. If that plugin is
-detected, Runic Build Camera deliberately disables its detached mode and writes one actionable log
-warning so two camera runtimes cannot fight over the same transform. Remove or disable the older
-Build Camera package before testing this one. Runic Precision Build Tool is not a conflict: it may
-remain installed and continues to own only its precision pose controls.
+## Version 1.0.8
 
-## Installation
+Camera pickups respect player-built wards while allowing collection near game-created wards. Owners and permitted players retain access. Fish remain excluded.
 
-1. Install BepInExPack for Valheim.
-2. Copy RunicBuildCamera.dll into BepInEx/plugins/RunicBuildCamera.
-3. Start Valheim once to generate BepInEx/config/chazman.RunicBuildCamera.cfg.
-4. Close the game before editing configuration values.
+## Support
 
-The manifest, README, changelog, and example configuration may be kept beside the DLL but are not
-loaded by the game.
-
-## Multiplayer
-
-Version 1.0.5 introduces no custom RPC, synchronized configuration, or networked data type. Install
-it on each client that wants to use the camera; a dedicated server does not need a matching copy
-for the client feature to operate. Installing this DLL on a dedicated server does not turn the
-client-side camera and range settings into an enforcement system.
-
-Camera position, look inversion, pickup scanning, and mist-effect movement are local concerns.
-Successful placement, removal, inventory changes, and world ownership still use Valheim's existing
-network behavior. However, an unmodified dedicated server does not independently attest the
-camera's origin or enforce Runic Build Camera's configured 100-metre caps. Those caps are local
-safety limits, not a server trust boundary. Server operators who require authoritative distance or
-camera-policy enforcement need a separate server-side policy implementation. This mod is not an
-anti-cheat or permission system.
-
-## Clean-room provenance and reuse
-
-Runic Build Camera is an independently authored plugin built from a clean behavior specification.
-No source code, binaries, documentation text, artwork, or other assets from Build Camera Custom
-Hammers Edition are included.
-
-The upstream Build Camera Custom Hammers Edition repository publishes its implementation under
-GPL-3.0. Copying or adapting that implementation would require satisfying the GPL terms; observing
-public behavior does not grant permission to copy protected implementation details. The official
-upstream repository and license are:
-
-- https://github.com/AzumattDev/Build_Camera_Custom_Hammers_Edition
-- https://github.com/AzumattDev/Build_Camera_Custom_Hammers_Edition/blob/github/LICENSE
-
-Runic Build Camera does not currently include a LICENSE file, so this repository does not state a
-general third-party reuse grant for its own code. Add an explicit project license before inviting
-reuse or redistribution of source.
-
-## Version 1.0.5 update
-
-Restores activation when a stale focus state would otherwise block the shortcut. The camera now shows activation and blocked-shortcut feedback and logs camera-update failures. Confirmed working in-game by the author on September 17, 2026.
-
-## Language files
-
-This version follows Valheim's selected language using files in `Translations/RunicBuildCamera` beside the DLL. Missing translations fall back to English. Copy `English.json` to the selected language name and translate its values. See `TRANSLATING.md`. No additional translation plugin is required.
+[Get help on Discord](https://discord.gg/7HKHTCdFqY)
 
 ## Support My Work
 

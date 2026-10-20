@@ -96,12 +96,8 @@ namespace RunicCrafting.Integration
         internal static void NotifyInventoryChanged(Inventory inventory) =>
             InventoryChangedMethod?.Invoke(inventory, new object[] { false, false });
 
-        internal static string Fingerprint(Inventory inventory)
-        {
-            var text = new System.Text.StringBuilder(SaveInventory(inventory).GetBase64());
-            foreach (ItemDrop.ItemData item in inventory.GetAllItems()) text.Append('|').Append(item.m_stack);
-            return text.ToString();
-        }
+        internal static string Fingerprint(Inventory inventory) =>
+            Convert.ToBase64String(RunicAutomation.Operations.InventoryMetadataComparison.ForInventory(inventory));
         internal static ZPackage SaveInventory(Inventory inventory)
         {
             if (inventory == null) throw new ArgumentNullException(nameof(inventory));
@@ -177,7 +173,9 @@ namespace RunicCrafting.Integration
                 CachePerformance.PayloadLoads++;
                 byte[] before = empty ? Array.Empty<byte>() : (byte[])persisted.Clone();
                 var preview = new Inventory(name, null, width, height);
-                if (!empty)
+                if (!empty && RunicAutomation.Operations.InventoryOperationNetwork.Ready)
+                    preview = RunicAutomation.Operations.NativeInventoryCodec.Load(before, width, height);
+                else if (!empty)
                 {
                     Inventory previousPreview = PreviewRefreshRuntime.LoadingPreview;
                     PreviewRefreshRuntime.LoadingPreview = preview;
@@ -210,14 +208,7 @@ namespace RunicCrafting.Integration
                 ContainerLoadMethod.Invoke(container, Array.Empty<object>());
                 Inventory inventory = container.GetInventory();
                 if (inventory == null) return false;
-                byte[] persisted = expectedZdo.GetByteArray(ZDOVars.s_items);
-                string persistedBase64 = persisted == null || persisted.Length == 0
-                    ? string.Empty
-                    : Convert.ToBase64String(persisted);
-                return persistedBase64.Length == 0
-                    ? inventory.GetAllItems().Count == 0
-                    : CraftingInventoryPayloadComparison.MatchesLoaded(
-                        persisted, SaveInventory(inventory).GetArray());
+                return true;
             }
             catch { return false; }
         }

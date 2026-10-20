@@ -34,6 +34,7 @@ namespace RunicCrafting.Integration
 
         internal static void Shutdown()
         {
+            AuthorityCraftExecution.CancelAnimation(InventoryGui.instance);
             PostCraftRefreshRuntime.Reset();
             _pendingCraft = null;
             _insidePlacementUpdate = false;
@@ -218,7 +219,7 @@ namespace RunicCrafting.Integration
                     null,
                     out string reason))
             {
-                player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_9fc734120350") + reason);
+                player.Message(MessageHud.MessageType.Center, global::Runic.Localization.RunicText.Get("text_9fc734120350") + CraftingRuntime.FailureMessage(reason));
                 CraftingDiagnostics.TraceAction("craft-cancelled", reason);
                 return false;
             }
@@ -264,7 +265,7 @@ namespace RunicCrafting.Integration
 
             pending.Player.Message(
                 MessageHud.MessageType.Center,
-                global::Runic.Localization.RunicText.Get("text_9fc734120350") + reason);
+                global::Runic.Localization.RunicText.Get("text_9fc734120350") + CraftingRuntime.FailureMessage(reason));
             CraftingDiagnostics.TraceAction("craft-cancelled", reason);
             return false;
         }
@@ -720,6 +721,7 @@ namespace RunicCrafting.Integration
             out string reason)
         {
             reason = "insufficient-materials";
+            long started = Configuration.DetailedLogging.Value ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
             if (_activeOperation != null)
             {
                 reason = "another-material-operation-is-active";
@@ -751,7 +753,7 @@ namespace RunicCrafting.Integration
                 if (queryReason.StartsWith("station-use:", StringComparison.Ordinal) ||
                     queryReason.StartsWith("local-materials:", StringComparison.Ordinal))
                     reason = queryReason;
-                else reason = planReason;
+                else reason = MaterialFailureReason.Classify(planReason, _containerQuery.UnavailableResources);
                 CraftingDiagnostics.TraceAction(purpose, reason);
                 return false;
             }
@@ -779,9 +781,13 @@ namespace RunicCrafting.Integration
                 piece,
                 lease);
             if (Configuration.DetailedLogging.Value)
-                _log?.LogInfo($"Reserved exact {purpose} plan with {lease.Plan.Lines.Count} source lines ({queryReason}).");
+                _log?.LogInfo($"Native materials: purpose={purpose}; sources={lease.Plan.Lines.Count}; path=native-immediate; elapsedMs={(System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000d / System.Diagnostics.Stopwatch.Frequency:F2}.");
             return true;
         }
+
+        internal static string FailureMessage(string reason) => reason != null && reason.StartsWith("storage-not-ready:", StringComparison.Ordinal)
+            ? global::Runic.Localization.RunicText.Get("storage_not_ready") + " (" + reason.Substring("storage-not-ready:".Length) + ")"
+            : reason;
 
         private static bool CheckUiAvailability(
             Player player, CraftingStation station, Vector3 origin, float range,
@@ -1125,12 +1131,16 @@ namespace RunicCrafting.Integration
                     CraftingDiagnostics.TraceAction("material-lease", "committed");
                 }
                 else if (!active.Lease.Rollback())
+                {
+                    if (AuthorityCraftExecution.Active) throw new InvalidOperationException("Reserved material rollback failed");
                     _log?.LogError("Runic Crafting rollback could not restore every removed stack. Stop and inspect inventories before continuing.");
+                }
                 else CraftingDiagnostics.TraceAction("material-lease", "rolled-back");
             }
             catch (Exception exception)
             {
                 _log?.LogError("Runic Crafting could not close its material lease safely: " + exception);
+                if (AuthorityCraftExecution.Active) throw;
             }
         }
 

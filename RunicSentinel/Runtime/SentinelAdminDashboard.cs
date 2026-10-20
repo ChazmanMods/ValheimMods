@@ -74,7 +74,7 @@ namespace RunicSentinel.Runtime
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical(_row,GUILayout.Width(Math.Max(190,(_window.width-100)/3)));
             foreach(var entry in visible)
-                if(GUILayout.Button(entry.Name,entry==_selectedContent?LeftSelected:LeftButton,GUILayout.Height(36)))
+                if(GUILayout.Button(entry.Name,entry==_selectedContent?LeftSelected:LeftButton,GUILayout.MinHeight(CommandSize(36))))
                 {_selectedContent=entry;_contentStatement="";_quantity="1";_level="1";_radius="0.5";_qualifier="";}
             DrawPager(ref _contentPage,entries.Length,24);
             GUILayout.EndVertical();GUILayout.BeginVertical(_row,GUILayout.ExpandWidth(true));
@@ -125,7 +125,7 @@ namespace RunicSentinel.Runtime
             }
             GUILayout.Label(PT("Advanced native syntax: ID* matches multiple prefabs; Component.field::value overrides a field (numbers, true/false, text, or x::y::z). These depend on the prefab's actual component fields; edit the construction field when needed."),_label);
             _contentStatement=GUILayout.TextField(_contentStatement,900,_textField);
-            if(GUILayout.Button(PT("Append to console"),_button,GUILayout.Height(36)))
+            if(GUILayout.Button(PT("Append to console"),_button,GUILayout.MinHeight(CommandSize(36))))
             {
                 if(string.IsNullOrWhiteSpace(_commandLine))_noCommand=true;
                 else if(string.IsNullOrWhiteSpace(_contentStatement))_status=PT("Select an item first.");

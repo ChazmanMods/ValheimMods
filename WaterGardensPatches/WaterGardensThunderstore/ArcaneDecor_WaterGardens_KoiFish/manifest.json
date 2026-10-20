@@ -1,0 +1,11 @@
+{
+  "name": "ArcaneDecor_WaterGardens_KoiFish",
+  "version_number": "0.2.2",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods",
+  "description": "Optional WaterGardens add-on with three koi varieties, adjustable schools, gentle feeding, wandering routes and player avoidance.",
+  "dependencies": [
+    "Chazman-ArcaneDecor_WaterGardens-1.3.4",
+    "ValheimModding-Jotunn-2.30.1",
+    "denikson-BepInExPack_Valheim-5.4.2350"
+  ]
+}

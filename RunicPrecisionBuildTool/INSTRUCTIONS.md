@@ -1,4 +1,4 @@
-# Runic Precision Build Tool 2.0.3 — Instructions
+# Runic Precision Build Tool 2.0.9 â€” Instructions
 
 ## Start and stop
 
@@ -51,20 +51,7 @@ With precision mode active and the piece menu closed:
 - F11 attempts a one-shot undo of the most recent eligible placement from this session.
 - F12 attempts a bounded area repair around the player.
 
-Both actions use fresh native checks and change only exact loaded pieces whose `ZNetView` Valheim
-currently assigns to the local peer. Undo additionally requires the original unchanged, full-health,
-inert, structurally independent placement. Area repair charges normal hammer durability once for
-each successful repair. Peer-owned or server-owned pieces are skipped; ownership is never claimed.
-
-This applies equally to solo, listen-host, and dedicated-client play. A failed action creates no
-pending operation, persistent journal, inventory lock, or recovery task.
-
-## Failure behavior
-
-The readout augments Valheim's selected-piece panel and hides only its own rows when appropriate.
-If an installed Valheim method or IL seam differs from the audited 1.0.7 contract, the plugin
-disables its hooks and leaves vanilla building available. Version 2.0.3 supports keyboard/mouse and
-has no controller bindings.
+Undo requires an unchanged, undamaged piece that you created and that does not support another structure. Area repair uses normal Hammer durability and permissions. Pieces currently controlled by another player or the server are skipped.
 
 ### Building an arch
 

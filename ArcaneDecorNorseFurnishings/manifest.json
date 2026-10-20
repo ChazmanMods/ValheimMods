@@ -1,0 +1,10 @@
+{
+  "name": "ArcaneDecor_NorseFurnishings",
+  "version_number": "0.1.1",
+  "website_url": "",
+  "description": "Private test: Norse King Bed using a custom textured model, 1.5 times the Dragon Bed dimensions and native bed behavior.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333",
+    "ValheimModding-Jotunn-2.29.2"
+  ]
+}

@@ -11,7 +11,21 @@ namespace RunicProduction
         private const int MaximumRememberedStations = 2048;
         private static readonly Dictionary<string, ProductionStopCode> LastStopByStation =
             new Dictionary<string, ProductionStopCode>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, string> LastDetailByStation = new Dictionary<string, string>(StringComparer.Ordinal);
         private static ManualLogSource _log;
+        private static readonly Dictionary<string, string> RecipeWarnings = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        internal static void ClearRecipeWarnings() => RecipeWarnings.Clear();
+
+        internal static void ReportSkippedRecipes(string stationId, string details)
+        {
+            if (string.IsNullOrEmpty(stationId)) return;
+            if (string.IsNullOrEmpty(details)) { RecipeWarnings.Remove(stationId); return; }
+            if (RecipeWarnings.TryGetValue(stationId, out string previous) && previous == details) return;
+            if (RecipeWarnings.Count >= MaximumRememberedStations && !RecipeWarnings.ContainsKey(stationId)) return;
+            RecipeWarnings[stationId] = details;
+            Warning("Fermenter " + stationId + " skipped unsupported recipes; other recipes remain available. " + details);
+        }
 
         internal static bool RuntimeAvailable { get; private set; }
         internal static string DisabledReason { get; private set; }
@@ -22,6 +36,8 @@ namespace RunicProduction
             RuntimeAvailable = false;
             DisabledReason = "startup has not completed";
             LastStopByStation.Clear();
+            LastDetailByStation.Clear();
+            ClearRecipeWarnings();
         }
 
         internal static void MarkAvailable()
@@ -43,11 +59,15 @@ namespace RunicProduction
         internal static void StopChanged(string stationId, ProductionStopCode stopCode, string detail)
         {
             if (string.IsNullOrEmpty(stationId)) return;
-            if (LastStopByStation.TryGetValue(stationId, out ProductionStopCode previous) && previous == stopCode)
+            if (LastStopByStation.TryGetValue(stationId, out ProductionStopCode previous) && previous == stopCode &&
+                LastDetailByStation.TryGetValue(stationId, out string previousDetail) && previousDetail == detail)
                 return;
-            if (LastStopByStation.Count >= MaximumRememberedStations) LastStopByStation.Clear();
+            if (LastStopByStation.Count >= MaximumRememberedStations) { LastStopByStation.Clear(); LastDetailByStation.Clear(); }
             LastStopByStation[stationId] = stopCode;
-            if (ProductionConfig.VerboseLogging?.Value ?? false)
+            LastDetailByStation[stationId] = detail;
+            if (stopCode == ProductionStopCode.ProducerIneligible)
+                _log?.LogWarning($"production.stop station={stationId} code={stopCode} detail={detail}");
+            else if (ProductionConfig.VerboseLogging?.Value ?? false)
                 _log?.LogInfo($"production.stop station={stationId} code={stopCode} detail={detail}");
         }
 

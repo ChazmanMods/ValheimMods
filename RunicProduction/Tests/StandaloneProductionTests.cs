@@ -29,7 +29,7 @@ namespace RunicProduction.Tests
                 Case("legacy stable token fields remain format-compatible", TokenFieldsAreCompatible),
                 Case("stable tokens are canonical lowercase nonempty GUIDs", TokensAreCanonical),
                 Case("link and catalog storage keys preserve their namespace", StorageKeysAreCompatible),
-                Case("runtime and package are 1.0.15", VersionsMatchPublishedPackage),
+                Case("runtime and package are 1.0.17", VersionsMatchPublishedPackage),
                 Case("station role matrix matches supported gameplay", RoleMatrixIsExact),
                 Case("mouse gestures map exactly to input output and replenish", MouseGesturesAreExact),
                 Case("output gestures arm from the station without a physical output sub-target", StationLevelOutputControlsAreExact),
@@ -313,12 +313,12 @@ namespace RunicProduction.Tests
 
         private static void VersionsMatchPublishedPackage()
         {
-            Equal("1.0.15", Plugin.Version);
+            Equal("1.0.17", Plugin.Version);
             Contains(Runic.Tests.LocalizedSource.ReadAllText(PathInMod("manifest.json")),
-                "\"version_number\": \"1.0.15\"");
+                "\"version_number\": \"1.0.17\"");
             Contains(Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
                 "Properties", "AssemblyInfo.cs")),
-                "AssemblyInformationalVersion(\"1.0.15\")");
+                "AssemblyInformationalVersion(\"1.0.17\")");
         }
 
         private static void RoleMatrixIsExact()
@@ -329,6 +329,13 @@ namespace RunicProduction.Tests
             Require(method != null);
             bool Allows(ProductionStationKind station, ProductionLinkRole role) =>
                 (bool)method.Invoke(null, new object[] { station, role });
+            foreach (var collector in new[] { ProductionStationKind.SapExtractor, ProductionStationKind.WispFountain })
+            {
+                Require(Allows(collector, ProductionLinkRole.Output));
+                Require(!Allows(collector, ProductionLinkRole.Input));
+                Require(!Allows(collector, ProductionLinkRole.Fuel));
+                Require(!Allows(collector, ProductionLinkRole.Replenishment));
+            }
             Require(Allows(ProductionStationKind.Beehive, ProductionLinkRole.Output));
             Require(!Allows(ProductionStationKind.Beehive, ProductionLinkRole.Input));
             Require(!Allows(ProductionStationKind.Beehive, ProductionLinkRole.Fuel));

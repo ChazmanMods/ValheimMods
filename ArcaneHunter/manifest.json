@@ -1,0 +1,10 @@
+{
+  "name": "ArcaneHunter",
+  "version_number": "0.2.0",
+  "website_url": "",
+  "description": "Follow arcane trails, master the hunt, earn daily oaths and achievement seals, and configure ambient creature spawn rates individually.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333",
+    "ValheimModding-Jotunn-2.29.2"
+  ]
+}

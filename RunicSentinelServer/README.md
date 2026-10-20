@@ -1,4 +1,4 @@
-# Runic Sentinel Server 1.2.0
+# Runic Sentinel Server 1.3.0
 
 Runic Sentinel Server manages approved mods, player admission, administrator permissions and bans on your dedicated server. Administrators connect using the full Runic Sentinel mod and its F3 dashboard.
 
@@ -17,7 +17,7 @@ Keep the server's private key in `BepInEx/config/RunicSentinel/server-private` o
 
 - **Mod Policy:** search mods by name, choose Required, Allowed, Greylisted or Blocked, then select **Apply & Sign Policy**. Advanced rules let you specify versions and file restrictions.
 - **People:** filter all people, online accounts, administrators or banned accounts. Manage administrator rights and bans, kick connected players, review recent activity and create player reports.
-- **Commands:** enter a command and press Enter or **Run**. Browse the command guide, read command output, and toggle debug mode or no-cost building. Sentinel authorizes each request; no separate Server Devcommands mod is required.
+- **Commands:** enter a command and press Enter or **Run**. Browse the command guide, read command output, and toggle God, Ghost, Fly, Freefly, debug mode or no-cost building with live On/Off indicators. Sentinel authorizes each request; no separate Server Devcommands mod is required.
 - **Catalog:** filter by mod or type and select an item or piece for its icon, internal ID, details and recipe. Build its arguments using quantity, applicable quality and qualifier controls, then append them to the selected console command. Review the console line and press Run.
 - **Players:** select an online character to view observations and last-known position, use character commands, teleport, bring them to you or kick them. Administrator names carry an Administrator suffix. Account roles, bans and reports are managed in People.
 - **Server Cap:** with Runic World Engine installed on the host, choose 2–64 players and select **Save for Next Restart**. Restart the host to apply the saved limit.
@@ -58,13 +58,13 @@ Admin Tools creates distinct health and network text reports, retains server cop
 
 ## Selected-player actions
 
-Administrators use the Players dossier in RunicSentinel 1.5.0 with RunicSentinelServer 1.2.0. Inline tools target the selected online character: teleport to them, bring them, move them to coordinates/another player, raise or lower/reset a skill, heal, clear food/status, set adrenaline, and apply a registered status effect. Skill changes follow native 0–100 clamping and character-save behavior.
+Administrators use the Players dossier in RunicSentinel 1.6.0 with RunicSentinelServer 1.3.0. Inline tools target the selected online character: teleport to them, bring them, move them to coordinates/another player, raise or lower/reset a skill, heal, clear food/status, set adrenaline, and apply a registered status effect. Skill changes follow native 0–100 clamping and character-save behavior.
 
-The affected player needs either full RunicSentinel 1.5.0 or lightweight RunicSentinelClient 1.0.3 for character actions. Native teleport does not require the new receiver. Client-side cheat actions require the affected player's own prior confirmcheats acknowledgment; the administrator cannot silently acknowledge it for them. The UI disables unavailable receivers and waits for the exact target client's result. A timeout or disconnect is explicitly unconfirmed, not success. No arbitrary remote console execution is provided. Requests and replies are recorded in player activity.
+The affected player needs either full RunicSentinel 1.6.0 or lightweight RunicSentinelClient 1.0.4 for character actions. Native teleport does not require the new receiver. Client-side cheat actions require the affected player's own prior confirmcheats acknowledgment; the administrator cannot silently acknowledge it for them. The UI disables unavailable receivers and waits for the exact target client's result. A timeout or disconnect is explicitly unconfirmed, not success. No arbitrary remote console execution is provided. Requests and replies are recorded in player activity.
 
 ## Integrated command engine
 
-The Server Devcommands 1.109 command/feature baseline is integrated into RunicSentinel 1.5.0 and RunicSentinelServer 1.2.0. Do not install the separate Server Devcommands plugin alongside these packages. Native Valheim commands remain available.
+The Server Devcommands 1.109 command/feature baseline is integrated into RunicSentinel 1.6.0 and RunicSentinelServer 1.3.0. Do not install the separate Server Devcommands plugin alongside these packages. Native Valheim commands remain available.
 
 Examples:
 - `addstatus Rested 3600` applies one hour of Rested; `addstatus Rested 6000` applies 100 minutes.
@@ -76,3 +76,13 @@ Examples:
 The command guide includes registered parameters and completion values. `dev_config` exposes the integrated gameplay/configuration options; `permissions` manages command and feature restrictions on the server. Automatic devcommands defaults off. Valheim's own explicit cheat confirmation remains required for cheat handlers.
 
 Command configuration uses RunicSentinel.alias*.yaml, RunicSentinel.binds*.yaml and RunicSentinel.commands.permissions.yaml in BepInEx/config. Previous third-party configuration is not silently imported. The dedicated-server binary excludes client GUI/input modules. YAML parsing is embedded; there is no separate parser or command-mod installation step.
+
+## Character mode and status controls
+
+Use RunicSentinel 1.6.0 on the administrator client, RunicSentinelServer 1.3.0 on the dedicated server, and RunicSentinelClient 1.0.4 or full RunicSentinel 1.6.0 on each player receiving character actions.
+
+In **Players**, select an online character and choose **On** or **Off** beside God, Ghost, Fly or No-cost. **Refresh character mode status** reports that character's current modes. Grants last for the current connection and character; previous mode settings are restored on disconnect or character change. The affected player must run `confirmcheats` in their own F5 console before receiving cheat actions.
+
+Choose a status effect and enter **Duration (seconds)**. Leave duration blank for the effect's default, or enter `0` for indefinite duration. `3600` is one hour. Shields offer damage absorption; Burning and Poison offer total effect damage. Leave intensity blank for the effect's default. When intensity is entered without duration, the selected effect's default duration is used.
+
+The full administrator client takes ownership of character actions when both Sentinel client packages are installed.

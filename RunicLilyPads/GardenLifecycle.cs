@@ -32,7 +32,8 @@ namespace RunicLilyPads
             if(!view||!view.IsValid()){CancelInvoke();return;}
             // 0.2.1 removal set health to zero and refunded before its fragment RPC failed.
             // Finish that removal on the owner, without issuing a second resource refund.
-            if(view.IsOwner()&&view.GetZDO().GetFloat(ZDOVars.s_health,1f)<=0&&ZNetScene.instance)
+            // Negative health is Valheim's invulnerability sentinel, also set by InfinityHammer.
+            if(view.IsOwner()&&GardenHealth.IsPreviouslyRemoved(view.GetZDO().GetFloat(ZDOVars.s_health,1f))&&ZNetScene.instance)
                 ZNetScene.instance.Destroy(gameObject);
         }
     }

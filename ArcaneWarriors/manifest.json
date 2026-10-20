@@ -1,0 +1,10 @@
+{
+  "name": "ArcaneWarriors",
+  "version_number": "0.7.1",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Adds native-skinned Fenris Arcane Warrior vestments, a mahogany Ashen cape, and the luminous Sword of the Ancients.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333",
+    "ValheimModding-Jotunn-2.29.1"
+  ]
+}

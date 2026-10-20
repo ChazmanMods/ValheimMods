@@ -1,0 +1,7 @@
+{
+  "name": "ArcaneSniper",
+  "version_number": "0.3.0",
+  "website_url": "",
+  "description": "Flying sniper camera with distant creature activation, remote dungeon entry, scope zoom, one-mile range, left-click firing and auto pickup.",
+  "dependencies": ["denikson-BepInExPack_Valheim-5.4.2333"]
+}

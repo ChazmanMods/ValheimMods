@@ -32,16 +32,25 @@ namespace RunicProduction.Integration
 
         internal FermenterDescriptor(
             string prefabId,
-            IEnumerable<FermenterConversionDescriptor> conversions)
+            IEnumerable<FermenterConversionDescriptor> conversions,
+            float fermentationSeconds = 2400f,
+            string skippedRecipes = "")
         {
             PrefabId = prefabId;
+            FermentationSeconds = fermentationSeconds;
+            SkippedRecipes = skippedRecipes ?? string.Empty;
             var ordered = conversions.OrderBy(value => value.InputPrefabId, StringComparer.Ordinal).ToList();
             _conversions = ordered.AsReadOnly();
             _byInput = ordered.ToDictionary(value => value.InputPrefabId, StringComparer.Ordinal);
-            _byOutput = ordered.ToDictionary(value => value.OutputPrefabId, StringComparer.Ordinal);
+            // Ordinary input/output links can use multiple bases producing the same item.
+            // Exemplar replenishment must still resolve a single unambiguous ingredient.
+            _byOutput = ordered.GroupBy(value => value.OutputPrefabId, StringComparer.Ordinal)
+                .Where(group => group.Count() == 1).ToDictionary(group => group.Key, group => group.Single(), StringComparer.Ordinal);
         }
 
         internal string PrefabId { get; }
+        internal float FermentationSeconds { get; }
+        internal string SkippedRecipes { get; }
         internal IReadOnlyList<FermenterConversionDescriptor> Conversions => _conversions;
 
         internal bool TryFromInput(string prefabId, out FermenterConversionDescriptor conversion) =>
@@ -52,14 +61,11 @@ namespace RunicProduction.Integration
     }
 
     /// <summary>
-    /// Fermenter support is narrower than reflection-based compatibility. An exact
-    /// registered root must retain vanilla structure, timing, cover controls, and unambiguous
-    /// complete-batch conversions before any persisted link may own it.
+    /// Validate the native station structure and its current owner-side recipes.
+    /// Unsupported recipes are isolated; native status determines fermentation timing.
     /// </summary>
     internal static class FermenterCompatibility
     {
-        private const float VanillaFermentationSeconds = 2400f;
-        private const float DurationTolerance = 0.01f;
         private const int MaximumConversions = 256;
 
         internal static bool TryValidate(
@@ -91,11 +97,10 @@ namespace RunicProduction.Integration
             ZNetView view = ValheimAccess.View(station);
             if (view == null || !view.IsValid() || ValheimAccess.Zdo(station) == null)
                 return Fail(global::Runic.Localization.RunicText.Get("text_c09b7d512030"), out failure);
-            if (!IsFinite(station.m_fermentationDuration) ||
-                Math.Abs(station.m_fermentationDuration - VanillaFermentationSeconds) > DurationTolerance)
-                return Fail(global::Runic.Localization.RunicText.Get("text_caed6e85369e"), out failure);
-            if (!IsFinite(station.m_tapDelay) || station.m_tapDelay < 0f || station.m_tapDelay > 30f)
-                return Fail(global::Runic.Localization.RunicText.Get("text_e521bf240032"), out failure);
+            if (!ValidDuration(station.m_fermentationDuration))
+                return Fail(global::Runic.Localization.RunicText.Get("fermenter_invalid_duration"), out failure);
+            if (!IsFinite(station.m_tapDelay) || station.m_tapDelay < 0f)
+                return Fail(global::Runic.Localization.RunicText.Get("fermenter_invalid_tap_delay"), out failure);
             if (!ControlInside(station, station.m_addSwitch) ||
                 !ControlInside(station, station.m_tapSwitch) ||
                 !TransformInside(station, station.m_outputPoint) ||
@@ -106,24 +111,11 @@ namespace RunicProduction.Integration
             if (!TryReadConversions(station.m_conversion, out List<FermenterConversionDescriptor> conversions,
                     out failure))
                 return false;
-            Fermenter registered = registeredPrefab.GetComponent<Fermenter>();
-            if (registered == null || !IsFinite(registered.m_fermentationDuration) ||
-                Math.Abs(registered.m_fermentationDuration - VanillaFermentationSeconds) > DurationTolerance ||
-                !IsFinite(registered.m_tapDelay) || registered.m_tapDelay < 0f ||
-                registered.m_tapDelay > 30f || registered.m_addSwitch == null ||
-                registered.m_tapSwitch == null || registered.m_outputPoint == null ||
-                registered.m_roofCheckPoint == null ||
-                !ControlInside(registered, registered.m_addSwitch) ||
-                !ControlInside(registered, registered.m_tapSwitch) ||
-                !TransformInside(registered, registered.m_outputPoint) ||
-                !TransformInside(registered, registered.m_roofCheckPoint) ||
-                !TryReadConversions(registered.m_conversion,
-                    out List<FermenterConversionDescriptor> registeredConversions, out failure) ||
-                !SameConversions(conversions, registeredConversions))
-                return Fail(
-                    global::Runic.Localization.RunicText.Get("text_c0b48ab6fb23"),
-                    out failure);
-            descriptor = new FermenterDescriptor(prefabId, conversions);
+            // The live owner-side station is the definition that native fermentation uses.
+            // Mods may legitimately change it after the prefab was registered. Stock plans
+            // still verify the selected recipe's signature before consuming ingredients.
+            descriptor = new FermenterDescriptor(prefabId, conversions, station.m_fermentationDuration, failure);
+            failure = string.Empty;
             return true;
         }
 
@@ -168,11 +160,9 @@ namespace RunicProduction.Integration
                 return Fail(
                     global::Runic.Localization.RunicText.Get("text_0ad53d0aa4fb"),
                     out failure);
-            if (!IsFinite(registered.m_fermentationDuration) ||
-                Math.Abs(registered.m_fermentationDuration - VanillaFermentationSeconds) >
-                    DurationTolerance ||
+            if (!ValidDuration(registered.m_fermentationDuration) ||
                 !IsFinite(registered.m_tapDelay) || registered.m_tapDelay < 0f ||
-                registered.m_tapDelay > 30f || registered.m_addSwitch == null ||
+                registered.m_addSwitch == null ||
                 registered.m_tapSwitch == null || registered.m_outputPoint == null ||
                 registered.m_roofCheckPoint == null ||
                 !ControlInside(registered, registered.m_addSwitch) ||
@@ -184,7 +174,7 @@ namespace RunicProduction.Integration
                     out List<FermenterConversionDescriptor> conversions,
                     out failure))
                 return false;
-            descriptor = new FermenterDescriptor(prefabId, conversions);
+            descriptor = new FermenterDescriptor(prefabId, conversions, registered.m_fermentationDuration, failure);
             failure = string.Empty;
             return true;
         }
@@ -194,35 +184,68 @@ namespace RunicProduction.Integration
             out List<FermenterConversionDescriptor> descriptors,
             out string failure)
         {
+            // Bound the native table before allocating its managed snapshot.
+            if (source == null || source.Count == 0 || source.Count > MaximumConversions)
+            {
+                descriptors = new List<FermenterConversionDescriptor>();
+                return Fail(global::Runic.Localization.RunicText.Get("text_6586c7afb117"), out failure);
+            }
+            var definitions = source?.Select(conversion => new FermenterConversionDescriptor(
+                conversion?.m_from == null ? string.Empty : ValheimAccess.PrefabName(conversion.m_from.gameObject),
+                conversion?.m_to == null ? string.Empty : ValheimAccess.PrefabName(conversion.m_to.gameObject),
+                conversion?.m_producedItems ?? 0)).ToList();
+            return TryValidateConversions(definitions,
+                prefab => ValheimAccess.RegisteredItemPrefab(prefab)?.GetComponent<ItemDrop>() != null,
+                out descriptors, out failure);
+        }
+
+        internal static bool TryValidateConversions(
+            IReadOnlyList<FermenterConversionDescriptor> source,
+            Func<string, bool> isRegisteredItem,
+            out List<FermenterConversionDescriptor> descriptors,
+            out string failure)
+        {
             descriptors = new List<FermenterConversionDescriptor>();
             failure = string.Empty;
             if (source == null || source.Count == 0 || source.Count > MaximumConversions)
                 return Fail(global::Runic.Localization.RunicText.Get("text_6586c7afb117"), out failure);
-            var inputs = new HashSet<string>(StringComparer.Ordinal);
-            var outputs = new HashSet<string>(StringComparer.Ordinal);
-            foreach (Fermenter.ItemConversion conversion in source)
+            var duplicates = new HashSet<string>(source.Where(value => value != null)
+                .GroupBy(value => value.InputPrefabId ?? string.Empty, StringComparer.Ordinal)
+                .Where(group => group.Any(value => value.OutputPrefabId != group.First().OutputPrefabId ||
+                    value.OutputAmount != group.First().OutputAmount)).Select(group => group.Key), StringComparer.Ordinal);
+            var acceptedInputs = new HashSet<string>(StringComparer.Ordinal);
+            var skipped = new List<string>();
+            foreach (FermenterConversionDescriptor conversion in source)
             {
-                string input = conversion?.m_from == null
-                    ? string.Empty
-                    : ValheimAccess.PrefabName(conversion.m_from.gameObject);
-                string output = conversion?.m_to == null
-                    ? string.Empty
-                    : ValheimAccess.PrefabName(conversion.m_to.gameObject);
-                int amount = conversion?.m_producedItems ?? 0;
-                if (!StockDomainValidation.IsExactPrefabId(input) ||
-                    !StockDomainValidation.IsExactPrefabId(output) ||
-                    !inputs.Add(input) || !outputs.Add(output) ||
-                    (amount != 3 && amount != 6) ||
-                    ValheimAccess.RegisteredItemPrefab(input)?.GetComponent<ItemDrop>() == null ||
-                    ValheimAccess.RegisteredItemPrefab(output)?.GetComponent<ItemDrop>() == null)
-                    return Fail(
-                        global::Runic.Localization.RunicText.Get("text_d682c998bec4"),
-                        out failure);
-                descriptors.Add(new FermenterConversionDescriptor(input, output, amount));
+                string input = conversion?.InputPrefabId ?? string.Empty;
+                string output = conversion?.OutputPrefabId ?? string.Empty;
+                int amount = conversion?.OutputAmount ?? 0;
+                // Use the declared complete batch, bounded by the same limit as stock
+                // transfers. Vanilla's historical batch sizes are not a safety invariant.
+                if (amount <= 0 || amount > StockDomainValidation.MaximumItemAmount)
+                {
+                    skipped.Add(global::Runic.Localization.RunicText.Format(
+                        "fermenter_invalid_batch", input, output, amount,
+                        StockDomainValidation.MaximumItemAmount));
+                    continue;
+                }
+                string reason = null;
+                if (!StockDomainValidation.IsExactPrefabId(input)) reason = "invalid-input-id";
+                else if (!StockDomainValidation.IsExactPrefabId(output)) reason = "invalid-output-id";
+                else if (duplicates.Contains(input)) reason = "duplicate-input";
+                else if (!isRegisteredItem(input)) reason = "unregistered-input";
+                else if (!isRegisteredItem(output)) reason = "unregistered-output";
+                if (reason != null)
+                {
+                    skipped.Add(global::Runic.Localization.RunicText.Format(
+                        "fermenter_invalid_recipe_detail", input, output, amount, reason));
+                    continue;
+                }
+                if (acceptedInputs.Add(input)) descriptors.Add(new FermenterConversionDescriptor(input, output, amount));
             }
-            if (inputs.Overlaps(outputs))
-                return Fail(global::Runic.Localization.RunicText.Get("text_bd16b50627e4"), out failure);
-            return true;
+            // One unusable mod recipe must not disable unrelated native recipes.
+            failure = string.Join(" ", skipped);
+            return descriptors.Count > 0;
         }
 
         private static bool RootIsExact(GameObject root, Fermenter station, ZNetView expectedView) =>
@@ -253,24 +276,7 @@ namespace RunicProduction.Integration
         private static bool IsFinite(float value) =>
             !float.IsNaN(value) && !float.IsInfinity(value);
 
-        private static bool SameConversions(
-            IEnumerable<FermenterConversionDescriptor> left,
-            IEnumerable<FermenterConversionDescriptor> right)
-        {
-            FermenterConversionDescriptor[] leftOrdered = left
-                .OrderBy(value => value.InputPrefabId, StringComparer.Ordinal).ToArray();
-            FermenterConversionDescriptor[] rightOrdered = right
-                .OrderBy(value => value.InputPrefabId, StringComparer.Ordinal).ToArray();
-            if (leftOrdered.Length != rightOrdered.Length) return false;
-            for (int index = 0; index < leftOrdered.Length; index++)
-                if (!string.Equals(leftOrdered[index].InputPrefabId,
-                        rightOrdered[index].InputPrefabId, StringComparison.Ordinal) ||
-                    !string.Equals(leftOrdered[index].OutputPrefabId,
-                        rightOrdered[index].OutputPrefabId, StringComparison.Ordinal) ||
-                    leftOrdered[index].OutputAmount != rightOrdered[index].OutputAmount)
-                    return false;
-            return true;
-        }
+        internal static bool ValidDuration(float value) => IsFinite(value) && value > 0f;
 
         private static bool Fail(string value, out string failure)
         {

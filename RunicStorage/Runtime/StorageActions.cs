@@ -9,7 +9,7 @@ using ItemData = ItemDrop.ItemData;
 
 namespace RunicStorage.Runtime;
 
-internal sealed class StorageActions
+internal sealed partial class StorageActions
 {
 	private static readonly FieldInfo CurrentContainerField = AccessTools.Field(typeof(InventoryGui), "m_currentContainer");
 
@@ -21,9 +21,9 @@ internal sealed class StorageActions
 
 	private readonly ContainerIndex _index;
 	private readonly StorageSearchPanel _searchPanel;
-	private bool _quickStackRetryPending;
-	private int _quickStackDiscoveryRetries;
-	private float _nextQuickStackRetryAt;
+
+	private Inventory _singleStackInventory;
+	private ItemData _singleStackItem;
 
 	internal StorageActions(ContainerIndex index, StorageSearchPanel searchPanel)
 	{
@@ -33,180 +33,29 @@ internal sealed class StorageActions
 
 	internal void QuickStack()
 	{
-		CancelQuickStackRetry();
-		ExecuteQuickStack();
+		ClearQuickStackSelection();
+		NativeQuickStack();
 	}
 
-	internal void TickDeferredActions(StorageRouteContext context)
+	internal void QuickStackSingle(Inventory inventory, ItemData item)
 	{
-		if (!_quickStackRetryPending || Time.realtimeSinceStartup < _nextQuickStackRetryAt)
-			return;
-
-		StorageRouteDecision decision = StorageActionRouter.Route(
-			new StorageActionRequest(StorageActionKind.QuickStack, StorageInputOrigin.Keyboard),
-			context);
-		if (decision.Outcome != StorageRouteOutcome.Execute)
-		{
-			CancelQuickStackRetry();
-			return;
-		}
-
-		_quickStackRetryPending = false;
-		ExecuteQuickStack();
+		ClearQuickStackSelection();
+		if (inventory == null || item == null) return;
+		_singleStackInventory = inventory;
+		_singleStackItem = item;
+		NativeQuickStack();
 	}
 
-	private void ExecuteQuickStack()
+	private void ClearQuickStackSelection()
 	{
-        if (!TryBeginMutation("Quick Stack", out var player, out var mutationLease))
-		{
-			CancelQuickStackRetry();
-			return;
-		}
-		using (mutationLease)
-		{
-			Inventory inventory = ((Humanoid)player).GetInventory();
-			IReadOnlyList<Container> readOnlyList = Nearby(
-				player, requireWritable: true, "quick-stack", out NearbyDiscoveryObservation discovery);
-			if (readOnlyList.Count == 0 && FirstUseDiscoveryRetryPolicy.ShouldRetry(
-					_quickStackDiscoveryRetries,
-					discovery.LoadedContainers,
-					discovery.LoadedContainersInRange,
-					discovery.IndexedContainers) || readOnlyList.Count == 0 &&
-                discovery.UnavailableContainers > 0 && _quickStackDiscoveryRetries < FirstUseDiscoveryRetryPolicy.MaximumRetries)
-			{
-				_quickStackDiscoveryRetries++;
-				_quickStackRetryPending = true;
-				_nextQuickStackRetryAt = Time.realtimeSinceStartup +
-					FirstUseDiscoveryRetryPolicy.RetryDelaySeconds;
-				LogAction("quick-stack", "discovery.pending",
-					$"retry={_quickStackDiscoveryRetries}/{FirstUseDiscoveryRetryPolicy.MaximumRetries} " +
-					$"loaded={discovery.LoadedContainers} inRange={discovery.LoadedContainersInRange} indexed=0");
-				return;
-			}
-			CancelQuickStackRetry();
-			int num = 0;
-			int num2 = 0;
-			int num3 = 0;
-			int num4 = 0;
-			int num5 = 0;
-			int num6 = 0;
-			int num7 = 0;
-			int num8 = 0;
-            StorageMoveFailure moveFailure = StorageMoveFailure.None;
-			Dictionary<Container, Inventory> dictionary = new Dictionary<Container, Inventory>();
-			var chestRules = new Dictionary<Container, ChestRules>();
-			HashSet<Container> hashSet = new HashSet<Container>();
-			List<ItemData> list = new List<ItemData>(inventory.GetAllItems());
-			list.Sort(CompareGridPosition);
-			if (!StorageItemProtection.TryCapture(list, out var snapshot, out var failureCode, quickStack: true))
-			{
-				Message(player, global::Runic.Localization.RunicText.Get("text_d74744b9357d"));
-				LogAction("quick-stack", failureCode, $"stacks={list.Count} moved=0");
-				return;
-			}
-			int num9 = 0;
-			for (int i = 0; i < list.Count; i++)
-			{
-				ItemData val = list[i];
-				StorageProtectionState storageProtectionState = snapshot.StateAt(i);
-				if (IsProtected(player, val, storageProtectionState))
-				{
-					num4++;
-					if (storageProtectionState == StorageProtectionState.Locked)
-					{
-						num9++;
-					}
-					if (val != null && (val.m_equipped || ((Humanoid)player).IsItemEquiped(val)))
-					{
-						num6++;
-					}
-					else if (val != null && PluginConfig.ProtectHotbar.Value && val.m_gridPos.y == 0)
-					{
-						num5++;
-					}
-					continue;
-				}
-				string text = ValheimContainerIdentity.ResourceId(val);
-				if (text.Length == 0)
-				{
-					continue;
-				}
-				num3++;
-				int stack = val.m_stack;
-				bool flag = false;
-				var facts = ChestGroupRuntime.Facts(val);
-				for (int priority = 0; priority <= 9 && ValheimContainerService.HasSourceStack(inventory, val); priority++)
-				foreach (Container item in readOnlyList)
-				{
-					if (!ValheimContainerService.HasSourceStack(inventory, val))
-					{
-						break;
-					}
-					if (!dictionary.TryGetValue(item, out var value))
-					{
-						if (hashSet.Contains(item))
-						{
-							continue;
-						}
-						if (!StorageContainerAuthority.TryGetSynchronizedServerInventory(item, out value))
-						{
-							hashSet.Add(item);
-							num8++;
-                            LogTransfer(PlayerEndpointId(player), ValheimContainerIdentity.EndpointId(item), text, 0, "ownership.denied");
-							continue;
-						}
-						dictionary[item] = value;
-						if (ChestRuleStore.Eligible(item))
-						{
-							// Refresh learned contents before the chest can become empty.
-							ChestRuleStore.Learn(item);
-							if (!ChestRuleStore.Read(item, out var rules)) { hashSet.Add(item); dictionary.Remove(item); continue; }
-							chestRules[item] = rules;
-						}
-					}
-					bool present = ContainsResource(value, text);
-					int score = chestRules.TryGetValue(item, out var policy)
-						? policy.RoutingScore(facts, present)
-						: present ? 9 : int.MaxValue;
-					if (score == priority)
-					{
-						if (!flag)
-						{
-							num2 = AddSaturated(num2, stack);
-							num7++;
-							flag = true;
-						}
-						int stack2 = val.m_stack;
-						int num10 = ValheimContainerService.MoveUpTo(inventory, value, val, stack2, out var legFailure, player, mutationLease, null, item);
-                        if (num10 == 0 && (int)legFailure > (int)moveFailure) moveFailure = legFailure;
-						num = AddSaturated(num, num10);
-                        LogTransfer(PlayerEndpointId(player), ValheimContainerIdentity.EndpointId(item), text, num10, (num10 > 0) ? "ok" : legFailure.ToString());
-						if (num10 >= stack2)
-						{
-							break;
-						}
-					}
-				}
-			}
-			QuickStackNoOpReason reason = QuickStackDiagnostics.Classify(new QuickStackObservation(list.Count, num3, num4, readOnlyList.Count, num7, num));
-			int num11 = Math.Max(0, num2 - num);
-			string text2 = ((num > 0) ? $"Runic Storage: moved {num} item(s); {num11} matching item(s) remained." : QuickStackNoOpFeedback(reason, num5, num6, num9, moveFailure, num8 + discovery.UnavailableContainers));
-			Message(player, text2);
-            if (num == 0 && reason == QuickStackNoOpReason.DestinationsUnavailable)
-                Plugin.Log?.LogWarning($"Quick Stack moved=0 reason={moveFailure} unavailableContainers={num8} matchedStacks={num7}.");
-			LogAction("quick-stack", (num > 0) ? "ok" : QuickStackDiagnostics.ReasonCode(reason), $"carriedStacks={list.Count} eligibleStacks={num3} protectedStacks={num4} " + $"hotbarProtected={num5} equippedProtected={num6} itemLockProtected={num9} " + $"authorizedContainers={readOnlyList.Count} matchedStacks={num7} " + $"ownershipDenied={num8} moved={num} remainder={num11}");
-		}
-	}
 
-	private void CancelQuickStackRetry()
-	{
-		_quickStackRetryPending = false;
-		_quickStackDiscoveryRetries = 0;
-		_nextQuickStackRetryAt = 0f;
+		_singleStackInventory = null;
+		_singleStackItem = null;
 	}
 
 	internal void StoreAllOpenedContainer()
 	{
+        if (RunicAutomation.Operations.InventoryOperationNetwork.Ready) { AuthorityStoreAll(); return; }
         if (!TryBeginMutation("Store All", out var player, out var mutationLease))
 		{
 			return;
@@ -303,6 +152,7 @@ internal sealed class StorageActions
 
 	internal void Restock()
 	{
+        if (RunicAutomation.Operations.InventoryOperationNetwork.Ready) { AuthorityRestock(); return; }
         if (!TryBeginMutation("Restock", out var player, out var mutationLease))
 		{
 			return;
@@ -512,13 +362,14 @@ internal sealed class StorageActions
 
 	internal void SortOpenedContainer()
 	{
+        if (RunicAutomation.Operations.InventoryOperationNetwork.Ready) { AuthoritySort(); return; }
 		//IL_0083: Unknown result type (might be due to invalid IL or missing references)
 		//IL_021a: Unknown result type (might be due to invalid IL or missing references)
 		//IL_02f6: Unknown result type (might be due to invalid IL or missing references)
 		//IL_0319: Unknown result type (might be due to invalid IL or missing references)
 		//IL_0335: Unknown result type (might be due to invalid IL or missing references)
 		//IL_033a: Unknown result type (might be due to invalid IL or missing references)
-        if (!TryBeginMutation("Sort", out var player, out var mutationLease))
+        if (!TryBeginMutation("Sort", out var player, out var mutationLease, trackPlayer: false))
 		{
 			return;
 		}
@@ -753,7 +604,7 @@ internal sealed class StorageActions
         return num;
     }
 
-    private static bool ApplySortExact(Inventory inventory, HashSet<string> lockedSlots)
+    internal static bool ApplySortExact(Inventory inventory, HashSet<string> lockedSlots)
     {
         var items = new List<ItemData>();
         var slots = new List<Vector2i>();
@@ -788,7 +639,8 @@ internal sealed class StorageActions
 		bool requireWritable,
 		string action,
 		out NearbyDiscoveryObservation observation,
-		bool allowCurrentUse = false)
+		bool allowCurrentUse = false,
+		Container allowedCurrentContainer = null)
 	{
 		//IL_003c: Unknown result type (might be due to invalid IL or missing references)
 		//IL_006d: Unknown result type (might be due to invalid IL or missing references)
@@ -808,6 +660,8 @@ internal sealed class StorageActions
         int unavailable = 0;
 		foreach (Container item in readOnlyList)
 		{
+			bool allowThisUse = allowCurrentUse ||
+				(allowedCurrentContainer != null && ReferenceEquals(item, allowedCurrentContainer));
 			if (Runic.Compatibility.ModdedContainerCompatibility.IsDrawer(item) &&
                 !Runic.Compatibility.ModdedContainerCompatibility.Listed(item,
                     action == "quick-stack" ? PluginConfig.QuickStackPrefabIds.Value : PluginConfig.PullPrefabIds.Value))
@@ -820,12 +674,12 @@ internal sealed class StorageActions
 				item,
 				player.GetPlayerID(),
                 requireWritable: false,
-                allowCurrentUse))
+                allowThisUse))
 			{
                 num4++;
             }
             else if (requireWritable && !ValheimContainerService.CanDiscover(
-                         item, player.GetPlayerID(), requireWritable: true, allowCurrentUse))
+                         item, player.GetPlayerID(), requireWritable: true, allowThisUse))
             {
                 unavailable++;
             }
@@ -953,13 +807,22 @@ internal sealed class StorageActions
 	private static bool TryBeginMutation(
 		string action,
 		out Player player,
-		out StorageMutationLease mutationLease)
+		out StorageMutationLease mutationLease, bool trackPlayer = true)
 	{
 		mutationLease = null;
 		if (!TryResolveOwnedLocalPlayer(action, out player)) return false;
-		if (StorageMutationLease.TryBegin(player, out mutationLease)) return true;
-		Message(player, global::Runic.Localization.RunicText.Get("text_06b989ae1d69"));
-		Plugin.Log?.LogWarning(action + " denied with storage.operation-active.");
+		if (StorageMutationLease.TryBegin(player, out mutationLease, out var denial, trackPlayer)) return true;
+        if (denial == StorageMutationDenial.RecoveryRequired)
+        {
+            Message(player, global::Runic.Localization.RunicText.Get("storage_recovery_required"));
+            Plugin.Log?.LogWarning(action + " denied with storage.recovery-required; inspect the earlier Indeterminate transfer error.");
+        }
+        else
+        {
+            Message(player, global::Runic.Localization.RunicText.Get("storage_operation_active"));
+            Plugin.Log?.LogWarning(action + " denied with storage.operation-active; owner=" +
+                (RunicAutomation.MutationGate.Current?.Purpose ?? "unavailable") + ".");
+        }
 		return false;
 	}
 
@@ -990,7 +853,8 @@ internal sealed class StorageActions
 
 	private static bool IsProtected(Player player, ItemData item, StorageProtectionState typedState = StorageProtectionState.NotApplicable)
 	{
-		if (item != null && !item.m_equipped && !((Humanoid)player).IsItemEquiped(item) && (!PluginConfig.ProtectHotbar.Value || item.m_gridPos.y != 0))
+		if (item != null && !item.m_equipped && !((Humanoid)player).IsItemEquiped(item) &&
+            !StoragePlayerProtection.IsReserved(player, item) && (!PluginConfig.ProtectHotbar.Value || item.m_gridPos.y != 0))
 		{
 			return typedState == StorageProtectionState.Locked;
 		}
@@ -1044,7 +908,7 @@ internal sealed class StorageActions
 		return num;
 	}
 
-	private static bool Matches(ItemData item, string query)
+	internal static bool Matches(ItemData item, string query)
 	{
 		if (item == null)
 		{
@@ -1061,14 +925,8 @@ internal sealed class StorageActions
 		return false;
 	}
 
-	private static bool CanMerge(ItemData left, ItemData right)
-	{
-		if (left.m_shared != right.m_shared || !string.Equals(ValheimContainerIdentity.ResourceId(left), ValheimContainerIdentity.ResourceId(right), StringComparison.Ordinal) || left.m_quality != right.m_quality || left.m_variant != right.m_variant || left.m_worldLevel != right.m_worldLevel || left.m_crafterID != right.m_crafterID || !string.Equals(left.m_crafterName ?? string.Empty, right.m_crafterName ?? string.Empty, StringComparison.Ordinal) || left.m_pickedUp != right.m_pickedUp || left.m_equipped != right.m_equipped || left.m_cheated != right.m_cheated || !left.m_durability.Equals(right.m_durability))
-		{
-			return false;
-		}
-		return DictionaryEquals(left.m_customData, right.m_customData);
-	}
+	private static bool CanMerge(ItemData left, ItemData right) =>
+        RunicAutomation.Operations.InventoryMetadataComparison.SameItem(left, right);
 
 	private static bool DictionaryEquals(IDictionary<string, string> left, IDictionary<string, string> right)
 	{
@@ -1148,7 +1006,7 @@ internal sealed class StorageActions
 		return dictionary;
 	}
 
-	private static HashSet<string> ParseLockedSlots(string value, int width, int height)
+	internal static HashSet<string> ParseLockedSlots(string value, int width, int height)
 	{
 		HashSet<string> hashSet = new HashSet<string>(StringComparer.Ordinal);
 		string[] array = (value ?? string.Empty).Split(';');
@@ -1258,3 +1116,4 @@ internal sealed class StorageActions
 		return text.Replace(' ', '_');
 	}
 }
+

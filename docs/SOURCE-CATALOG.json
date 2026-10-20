@@ -1,0 +1,573 @@
+{
+  "updated": "2026-10-20",
+  "modules": [
+    {
+      "directory": "ArcaneDecorFlowCraft",
+      "name": "ArcaneDecor_FlowCraft",
+      "source_version": "0.3.1"
+    },
+    {
+      "directory": "ArcaneDecorNorseFurnishings",
+      "name": "ArcaneDecor_NorseFurnishings",
+      "source_version": "0.1.1"
+    },
+    {
+      "directory": "ArcaneHunter",
+      "name": "ArcaneHunter",
+      "source_version": "0.2.0"
+    },
+    {
+      "directory": "ArcaneSniper",
+      "name": "ArcaneSniper",
+      "source_version": "0.3.0"
+    },
+    {
+      "directory": "ArcaneWarriors",
+      "name": "ArcaneWarriors",
+      "source_version": "0.7.1"
+    },
+    {
+      "directory": "ArcaneWatersClassic",
+      "name": "ArcaneWaters",
+      "source_version": "0.6.7"
+    },
+    {
+      "directory": "ArcaneWaterWorks",
+      "name": "ArcaneNaturalWaters",
+      "source_version": "0.9.18"
+    },
+    {
+      "directory": "BetterSigns",
+      "name": "BetterSigns",
+      "source_version": "0.2.0"
+    },
+    {
+      "directory": "Ghostbuster",
+      "name": "Ghostbuster",
+      "source_version": "1.0.0"
+    },
+    {
+      "directory": "KuroganeSamuraiArmor",
+      "name": "KuroganeSamuraiArmor",
+      "source_version": "0.1.36"
+    },
+    {
+      "directory": "QuietBuildRotation",
+      "name": "RunicPrecisionBuildTool",
+      "source_version": "1.0.0"
+    },
+    {
+      "directory": "RunicAgriculture",
+      "name": "RunicAgriculture",
+      "source_version": "1.0.5"
+    },
+    {
+      "directory": "RunicAwareness",
+      "name": "RunicAwareness",
+      "source_version": "1.0.4"
+    },
+    {
+      "directory": "RunicBuildCamera",
+      "name": "RunicBuildCamera",
+      "source_version": "1.0.8"
+    },
+    {
+      "directory": "RunicCharacterVault",
+      "name": "RunicCharacterVault",
+      "source_version": "1.0.3"
+    },
+    {
+      "directory": "RunicClock",
+      "name": "RunicClock",
+      "source_version": "1.0.2"
+    },
+    {
+      "directory": "RunicCore",
+      "name": "RunicCore",
+      "source_version": "1.1.0"
+    },
+    {
+      "directory": "RunicCrafting",
+      "name": "RunicCrafting",
+      "source_version": "2.3.2"
+    },
+    {
+      "directory": "RunicDeathPenalty",
+      "name": "RunicDeathPenalty",
+      "source_version": "0.1.0"
+    },
+    {
+      "directory": "RunicDisplayStands",
+      "name": "RunicDisplayStands",
+      "source_version": "1.3.9"
+    },
+    {
+      "directory": "RunicExploration",
+      "name": "RunicExploration",
+      "source_version": "1.0.3"
+    },
+    {
+      "directory": "RunicHallOfHeroes",
+      "name": "RunicHallOfHeroes",
+      "source_version": "0.3.0"
+    },
+    {
+      "directory": "RunicIntegrity",
+      "name": "RunicIntegrity",
+      "source_version": "0.2.2"
+    },
+    {
+      "directory": "RunicInteraction",
+      "name": "RunicInteraction",
+      "source_version": "1.0.10"
+    },
+    {
+      "directory": "RunicInventory",
+      "name": "RunicInventory",
+      "source_version": "1.1.10"
+    },
+    {
+      "directory": "RunicLilyPads",
+      "name": "ArcaneDecor_WaterGardens",
+      "source_version": "1.2.1"
+    },
+    {
+      "directory": "RunicModClientSuite",
+      "name": "RunicModClientSuite",
+      "source_version": "1.0.41"
+    },
+    {
+      "directory": "RunicModServerSuite",
+      "name": "RunicModServerSuite",
+      "source_version": "1.0.32"
+    },
+    {
+      "directory": "RunicModSuite",
+      "name": "RunicModSuite",
+      "source_version": "1.2.51"
+    },
+    {
+      "directory": "RunicPaths",
+      "name": "RunicPaths",
+      "source_version": "0.3.1"
+    },
+    {
+      "directory": "RunicPermissions",
+      "name": "RunicPermissions",
+      "source_version": "1.0.0"
+    },
+    {
+      "directory": "RunicPersistence",
+      "name": "RunicPersistence",
+      "source_version": "1.1.0"
+    },
+    {
+      "directory": "RunicPortals",
+      "name": "RunicPortals",
+      "source_version": "1.2.10"
+    },
+    {
+      "directory": "RunicPrecisionBuildTool",
+      "name": "RunicPrecisionBuildTool",
+      "source_version": "2.0.9"
+    },
+    {
+      "directory": "RunicProduction",
+      "name": "RunicProduction",
+      "source_version": "2.3.4"
+    },
+    {
+      "directory": "RunicSafety",
+      "name": "RunicSafety",
+      "source_version": "1.0.9"
+    },
+    {
+      "directory": "RunicSentinel",
+      "name": "RunicSentinel",
+      "source_version": "1.6.1"
+    },
+    {
+      "directory": "RunicSentinelClient",
+      "name": "RunicSentinelClient",
+      "source_version": "1.0.5"
+    },
+    {
+      "directory": "RunicSentinelServer",
+      "name": "RunicSentinelServer",
+      "source_version": "1.3.0"
+    },
+    {
+      "directory": "RunicSettlements",
+      "name": "RunicSettlements",
+      "source_version": "0.1.2"
+    },
+    {
+      "directory": "RunicSigns",
+      "name": "RunicSigns",
+      "source_version": "1.2.9"
+    },
+    {
+      "directory": "RunicStorage",
+      "name": "RunicStorage",
+      "source_version": "2.3.5"
+    },
+    {
+      "directory": "RunicTransactions",
+      "name": "RunicTransactions",
+      "source_version": "1.0.0"
+    },
+    {
+      "directory": "RunicVelocity",
+      "name": "RunicVelocity",
+      "source_version": "1.0.3"
+    },
+    {
+      "directory": "RunicWorldEngine",
+      "name": "RunicWorldEngine",
+      "source_version": "1.2.5"
+    },
+    {
+      "directory": "WifeMod",
+      "name": "WifeCompanion",
+      "source_version": "0.6.0"
+    }
+  ],
+  "source_roots": [
+    {
+      "destination": "RunicAgriculture",
+      "source": "RunicLocalization/RunicAgriculture"
+    },
+    {
+      "destination": "RunicAwareness",
+      "source": "RunicLocalization/RunicAwareness"
+    },
+    {
+      "destination": "RunicAwareness.Tests",
+      "source": "RunicLocalization/RunicAwareness.Tests"
+    },
+    {
+      "destination": "RunicBuildCamera",
+      "source": "GitHubRelease-20260924/RunicBuildCamera"
+    },
+    {
+      "destination": "RunicBuildCamera.Tests",
+      "source": "GitHubRelease-20260924/RunicBuildCamera.Tests"
+    },
+    {
+      "destination": "RunicCharacterVault",
+      "source": "RunicLocalization/RunicCharacterVault"
+    },
+    {
+      "destination": "RunicCharacterVault.Tests",
+      "source": "RunicLocalization/RunicCharacterVault.Tests"
+    },
+    {
+      "destination": "RunicClock",
+      "source": "RunicLocalization/RunicClock"
+    },
+    {
+      "destination": "RunicCore",
+      "source": "ReleasePreparation/StoragePersonalSort-235-20261015/source/RunicCore"
+    },
+    {
+      "destination": "RunicCrafting",
+      "source": "ReleasePreparation/RunicRetry-232-20261011/source/RunicCrafting"
+    },
+    {
+      "destination": "RunicDeathPenalty",
+      "source": "RunicLocalization/RunicDeathPenalty"
+    },
+    {
+      "destination": "RunicDeathPenalty.Smoke",
+      "source": "RunicLocalization/RunicDeathPenalty.Smoke"
+    },
+    {
+      "destination": "RunicDeathPenalty.Tests",
+      "source": "RunicLocalization/RunicDeathPenalty.Tests"
+    },
+    {
+      "destination": "RunicDisplayStands",
+      "source": "RunicLocalization/RunicDisplayStands"
+    },
+    {
+      "destination": "RunicExploration",
+      "source": "RunicLocalization/RunicExploration"
+    },
+    {
+      "destination": "RunicExploration.Tests",
+      "source": "RunicLocalization/RunicExploration.Tests"
+    },
+    {
+      "destination": "RunicFoundation.Tests",
+      "source": "RunicLocalization/RunicFoundation.Tests"
+    },
+    {
+      "destination": "RunicGameplayWave1.Tests",
+      "source": "RunicLocalization/RunicGameplayWave1.Tests"
+    },
+    {
+      "destination": "RunicIntegrity",
+      "source": "RunicLocalization/RunicIntegrity"
+    },
+    {
+      "destination": "RunicIntegrity.Tests",
+      "source": "RunicLocalization/RunicIntegrity.Tests"
+    },
+    {
+      "destination": "RunicInteraction",
+      "source": "RunicLocalization/RunicInteraction"
+    },
+    {
+      "destination": "RunicInteraction.Tests",
+      "source": "RunicLocalization/RunicInteraction.Tests"
+    },
+    {
+      "destination": "RunicInventory",
+      "source": "RunicLocalization/RunicInventory"
+    },
+    {
+      "destination": "RunicInventory.Tests",
+      "source": "RunicLocalization/RunicInventory.Tests"
+    },
+    {
+      "destination": "RunicLilyPads",
+      "source": "RunicLocalization/RunicLilyPads"
+    },
+    {
+      "destination": "RunicModClientSuite",
+      "source": "RunicLocalization/RunicModClientSuite"
+    },
+    {
+      "destination": "RunicModServerSuite",
+      "source": "RunicLocalization/RunicModServerSuite"
+    },
+    {
+      "destination": "RunicModSuite",
+      "source": "RunicLocalization/RunicModSuite"
+    },
+    {
+      "destination": "RunicPermissions",
+      "source": "RunicLocalization/RunicPermissions"
+    },
+    {
+      "destination": "RunicPersistence",
+      "source": "RunicLocalization/RunicPersistence"
+    },
+    {
+      "destination": "RunicPersistence.Tests",
+      "source": "RunicLocalization/RunicPersistence.Tests"
+    },
+    {
+      "destination": "RunicPortals",
+      "source": "RunicLocalization/RunicPortals"
+    },
+    {
+      "destination": "RunicPortals.Tests",
+      "source": "RunicLocalization/RunicPortals.Tests"
+    },
+    {
+      "destination": "RunicPrecisionBuildTool",
+      "source": "RunicLocalization/RunicPrecisionBuildTool"
+    },
+    {
+      "destination": "RunicPrecisionBuildTool.Tests",
+      "source": "RunicLocalization/RunicPrecisionBuildTool.Tests"
+    },
+    {
+      "destination": "RunicProduction",
+      "source": "ReleasePreparation/ThunderstoreDocs-234-20261015/source/RunicProduction"
+    },
+    {
+      "destination": "RunicSafety",
+      "source": "RunicLocalization/RunicSafety"
+    },
+    {
+      "destination": "RunicSafety.Tests",
+      "source": "RunicLocalization/RunicSafety.Tests"
+    },
+    {
+      "destination": "RunicSentinel",
+      "source": "RunicLocalization/RunicSentinel"
+    },
+    {
+      "destination": "RunicSentinel.Devcommands.Shared",
+      "source": "RunicLocalization/RunicSentinel.Devcommands.Shared"
+    },
+    {
+      "destination": "RunicSentinel.Forge",
+      "source": "RunicLocalization/RunicSentinel.Forge"
+    },
+    {
+      "destination": "RunicSentinel.Tests",
+      "source": "RunicLocalization/RunicSentinel.Tests"
+    },
+    {
+      "destination": "RunicSentinelAdmission.Shared",
+      "source": "RunicLocalization/RunicSentinelAdmission.Shared"
+    },
+    {
+      "destination": "RunicSentinelClient",
+      "source": "RunicLocalization/RunicSentinelClient"
+    },
+    {
+      "destination": "RunicSentinelClient.Tests",
+      "source": "RunicLocalization/RunicSentinelClient.Tests"
+    },
+    {
+      "destination": "RunicSentinelServer",
+      "source": "RunicLocalization/RunicSentinelServer"
+    },
+    {
+      "destination": "RunicSentinelServer.Tests",
+      "source": "RunicLocalization/RunicSentinelServer.Tests"
+    },
+    {
+      "destination": "RunicSigns",
+      "source": "RunicLocalization/RunicSigns"
+    },
+    {
+      "destination": "RunicStorage",
+      "source": "ReleasePreparation/StoragePersonalSort-235-20261015/source/RunicStorage"
+    },
+    {
+      "destination": "RunicSuite14.Tests",
+      "source": "RunicLocalization/RunicSuite14.Tests"
+    },
+    {
+      "destination": "RunicTransactions",
+      "source": "RunicLocalization/RunicTransactions"
+    },
+    {
+      "destination": "RunicVelocity",
+      "source": "RunicLocalization/RunicVelocity"
+    },
+    {
+      "destination": "RunicVelocity.Tests",
+      "source": "RunicLocalization/RunicVelocity.Tests"
+    },
+    {
+      "destination": "RunicWorldEngine",
+      "source": "RunicLocalization/RunicWorldEngine"
+    },
+    {
+      "destination": "RunicWorldEngine.Tests",
+      "source": "RunicLocalization/RunicWorldEngine.Tests"
+    },
+    {
+      "destination": "Shared",
+      "source": "RunicLocalization/Shared"
+    },
+    {
+      "destination": "Shared",
+      "source": "ReleasePreparation/StoragePersonalSort-235-20261015/source/Shared"
+    },
+    {
+      "destination": "tools",
+      "source": "RunicLocalization/tools"
+    },
+    {
+      "destination": "ArcaneDecorFlowCraft",
+      "source": "ArcaneDecorFlowCraft"
+    },
+    {
+      "destination": "ArcaneDecorNorseFurnishings",
+      "source": "ArcaneDecorNorseFurnishings"
+    },
+    {
+      "destination": "ArcaneHunter",
+      "source": "ArcaneHunter"
+    },
+    {
+      "destination": "ArcaneSniper",
+      "source": "ArcaneSniper"
+    },
+    {
+      "destination": "ArcaneWarriors",
+      "source": "ArcaneWarriors"
+    },
+    {
+      "destination": "ArcaneWaterWorks",
+      "source": "ArcaneWaterWorks"
+    },
+    {
+      "destination": "ArcaneWatersClassic",
+      "source": "ArcaneWatersClassic"
+    },
+    {
+      "destination": "BetterSigns",
+      "source": "BetterSigns"
+    },
+    {
+      "destination": "Ghostbuster",
+      "source": "Ghostbuster"
+    },
+    {
+      "destination": "QuietBuildRotation",
+      "source": "QuietBuildRotation"
+    },
+    {
+      "destination": "RunicHallOfHeroes",
+      "source": "RunicHallOfHeroes"
+    },
+    {
+      "destination": "RunicPaths",
+      "source": "RunicPaths"
+    },
+    {
+      "destination": "RunicSettlements",
+      "source": "RunicSettlements"
+    },
+    {
+      "destination": "WifeMod",
+      "source": "WifeMod"
+    },
+    {
+      "destination": "CompanionForge",
+      "source": "CompanionForge"
+    },
+    {
+      "destination": "KuroganeSamuraiArmor",
+      "source": "KuroganeSamuraiArmor"
+    },
+    {
+      "destination": "RunicCrafting3",
+      "source": "RunicCrafting3"
+    },
+    {
+      "destination": "WaterGardensPatches/WaterGardensHangingIvy",
+      "source": "WaterGardensHangingIvy"
+    },
+    {
+      "destination": "WaterGardensPatches/WaterGardensIvyLights",
+      "source": "WaterGardensIvyLights"
+    },
+    {
+      "destination": "WaterGardensPatches/WaterGardensIvyChain",
+      "source": "WaterGardensIvyChain"
+    },
+    {
+      "destination": "WaterGardensPatches/WaterGardensPondMotion",
+      "source": "WaterGardensPondMotion"
+    },
+    {
+      "destination": "WaterGardensPatches/WaterGardensGentle",
+      "source": "WaterGardensGentle"
+    },
+    {
+      "destination": "WaterGardensPatches/WaterGardensTreeIvy",
+      "source": "WaterGardensTreeIvy"
+    },
+    {
+      "destination": "WaterGardensPatches/WaterGardensArcaneLilies",
+      "source": "WaterGardensArcaneLilies"
+    },
+    {
+      "destination": "WaterGardensPatches/WaterGardensThunderstore",
+      "source": "WaterGardensThunderstore"
+    },
+    {
+      "destination": "WaterGardensPatches/WaterGardensKoiRelease",
+      "source": "WaterGardensKoiRelease"
+    }
+  ]
+}

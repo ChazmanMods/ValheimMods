@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup><TargetFramework>net9.0</TargetFramework><OutputType>Exe</OutputType><AssemblyName>ArcaneWaterWorks.Tests</AssemblyName><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
+ <ItemGroup><Compile Include="Program.cs"/><Reference Include="ArcaneWaterWorks" HintPath="../bin/ArcaneWaterWorks.dll"/></ItemGroup>
+</Project>

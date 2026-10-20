@@ -118,7 +118,7 @@ namespace RunicCrafting.Tests
             TestAssert.Equal(50,ValheimReflection.CountRequirementItems(chest,"1"));
         }
 
-        internal static void ChestPayloadOnlyAllowsNativeDurabilityConversion()
+        internal static void ChestPayloadIgnoresDurability()
         {
             var bag=Bag(Stack(4,1,0,10.029f),Stack(1,79,1));var before=Bytes(bag);var loaded=Bag();loaded.Load(new ZPackage(before));
             TestAssert.True(CraftingInventoryPayloadComparison.MatchesLoaded(before,Bytes(loaded)));
@@ -129,7 +129,7 @@ namespace RunicCrafting.Tests
             TestAssert.False(RunicAgriculture.Integration.AgricultureInventoryPayloadComparison.MatchesLoaded(before,Bytes(loaded)));
             TestAssert.False(CraftingInventoryPayloadComparison.MatchesLoaded(before,Bytes(loaded)));
             loaded.Load(new ZPackage(before));loaded.GetAllItems()[0].m_durability+=1;
-            TestAssert.False(CraftingInventoryPayloadComparison.MatchesLoaded(before,Bytes(loaded)));
+            TestAssert.True(CraftingInventoryPayloadComparison.MatchesLoaded(before,Bytes(loaded)));
         }
 
         internal static void PreviewAndConsumptionUseSameStationFilter()

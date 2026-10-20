@@ -15,7 +15,9 @@ namespace RunicProduction.Integration
         Recipe = 3,
         Fermenter = 4,
         Fireplace = 5,
-        Beehive = 6
+        Beehive = 6,
+        SapExtractor = 7,
+        WispFountain = 8
     }
 
     internal sealed class ProductionStationEntry
@@ -108,6 +110,7 @@ namespace RunicProduction.Integration
 
         internal static void Initialize()
         {
+            ProductionDiagnostics.ClearRecipeWarnings();
             ProductionOwnershipDiagnostics.Clear();
             ProductionChestHandoff.Initialize();
             Stations.Clear();
@@ -127,6 +130,8 @@ namespace RunicProduction.Integration
 
         internal static void Shutdown()
         {
+            PendingAuthorityRecipes.Clear();
+            ProductionDiagnostics.ClearRecipeWarnings();
             ProductionOwnershipDiagnostics.Clear();
             ProductionChestHandoff.Shutdown();
             _initialized = false;
@@ -223,8 +228,18 @@ namespace RunicProduction.Integration
         internal static void Register(Beehive station) =>
             Register(ProductionStationKind.Beehive, station);
 
+        internal static void Register(SapCollector station) =>
+            Register(ProductionStationKind.SapExtractor, station);
+
+        internal static void Register(WispSpawner station) =>
+            Register(ProductionStationKind.WispFountain, station);
+
         internal static void SeedLoadedStations()
         {
+            foreach (SapCollector station in UnityEngine.Object.FindObjectsByType<SapCollector>(
+                         FindObjectsSortMode.None)) Register(station);
+            foreach (WispSpawner station in UnityEngine.Object.FindObjectsByType<WispSpawner>(
+                         FindObjectsSortMode.None)) Register(station);
             foreach (Player player in Player.GetAllPlayers()) CookingExperience.Register(player);
             foreach (Beehive station in UnityEngine.Object.FindObjectsByType<Beehive>(
                          FindObjectsSortMode.None)) Register(station);
@@ -263,7 +278,7 @@ namespace RunicProduction.Integration
         {
             if (!_initialized) return;
             PruneSelections();
-            if (!(ProductionConfig.Enabled?.Value ?? false)) return;
+            if (!(ProductionConfig.Enabled?.Value ?? false) && !RunicAutomation.Operations.InventoryOperationNetwork.Ready) return;
             float now = Time.realtimeSinceStartup;
             if (now < _nextQuantum) return;
             float interval = Mathf.Clamp(
@@ -311,6 +326,14 @@ namespace RunicProduction.Integration
             if (ProductionConfig.VerboseLogging.Value)
                 ProductionDiagnostics.Info("scheduler examined=" + examined + " committed=" + mutations +
                     " elapsedMs=" + elapsed.Elapsed.TotalMilliseconds.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        internal static void ChestClosed()
+        {
+            if (!_initialized) return;
+            // Resume through the bounded scheduler when human chest use ends.
+            Schedule.Clear();
+            _nextQuantum = 0f;
         }
 
         internal static void TickLocalPlayer(Player player)
@@ -410,6 +433,12 @@ namespace RunicProduction.Integration
             if (entry?.Component == null || !ValheimAccess.IsNativeOwner(entry.Component))
                 return false;
             if (SafetyPausedStations.Contains(entry.Component.GetInstanceID())) return false;
+            if (!ProductionConfig.Enabled.Value && (entry.Kind == ProductionStationKind.Recipe ||
+                ValheimAccess.Zdo(entry.Component)?.GetString(AuthorityStationLedger.Marker, "").Length == 0)) return false;
+            if (RunicAutomation.Operations.InventoryOperationNetwork.Ready && entry.Kind == ProductionStationKind.Recipe)
+                return RunRecipe((CraftingStation)entry.Component);
+            if (RunicAutomation.Operations.InventoryOperationNetwork.Ready)
+                return QueueAuthorityClock(entry.Component);
             // Warm every explicit role, including output, before the next native machine tick.
             // Requests are bounded and asynchronous; unresolved chests never become inventories.
             foreach (ProductionLinkRole role in new[] { ProductionLinkRole.Input, ProductionLinkRole.Fuel,
@@ -429,6 +458,10 @@ namespace RunicProduction.Integration
                     return RunRecipe((CraftingStation)entry.Component);
                 case ProductionStationKind.Fermenter:
                     return RunFermenter((Fermenter)entry.Component);
+                case ProductionStationKind.SapExtractor:
+                    return RunSapExtractor((SapCollector)entry.Component);
+                case ProductionStationKind.WispFountain:
+                    return false; // Existing native wisp target updates drive collection.
                 case ProductionStationKind.Beehive:
                     return RunBeehive((Beehive)entry.Component);
                 case ProductionStationKind.Fireplace:
@@ -949,6 +982,7 @@ namespace RunicProduction.Integration
                     out _, out _, out _)) return false;
             string stationId = ValheimAccess.StableId(station);
             if (string.IsNullOrEmpty(stationId)) return false;
+            if (RunicAutomation.Operations.InventoryOperationNetwork.Ready) return QueueAuthorityRecipe(station);
             ZDO stationZdo = ValheimAccess.Zdo(station);
             if (MultiReplenishmentRuntimeSupport.ReadOrMigrate(
                     stationZdo, stationId, false,
@@ -1113,12 +1147,20 @@ namespace RunicProduction.Integration
 
         private static bool RunFermenter(Fermenter station)
         {
+            if (RoleLinks(station, ProductionLinkRole.Input).Count == 0 &&
+                RoleLinks(station, ProductionLinkRole.Output).Count == 0 &&
+                RoleLinks(station, ProductionLinkRole.Replenishment).Count == 0) return false;
             if (!FermenterCompatibility.TryValidate(
                     station, _fermenterPolicy, true,
-                    out FermenterDescriptor descriptor, out _) ||
+                    out FermenterDescriptor descriptor, out string failure) ||
                 !FermenterCompatibility.TryValidateState(
                     station, descriptor,
-                    out FermenterStationState state, out _)) return false;
+                    out FermenterStationState state, out failure))
+            {
+                Stop(station, ProductionStopCode.ProducerIneligible, failure);
+                return false;
+            }
+            ProductionDiagnostics.ReportSkippedRecipes(ValheimAccess.StableId(station), descriptor.SkippedRecipes);
             if (state.IsEmpty) return TryFillFermenter(station, descriptor);
             if (ValheimAccess.FermenterStatus(station) != FermenterSlotStatus.Ready ||
                 !descriptor.TryFromInput(
@@ -1427,6 +1469,8 @@ namespace RunicProduction.Integration
             if (!StationSupportsRole(selection.Station.Kind, selection.Role) ||
                 !ValidateStation(selection.Station, out detail))
                 return Fail(global::Runic.Localization.RunicText.Get("text_f57b2ed3f914") + detail, out detail);
+            if (RunicAutomation.Operations.InventoryOperationNetwork.Ready)
+                return QueueAuthorityLink(player, selection, stationZdo, targetZdo, remove, out detail);
             if (!ValheimAccess.TryPrepareLinkOwnership(
                     player, station, stationZdo, container, targetZdo, LinkRange, out detail))
                 return false;
@@ -2023,7 +2067,7 @@ namespace RunicProduction.Integration
             foreach (Component candidate in root.GetComponentsInChildren<Component>())
                 if ((candidate is Smelter || candidate is CookingStation ||
                      candidate is CraftingStation || candidate is Fermenter || candidate is Fireplace ||
-                     candidate is Beehive) &&
+                     candidate is Beehive || candidate is SapCollector || candidate is WispSpawner) &&
                     ValheimAccess.Zdo(candidate)?.m_uid == id) return candidate;
             return null;
         }
@@ -2669,6 +2713,12 @@ namespace RunicProduction.Integration
             failure = string.Empty;
             switch (station.Kind)
             {
+                case ProductionStationKind.SapExtractor:
+                    return ((SapCollector)station.Component).m_spawnItem != null ||
+                           Fail("This extractor has no native sap item.", out failure);
+                case ProductionStationKind.WispFountain:
+                    return ((WispSpawner)station.Component).m_wispPrefab != null ||
+                           Fail("This fountain has no native wisp prefab.", out failure);
                 case ProductionStationKind.Beehive:
                     return ((Beehive)station.Component).m_honeyItem != null ||
                            Fail(global::Runic.Localization.RunicText.Get("text_86a02d19ba62"), out failure);
@@ -2713,6 +2763,18 @@ namespace RunicProduction.Integration
             out ProductionStationEntry station)
         {
             station = null;
+            SapCollector sap = target.GetComponentInParent<SapCollector>();
+            if (sap != null)
+            {
+                station = new ProductionStationEntry(ProductionStationKind.SapExtractor, sap);
+                return true;
+            }
+            WispSpawner fountain = target.GetComponentInParent<WispSpawner>();
+            if (fountain != null)
+            {
+                station = new ProductionStationEntry(ProductionStationKind.WispFountain, fountain);
+                return true;
+            }
             Beehive hive = target.GetComponentInParent<Beehive>();
             if (hive != null)
             {
@@ -2763,6 +2825,8 @@ namespace RunicProduction.Integration
         {
             switch (station)
             {
+                case ProductionStationKind.SapExtractor:
+                case ProductionStationKind.WispFountain:
                 case ProductionStationKind.Beehive:
                     return role == ProductionLinkRole.Output;
                 case ProductionStationKind.Smelter:
@@ -2963,7 +3027,7 @@ namespace RunicProduction.Integration
             int fuelCount = DistinctRoleCount(station, ProductionLinkRole.Fuel);
             int outputCount = DistinctRoleCount(station, ProductionLinkRole.Output);
             int replenishmentCount = ReplenishmentLinkCount(station, zdo);
-            if (station is Beehive)
+            if (station is Beehive || station is SapCollector || station is WispSpawner)
             {
                 text += global::Runic.Localization.RunicText.Get("text_2c262c788a19") +
                         global::Runic.Localization.RunicText.Get("text_513135e0ee7e") + FormatLinkCount(outputCount);
@@ -3063,6 +3127,8 @@ namespace RunicProduction.Integration
 
         private static ProductionStationKind KindOf(Component station)
         {
+            if (station is SapCollector) return ProductionStationKind.SapExtractor;
+            if (station is WispSpawner) return ProductionStationKind.WispFountain;
             if (station is Beehive) return ProductionStationKind.Beehive;
             if (station is Smelter) return ProductionStationKind.Smelter;
             if (station is CookingStation) return ProductionStationKind.Cooking;

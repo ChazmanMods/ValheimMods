@@ -55,6 +55,7 @@ namespace RunicLilyPads
             Decor("pebbles",GardenLanguage.Token("text_de5de39fc1b9"),"instanced_small_rock1",.5f,true);
             GardenModels.RegisterStatics();
             GardenFlora.RegisterAll();
+            RiverGardens.RegisterStone();
             if(Fireflies) {
                 var root=Root("piece_arcanedecor_nightgarden",GardenLanguage.Token("text_c92e4ced068f"),"");
                 var visual=root.transform.Find("garden_visual");AddVisual(Rock,visual,.65f,true);

@@ -65,8 +65,10 @@ namespace RunicSentinel.Runtime
                 if(peer==null || !peer.IsReady() || peer.m_server)continue;
                 if(!SentinelTransportIdentity.TryResolvePeer(peer,out string authority,out string subject,out _))continue;
                 string account=authority+":"+subject;
+                long characterId=SentinelPlayerIdentity.CharacterId(peer);
+                if(characterId==0)continue;
                 seen.Add(account);
-                Observe(account,peer.m_playerName,peer.m_playerID,peer.m_refPos,peer.m_rpc.GetSocket().GetHostName());
+                Observe(account,peer.m_playerName,characterId,peer.m_refPos,peer.m_rpc.GetSocket().GetHostName());
             }
             if(Player.m_localPlayer!=null)
             {

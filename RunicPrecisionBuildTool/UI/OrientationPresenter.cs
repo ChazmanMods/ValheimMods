@@ -33,11 +33,9 @@ namespace QuietBuildRotation.UI
         private const float DefaultFontSize = 36f;
         private const float HorizontalInset = 12f;
         private const float PanelPadding = 8f;
-        private const float RowGap = 4f;
         private const float GeometryTolerance = 0.01f;
 
         private static RectTransform _readoutRoot;
-        private static VerticalLayoutGroup _readoutLayout;
         private static GameObject _placeEntry;
         private static GameObject _targetEntry;
         private static GameObject _axisGuideEntry;
@@ -60,10 +58,10 @@ namespace QuietBuildRotation.UI
         private static Vector2 _buildMenuHelpAppliedPosition;
         private static float _requirementsTop;
         private static float _topReserve;
-        private static float _baseSlack;
         private static float _styledRowHeight;
         private static float _styledLegendRowHeight;
         private static float _styledPanelWidth = -1f;
+        private static int _styledScreenWidth = -1;
         private static float _styledPanelScaleX = -1f;
         private static float _styledPanelScaleY = -1f;
         private static bool _panelExtended;
@@ -341,7 +339,6 @@ namespace QuietBuildRotation.UI
                 }
             }
             _readoutRoot = null;
-            _readoutLayout = null;
             _placeEntry = null;
             _targetEntry = null;
             _axisGuideEntry = null;
@@ -364,7 +361,6 @@ namespace QuietBuildRotation.UI
             _buildMenuHelpAppliedPosition = Vector2.zero;
             _requirementsTop = 0f;
             _topReserve = 0f;
-            _baseSlack = 0f;
             _styledRowHeight = 0f;
             _styledLegendRowHeight = 0f;
             _styledPanelWidth = -1f;
@@ -510,7 +506,7 @@ namespace QuietBuildRotation.UI
             int snapHostId)
         {
             OrientationAngles angles = OrientationAngles.FromQuaternion(target.Rotation);
-            string text = "<b>TARGET</b>    " +
+            string text = "<b>TARGET</b>\n" +
                    AngleValue("PITCH", angles.Pitch) + "    " +
                    AngleValue("ROLL", angles.Roll) + "    " +
                    AngleValue("YAW", angles.Yaw) + "\n";
@@ -654,12 +650,12 @@ namespace QuietBuildRotation.UI
 
             LayoutElement row = entry.GetComponent<LayoutElement>();
             if (!row) row = entry.AddComponent<LayoutElement>();
-            row.ignoreLayout = false;
+            row.ignoreLayout = true;
             row.flexibleWidth = 1f;
             label.richText = true;
             label.textWrappingMode = TextWrappingModes.Normal;
             label.overflowMode = TextOverflowModes.Ellipsis;
-            label.alignment = TextAlignmentOptions.Center;
+            label.alignment = TextAlignmentOptions.Top;
             label.raycastTarget = false;
             entry.SetActive(false);
             return label;
@@ -672,8 +668,7 @@ namespace QuietBuildRotation.UI
             GameObject root = new GameObject(
                 "RunicPrecision_OrientationReadout",
                 typeof(RectTransform),
-                typeof(LayoutElement),
-                typeof(VerticalLayoutGroup));
+                typeof(LayoutElement));
             RectTransform rect = root.transform as RectTransform;
             rect.SetParent(selectedInfo, false);
             rect.localScale = Vector3.one;
@@ -686,11 +681,6 @@ namespace QuietBuildRotation.UI
             LayoutElement parentLayout = root.GetComponent<LayoutElement>();
             parentLayout.ignoreLayout = true;
 
-            _readoutLayout = root.GetComponent<VerticalLayoutGroup>();
-            _readoutLayout.childControlHeight = true;
-            _readoutLayout.childControlWidth = true;
-            _readoutLayout.childForceExpandHeight = false;
-            _readoutLayout.childForceExpandWidth = true;
             return rect;
         }
 
@@ -721,9 +711,6 @@ namespace QuietBuildRotation.UI
             _topReserve = -_selectedPieceRect.anchoredPosition.y +
                           _selectedPieceRect.pivot.y *
                           _selectedPieceRect.rect.height;
-            _baseSlack = _selectedInfoRect.rect.height -
-                         _requirementsTop -
-                         _topReserve;
             if (_buildMenuHelpRect)
                 _buildMenuHelpBasePosition = _buildMenuHelpRect.anchoredPosition;
             _panelExtended = false;
@@ -760,12 +747,14 @@ namespace QuietBuildRotation.UI
             float scaleX = PanelCanvasScale(true);
             float scaleY = PanelCanvasScale(false);
             if (!force && _styledFontSize == fontSize &&
+                _styledScreenWidth == Screen.width &&
                 Mathf.Abs(_styledPanelWidth - panelWidth) < 0.5f &&
                 Mathf.Abs(_styledPanelScaleX - scaleX) < 0.001f &&
                 Mathf.Abs(_styledPanelScaleY - scaleY) < 0.001f)
                 return;
 
             _styledFontSize = fontSize;
+            _styledScreenWidth = Screen.width;
             _styledPanelWidth = panelWidth;
             _styledPanelScaleX = scaleX;
             _styledPanelScaleY = scaleY;
@@ -773,7 +762,6 @@ namespace QuietBuildRotation.UI
             float localMinimumFontSize = Mathf.Max(16f, fontSize * 0.58f) / scaleY;
             _styledRowHeight = Mathf.Ceil(fontSize * 4.25f / scaleY);
             _styledLegendRowHeight = Mathf.Ceil(fontSize * 1.5f / scaleY);
-            _readoutLayout.spacing = RowGap / scaleY;
 
             StyleText(_placeText, localFontSize, localMinimumFontSize);
             StyleText(_targetText, localFontSize, localMinimumFontSize);
@@ -810,16 +798,18 @@ namespace QuietBuildRotation.UI
 
         private static float CurrentRootHeight(float rowHeight, float legendRowHeight)
         {
-            int rows = (_placeActive ? 1 : 0) +
-                       (_targetActive ? 1 : 0) +
-                       (_axisGuideActive ? 1 : 0);
-            if (rows < 1) return 0f;
+            return Mathf.Max(
+                _placeActive || _targetActive ? rowHeight : 0f,
+                _axisGuideActive ? legendRowHeight : 0f);
+        }
 
-            float height = (_placeActive ? rowHeight : 0f) +
-                           (_targetActive ? rowHeight : 0f) +
-                           (_axisGuideActive ? legendRowHeight : 0f);
-            float spacing = _readoutLayout ? _readoutLayout.spacing : RowGap;
-            return height + (rows - 1) * spacing;
+        private static void PositionEntry(GameObject entry, float left, float top, float width, float height)
+        {
+            RectTransform rect = entry.transform as RectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(left, -top);
+            rect.sizeDelta = new Vector2(width, height);
         }
 
         private static void ResizeForActiveRows()
@@ -848,9 +838,7 @@ namespace QuietBuildRotation.UI
 
             if (_panelExtended)
             {
-                // Another UI mod may legitimately change this panel. Only revise the height/Y
-                // axes when they still match the values most recently applied by this presenter;
-                // width/X always remain under the other layout owner's control.
+                // Yield if another UI mod has changed geometry that we own.
                 if (!OwnedPanelGeometryMatches(_panelAppliedSize, _panelAppliedPosition))
                     return;
             }
@@ -865,13 +853,15 @@ namespace QuietBuildRotation.UI
             float horizontalInset = HorizontalInset / scaleX;
             float lowerPadding = PanelPadding / scaleY;
             float upperPadding = PanelPadding / scaleY;
-            float extension = Mathf.Max(
-                0f,
-                contentHeight + lowerPadding + upperPadding - _baseSlack);
+            // The native selected-piece description occupies the middle column of the SAME
+            // row. Its top anchor follows the shorter panel down; requirements stay below it.
+            float rowHeight = Mathf.Max(contentHeight, _topReserve - upperPadding);
+            float panelHeight = _requirementsTop + lowerPadding + rowHeight + upperPadding;
+            float extension = panelHeight - _panelBaseSize.y;
 
             Vector2 desiredSize = new Vector2(
-                _selectedInfoRect.sizeDelta.x,
-                _panelBaseSize.y + extension);
+                HorizontalPanelWidth(scaleX),
+                panelHeight);
             Vector2 desiredPosition = new Vector2(
                 _selectedInfoRect.anchoredPosition.x,
                 _panelBasePosition.y + extension * _selectedInfoRect.pivot.y);
@@ -887,7 +877,19 @@ namespace QuietBuildRotation.UI
                 _requirementsTop + lowerPadding);
             _readoutRoot.offsetMax = new Vector2(
                 -horizontalInset,
-                -(_topReserve + upperPadding));
+                -upperPadding);
+
+            float width = desiredSize.x - 2f * horizontalInset;
+            float centerWidth = _selectedPieceRect.rect.width * Mathf.Abs(_selectedPieceRect.localScale.x) +
+                                2f * Mathf.Abs(_selectedPieceRect.anchoredPosition.x);
+            float gap = HorizontalInset / scaleX;
+            float sideWidth = Mathf.Max(1f, (width - centerWidth - 2f * gap) * 0.5f);
+            float legendHeight = _axisGuideActive ? _styledLegendRowHeight : 0f;
+            float legendGap = _axisGuideActive ? 4f / scaleY : 0f;
+            PositionEntry(_placeEntry, 0f, 0f, sideWidth,
+                Mathf.Max(1f, rowHeight - legendHeight - legendGap));
+            PositionEntry(_targetEntry, width - sideWidth, 0f, sideWidth, rowHeight);
+            PositionEntry(_axisGuideEntry, 0f, rowHeight - legendHeight, sideWidth, legendHeight);
 
             if (_buildMenuHelpRect &&
                 (!_panelExtended ||
@@ -920,6 +922,7 @@ namespace QuietBuildRotation.UI
                 if (OwnedPanelGeometryMatches(_panelAppliedSize, _panelAppliedPosition))
                 {
                     Vector2 restoredSize = _selectedInfoRect.sizeDelta;
+                    restoredSize.x = _panelBaseSize.x;
                     restoredSize.y = _panelBaseSize.y;
                     _selectedInfoRect.sizeDelta = restoredSize;
                     Vector2 restoredPosition = _selectedInfoRect.anchoredPosition;
@@ -949,8 +952,21 @@ namespace QuietBuildRotation.UI
 
         private static bool OwnedPanelGeometryMatches(Vector2 size, Vector2 position) =>
             _selectedInfoRect &&
+            Mathf.Abs(_selectedInfoRect.sizeDelta.x - size.x) <= GeometryTolerance &&
             Mathf.Abs(_selectedInfoRect.sizeDelta.y - size.y) <= GeometryTolerance &&
             Mathf.Abs(_selectedInfoRect.anchoredPosition.y - position.y) <= GeometryTolerance;
+
+        private static float HorizontalPanelWidth(float scaleX)
+        {
+            float pixelsPerUnit = Mathf.Abs(_selectedInfoRect.lossyScale.x);
+            float screenWidth = pixelsPerUnit > 0.0001f
+                ? Screen.width / pixelsPerUnit
+                : _panelBaseSize.x;
+            // Leave a margin on both sides and account for an off-center native panel.
+            float available = Mathf.Max(1f, screenWidth -
+                2f * (HorizontalInset / scaleX + Mathf.Abs(_selectedInfoRect.anchoredPosition.x)));
+            return Mathf.Min(available, Mathf.Max(_panelBaseSize.x, 1600f / scaleX));
+        }
 
         private static Transform FindSelectedInfoRoot(Hud hud)
         {
@@ -1018,6 +1034,37 @@ namespace QuietBuildRotation.UI
         {
             if (_layoutRoot)
                 LayoutRebuilder.ForceRebuildLayoutImmediate(_layoutRoot);
+            SynchronizeReadoutFontSizes();
+        }
+
+        private static void SynchronizeReadoutFontSizes()
+        {
+            // Fit both strings independently, then lock both to the smaller result. Refit
+            // whenever their text or rectangles change, rather than letting Target grow.
+            float sharedSize = float.MaxValue;
+            if (_placeActive && _placeText && _placeText.gameObject.activeInHierarchy)
+            {
+                _placeText.enableAutoSizing = true;
+                _placeText.ForceMeshUpdate();
+                sharedSize = Mathf.Min(sharedSize, _placeText.fontSize);
+            }
+            if (_targetActive && _targetText && _targetText.gameObject.activeInHierarchy)
+            {
+                _targetText.enableAutoSizing = true;
+                _targetText.ForceMeshUpdate();
+                sharedSize = Mathf.Min(sharedSize, _targetText.fontSize);
+            }
+            if (sharedSize == float.MaxValue) return;
+            ApplySharedFontSize(_placeText, sharedSize);
+            ApplySharedFontSize(_targetText, sharedSize);
+        }
+
+        private static void ApplySharedFontSize(TMP_Text text, float size)
+        {
+            if (!text) return;
+            text.enableAutoSizing = false;
+            text.fontSize = size;
+            if (text.gameObject.activeInHierarchy) text.ForceMeshUpdate();
         }
 
         private static void LogFirstActivation()

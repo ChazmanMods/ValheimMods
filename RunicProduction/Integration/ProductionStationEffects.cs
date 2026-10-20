@@ -12,6 +12,8 @@ namespace RunicProduction.Integration
         internal static void InputAdded(Smelter station) => Play(station, Kind.Input);
         internal static void FuelAdded(Smelter station) => Play(station, Kind.Fuel);
         internal static void OutputProduced(Smelter station) => Play(station, Kind.Output);
+        internal static void FuelAdded(Fireplace station) => Safely(() => station.m_fuelAddedEffects?.Create(station.transform.position, station.transform.rotation));
+        internal static void OutputCollected(Beehive station) => Safely(() => station.m_spawnEffect?.Create(station.m_spawnPoint.position, Quaternion.identity));
 
         internal static void InputAdded(CookingStation station, int slot) => Safely(() =>
             station.m_addEffect?.Create(station.m_slots[slot].position, Quaternion.identity));

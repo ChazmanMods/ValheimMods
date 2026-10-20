@@ -72,6 +72,9 @@ namespace RunicCrafting.Tests
 
         internal static void ManualInteractionHooksMatchInstalledValheim()
         {
+            AssertMethod("Inventory", "TopFirst", "ItemDrop/ItemData");
+            AssertMethod("Inventory", "FindEmptySlot", "System.Boolean");
+            AssertMethod("Inventory", "AddItem", "ItemDrop/ItemData", "System.Int32", "System.Int32", "System.Int32", "System.Boolean");
             AssertMethod("CookingStation", "OnInteract", "Humanoid");
             AssertMethod("CookingStation", "HaveDoneItem");
             AssertMethod("CookingStation", "GetFreeSlot");

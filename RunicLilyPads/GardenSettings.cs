@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 namespace RunicLilyPads
 {
-    internal sealed class GardenSettings
+    public sealed class GardenSettings
     {
         public float Width=6, Depth=1.2f, Volume=.35f, Speed=1, Range=18;
         public int Track=1, Fireflies=30;

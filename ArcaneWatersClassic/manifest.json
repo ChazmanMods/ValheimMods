@@ -1,0 +1,11 @@
+{
+  "name": "ArcaneWaters",
+  "version_number": "0.6.7",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods",
+  "description": "Build flowing rivers and four natural hot springs with seated bathing, bubbling loops, soothing music, creature wards and WaterGardens decoration compatibility.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2350",
+    "ValheimModding-Jotunn-2.30.1",
+    "Chazman-ArcaneDecor_WaterGardens-1.1.3"
+  ]
+}

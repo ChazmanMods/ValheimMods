@@ -1,12 +1,18 @@
-# Runic Precision Build Tool 2.0.7
+# Runic Precision Build Tool 2.0.9
 
 Valheim's building system makes extraordinary structures possible, but serious builders eventually fight the placement controls: a beam is almost aligned, a roof needs one more axis, or one bad click means dismantling work that was already right.
 
 **Runic Precision Build Tool gives the hammer full six-axis control.** Move and rotate pending pieces exactly, match existing geometry, repeat useful transforms, undo placements, and repair bounded areas while keeping Valheim's familiar building workflow.
 
-## New in 2.0.7
+## New in 2.0.9
 
-**One key. Two rotation modes.** Tap **F4** for Local axes that follow your piece; tap again for fixed World axes. Your choice stays selected, the piece stays put when you switch, and the HUD and axis guides show exactly which mode is active.
+The bottom panel places Precision on the left, the piece description in the middle, and Target on the right, all on the same level. Precision and Target share the same fitted font size. The shorter panel leaves more of your build visible, fits the screen width, and restores its original size when hidden.
+
+## New in 2.0.8
+
+Fixed compatibility with StartupAccelerator so precision building activates correctly when both mods are installed.
+
+Tap **F4** for Local rotation axes that follow your piece; tap again for fixed World axes. Your choice stays selected, and the HUD and axis guides show the active mode.
 
 ## Major features
 
@@ -21,9 +27,9 @@ Valheim's building system makes extraordinary structures possible, but serious b
 
 The structure in your head is no longer limited by the angle the vanilla preview happens to offer. Small corrections stay small, complicated geometry becomes repeatable, and mistakes cost a click instead of an afternoon.
 
-## Safety and compatibility
+## Building rules
 
-Precision mode is explicit and scoped to the active hammer preview. Normal costs, piece requirements, placement validation, wards, range, structural rules, and Valheim's commit path still apply. Undo and area repair are bounded and ownership-aware. The mod is standalone and requires only BepInEx.
+Normal resource costs, workbench requirements, wards, build restrictions, and structural support still apply. The mod requires only BepInEx.
 
 ## Precision placement
 
@@ -71,70 +77,39 @@ composes from that held orientation.
 | KeypadPeriod | Repeat the last two-placement relative transform |
 | Shift + Keypad1-Keypad6 | Reset one rotation or movement axis |
 
-Matching copies coordinates and rotation only. It never copies prefab, creator, ownership, scale,
-health, access, or structural state. Exact position may skip automatic snapping, but every later
-native collision, ward, location, resource, station, support, and placement check still runs.
+Matching copies position and rotation. Piece ownership and normal building rules remain unchanged.
 
 While the piece menu is open, F6 selects the next unlocked search result, F7 toggles a favorite,
 F8 selects the next unlocked favorite, and F9 selects the next unlocked recent piece. When
 `Build Catalog.SearchQuery` is empty, F6 cycles all currently unlocked pieces instead of showing an
-error. Catalog work is bounded to 256 available entries, 1,024 inspections, 64 favorites, 16
-recents, and a 64-character query. It cannot unlock a piece.
+error. Search and favorites use the pieces you have unlocked.
 
 The selected-piece panel adds Runic world position, movement delta/reference frame, pitch/roll/yaw,
 increment, target distance, snap host, and short match feedback. Its own rows hide while the piece
 menu is open; Valheim retains its normal panel and lifecycle.
 
-## Native-owner undo and area repair
+## Undo and area repair
 
-F11 and F12 are available only while precision mode is active and the piece menu is closed.
+F11 and F12 are available while precision mode is active and the piece menu is closed.
 
-F11 keeps one in-memory record of the most recent eligible placement in the current hammer session.
-It removes the piece once only when the local player is still its creator, its loaded `ZNetView` is
-currently locally owned, its position and rotation are unchanged, it is full-health and inert, no
-loaded structure depends on it, and fresh ward, range, no-build, and native removal checks pass. The
-record is cleared before native removal begins, preventing a second key press from duplicating
-drops after a partial callback failure.
+- **F11:** Undo the most recent eligible placement in the current Hammer session. The piece must still be yours, unchanged, undamaged, and not supporting another structure.
+- **F12:** Repair nearby eligible pieces you created, up to the configured limit (16 by default). Normal Hammer range, durability, and build permissions apply.
 
-F12 uses a fixed 256-collider discovery buffer and aborts without changes if that buffer saturates.
-It retains at most 64 deterministic candidates and repairs at most the configured count (16 by
-default). Every candidate is reread immediately before repair and must be created by the local
-player, in native range, permitted by the current ward/no-build checks, eligible under the native
-hammer policy, and currently owned by the local peer. Hammer durability is charged once per
-successful `WearNTear.Repair()` call and the inventory change notification is sent once at the end.
-
-These paths work in solo, a listen host, or on a dedicated-server client whenever Valheim has given
-the local peer current ownership of the exact loaded piece. If another peer or the server currently
-owns it, that candidate is skipped. The mod never calls `SetOwner` or `ClaimOwnership` and sends no
-undo or repair RPC. There are no gameplay journals, durable roots, recovery loops, inventory locks,
-grave custody, or quarantine states; failure releases only the current key action.
+In multiplayer, pieces currently controlled by another player or the server are skipped.
 
 ## Multiplayer and compatibility
 
-Placement transforms remain client-side preview state and use Valheim's normal networked placement
-commit. The plugin does not add a protocol handshake or require other gameplay mods to load.
+Precision placement works with Valheim's normal multiplayer building. Runic Build Camera, Runic Crafting, and Runic Agriculture are optional companion mods. StartupAccelerator is supported. Disable PerfectPlacement's free rotation when using Runic Precision Build Tool.
 
-Harmony ordering remains explicit where preview responsibilities overlap: Precision reads after
-Runic Build Camera, begins placement capture before Runic Crafting, and finalizes its ghost before
-Runic Agriculture observes it. Those mods are optional. If PerfectPlacement free rotation is
-enabled, or the installed Valheim method/IL contract does not match the audited seams,
-Precision disables its hooks and leaves vanilla building available.
-
-## Performance and installation
-
-Ordinary input and pose composition are allocation-free in the focused tests. Catalog, target,
-repair, and structural scans are bounded and occur only at their documented sampling rate or on an
-explicit action. Relative history stores two transforms and undo stores one session-only record.
-Favorites and recents are bounded configuration strings; safe utilities create no persistent data.
+## Installation
 
 Install BepInExPack Valheim 5.4.2350, then place `RunicPrecisionBuildTool.dll` under
 `BepInEx/plugins/RunicPrecisionBuildTool/`. Configuration is generated at
-`BepInEx/config/chazman.RunicPrecisionBuildTool.cfg`. Version 2.0.7 supports keyboard and mouse; it
-does not promise controller bindings.
+`BepInEx/config/chazman.RunicPrecisionBuildTool.cfg`.
+
+Default controls use keyboard and mouse.
 
 Community: https://discord.gg/7HKHTCdFqY
-
-Runic Precision Build Tool is an independent mod and is not affiliated with Iron Gate Studio.
 
 ## Language files
 

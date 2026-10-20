@@ -1,5 +1,18 @@
 # Runic Inventory testing
 
+## 1.1.6 Quick Stack-only slot exclusions - 2026-09-14
+
+- Inventory suite: 168/168 passed, including the actual Storage reflection adapter, separate
+  Quick Stack/general/native-use views, unknown-provider behavior, and installed ammunition removal.
+- Regression checks ensure drag, equipment, upgrade, relocation, and sort paths do not apply slot exclusions.
+- Live acceptance remains to be performed with RunicStorage 1.2.5: Alt-right-click a backpack
+  cell containing arrows, food, or a tool. Alt+Q must keep it while transferring an unlocked stack.
+  Replenish the stack, fire arrows, eat food, swap a broken/working tool, equip replacement gear,
+  upgrade, manually transfer/drop, use Store All and Restock, consolidate, and sort. The lock alone
+  must not reject any of these. The yellow exclusion remains on its cell after swaps and sorting.
+- Save/reload and confirm the same cell stays excluded. Check an excluded empty cell after refilling.
+- Automated checks do not establish live gameplay acceptance. No live installation or upload performed.
+
 ## 1.1.5 release packaging - 2026-09-14
 
 - Release build: zero warnings and zero errors. All 167 main-suite checks pass.

@@ -1,0 +1,12 @@
+{
+  "name": "ArcaneNaturalWaters",
+  "version_number": "0.9.18",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods",
+  "description": "Standalone rivers, cascades and natural hot springs. Requires only BepInEx and Jotunn.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2350",
+    "ValheimModding-Jotunn-2.30.1"
+  ]
+}
+
+

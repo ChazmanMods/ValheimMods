@@ -81,6 +81,18 @@ public sealed class Inventory
     private readonly string name; private readonly int width,height;
     public Action m_onChanged;
     public bool RejectNextAdd, ThrowAfterNextAdd;
+    public int ReservedBottomRows;
+    private bool TopFirst(ItemDrop.ItemData item) => false;
+    private Vector2i FindEmptySlot(bool topFirst)
+    {
+        int rows = height - ReservedBottomRows;
+        for (int n=0;n<rows;n++)
+        {
+            int y=topFirst?n:rows-1-n;
+            for(int x=0;x<width;x++)if(GetItemAt(x,y)==null)return new Vector2i(x,y);
+        }
+        return new Vector2i(-1,-1);
+    }
     public Inventory(string name, object icon, int width,int height){this.name=name;this.width=width;this.height=height;}
     public string GetName()=>name; public int GetWidth()=>width; public int GetHeight()=>height;
     public List<ItemDrop.ItemData> GetAllItems()=>items;
@@ -89,9 +101,10 @@ public sealed class Inventory
     {
         if(RejectNextAdd){RejectNextAdd=false;return false;}
         if(!CanAddItem(item))return false;
-        for(int y=0;y<height;y++)for(int x=0;x<width;x++)if(GetItemAt(x,y)==null)
+        var slot=FindEmptySlot(TopFirst(item));
+        if(slot.x>=0)
         {
-            item.m_gridPos=new Vector2i(x,y);items.Add(item);Changed();
+            item.m_gridPos=slot;items.Add(item);Changed();
             if(ThrowAfterNextAdd){ThrowAfterNextAdd=false;throw new InvalidOperationException("test callback");}
             return true;
         }
@@ -103,11 +116,15 @@ public sealed class Inventory
     private void Changed(bool success=false,bool cheatedStateChanged=false)=>m_onChanged?.Invoke();
     private bool AddItem(ItemDrop.ItemData item,int amount,int x,int y,bool skipValidPositionCheck=false)
     {
+        if(RejectNextAdd){RejectNextAdd=false;return false;}
         if(x<0||x>=width||y<0||y>=height)return false;
+        if(y>=height-ReservedBottomRows)return false;
         var at=GetItemAt(x,y);
         if(at==null){at=item.Clone();at.m_stack=amount;at.m_gridPos=new Vector2i(x,y);items.Add(at);}
         else {if(at.Prefab!=item.Prefab||at.m_stack+amount>at.m_shared.m_maxStackSize)return false;at.m_stack+=amount;}
-        item.m_stack-=amount;Changed();return true;
+        item.m_stack-=amount;Changed();
+        if(ThrowAfterNextAdd){ThrowAfterNextAdd=false;throw new InvalidOperationException("test callback");}
+        return true;
     }
     public bool RemoveItem(ItemDrop.ItemData item,int quantity){if(!items.Contains(item)||item.m_stack<quantity)return false;item.m_stack-=quantity;if(item.m_stack==0)items.Remove(item);Changed();return true;}
 }

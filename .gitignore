@@ -16,3 +16,23 @@ docs/_render_*/
 
 RunicSentinel.Devcommands.Shared/refs/
 **/runtime-smoke*/
+
+# Local tooling, game references, and generated deliveries
+**/__pycache__/
+**/Library/
+**/Temp/
+**/Logs/
+**/UserSettings/
+**/dist/
+**/packages/
+**/release-staging/
+**/Local.props
+**/*.dll
+**/*.exe
+**/*.pdb
+**/*.zip
+**/*.fch
+**/*.fwl
+**/*.db
+**/.env
+**/.env.*

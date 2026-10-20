@@ -27,6 +27,9 @@ internal sealed class SignEditor : MonoBehaviour
     private TMP_InputField _caption, _x, _y, _z, _sizeField, _inkField, _opacityField, _curveV, _curveD;
     private TMP_Text _status, _target, _board, _units, _fit, _background, _alignment, _effect, _step;
     private Button _save;
+    private TMP_Text _compatibility;
+    private readonly List<Selectable> _modOnly = new();
+    private string _compatibilityError = "";
     private CanvasGroup _fields;
     private readonly HashSet<TMP_InputField> _invalid = new();
     private int _start, _end;
@@ -55,6 +58,7 @@ internal sealed class SignEditor : MonoBehaviour
                 }
                 e._text = sign.GetText(); // permitted/filtered display, never raw hidden text
                 if (e._text != e._expectedText) e._draft.Runs.Clear();
+                if (e._draft.VanillaCompatible) e._text = VanillaSignText.Caption(e._text);
             }
             SignFormatting.NormalizeEditorOpacity(e._draft);
             e._font = sign.m_textWidget.font; e._start = e._end = 0; e._coarse = false; e._invalid.Clear();
@@ -81,7 +85,7 @@ internal sealed class SignEditor : MonoBehaviour
             if (_caption.isFocused) CaptureSelection();
             bool popup = _colorPicker || _emojiPicker || _effectsPicker;
             _fields.interactable = !Saving && !popup;
-            _save.interactable = !Saving && !popup && _invalid.Count == 0 && _draft.Valid;
+            _save.interactable = !Saving && !popup && _invalid.Count == 0 && _draft.Valid && _compatibilityError.Length == 0;
             RenewCursor();
         } catch (Exception ex) { Close(); Plugin.Log.LogError("Sign designer failed; controls restored: " + ex); }
     }
@@ -114,6 +118,7 @@ internal sealed class SignEditor : MonoBehaviour
 
     private void Build()
     {
+        _modOnly.Clear(); _compatibilityError = "";
         _canvas = new GameObject("RunicSignDesigner", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster)); _canvas.SetActive(false);
         var canvas = _canvas.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 2000;
         var scaler = _canvas.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -126,7 +131,7 @@ internal sealed class SignEditor : MonoBehaviour
         Text(panel, global::Runic.Localization.RunicText.Get("text_db228dce09d4"), 18, 50, 448, 25, 16);
         var fields = Rect("Fields", panel, 0, 82, 484, 668); _fields = fields.gameObject.AddComponent<CanvasGroup>();
         Text(fields, global::Runic.Localization.RunicText.Get("text_87d296ec9489"), 18, 0, 290, 24);
-        Button(fields, global::Runic.Localization.RunicText.Get("text_9491fc41c391"), 342, -3, 124, 29, () => { if (!_emojiPicker) _emojiPicker = Runic.Shared.EmojiPicker.Open(_canvas.transform, _caption, _font); });
+        ModButton(fields, global::Runic.Localization.RunicText.Get("text_9491fc41c391"), 342, -3, 124, 29, () => { if (!_emojiPicker) _emojiPicker = Runic.Shared.EmojiPicker.Open(_canvas.transform, _caption, _font); });
         _caption = Input(fields, _text, 18, 30, 448, 95, SignSettings.TextLimit, true); Runic.Shared.EmojiInput.Attach(_caption);
         _caption.onDeselect.AddListener(_ => CaptureSelection());
         _caption.onValueChanged.AddListener(value => {
@@ -166,13 +171,13 @@ internal sealed class SignEditor : MonoBehaviour
             _status.text = global::Runic.Localization.RunicText.Get("text_fd60b1e12fd8");
         });
         Button(fields, global::Runic.Localization.RunicText.Get("text_3a8d02640242"), 18, 282, 448, 30, ShowColors);
-        _fit = Button(fields, "", 18, 322, 218, 30, () => { _draft.Fit = !_draft.Fit; Refresh(); }).GetComponentInChildren<TMP_Text>();
+        _fit = ModButton(fields, "", 18, 322, 218, 30, () => { _draft.Fit = !_draft.Fit; Refresh(); }).GetComponentInChildren<TMP_Text>();
         _alignment = Button(fields, "", 248, 322, 218, 30, () => { _draft.Alignment = (_draft.Alignment + 1) % 3; Refresh(); }).GetComponentInChildren<TMP_Text>();
-        _background = Button(fields, "", 18, 361, 218, 30, () => { _draft.Background = (_draft.Background + 1) % 3; Refresh(); }).GetComponentInChildren<TMP_Text>();
-        _effect = Button(fields, "", 248, 361, 218, 30, ShowEffects).GetComponentInChildren<TMP_Text>();
+        _background = ModButton(fields, "", 18, 361, 218, 30, () => { _draft.Background = (_draft.Background + 1) % 3; Refresh(); }).GetComponentInChildren<TMP_Text>();
+        _effect = ModButton(fields, "", 248, 361, 218, 30, ShowEffects).GetComponentInChildren<TMP_Text>();
         _board = Text(fields, "", 18, 401, 218, 30, 17);
-        Button(fields, "−", 248, 401, 64, 30, () => Resize(-.25f)); Button(fields, "+", 324, 401, 64, 30, () => Resize(.25f));
-        Button(fields, "1×", 400, 401, 66, 30, () => { _draft.Scale = 1; Refresh(); });
+        ModButton(fields, "−", 248, 401, 64, 30, () => Resize(-.25f)); ModButton(fields, "+", 324, 401, 64, 30, () => Resize(.25f));
+        ModButton(fields, "1×", 400, 401, 66, 30, () => { _draft.Scale = 1; Refresh(); });
         _units = Button(fields, "", 18, 442, 448, 30, ChangeUnits).GetComponentInChildren<TMP_Text>();
         Text(fields, global::Runic.Localization.RunicText.Get("text_0abba441f16e"), 18, 481, 120, 30, 17);
         _x = Number(fields, _draft.Horizontal, 144, 481, 122, -2000, 2000, value => { _draft.Horizontal = value; Refresh(); });
@@ -182,11 +187,14 @@ internal sealed class SignEditor : MonoBehaviour
         Button(fields, "↓", 282, 520, 85, 30, () => Move(0, -1)); Button(fields, "↑", 381, 520, 85, 30, () => Move(0, 1));
         Text(fields, global::Runic.Localization.RunicText.Get("text_f1dbc33978a9"), 18, 559, 120, 30, 17);
         _z = Number(fields, _draft.Depth, 144, 559, 122, -2000, 2000, value => { _draft.Depth = value; Refresh(); });
-        Button(fields, global::Runic.Localization.RunicText.Get("text_76900f1bfd16"), 282, 559, 85, 30, () => Move(0, 0, -1));
-        Button(fields, global::Runic.Localization.RunicText.Get("text_f1c65e14817e"), 381, 559, 85, 30, () => Move(0, 0, 1));
+        ModButton(fields, global::Runic.Localization.RunicText.Get("text_76900f1bfd16"), 282, 559, 85, 30, () => Move(0, 0, -1));
+        ModButton(fields, global::Runic.Localization.RunicText.Get("text_f1c65e14817e"), 381, 559, 85, 30, () => Move(0, 0, 1));
         _step = Button(fields, "", 18, 598, 218, 30, () => { _coarse = !_coarse; Refresh(); }).GetComponentInChildren<TMP_Text>();
         Button(fields, global::Runic.Localization.RunicText.Get("text_e02bdedb2cd9"), 248, 598, 218, 30, () => { _draft.Horizontal = _draft.Vertical = _draft.Depth = 0; UpdateOffsets(); Refresh(); });
-        Text(fields, global::Runic.Localization.RunicText.Get("text_4293772467bf"), 18, 634, 448, 32, 14);
+        _compatibility = Button(fields, "", 18, 634, 448, 32, () => {
+            _draft.VanillaCompatible = !_draft.VanillaCompatible; Refresh();
+        }).GetComponentInChildren<TMP_Text>();
+        _modOnly.Add(_z);
         _status = Text(panel, "", 18, 748, 448, 44, 16);
         _save = Button(panel, _placement ? global::Runic.Localization.RunicText.Get("text_7726ebd914f1") : global::Runic.Localization.RunicText.Get("text_7ce42330a8fc"), 18, 800, 218, 34, Save);
         Button(panel, global::Runic.Localization.RunicText.Get("text_19766ed6ccb2"), 248, 800, 218, 34, Close);
@@ -348,14 +356,23 @@ internal sealed class SignEditor : MonoBehaviour
         _effect.text = global::Runic.Localization.RunicText.Get("text_b21fe67c9c5c");
         _units.text = _draft.OffsetUnit == 0 ? global::Runic.Localization.RunicText.Get("text_53932b515723") : global::Runic.Localization.RunicText.Get("text_cf444777435f");
         _step.text = _coarse ? global::Runic.Localization.RunicText.Get("text_f6d39c92cdcf") : global::Runic.Localization.RunicText.Get("text_7ed52beb0793");
+        _compatibility.text = _draft.VanillaCompatible ? global::Runic.Localization.RunicText.Get("compat_viewers_on") : global::Runic.Localization.RunicText.Get("compat_viewers_off");
+        foreach (var control in _modOnly) control.interactable = !_draft.VanillaCompatible;
+        if (_draft.VanillaCompatible) {
+            _board.text = global::Runic.Localization.RunicText.Get("compat_board"); _fit.text = global::Runic.Localization.RunicText.Get("compat_layout");
+            _background.text = global::Runic.Localization.RunicText.Get("compat_background"); _effect.text = global::Runic.Localization.RunicText.Get("compat_effects");
+        }
         if (!_draft.Valid) { _status.text = global::Runic.Localization.RunicText.Get("text_5ecbaa9cbe14"); _save.interactable = false; return; }
         _status.text = _invalid.Count > 0 ? global::Runic.Localization.RunicText.Get("text_82b7dd75cfe2") : global::Runic.Localization.RunicText.Get("text_072793f8c89d") + (_placement ? global::Runic.Localization.RunicText.Get("text_16e0f36da477") : global::Runic.Localization.RunicText.Get("text_eafca176ed93"));
         _save.interactable = !Saving && !_effectsPicker && !_colorPicker && !_emojiPicker && _invalid.Count == 0;
         if (_placement) _ghost.ShowDraft(_draft, _text); else _runtime.Preview(_draft, _text);
+        _compatibilityError = _placement ? _ghost.CompatibilityError(_draft, _text) : _runtime.CompatibilityError(_draft, _text);
+        if (_draft.VanillaCompatible) _status.text = global::Runic.Localization.RunicText.Get("compat_status");
+        if (_compatibilityError.Length != 0) { _status.text = _compatibilityError; _save.interactable = false; }
     }
     private void Save()
     {
-        if (Saving || _invalid.Count != 0 || !_draft.Valid || !SignSettings.ValidText(_text)) return;
+        if (Saving || _invalid.Count != 0 || !_draft.Valid || !SignSettings.ValidText(_text) || _compatibilityError.Length != 0) return;
         if (_placement) { SignPlacement.UseDraft(_draft, _text); Close(); return; }
         _status.text = global::Runic.Localization.RunicText.Get("text_23e39291d613");
         _runtime.BeginSave(_draft, _text, _expectedStyle, _expectedText, (success, message) => {
@@ -393,6 +410,10 @@ internal sealed class SignEditor : MonoBehaviour
         var image = Box(parent, caption, x, y, w, h, new Color(.22f, .25f, .26f));
         var button = image.gameObject.AddComponent<Button>(); button.targetGraphic = image; button.onClick.AddListener(action);
         Text(image.transform, caption, 5, 0, w - 10, h, 17).alignment = TextAlignmentOptions.Center; return button;
+    }
+    private Button ModButton(Transform parent, string caption, float x, float y, float w, float h, UnityEngine.Events.UnityAction action)
+    {
+        var button = Button(parent, caption, x, y, w, h, action); _modOnly.Add(button); return button;
     }
     private TMP_InputField Input(Transform parent, string value, float x, float y, float w, float h, int limit, bool multi)
     {

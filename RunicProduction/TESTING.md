@@ -67,7 +67,7 @@
   Confirm held linking gestures do not attack/block/remove pieces. Check solo, host, and joining client.
 - No installs, server restarts, uploads, or mod-suite dependency changes were performed.
 
-Use the audited Valheim 1.0.7 assemblies and configured BepInEx profile. From the repository root,
+Use the installed Valheim 1.0.16 assemblies and configured BepInEx profile. From the repository root,
 run the plugin build once and then its focused suite once:
 
 ```powershell
@@ -130,3 +130,46 @@ Useful manual checks before the final matrix are:
 
 Final focused-test totals, dedicated-server evidence, and coexistence evidence are recorded by the
 root release workflow.
+# Shared chest and fermenter candidate validation — 2026-09-25
+
+Run `dotnet run --project RunicProduction/Tests/RunicProduction.Tests.csproj` from the repository root.
+Regression cases exercise the same conversion validation used by live and registered fermenters:
+accept declared batches of 1, 2, 3, 4, 6, 10, 100 and the stock-transfer upper bound; reject
+non-positive/oversized batches; preserve exact counts and input/output lookups; isolate invalid or
+ambiguous recipes; collapse identical duplicates; allow several inputs to share an output for ordinary
+production; and prove that changing a batch or duration changes stock authorization. Replenishment
+requires an unambiguous reverse recipe. The installed game's 20 stock recipes passed the original
+recipe checks, so the supplied screenshot alone does not establish which live recipe was rejected.
+
+Before release, verify in-game with a recipe producing 4 or 10 items: link input/output, complete
+a batch, and confirm the exact quantity is deposited once. With insufficient chest capacity,
+confirm the batch remains in the fermenter until the entire batch fits. Test a changed positive
+fermentation duration, a mixed valid/invalid recipe table, and two inputs producing the same output.
+The latter must work for ordinary throughput and refuse ambiguous replenishment selection.
+
+Automated validation passed: Production's focused suite, Crafting 72/72, Storage 64/64,
+the actual shared authority source in 22 simulated transport scenarios, and the actual text factory
+in four simulated Unity lifecycle scenarios. All three Release builds succeeded without warnings.
+The two focused harness commands are:
+
+```powershell
+dotnet run --project tools/RunicAutomation.AuthorityRegression -c Release
+dotnet run --project tools/RunicStorage.TextRegression -c Release
+```
+
+The authority regressions cover late responses, competing station requests, owner-only notifications,
+receipt arrival, native open/close snapshots, disconnected-owner host recovery, denied authorization,
+failed refreshes and open/busy chests. They do not simulate a real dedicated server or packet loss.
+
+Before release, install the matched Production 1.0.16, Crafting 1.1.9 and Storage 1.3.9 candidates on
+all participating clients and the server where these mods are used. With two clients, link chains
+created by different players, open and drag items in a shared chest, then close it. Transfers must
+pause while open and resume afterward. Repeat with delayed delivery, the prior owner disconnecting,
+ward access revoked, and building from nearby resources. Compare total item counts before and after
+each run; require no duplication, disappearance or persistent stalls. Check native open/close and
+Storage labels/search for new exceptions. These live acceptance checks remain outstanding.
+
+The supplied log's LoxChest shader-property errors come from native equipment rendering, and occupied
+slot (-1,-1) warnings can indicate a full inventory. These are separate from the fixed authority and
+font initialization paths. This candidate does not suppress them or claim to fix their source.
+Unavailable smelter destinations still permit the documented native world-drop fallback.

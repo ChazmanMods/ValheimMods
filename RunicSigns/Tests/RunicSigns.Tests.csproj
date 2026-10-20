@@ -4,6 +4,7 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../Translations/RunicSigns/English.json" LogicalName="Test.English.json" />
     <Compile Include="../Core/*.cs" />
     <Compile Include="../../Shared/CaptionCurve.cs" />
     <Compile Include="../../Shared/CaptionMeshCurve.cs" />

@@ -1,0 +1,11 @@
+{
+  "name": "WifeCompanion",
+  "version_number": "0.6.0",
+  "website_url": "",
+  "description": "A persistent household companion who follows, accepts gifts, cooks, tends fires, and grows a family.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333",
+    "ValheimModding-Jotunn-2.27.0",
+    "ProfMags-Offline_Companions-1.3.0"
+  ]
+}

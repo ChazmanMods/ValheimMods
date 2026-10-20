@@ -24,8 +24,10 @@ namespace RunicStorage
         internal static ConfigEntry<int> HoverMaximumSnapshotCharacters { get; private set; }
         internal static ConfigEntry<float> HoverRefreshIntervalSeconds { get; private set; }
         internal static ConfigEntry<KeyboardShortcut> QuickStackKey { get; private set; }
+        internal static ConfigEntry<KeyboardShortcut> QuickStackSingleModifier { get; private set; }
         internal static ConfigEntry<KeyboardShortcut> RestockKey { get; private set; }
         internal static ConfigEntry<string> RestockTargets { get; private set; }
+        internal static ConfigEntry<KeyboardShortcut> SortPersonalInventoryKey { get; private set; }
         internal static ConfigEntry<KeyboardShortcut> SortOpenedContainerKey { get; private set; }
         internal static ConfigEntry<KeyboardShortcut> StoreAllOpenedContainerKey { get; private set; }
         internal static ConfigEntry<string> LockedContainerSlots { get; private set; }
@@ -74,12 +76,18 @@ namespace RunicStorage
                 new ConfigDescription(global::Runic.Localization.RunicText.Get("text_703485340375"), new AcceptableValueRange<float>(0.1f, 5f)));
             QuickStackKey = config.Bind("Keys", "QuickStack", new KeyboardShortcut(KeyCode.Q, KeyCode.LeftAlt),
                 global::Runic.Localization.RunicText.Get("text_db7d4548125e"));
+            QuickStackSingleModifier = config.Bind("Keys", "QuickStackSingleModifier",
+                new KeyboardShortcut(KeyCode.LeftShift, KeyCode.LeftControl),
+                global::Runic.Localization.RunicText.Get("quick_stack_single_modifier"));
             RestockKey = config.Bind("Keys", "Restock", new KeyboardShortcut(KeyCode.R, KeyCode.LeftAlt),
                 global::Runic.Localization.RunicText.Get("text_b62be2d6c34b"));
             RestockTargets = config.Bind("Restock", "Targets", "Wood=50,Stone=50",
                 global::Runic.Localization.RunicText.Get("text_ff38805f2729"));
             SortOpenedContainerKey = config.Bind("Keys", "SortOpenedContainer", new KeyboardShortcut(KeyCode.S, KeyCode.LeftAlt),
-                global::Runic.Localization.RunicText.Get("text_c9597fab958a"));
+                "Sort the currently open chest.");
+            SortPersonalInventoryKey = config.Bind("Keys", "SortPersonalInventory",
+                new KeyboardShortcut(KeyCode.P, KeyCode.LeftShift, KeyCode.LeftControl),
+                "Sort your personal inventory while preserving protected items and slots.");
             StoreAllOpenedContainerKey = config.Bind("Keys", "StoreAllOpenedContainer", new KeyboardShortcut(KeyCode.A, KeyCode.LeftAlt),
                 global::Runic.Localization.RunicText.Get("text_9432793f9256"));
             LockedContainerSlots = config.Bind("Sort", "LockedSlots", string.Empty,

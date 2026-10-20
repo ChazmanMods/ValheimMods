@@ -1,0 +1,10 @@
+{
+  "name": "ArcaneDecor_FlowCraft",
+  "version_number": "0.3.1",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods",
+  "description": "Copper plumbing in two sizes, running red Arcane power indicators and wall-mounted dragon fountains with automatic rear fittings. Requires only BepInEx and Jotunn.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2350",
+    "ValheimModding-Jotunn-2.30.1"
+  ]
+}

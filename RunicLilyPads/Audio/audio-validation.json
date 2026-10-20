@@ -1,0 +1,51 @@
+[
+  {
+    "file": "night_ambience_001.wav",
+    "seconds": 37.02,
+    "sample_rate": 44100,
+    "channels": 1,
+    "bytes": 3265472
+  },
+  {
+    "file": "night_ambience_002.wav",
+    "seconds": 18.83,
+    "sample_rate": 44100,
+    "channels": 1,
+    "bytes": 1661098
+  },
+  {
+    "file": "night_ambience_003.wav",
+    "seconds": 60.09,
+    "sample_rate": 44100,
+    "channels": 1,
+    "bytes": 5300246
+  },
+  {
+    "file": "night_ambience_004.wav",
+    "seconds": 148.06,
+    "sample_rate": 44100,
+    "channels": 1,
+    "bytes": 13058848
+  },
+  {
+    "file": "night_ambience_005.wav",
+    "seconds": 42.0,
+    "sample_rate": 44100,
+    "channels": 1,
+    "bytes": 3704444
+  },
+  {
+    "file": "night_ambience_006.wav",
+    "seconds": 126.0,
+    "sample_rate": 44100,
+    "channels": 1,
+    "bytes": 11113244
+  },
+  {
+    "file": "night_ambience_007.wav",
+    "seconds": 33.74,
+    "sample_rate": 44100,
+    "channels": 1,
+    "bytes": 2975736
+  }
+]

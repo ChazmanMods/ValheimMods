@@ -4,6 +4,7 @@
     <AssemblyName>RunicSentinelClient</AssemblyName>
     <RootNamespace>RunicSentinelClient</RootNamespace>
     <LangVersion>latest</LangVersion>
+    <DefineConstants>$(DefineConstants);RUNIC_SENTINEL_CLIENT_ONLY</DefineConstants>
     <Nullable>disable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
@@ -12,6 +13,8 @@
     <BEPINEX_PROFILE Condition="'$(BEPINEX_PROFILE)' == ''">C:\Users\Charles Sammons\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Default\BepInEx</BEPINEX_PROFILE>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../RunicSentinel/Core/BuildingLimits.cs" Link="Building/BuildingLimits.cs" />
+    <Compile Include="../RunicSentinel/Runtime/SentinelBuildingLimits.cs" Link="Building/SentinelBuildingLimits.cs" />
     <Compile Include="..\RunicSentinelAdmission.Shared\AdmissionProfileContracts.cs" Link="Admission\AdmissionProfileContracts.cs" />
     <Compile Include="..\RunicSentinelAdmission.Shared\AdmissionProfileCanonicalizer.cs" Link="Admission\AdmissionProfileCanonicalizer.cs" />
     <Compile Include="..\RunicSentinelAdmission.Shared\AdmissionProtocolV2.cs" Link="Admission\AdmissionProtocolV2.cs" />

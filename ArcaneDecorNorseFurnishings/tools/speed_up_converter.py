@@ -1,0 +1,12 @@
+from pathlib import Path
+p=Path('ArcaneDecorNorseFurnishings/tools/convert_model.py')
+s=p.read_text()
+s=s.replace('import bpy,struct,json','import bpy,struct,json\nfrom array import array')
+s=s.replace('mesh=obj.data;mesh.calc_loop_triangles();normalmat=obj.matrix_world.to_3x3().inverted().transposed()', '''mesh=obj.data;mesh.calc_loop_triangles();normalmat=obj.matrix_world.to_3x3().inverted().transposed()
+ coords=array('f',[0.0])*(len(mesh.vertices)*3);mesh.vertices.foreach_get('co',coords)
+ norms=array('f',[0.0])*(len(mesh.corner_normals)*3);mesh.corner_normals.foreach_get('vector',norms)
+ uvs=array('f',[0.0])*(len(mesh.loops)*2);mesh.uv_layers.active.data.foreach_get('uv',uvs)
+ loopverts=array('i',[0])*len(mesh.loops);mesh.loops.foreach_get('vertex_index',loopverts)''')
+s=s.replace('loop=mesh.loops[li];p=obj.matrix_world @ mesh.vertices[loop.vertex_index].co;n=normalmat @ loop.normal; n.normalize();uv=mesh.uv_layers.active.data[li].uv',"vi=loopverts[li];p=obj.matrix_world @ Vector(coords[vi*3:vi*3+3]);n=normalmat @ Vector(norms[li*3:li*3+3]);n.normalize();uv=uvs[li*2:li*2+2]")
+s=s.replace('uv.x,uv.y','uv[0],uv[1]')
+p.write_text(s)

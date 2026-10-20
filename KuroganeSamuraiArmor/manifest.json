@@ -1,0 +1,10 @@
+{
+  "name": "KuroganeSamuraiArmor",
+  "version_number": "0.1.36",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
+  "description": "Adds the Kurogane Samurai Armor set with a custom Menpo Kabuto, nine selectable mask styles, Forge crafting, and Feather Fall.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333",
+    "ValheimModding-Jotunn-2.29.1"
+  ]
+}

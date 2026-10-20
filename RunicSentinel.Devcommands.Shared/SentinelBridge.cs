@@ -30,7 +30,7 @@ internal static class SentinelBridge
   NextRefresh=Time.realtimeSinceStartup+10;Refresh();
  #endif
  }
- internal static void Refresh()
+ internal static void Refresh(bool enableCheatsOnSuccess = false)
  {
  #if !RUNIC_SENTINEL_SERVER_ONLY
   var network=ZNet.instance;
@@ -39,7 +39,11 @@ internal static class SentinelBridge
    Network=network;LeaseUntil=ok?Time.realtimeSinceStartup+15:0;
    PermissionManager.Instance.IsAdmin=ok;
    if(!ok)DevcommandsCommand.Set(false);
-   else if(!AutoActivated){AutoActivated=true;if(Settings.AutoDevcommands)DevcommandsCommand.Set(true);ServerExecution.RequestIds();}
+   else
+   {
+    if(!AutoActivated){AutoActivated=true;if(Settings.AutoDevcommands && !enableCheatsOnSuccess)DevcommandsCommand.Set(true);ServerExecution.RequestIds();}
+    if(enableCheatsOnSuccess){DevcommandsCommand.Set(true);Console.instance?.AddString("Devcommands: True");}
+   }
   });
  #endif
  }

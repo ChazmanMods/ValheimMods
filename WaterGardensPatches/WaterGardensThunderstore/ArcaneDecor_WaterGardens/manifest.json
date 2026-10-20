@@ -1,0 +1,10 @@
+{
+  "name": "ArcaneDecor_WaterGardens",
+  "version_number": "1.3.4",
+  "website_url": "https://github.com/ChazmanMods/ValheimMods",
+  "description": "Water gardens, flowing ponds, glowing hanging ivy, adjustable plants, fountains, and ambience.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2350",
+    "ValheimModding-Jotunn-2.30.1"
+  ]
+}

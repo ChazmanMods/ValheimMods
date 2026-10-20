@@ -9,10 +9,27 @@ namespace RunicStorage.Tests
 {
     internal static class Program
     {
-        private static int Main()
+        private static int Main(string[] args)
         {
             var tests = new (string Name, Action Run)[]
             {
+                ("SmartSortIncrementalPreviewCancellation", SmartSortTests.IncrementalPreviewIsCancellableAndEquivalent),
+                ("TrashSelectionAndProtectedCells", TrashTests.SelectionAndProtectedCells),
+                ("TrashUsesInstalledGameKeyboardInput", TrashUsesInstalledGameKeyboardInput),
+                ("TrashConfirmDeletesOnlySelected", TrashTests.ConfirmDeletesOnlySelectedAndPreservesSurvivors),
+                ("TrashChangedStacksAndNewLocksReject", TrashTests.ChangedStacksAndNewLocksRejectWholeConfirmation),
+                ("TrashRollbackAndForeignChanges", TrashTests.FailureRestoresDeletionAndForeignChangesBlock),
+                ("SmartSortConfiguredDestinationsPreserveContentsAndOverflow", SmartSortTests.ConfiguredDestinationsPreserveContentsAndOverflow),
+                ("SmartSortConfiguredRulesPriorityAndEmptyDestinations", SmartSortTests.ConfiguredRulesPriorityAndEmptyDestinations),
+                ("SmartSortPersistenceAndAuthorityFailure", SmartSortTests.PersistenceAndAuthorityFailure),
+                ("SmartSortFullChestsAndConsolidation", SmartSortTests.FullChestsAndConsolidation),
+                ("SmartSortMetadataCapacityAnd200RandomLayouts", SmartSortTests.MetadataCapacityAndRandomizedConservation),
+                ("SmartSortStaleDeniedAndInvalidPlans", SmartSortTests.StaleDeniedAndInvalidPlans),
+                ("SmartSortRollbackAndForeignEdits", SmartSortTests.PublicationRollbackAndForeignEdits),
+                ("SmartSortCategoriesAndManualOptOut", SmartSortTests.CategoriesAndManualOptOut),
+
+                ("SingleStackSelectionConservesOtherStacks", TransferRegressionTests.SingleStackSelectionConservesOtherStacks),
+                ("SingleStackRoutesRespectUiAndAuthority", SingleStackRoutesRespectUiAndAuthority),
                 ("LabelBendPersistenceAndMigration", ChestLabelTests.BendPersistenceAndMigration),
                 ("DrawerConfigAndSynchronization", DrawerCompatibilityTests.ConfigAndSynchronization),
                 ("DrawerDepositAndRestock", DrawerCompatibilityTests.DepositAndRestockConserveItems),
@@ -39,13 +56,14 @@ namespace RunicStorage.Tests
                 ("RejectMalformedAndBoundMemory", ChestRulesTests.RejectMalformedAndBoundMemory),
                 ("EmptyChestRuleUsesGuardedTransfer", ChestRulesTests.EmptyChestRuleUsesGuardedTransfer),
                 ("ForeignCallbackEditBlocksFurtherTransfers", TransferRegressionTests.ForeignCallbackEditBlocksFurtherTransfers),
+                ("RecoveryDenialAndChestOnlyScopeAreDistinct", TransferRegressionTests.RecoveryDenialAndChestOnlyScopeAreDistinct),
                 ("CallbackCannotStartNestedTransfer", TransferRegressionTests.CallbackCannotStartNestedTransfer),
                 ("DetachedStacksCannotMoveAgain", TransferRegressionTests.DetachedStacksCannotMoveAgain),
                 ("WornToolDoesNotBlockTransfer", TransferRegressionTests.WornToolDoesNotBlockTransfer),
                 ("RollbackPreservesReferencesAndMetadata", TransferRegressionTests.RollbackPreservesReferencesAndMetadata),
                 ("FullAndOwnershipFailuresAreDistinct", TransferRegressionTests.FullAndOwnershipFailuresAreDistinct),
                 ("PermissionAndLeaseChecksRemain", TransferRegressionTests.PermissionAndLeaseChecksRemain),
-                ("ChestPayloadAllowsOnlyNativeRounding", TransferRegressionTests.ChestPayloadAllowsOnlyNativeRounding),
+                ("ChestPayloadIgnoresDurability", TransferRegressionTests.ChestPayloadIgnoresDurability),
                 ("PartialStacksAndDifferentMetadataArePreserved", TransferRegressionTests.PartialStacksAndDifferentMetadataArePreserved),
                 ("PlannerUsesNearestEligibleContainers", PlannerUsesNearestEligibleContainers),
                 ("InstalledValheim10StorageContractsMatch", InstalledValheim10StorageContractsMatch),
@@ -78,8 +96,11 @@ namespace RunicStorage.Tests
                 ("MutationsRequireNativeOwnership", MutationsRequireNativeOwnership)
             };
             int failures = 0;
+            int executed = 0;
             foreach ((string name, Action run) in tests)
             {
+                if (args.Length > 0 && !args.Contains(name, StringComparer.Ordinal)) continue;
+                executed++;
                 try { run(); Console.WriteLine("PASS " + name); }
                 catch (Exception exception)
                 {
@@ -87,8 +108,28 @@ namespace RunicStorage.Tests
                     Console.Error.WriteLine("FAIL " + name + ": " + exception.Message);
                 }
             }
-            Console.WriteLine((tests.Length - failures) + "/" + tests.Length + " tests passed.");
+            Console.WriteLine((executed - failures) + "/" + executed + " tests passed.");
             return failures == 0 ? 0 : 1;
+        }
+
+        private static void TrashUsesInstalledGameKeyboardInput()
+        {
+            string managed = Path.Combine(Environment.GetEnvironmentVariable("VALHEIM_INSTALL") ?? @"E:\SteamLibrary\steamapps\common\Valheim", "valheim_Data", "Managed");
+            using var input = AssemblyDefinition.ReadAssembly(Path.Combine(managed, "assembly_utils.dll"));
+            var zinput = Type(input, "ZInput");
+            Method(zinput, "GetKey", "UnityEngine.KeyCode", "System.Boolean");
+            Method(zinput, "GetKeyDown", "UnityEngine.KeyCode", "System.Boolean");
+            using var plugin = AssemblyDefinition.ReadAssembly(Path.Combine(Root(), "bin", "Release", "netstandard2.1", "RunicStorage.dll"));
+            var trash = Type(plugin, "RunicStorage.Runtime.InventoryTrash");
+            var calls = trash.Methods.Where(m => m.HasBody).SelectMany(m => m.Body.Instructions)
+                .Select(i => i.Operand).OfType<MethodReference>().ToArray();
+            False(calls.Any(m => m.DeclaringType.FullName == "UnityEngine.Input"),
+                "Trash must read the installed game's input backend, not legacy Unity keyboard state.");
+            var chord = trash.Methods.Single(m => m.Name == "OwnsTrashChord").Body.Instructions
+                .Select(i => i.Operand).OfType<MethodReference>();
+            Equal(4, chord.Count(m => m.DeclaringType.Name == "ZInput" && m.Name == "GetKey"));
+            True(calls.Any(m => m.DeclaringType.Name == "ZInput" && m.Name == "GetKeyDown"),
+                "Dialog Escape must use the same input backend.");
         }
 
         private static void InstalledModalInputContractsMatch()
@@ -123,6 +164,9 @@ namespace RunicStorage.Tests
             string managed = Path.Combine(install, "valheim_Data", "Managed");
             using AssemblyDefinition game = AssemblyDefinition.ReadAssembly(
                 Path.Combine(managed, "assembly_valheim.dll"));
+            Field(Type(game, "Container"), "m_lastRevision", "System.UInt32");
+            Field(Type(game, "Container"), "m_loading", "System.Boolean");
+            Method(Type(game, "Container"), "Load");
             using AssemblyDefinition input = AssemblyDefinition.ReadAssembly(
                 Path.Combine(managed, "assembly_utils.dll"));
 
@@ -137,6 +181,9 @@ namespace RunicStorage.Tests
             Field(container, "m_loading", "System.Boolean");
 
             TypeDefinition gui = Type(game, "InventoryGui");
+            Method(gui, "OnSelectedItem", "InventoryGrid", "ItemDrop/ItemData", "Vector2i", "InventoryGrid/Modifier");
+            var mouseDown = Method(Type(game, "InventoryGrid"), "OnLeftDown", "UIInputHandler");
+            True(mouseDown.Body.Instructions.Any(i => i.Operand is FieldReference f && f.Name == "m_onSelected"));
             Field(gui, "m_currentContainer", "Container");
             Field(gui, "m_dragItem", "ItemDrop/ItemData");
             Field(gui, "m_splitDialog", "SplitDialog");
@@ -251,6 +298,26 @@ namespace RunicStorage.Tests
             StorageActionRequest request = StorageActionRouter.Select(
                 StorageActionEdges.KeyboardQuickStack | StorageActionEdges.KeyboardSort);
             Equal(StorageActionKind.SortOpenedContainer, request.Action);
+        }
+
+        private static void SingleStackRoutesRespectUiAndAuthority()
+        {
+            var request = new StorageActionRequest(StorageActionKind.QuickStackSingle, StorageInputOrigin.Keyboard);
+            foreach (bool chestOpen in new[] { false, true })
+            {
+                Equal(StorageRouteOutcome.Execute, StorageActionRouter.Route(request,
+                    new StorageRouteContext(true, false, false, true, chestOpen, false, false)).Outcome);
+            }
+            foreach (var blocked in new[]
+            {
+                new StorageRouteContext(false, false, false, true, true, false, false),
+                new StorageRouteContext(true, true, false, true, true, false, false),
+                new StorageRouteContext(true, false, true, true, true, false, false),
+                new StorageRouteContext(true, false, false, false, false, false, false),
+                new StorageRouteContext(true, false, false, true, true, true, false),
+                new StorageRouteContext(true, false, false, true, true, false, true),
+                new StorageRouteContext(true, false, false, true, true, false, false, false)
+            }) Equal(StorageRouteOutcome.Blocked, StorageActionRouter.Route(request, blocked).Outcome);
         }
 
         private static void MutationRoutesRequireLocalOwnership()
@@ -451,6 +518,7 @@ namespace RunicStorage.Tests
             string panel = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(
                 root, "Runtime", "StorageSearchPanel.cs"));
             string project = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "RunicStorage.csproj"));
+            panel += Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "Runtime", "StorageTextFactory.cs"));
 
             foreach (string vanillaContract in new[]
                      {
@@ -620,7 +688,10 @@ namespace RunicStorage.Tests
             string manifest = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "manifest.json"));
             string plugin = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(root, "Plugin.cs"));
             True(project.Contains("InventorySafety"));
-            Reject(project + manifest + plugin, "RunicAutomation.csproj", "Chazman-RunicAutomation", "BepInDependency");
+            Reject(project + manifest + plugin, "RunicAutomation.csproj", "Chazman-RunicAutomation");
+            const string optionalInventory = "[BepInDependency(\"chazman.RunicInventory\", BepInDependency.DependencyFlags.SoftDependency)]";
+            True(plugin.Contains(optionalInventory), "RunicInventory compatibility must remain optional.");
+            Reject(plugin.Replace(optionalInventory, ""), "BepInDependency");
             Reject(project, "RunicPersistence.csproj",
                 "RunicTransactions.csproj", "RunicInventory.csproj");
             Reject(manifest, "RunicCore", "RunicPersistence", "RunicTransactions", "RunicInventory");

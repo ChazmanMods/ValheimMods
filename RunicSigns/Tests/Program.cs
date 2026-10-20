@@ -15,6 +15,7 @@ internal static class Program
         Run("Storage and Signs share fine glyph and emoji bending", CaptionCurveTests.StorageAndSignsBendGlyphsAndEmojisEqually);
         Run("Container wrap follows rounded surfaces and anchors the center", CaptionCurveTests.ContainerWrapFollowsSurfaceAndKeepsCenter);
         DesignerTests();
+        VanillaTests();
         Run("Emoji catalog, selection, surrogate safety and limits", EmojiRegressionTests.Run);
         Run("Emoji caption saves through native ownership transport and reload", () => {
             var env = Setup(); bool success = false;
@@ -543,6 +544,74 @@ internal static class Program
         });
     }
     private static void Run(string name,Action test) { test(); _passed++; Console.WriteLine("PASS "+name); }
+    private static void VanillaTests()
+    {
+        Run("Vanilla multiline spacing is independent of positive and negative offsets", () => {
+            var style=new SignSettings { VanillaCompatible=true, OffsetUnit=1, TextSize=2 };
+            style.Runs=SignFormatting.Apply("THIS IS\nA SIGN",new(),8,14,s=>s.Size=3);
+            foreach (float y in new[] { -40f, 0f, 12f, 40f }) {
+                style.Vertical=y;
+                string encoded=VanillaSignText.Encode("THIS IS\nA SIGN",style,20,100,30,true);
+                Check(encoded.Contains("<size=120><line-height=0>\n<line-height=100%><voffset="));
+                Check(VanillaSignText.Caption(encoded)=="THIS IS\nA SIGN");
+            }
+        });
+        Run("Vanilla export preserves caption, literal tags, multiline and selected styles", () => {
+            string text = "Home <b>\nPortal";
+            var style = new SignSettings { VanillaCompatible=true, OffsetUnit=1, Horizontal=-40, Vertical=40, TextSize=2, Ink="#00FFFFFF" };
+            style.Runs = SignFormatting.Apply(text,new(),0,4,s => { s.Bold=1; s.Size=3; });
+            string encoded = VanillaSignText.Encode(text,style,20,1000,300,true);
+            Check(encoded.Contains("<indent=-40>") && encoded.Contains("<voffset=40>"));
+            Check(encoded.Contains("<size=120><b>Home</b>") && encoded.Contains("<size=40>"));
+            Check(VanillaSignText.Caption(encoded)==text);
+            Check(SignSettings.TryDecode(style.Encode(),out var loaded) && loaded.VanillaCompatible);
+            style.VanillaCompatible=false; Check(style.Encode().StartsWith("4|"));
+        });
+        Run("Vanilla save needs no custom RPC on owner and restores native appearance", () => {
+            var env=Setup(); Network.Views[1].Handlers.Clear();
+            var style=new SignSettings { VanillaCompatible=true, OffsetUnit=1, Vertical=40, Scale=.25f, Effect=3, Depth=40, CurveVertical=.5f };
+            env.client.Preview(style,"Portal"); bool success=false;
+            env.client.BeginSave(style,"Portal","","Original",(ok,_)=>success=ok);
+            Check(success && Network.RpcQueue.Count==0 && Network.Views[2].IsOwner());
+            Check(env.client.NativeText.Contains("<voffset=40>"));
+            Near(env.client.transform.localScale.x,1); Near(env.sign.m_textWidget.rectTransform.localPosition.z,0);
+            Check(env.sign.m_textWidget.textPreprocessor==null);
+            var saved=new ZDO(); saved.CopyFrom(Network.Views[2].Data);
+            var loaded=Create(3,saved); Check(loaded.NativeText==env.client.NativeText);
+            Check(loaded.GetComponent<Sign>().m_textWidget.textPreprocessor==null);
+            Check(VanillaSignText.Caption(loaded.NativeText)=="Portal");
+        });
+        Run("Vanilla mode rejects stale edits, inaccessible signs and excessive markup", () => {
+            var env=Setup(); var style=new SignSettings { VanillaCompatible=true }; bool success=true;
+            env.client.BeginSave(style,"Home","stale","Original",(ok,_)=>success=ok);
+            Check(!success && env.sign.Writes==0);
+            Network.LocalAccess=false;
+            env.client.BeginSave(style,"Home","","Original",(ok,_)=>success=ok);
+            Check(!success && env.sign.Writes==0); Network.LocalAccess=true;
+            env.client.BeginSave(style,new string('<',1024),"","Original",(ok,_)=>success=ok);
+            Check(!success && env.sign.Writes==0 && Network.RpcQueue.Count==0);
+            env.sign.RejectWrite=true;
+            env.client.BeginSave(style,"Home","","Original",(ok,_)=>success=ok);
+            Check(!success && env.client.Raw=="");
+        });
+        Run("Vanilla preview never substitutes a draft for permission-denied text", () => {
+            var env=Setup(); env.client.Preview(new SignSettings { VanillaCompatible=true },"Secret");
+            SignAccess.Viewable=false;
+            try { Check(env.sign.m_textWidget.textPreprocessor.PreprocessText("Hidden")=="Hidden"); }
+            finally { SignAccess.Viewable=true; env.client.EndPreview(); }
+            Check(env.sign.m_textWidget.textPreprocessor==null && env.sign.Writes==0);
+        });
+        Run("Vanilla placement writes portable caption once", () => {
+            SignPlacement.Bind(new BepInEx.Configuration.ConfigFile());
+            SignPlacement.UseDraft(new SignSettings { VanillaCompatible=true, OffsetUnit=1, Vertical=40 },"Portal");
+            Player.m_localPlayer=new GameObject().AddComponent<Player>();
+            var env=Setup(); env.sign.gameObject.AddComponent<Piece>(); Network.Views[2].Data.Owner=2;
+            env.client.OnPlaced(); env.client.OnPlaced();
+            Check(env.sign.Writes==1 && env.client.NativeText.Contains("<voffset=40>"));
+            Check(VanillaSignText.Caption(env.client.NativeText)=="Portal");
+            SignPlacement.Bind(new BepInEx.Configuration.ConfigFile());
+        });
+    }
     private static void Check(bool condition) { if(!condition) throw new Exception("Assertion failed"); }
     private static void Near(float actual,float expected) { if(Math.Abs(actual-expected)>.00001f) throw new Exception($"Expected {expected}, received {actual}"); }
     private static (SignRuntime client,Sign sign) Setup(Action<Sign> configure=null)

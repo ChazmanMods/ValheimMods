@@ -4,7 +4,7 @@ namespace RunicSentinel.Devcommands;
 public static class Admin
 {
  public static bool Checking{get;set;}
- public static void ManualCheck()=>SentinelBridge.Refresh();
+ public static void ManualCheck()=>SentinelBridge.Refresh(enableCheatsOnSuccess: true);
  public static void AutomaticCheck()=>SentinelBridge.Refresh();
  public static bool Verify(string text)=>false;
  public static void Reset(){SentinelBridge.Reset();DevcommandsCommand.Set(false);}

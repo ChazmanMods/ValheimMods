@@ -9,6 +9,7 @@ namespace RunicCrafting.Tests
         {
             var tests = new List<(string Name, Action Run)>
             {
+                ("MissingAndUnavailableAreDifferent", StorageReadinessTests.MissingAndUnavailableAreDifferent),
                 (nameof(RecipeRegressionTests.WorkbenchSplitMaterialsCommitAndRestore), RecipeRegressionTests.WorkbenchSplitMaterialsCommitAndRestore),
                 (nameof(RecipeRegressionTests.SplitMaterialsFailSafelyWhenChestChanges), RecipeRegressionTests.SplitMaterialsFailSafelyWhenChestChanges),
                 ("CrossModuleGateRejectsNestedCraft", InventorySafetyTests.CrossModuleGateRejectsNestedCraft),
@@ -42,12 +43,14 @@ namespace RunicCrafting.Tests
                 (nameof(ManualInteractionTests.FullProtectedMissingAndChangedSourcesDoNotMove), ManualInteractionTests.FullProtectedMissingAndChangedSourcesDoNotMove),
                 (nameof(ManualInteractionTests.FailedAndPartiallyAppliedInsertionRestoresBothInventories), ManualInteractionTests.FailedAndPartiallyAppliedInsertionRestoresBothInventories),
                 (nameof(ManualInteractionTests.CookingAndFuelGatesPreserveVanillaActions), ManualInteractionTests.CookingAndFuelGatesPreserveVanillaActions),
+                (nameof(ManualInteractionTests.ReservedRowsUseRealBackpackPlacement), ManualInteractionTests.ReservedRowsUseRealBackpackPlacement),
+                (nameof(ManualInteractionTests.ForeignCallbackChangesStillBlockAndLogCause), ManualInteractionTests.ForeignCallbackChangesStillBlockAndLogCause),
                 (nameof(InstalledValheimContractTests.ManualInteractionHooksMatchInstalledValheim), InstalledValheimContractTests.ManualInteractionHooksMatchInstalledValheim),
                 (nameof(RecipeRegressionTests.OrdinaryWorkbenchIgnoresUpgraderIngredient), RecipeRegressionTests.OrdinaryWorkbenchIgnoresUpgraderIngredient),
                 (nameof(RecipeRegressionTests.UpgraderStationStillRequiresItsIngredient), RecipeRegressionTests.UpgraderStationStillRequiresItsIngredient),
                 (nameof(RecipeRegressionTests.UpgradeBatchAndPieceCostsRemainCorrect), RecipeRegressionTests.UpgradeBatchAndPieceCostsRemainCorrect),
                 (nameof(RecipeRegressionTests.WornEquipmentDoesNotBlockConsumptionOrRollback), RecipeRegressionTests.WornEquipmentDoesNotBlockConsumptionOrRollback),
-                (nameof(RecipeRegressionTests.ChestPayloadOnlyAllowsNativeDurabilityConversion), RecipeRegressionTests.ChestPayloadOnlyAllowsNativeDurabilityConversion),
+                (nameof(RecipeRegressionTests.ChestPayloadIgnoresDurability), RecipeRegressionTests.ChestPayloadIgnoresDurability),
                 (nameof(RecipeRegressionTests.PreviewAndConsumptionUseSameStationFilter), RecipeRegressionTests.PreviewAndConsumptionUseSameStationFilter),
                 (nameof(CraftingTests.InventoryIsAlwaysAllocatedBeforeNearbyContainers), CraftingTests.InventoryIsAlwaysAllocatedBeforeNearbyContainers),
                 (nameof(CraftingTests.LastResourceRaceHasOneWinner), CraftingTests.LastResourceRaceHasOneWinner),

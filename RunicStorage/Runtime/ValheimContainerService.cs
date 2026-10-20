@@ -118,7 +118,7 @@ namespace RunicStorage.Runtime
                 : Math.Max(1, template.m_shared?.m_maxStackSize ?? 1);
             int capacity = 0;
             foreach (ItemData item in destination.GetAllItems())
-                if ((destinationDrawer || CanMergeExact(template, item, sourceDrawer)) && item.m_stack < maximumStack)
+                if ((destinationDrawer || CanMergeExact(template, item)) && item.m_stack < maximumStack)
                     capacity = AddSaturated(capacity, maximumStack - item.m_stack);
             for (int y = 0; y < destination.GetHeight(); y++)
             for (int x = 0; x < destination.GetWidth(); x++)
@@ -225,12 +225,8 @@ namespace RunicStorage.Runtime
         internal static Inventory CloneInventory(Inventory source) =>
             new StorageInventorySnapshot(source).CreateShadow();
 
-        internal static string Fingerprint(Inventory inventory)
-        {
-            var text = new System.Text.StringBuilder(SaveInventory(inventory).GetBase64());
-            foreach (ItemData item in inventory.GetAllItems()) text.Append('|').Append(item.m_stack);
-            return text.ToString();
-        }
+        internal static string Fingerprint(Inventory inventory) =>
+            Convert.ToBase64String(RunicAutomation.Operations.InventoryMetadataComparison.ForInventory(inventory));
 
         internal static ZPackage SaveInventory(Inventory source)
         {
@@ -273,7 +269,7 @@ namespace RunicStorage.Runtime
             int maximumStack = Math.Max(1, template.m_shared?.m_maxStackSize ?? 1);
             var mergeTargets = new List<ItemData>();
             foreach (ItemData item in destination.GetAllItems())
-                if (CanMergeExact(template, item, sourceDrawer) && item.m_stack < maximumStack)
+                if (CanMergeExact(template, item) && item.m_stack < maximumStack)
                     mergeTargets.Add(item);
             mergeTargets.Sort(CompareItemSlots);
 
@@ -318,9 +314,9 @@ namespace RunicStorage.Runtime
             return target.m_dropPrefab == item.m_dropPrefab && item.m_quality == canonical.m_quality &&
                 item.m_variant == canonical.m_variant && item.m_worldLevel == canonical.m_worldLevel &&
                 item.m_crafterID == canonical.m_crafterID &&
-                string.Equals(item.m_crafterName ?? "", canonical.m_crafterName ?? "", StringComparison.Ordinal) &&
-                !item.m_equipped && !item.m_shared.m_questItem &&
-                item.m_durability.Equals(canonical.m_durability) &&
+                (item.m_crafterID == 0 || string.Equals(item.m_crafterName ?? "", canonical.m_crafterName ?? "", StringComparison.Ordinal)) &&
+                !item.m_shared.m_questItem &&
+
                 DictionaryEquals(item.m_customData, canonical.m_customData);
         }
 
@@ -340,20 +336,8 @@ namespace RunicStorage.Runtime
                 throw new InvalidOperationException("The destination changed during an exact move.");
         }
 
-        private static bool CanMergeExact(ItemData left, ItemData right, bool ignorePickupState = false) =>
-            left != null && right != null &&
-            string.Equals(
-                ValheimContainerIdentity.ResourceId(left),
-                ValheimContainerIdentity.ResourceId(right),
-                StringComparison.Ordinal) &&
-            left.m_quality == right.m_quality && left.m_variant == right.m_variant &&
-            left.m_worldLevel == right.m_worldLevel && left.m_crafterID == right.m_crafterID &&
-            string.Equals(left.m_crafterName ?? string.Empty,
-                right.m_crafterName ?? string.Empty, StringComparison.Ordinal) &&
-            (ignorePickupState || left.m_pickedUp == right.m_pickedUp) && left.m_equipped == right.m_equipped &&
-            left.m_cheated == right.m_cheated &&
-            left.m_durability.Equals(right.m_durability) &&
-            DictionaryEquals(left.m_customData, right.m_customData);
+        internal static bool CanMergeExact(ItemData left, ItemData right) =>
+            RunicAutomation.Operations.InventoryMetadataComparison.SameItem(left, right);
 
         private static bool DictionaryEquals(
             IDictionary<string, string> left,

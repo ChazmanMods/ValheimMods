@@ -19,6 +19,8 @@ namespace RunicSentinel
         public const string Name = "Runic Sentinel";
         public const string Version = SentinelVersion.Current;
         public const string ModuleId = "runic.sentinel";
+        public static bool PlayerActionsAvailable { get; private set; }
+        public static bool BuildingLimitsAvailable { get; private set; }
         private SentinelRuntime _runtime;
         private SentinelEnforcementRuntime _enforcement;
         private SentinelOperatorCommands _operatorCommands;
@@ -40,6 +42,7 @@ namespace RunicSentinel
             }
             try
             {
+                SentinelBuildingLimits.Configure(Config);
                 _runtime = new SentinelRuntime();
                 _flightRecorder = new SentinelFlightRecorder(
                     _runtime.Evidence,
@@ -56,10 +59,12 @@ namespace RunicSentinel
                     _runtime, Logger, Paths.ConfigPath, _managedPolicy);
                 _adminControl = new SentinelAdminControl(
                     _runtime, _managedPolicy, _operatorCommands);
+                PlayerActionsAvailable=true;
                 _adminPanel = new SentinelAdminPanel(_adminControl);
                 _harmony = new Harmony(Guid);
                 RunicSentinel.Devcommands.Engine.Init(Config,Logger);
                 _harmony.PatchAll(typeof(Plugin).Assembly);
+                BuildingLimitsAvailable = true;
                 SentinelConfig.Changed += Refresh;
                 Logger.LogInfo(Name + " v" + Version + " initialized as a standalone plugin. " +
                     "Signed passports enforce exact plugin profiles, administrators, and banned accounts; " +
@@ -133,12 +138,15 @@ namespace RunicSentinel
 
         private void Shutdown()
         {
+            BuildingLimitsAvailable = false;
+            PlayerActionsAvailable=false;
             try { RunicSentinel.Devcommands.Engine.Stop(); } catch { }
             SentinelConfig.Changed -= Refresh;
             Interlocked.Exchange(ref _refreshRequested, 0);
             _runtimeStarted = false;
             try { _harmony?.UnpatchSelf(); } catch { }
             _harmony = null;
+            SentinelBuildingLimits.Reset();
             SentinelSteamSessions.Reset();
             try { _adminPanel?.Dispose(); } catch { }
             _adminPanel = null;

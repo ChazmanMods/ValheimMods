@@ -23,16 +23,31 @@ internal static class ChestRuleStore
     internal static bool CanEdit(Container chest)
     {
         var player = Player.m_localPlayer;
+        bool shared = MultiAccessChestView.Supported(chest);
         return (PluginConfig.Enabled?.Value ?? false) && Eligible(chest) && player && player.IsOwner() && !player.IsDead() &&
             Vector3.Distance(player.transform.position, chest.transform.position) <= 5f &&
-            ValheimContainerService.CanDiscover(chest, player.GetPlayerID(), true, true) &&
-            StorageContainerAuthority.TryGetExactOpenedLocalOwnerInventory(chest, player, out _);
+            // Shared rule edits are authorized and saved by the server. The legacy
+            // local-write handoff is deliberately disabled while that authority is active.
+            ValheimContainerService.CanDiscover(chest, player.GetPlayerID(), !shared, true) &&
+            (shared ? MultiAccessChestView.Opened == chest && MultiAccessChestView.CanView(chest) :
+                StorageContainerAuthority.TryGetExactOpenedLocalOwnerInventory(chest, player, out _));
     }
 
     internal static bool Save(Container chest, ChestRules rules, string expected, out string error)
     {
         error = global::Runic.Localization.RunicText.Get("text_06a9a674b1dc");
         if (!CanEdit(chest)) return false;
+        if (MultiAccessChestView.Supported(chest))
+        {
+            bool started = StorageOperationClient.Submit(new StorageAuthorityRequest {
+                Action = AuthorityStorageAction.SetRules, Chest = ValheimContainerIdentity.NetworkView(chest).GetZDO().m_uid,
+                Rules = rules.Encode(), ExpectedRules = expected
+            }, Array.Empty<Tuple<ItemDrop.ItemData, int>>(), (accepted, reason) => {
+                if (accepted) Player.m_localPlayer?.Message(MessageHud.MessageType.TopLeft, "Chest rules saved.");
+            });
+            error = started ? "Saving chest rules..." : "Chest rules could not be submitted.";
+            return started;
+        }
         var view = ValheimContainerIdentity.NetworkView(chest);
         if (!view || !view.IsOwner() || Raw(chest) != expected) return false;
         try
@@ -46,8 +61,9 @@ internal static class ChestRuleStore
         catch (Exception ex) { error = ex.Message; return false; }
     }
 
-    internal static void Learn(Container chest)
+    internal static void Learn(Container chest, bool nativeOperation = false)
     {
+        if (!nativeOperation && MultiAccessChestView.Supported(chest)) return;
         if (!(PluginConfig.Enabled?.Value ?? false) || !Eligible(chest)) return;
         var view = ValheimContainerIdentity.NetworkView(chest);
         if (!view || !view.IsValid() || !view.IsOwner() || !Read(chest, out var rules) || !rules.Remember) return;

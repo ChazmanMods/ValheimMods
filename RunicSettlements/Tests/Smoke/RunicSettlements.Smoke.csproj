@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+    <Managed>E:\SteamLibrary\steamapps\common\Valheim dedicated server\valheim_server_Data\Managed</Managed>
+    <Bep>E:\SteamLibrary\steamapps\common\Valheim dedicated server\BepInEx\core</Bep>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../RunicSettlements.csproj" />
+    <Reference Include="BepInEx" HintPath="$(Bep)\BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(Bep)\0Harmony.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="$(Managed)\assembly_valheim.dll" Private="false" />
+    <Reference Include="assembly_utils" HintPath="$(Managed)\assembly_utils.dll" Private="false" />
+    <Reference Include="Splatform" HintPath="$(Managed)\Splatform.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(Managed)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(Managed)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(Managed)\UnityEngine.PhysicsModule.dll" Private="false" />
+  </ItemGroup>
+</Project>
+

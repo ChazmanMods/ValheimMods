@@ -11,7 +11,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "chazman.RunicProduction";
         public const string Name = "Runic Production";
-        public const string Version = "1.0.15";
+        public const string Version = "2.3.4";
         public const string ModuleId = "runic.production";
 
         private Harmony _harmony;
@@ -27,13 +27,19 @@ public sealed class Plugin : BaseUnityPlugin
             {
                 ValheimAccess.VerifySignatures();
                 ProductionRuntime.Initialize();
+                ProductionRuntime.RegisterAuthorityLinks();
+                ProductionRuntime.RegisterAuthorityRecipes();
+                ProductionRuntime.RegisterAuthorityStationClock();
+                AuthorityStationInteraction.Register();
+                AuthorityStationRetirement.Register();
                 _harmony = new Harmony(Guid);
                 _harmony.PatchAll(typeof(Plugin).Assembly);
+                RunicAutomation.Operations.InventoryOperationNetwork.RegisterModule("production");
                 ProductionRuntime.SeedLoadedStations();
                 NearbyIngredientContainerIndex.SeedLoadedContainers();
                 ProductionDiagnostics.MarkAvailable();
                 Logger.LogInfo(
-                    $"{Name} v{Version} ready: owner-coordinated production, " +
+                    $"{Name} v{Version} ready: server-authoritative inventory and production transactions, " +
                     "persistent explicit links, and bounded exemplar replenishment.");
             }
             catch (Exception exception)
@@ -46,7 +52,10 @@ public sealed class Plugin : BaseUnityPlugin
         private void Update()
         {
             if (ProductionDiagnostics.RuntimeAvailable)
+            {
+                NativeProductionOutput.Tick();
                 ProductionRuntime.Update();
+            }
         }
 
         private void OnDestroy() => Cleanup();

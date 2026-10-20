@@ -25,7 +25,7 @@ namespace RunicLilyPads
             if(lamp){lamp.enabled=near&&Settings.Light>0;lamp.color=lightColor;lamp.intensity=Settings.Light;lamp.range=Settings.Range;}
             if(model){model.GetPropertyBlock(block);block.SetColor("_EmissionColor",Color.white*Settings.Glow);model.SetPropertyBlock(block);}
             if(flame){flame.enabled=Settings.Glow>0;flameMaterial.SetColor("_EmissionColor",lightColor*Settings.Glow);}
-            if(waterSound){waterSound.volume=Mathf.MoveTowards(waterSound.volume,near?Settings.Volume:0,Time.deltaTime*.7f);if(near&&Settings.Volume>0){if(!waterSound.clip)waterSound.clip=GardenAudio.Get(8);if(waterSound.clip&&!waterSound.isPlaying)waterSound.Play();}else if(waterSound.volume<.001f)waterSound.Stop();}
+            if(waterSound){WaterAudio.SetVolume(waterSound,near?Settings.Volume*Plugin.MasterVolume.Value:0,Time.deltaTime*.7f);if(near&&Settings.Volume>0){if(!waterSound.clip)waterSound.clip=GardenAudio.Get(8);if(waterSound.clip&&!waterSound.isPlaying)waterSound.Play();}else if(waterSound.volume<.001f)waterSound.Stop();}
             foreach(var flow in flows)if(flow)flow.gameObject.SetActive(near&&Settings.Flow);
         }
         readonly System.Collections.Generic.List<WaterFlow> flows=new System.Collections.Generic.List<WaterFlow>();

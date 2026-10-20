@@ -439,9 +439,8 @@ namespace RunicStorage.Runtime
             TextAlignmentOptions alignment)
         {
             RectTransform rect = CreateRect("Text", parent);
-            var text = rect.gameObject.AddComponent<TextMeshProUGUI>();
+            var text = StorageTextFactory.Add(rect.gameObject, _theme?.Font);
             text.text = value ?? string.Empty;
-            if (_theme != null && _theme.Font) text.font = _theme.Font;
             text.fontSize = fontSize;
             text.color = color;
             text.alignment = alignment;

@@ -166,7 +166,7 @@ namespace RunicProduction.Integration
             catch { return false; }
         }
 
-        private static void ClearLegacySingleton(ZDO stationZdo)
+        internal static void ClearLegacySingleton(ZDO stationZdo)
         {
             ProductionLinkStore.Clear(
                 stationZdo, ProductionLinkRole.Replenishment);
