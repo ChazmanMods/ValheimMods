@@ -14,8 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\RunicCore\Api\RunicIdentifier.cs" Link="Shared\RunicIdentifier.cs" />
-    <Compile Include="..\RunicCore\Api\Keybindings.cs" Link="Shared\Keybindings.cs" />
+    <Compile Include="..\Shared\Foundation\RunicIdentifier.cs" Link="Shared\RunicIdentifier.cs" />
+    <Compile Include="..\Shared\Foundation\Keybindings.cs" Link="Shared\Keybindings.cs" />
     <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="false" />
     <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="false" />
     <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="false" />

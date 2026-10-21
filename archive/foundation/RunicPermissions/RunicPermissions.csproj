@@ -34,4 +34,16 @@
     <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\Shared\Groups\StableIdentity.cs" Link="Contracts\StableIdentity.cs" />
+    <Compile Include="..\..\..\Shared\Groups\GroupDomain.cs" Link="Groups\GroupDomain.cs" />
+    <Compile Include="..\..\..\Shared\Groups\GroupCommandLedger.cs" Link="Groups\GroupCommandLedger.cs" />
+    <Compile Include="..\..\..\Shared\Groups\GroupCatalog.cs" Link="Groups\GroupCatalog.cs" />
+    <Compile Include="..\..\..\Shared\Groups\GroupCatalogCodec.cs" Link="Groups\GroupCatalogCodec.cs" />
+    <Compile Include="..\..\..\Shared\Groups\GroupCommandProtocol.cs" Link="Groups\GroupCommandProtocol.cs" />
+    <Compile Include="..\..\..\Shared\Groups\GroupCommandProcessor.cs" Link="Groups\GroupCommandProcessor.cs" />
+    <Compile Include="..\..\..\Shared\Groups\GroupActiveSelection.cs" Link="Groups\GroupActiveSelection.cs" />
+    <Compile Include="..\..\..\Shared\Groups\GroupQueryProtocol.cs" Link="Groups\GroupQueryProtocol.cs" />
+    <Compile Include="..\..\..\Shared\Groups\GroupFriendlyProtocol.cs" Link="Groups\GroupFriendlyProtocol.cs" />
+  </ItemGroup>
 </Project>

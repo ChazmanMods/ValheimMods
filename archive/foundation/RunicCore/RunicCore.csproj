@@ -21,4 +21,8 @@
     <Reference Include="UnityEngine" HintPath="$(GAME_MANAGED)\UnityEngine.dll" Private="false" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GAME_MANAGED)\UnityEngine.CoreModule.dll" Private="false" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\Shared\Foundation\RunicIdentifier.cs" Link="Api\RunicIdentifier.cs" />
+    <Compile Include="..\..\..\Shared\Foundation\Keybindings.cs" Link="Api\Keybindings.cs" />
+  </ItemGroup>
 </Project>

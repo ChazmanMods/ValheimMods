@@ -82,7 +82,7 @@
       "source_version": "1.0.2"
     },
     {
-      "directory": "RunicCore",
+      "directory": "archive/foundation/RunicCore",
       "name": "RunicCore",
       "source_version": "1.1.0"
     },
@@ -152,12 +152,12 @@
       "source_version": "0.3.1"
     },
     {
-      "directory": "RunicPermissions",
+      "directory": "archive/foundation/RunicPermissions",
       "name": "RunicPermissions",
       "source_version": "1.0.0"
     },
     {
-      "directory": "RunicPersistence",
+      "directory": "archive/foundation/RunicPersistence",
       "name": "RunicPersistence",
       "source_version": "1.1.0"
     },
@@ -212,7 +212,7 @@
       "source_version": "2.3.5"
     },
     {
-      "directory": "RunicTransactions",
+      "directory": "archive/foundation/RunicTransactions",
       "name": "RunicTransactions",
       "source_version": "1.0.0"
     },

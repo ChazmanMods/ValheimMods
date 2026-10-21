@@ -13,16 +13,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\RunicPermissions\Contracts\StableIdentity.cs" Link="Embedded\StableIdentity.cs" />
-    <Compile Include="..\RunicPermissions\Groups\GroupDomain.cs" Link="Embedded\GroupDomain.cs" />
-    <Compile Include="..\RunicPermissions\Groups\GroupCommandLedger.cs" Link="Embedded\GroupCommandLedger.cs" />
-    <Compile Include="..\RunicPermissions\Groups\GroupCatalog.cs" Link="Embedded\GroupCatalog.cs" />
-    <Compile Include="..\RunicPermissions\Groups\GroupCatalogCodec.cs" Link="Embedded\GroupCatalogCodec.cs" />
-    <Compile Include="..\RunicPermissions\Groups\GroupCommandProtocol.cs" Link="Embedded\GroupCommandProtocol.cs" />
-    <Compile Include="..\RunicPermissions\Groups\GroupCommandProcessor.cs" Link="Embedded\GroupCommandProcessor.cs" />
-    <Compile Include="..\RunicPermissions\Groups\GroupActiveSelection.cs" Link="Embedded\GroupActiveSelection.cs" />
-    <Compile Include="..\RunicPermissions\Groups\GroupQueryProtocol.cs" Link="Embedded\GroupQueryProtocol.cs" />
-    <Compile Include="..\RunicPermissions\Groups\GroupFriendlyProtocol.cs" Link="Embedded\GroupFriendlyProtocol.cs" />
+    <Compile Include="..\Shared\Groups\StableIdentity.cs" Link="Embedded\StableIdentity.cs" />
+    <Compile Include="..\Shared\Groups\GroupDomain.cs" Link="Embedded\GroupDomain.cs" />
+    <Compile Include="..\Shared\Groups\GroupCommandLedger.cs" Link="Embedded\GroupCommandLedger.cs" />
+    <Compile Include="..\Shared\Groups\GroupCatalog.cs" Link="Embedded\GroupCatalog.cs" />
+    <Compile Include="..\Shared\Groups\GroupCatalogCodec.cs" Link="Embedded\GroupCatalogCodec.cs" />
+    <Compile Include="..\Shared\Groups\GroupCommandProtocol.cs" Link="Embedded\GroupCommandProtocol.cs" />
+    <Compile Include="..\Shared\Groups\GroupCommandProcessor.cs" Link="Embedded\GroupCommandProcessor.cs" />
+    <Compile Include="..\Shared\Groups\GroupActiveSelection.cs" Link="Embedded\GroupActiveSelection.cs" />
+    <Compile Include="..\Shared\Groups\GroupQueryProtocol.cs" Link="Embedded\GroupQueryProtocol.cs" />
+    <Compile Include="..\Shared\Groups\GroupFriendlyProtocol.cs" Link="Embedded\GroupFriendlyProtocol.cs" />
     <Reference Include="BepInEx" HintPath="$(BEPINEX_PROFILE)\core\BepInEx.dll" Private="false" />
     <Reference Include="0Harmony" HintPath="$(BEPINEX_PROFILE)\core\0Harmony.dll" Private="false" />
     <Reference Include="assembly_valheim" HintPath="$(GAME_MANAGED)\assembly_valheim.dll" Private="false" />
