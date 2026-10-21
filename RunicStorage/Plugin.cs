@@ -13,7 +13,7 @@ using ItemData = ItemDrop.ItemData;
 
 namespace RunicStorage;
 
-[BepInPlugin("chazman.RunicStorage", "Runic Storage", "2.3.5")]
+[BepInPlugin(Guid, Name, Version)]
 [BepInIncompatibility("chazman.SmartSort")]
 public sealed class Plugin : BaseUnityPlugin
 {
@@ -21,7 +21,7 @@ public sealed class Plugin : BaseUnityPlugin
 
 	public const string Name = "Runic Storage";
 
-	public const string Version = "2.3.5";
+	public const string Version = RunicAutomation.RunicSuite.Version;
 
 	private readonly List<KeybindingRegistration> _keybindingRegistrations = new List<KeybindingRegistration>();
 

@@ -1,4 +1,4 @@
-# Runic Storage 2.3.5
+# Runic Storage 2.4.0
 
 Organize your base with shared chest access, Quick Stack rules, SmartSort, chest labels, restocking, search, and stack consolidation.
 
@@ -27,7 +27,7 @@ Configure settings in `BepInEx/config/chazman.RunicStorage.cfg`.
 
 ## Installation
 
-Install matching 2.3.5 versions on the server and participating clients. Each Runic module is independently installable. Keep existing configurations and RunicOperations data when updating.
+Install matching 2.4.0 versions on the server and participating clients. Each Runic module is independently installable. Keep existing configurations and RunicOperations data when updating.
 
 ## Languages and support
 

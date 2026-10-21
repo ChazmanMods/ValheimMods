@@ -13,7 +13,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "chazman.RunicCrafting";
         public const string Name = "Runic Crafting";
-        public const string Version = "2.3.2";
+        public const string Version = RunicAutomation.RunicSuite.Version;
 
         internal static ManualLogSource Log { get; private set; }
 

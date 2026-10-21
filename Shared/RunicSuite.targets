@@ -1,0 +1,36 @@
+<Project>
+  <!--
+    Generates RunicAutomation.RunicSuite.Version from Shared/RunicSuite.props so that
+    Plugin.Version, [BepInPlugin] and the assembly version attributes cannot drift from
+    the released package version. Import from each suite module:
+
+      <Import Project="..\Shared\RunicSuite.targets" />
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)RunicSuite.props" />
+
+  <PropertyGroup>
+    <RunicSuiteVersionGenerated>$(IntermediateOutputPath)RunicSuiteVersion.g.cs</RunicSuiteVersionGenerated>
+  </PropertyGroup>
+
+  <Target Name="RunicGenerateSuiteVersion" BeforeTargets="CoreCompile" DependsOnTargets="PrepareForBuild">
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(RunicSuiteVersion)', '^[0-9]+\.[0-9]+\.[0-9]+$'))"
+           Text="RunicSuiteVersion '$(RunicSuiteVersion)' in Shared/RunicSuite.props is not three-part Major.Minor.Patch." />
+    <ItemGroup>
+      <_RunicSuiteVersionLine Include="// &lt;auto-generated&gt; Runic suite version from Shared/RunicSuite.props. Do not edit%3B regenerated on every build." />
+      <_RunicSuiteVersionLine Include="namespace RunicAutomation" />
+      <_RunicSuiteVersionLine Include="{" />
+      <_RunicSuiteVersionLine Include="    internal static class RunicSuite" />
+      <_RunicSuiteVersionLine Include="    {" />
+      <_RunicSuiteVersionLine Include="        /// &lt;summary&gt;Release version shared by every Runic module that embeds Shared/InventorySafety.&lt;/summary&gt;" />
+      <_RunicSuiteVersionLine Include="        internal const string Version = &quot;$(RunicSuiteVersion)&quot;%3B" />
+      <_RunicSuiteVersionLine Include="        internal const string AssemblyVersion = &quot;$(RunicSuiteVersion).0&quot;%3B" />
+      <_RunicSuiteVersionLine Include="    }" />
+      <_RunicSuiteVersionLine Include="}" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(RunicSuiteVersionGenerated)" Lines="@(_RunicSuiteVersionLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(RunicSuiteVersionGenerated)" />
+      <FileWrites Include="$(RunicSuiteVersionGenerated)" />
+    </ItemGroup>
+  </Target>
+</Project>

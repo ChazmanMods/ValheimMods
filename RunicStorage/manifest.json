@@ -1,6 +1,6 @@
 {
   "name": "RunicStorage",
-  "version_number": "2.3.5",
+  "version_number": "2.4.0",
   "website_url": "https://discord.gg/7HKHTCdFqY",
   "description": "Quick Stack through live inventories, plus multi-access chests, SmartSort, chest rules, restock, search and protected inventory trash.",
   "dependencies": [

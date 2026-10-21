@@ -30,7 +30,9 @@ foreach ($entry in $sources.GetEnumerator()) {
 $identity = [Reflection.AssemblyName]::GetAssemblyName($sources['RunicStorage.dll'])
 if ($identity.Name -cne $manifest.name -or $identity.Version.ToString() -cne "$version.0") { throw 'DLL version mismatch.' }
 if ((Get-Content -Raw -LiteralPath (Join-Path $module 'Plugin.cs')) -notmatch
-    ('const string Version = "' + [regex]::Escape($version) + '"')) { throw 'Plugin version mismatch.' }
+    'const string Version = RunicAutomation\.RunicSuite\.Version') { throw 'Plugin.cs must take its version from RunicAutomation.RunicSuite.Version.' }
+[xml]$suiteProps = Get-Content -Raw -LiteralPath (Join-Path $repo 'Shared/RunicSuite.props')
+if ([string]$suiteProps.Project.PropertyGroup.RunicSuiteVersion -cne $version) { throw 'Shared/RunicSuite.props and manifest.json disagree; run tools/Sync-RunicSuiteVersion.ps1.' }
 $icon = [Drawing.Image]::FromFile($sources['icon.png'])
 try {
     if ($icon.Width -ne 256 -or $icon.Height -ne 256 -or $icon.RawFormat.Guid -ne [Drawing.Imaging.ImageFormat]::Png.Guid) {

@@ -11,7 +11,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "chazman.RunicProduction";
         public const string Name = "Runic Production";
-        public const string Version = "2.3.4";
+        public const string Version = RunicAutomation.RunicSuite.Version;
         public const string ModuleId = "runic.production";
 
         private Harmony _harmony;

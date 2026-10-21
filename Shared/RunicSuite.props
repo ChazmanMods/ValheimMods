@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    Single source of truth for the version of every Runic module that embeds
+    Shared/InventorySafety (Storage, Production, Crafting). These modules negotiate with
+    each other at runtime and must always be released together at the same version.
+
+    Change the number here, then run tools/Sync-RunicSuiteVersion.ps1 to update each
+    module's manifest.json, README title and install sentence. Plugin.Version and the
+    assembly version attributes read RunicAutomation.RunicSuite.Version, which
+    RunicSuite.targets generates from this property on every build.
+  -->
+  <PropertyGroup>
+    <RunicSuiteVersion>2.4.0</RunicSuiteVersion>
+  </PropertyGroup>
+</Project>

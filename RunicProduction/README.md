@@ -1,4 +1,4 @@
-# Runic Production 2.3.4
+# Runic Production 2.4.0
 
 Link stations to chests for ingredients, fuel, finished goods, and stock replenishment.
 
@@ -29,7 +29,7 @@ Configure settings in `BepInEx/config/chazman.RunicProduction.cfg`.
 
 ## Installation
 
-Install matching 2.3.4 versions on the server and participating clients. Each Runic module is independently installable. Keep existing configurations and RunicOperations data when updating.
+Install matching 2.4.0 versions on the server and participating clients. Each Runic module is independently installable. Keep existing configurations and RunicOperations data when updating.
 
 ## Languages and support
 

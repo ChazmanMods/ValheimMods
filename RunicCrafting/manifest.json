@@ -1,6 +1,6 @@
 {
   "name": "RunicCrafting",
-  "version_number": "2.3.2",
+  "version_number": "2.4.0",
   "website_url": "https://discord.gg/7HKHTCdFqY",
   "description": "Responsive nearby crafting, upgrades, building and manual fueling through live native inventories, with workshop access and repair tools.",
   "dependencies": [

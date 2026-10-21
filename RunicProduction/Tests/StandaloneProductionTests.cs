@@ -29,7 +29,7 @@ namespace RunicProduction.Tests
                 Case("legacy stable token fields remain format-compatible", TokenFieldsAreCompatible),
                 Case("stable tokens are canonical lowercase nonempty GUIDs", TokensAreCanonical),
                 Case("link and catalog storage keys preserve their namespace", StorageKeysAreCompatible),
-                Case("runtime and package are 1.0.17", VersionsMatchPublishedPackage),
+                Case("runtime and package match Shared/RunicSuite.props", VersionsMatchPublishedPackage),
                 Case("station role matrix matches supported gameplay", RoleMatrixIsExact),
                 Case("mouse gestures map exactly to input output and replenish", MouseGesturesAreExact),
                 Case("output gestures arm from the station without a physical output sub-target", StationLevelOutputControlsAreExact),
@@ -313,12 +313,18 @@ namespace RunicProduction.Tests
 
         private static void VersionsMatchPublishedPackage()
         {
-            Equal("1.0.17", Plugin.Version);
+            // Shared/RunicSuite.props is the single version source for every module that
+            // embeds Shared/InventorySafety; the build generates RunicSuite.Version from it.
+            string props = Runic.Tests.LocalizedSource.ReadAllText(Path.Combine(ModRoot(), "..", "Shared", "RunicSuite.props"));
+            var match = System.Text.RegularExpressions.Regex.Match(props, "<RunicSuiteVersion>(\\d+\\.\\d+\\.\\d+)</RunicSuiteVersion>");
+            Require(match.Success);
+            string version = match.Groups[1].Value;
+            Equal(version, Plugin.Version);
+            Equal(version + ".0", typeof(Plugin).Assembly.GetName().Version.ToString());
             Contains(Runic.Tests.LocalizedSource.ReadAllText(PathInMod("manifest.json")),
-                "\"version_number\": \"1.0.17\"");
-            Contains(Runic.Tests.LocalizedSource.ReadAllText(PathInMod(
-                "Properties", "AssemblyInfo.cs")),
-                "AssemblyInformationalVersion(\"1.0.17\")");
+                "\"version_number\": \"" + version + "\"");
+            Contains(Runic.Tests.LocalizedSource.ReadAllText(PathInMod("Properties", "AssemblyInfo.cs")),
+                "AssemblyInformationalVersion(RunicAutomation.RunicSuite.Version)");
         }
 
         private static void RoleMatrixIsExact()

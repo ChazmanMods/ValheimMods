@@ -1,4 +1,4 @@
-# Runic Crafting 2.3.2
+# Runic Crafting 2.4.0
 
 Craft, upgrade, build, and supply supported stations using carried materials and nearby chests. Includes Repair All, area repair, material displays, and workshop access settings.
 
@@ -18,7 +18,7 @@ At a station, run `runiccrafting_access show` to view access settings. Its creat
 
 ## Installation
 
-Install matching 2.3.2 versions on the server and participating clients. Each Runic module is independently installable. Keep existing configurations and RunicOperations data when updating.
+Install matching 2.4.0 versions on the server and participating clients. Each Runic module is independently installable. Keep existing configurations and RunicOperations data when updating.
 
 ## Languages and support
 
