@@ -18,7 +18,7 @@ At a station, run `runiccrafting_access show` to view access settings. Its creat
 
 ## Installation
 
-Install matching 2.4.0 versions on the server and participating clients. Each Runic module is independently installable. Keep existing configurations and RunicOperations data when updating.
+Install Runic Storage, Runic Production and Runic Crafting at the same version (2.4.0) on the server and on every client. The modules verify each other at startup: if any installed Runic module was built from a different release, they log one error and all of them stay on vanilla inventory handling until the versions match. A client whose set of Runic modules differs from the server's also falls back to vanilla handling. Keep existing configurations and RunicOperations data when updating.
 
 ## Languages and support
 

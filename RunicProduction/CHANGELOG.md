@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.0
+
+- Storage, Production and Crafting now verify at startup that they were built from the same release. Mixed versions log one error and keep every module on vanilla inventory handling instead of running a version mix. The startup line shows the shared core hash.
+- All three modules now release together at one version.
+- Documentation: fixed the mangled separator in the README, moved the sap extractor and wisp fountain section into the body, and set the package link to the Runic Mods Discord like the other modules.
+
 ## 2.3.4
 
 - Updated ownership status text and package documentation.

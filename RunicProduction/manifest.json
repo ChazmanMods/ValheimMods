@@ -1,7 +1,7 @@
 {
   "name": "RunicProduction",
   "version_number": "2.4.0",
-  "website_url": "https://github.com/ChazmanMods/ValheimMods/tree/main/RunicProduction",
+  "website_url": "https://discord.gg/7HKHTCdFqY",
   "description": "Server-authoritative chest-linked ingredients, fuel, output, and stock replenishment for Valheim production stations.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2350"
