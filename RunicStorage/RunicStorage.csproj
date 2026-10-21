@@ -52,4 +52,5 @@
     <EmbeddedResource Include="Translations/RunicStorage/English.json" LogicalName="Runic.Localization.English.json" />
     <None Update="Translations/**/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <Import Project="..\Shared\InventorySafety\EmbeddedCore.targets" />
 </Project>

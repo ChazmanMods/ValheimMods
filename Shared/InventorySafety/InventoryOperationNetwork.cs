@@ -17,8 +17,13 @@ namespace RunicAutomation.Operations
         private const string QueryKind = "storage.query.v2";
         private const string ViewerKind = "storage.viewer.v2";
         private static Dictionary<string, Delegate> Routes => SharedState.Get("operations.network.v2", () => new Network().Routes());
-        internal static void RegisterModule(string module) => ((Action<string, string>)Routes["module"])(module,
-            Assembly.GetExecutingAssembly().ManifestModule.ModuleVersionId.ToString("N"));
+        // Registers the caller's build identity (module version id) and its embedded core hash.
+        // Both run in the calling plugin's assembly even when another plugin owns the routes.
+        internal static void RegisterModule(string module)
+        {
+            EmbeddedCoreAgreement.Register(module);
+            ((Action<string, string>)Routes["module"])(module, Assembly.GetExecutingAssembly().ManifestModule.ModuleVersionId.ToString("N"));
+        }
         internal static void Tick() => ((Action)Routes["tick"])();
         internal static void Clear() => ((Action)Routes["clear"])();
         internal static bool Ready => ((Func<bool>)Routes["ready"])();
@@ -81,6 +86,8 @@ namespace RunicAutomation.Operations
             private void Tick()
             {
                 if (!Complete || ZNet.instance == null || ZRoutedRpc.instance == null) { ready = false; return; }
+                // Mixed embedded cores never negotiate; every module stays on native handling.
+                if (!EmbeddedCoreAgreement.Verify()) { ready = false; return; }
                 // Connecting clients have a ZNet before PeerInfo creates its World. The
                 // native GetWorldUID method dereferences that world, so it is not a guard.
                 var context = ZNet.instance.GetWorld();
@@ -167,7 +174,7 @@ namespace RunicAutomation.Operations
                 {
                     if (!Complete || ZNet.instance == null || !ZNet.instance.IsServer() || ZNet.instance.GetPeer(sender) == null || packet.Size() > 256) return;
                     int version = packet.ReadInt(); string world = packet.ReadString(); string stamp = packet.ReadString(); OperationPacket.End(packet);
-                    bool accepted = version == SharedOperationHost.Protocol && world == World && stamp == BuildStamp;
+                    bool accepted = version == SharedOperationHost.Protocol && world == World && stamp == BuildStamp && EmbeddedCoreAgreement.Agree;
                     if (accepted) compatible.Add(sender); else compatible.Remove(sender);
                     var reply = new ZPackage(); reply.Write(SharedOperationHost.Protocol); reply.Write(World); reply.Write(accepted); reply.Write(BuildStamp);
                     registered.InvokeRoutedRPC(sender, ReadyRpc, reply);

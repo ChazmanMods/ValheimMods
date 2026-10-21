@@ -1,0 +1,72 @@
+<Project>
+  <!--
+    Every Runic gameplay plugin compiles Shared/InventorySafety into its own assembly and the
+    copies coordinate through AppDomain state (see SharedState.cs). That only works when every
+    loaded copy was built from the same source. This target hashes the embedded core sources at
+    build time and generates RunicAutomation.EmbeddedCore.Hash so the copies can prove agreement
+    at runtime (see EmbeddedCoreAgreement.cs) instead of silently mixing versions.
+
+    Import from each consumer:  <Import Project="..\Shared\InventorySafety\EmbeddedCore.targets" />
+  -->
+  <PropertyGroup>
+    <RunicEmbeddedCoreDirectory>$(MSBuildThisFileDirectory)</RunicEmbeddedCoreDirectory>
+    <RunicEmbeddedCoreGenerated>$(IntermediateOutputPath)RunicEmbeddedCore.g.cs</RunicEmbeddedCoreGenerated>
+  </PropertyGroup>
+
+  <UsingTask TaskName="RunicHashEmbeddedCore" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <Hash ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        // File name order and LF line endings make the hash identical across Windows and Linux checkouts.
+        var paths = Files.Select(x => x.GetMetadata("FullPath"))
+            .OrderBy(x => Path.GetFileName(x), StringComparer.Ordinal).ToArray();
+        using (var sha = System.Security.Cryptography.SHA256.Create())
+        {
+            foreach (string path in paths)
+            {
+                byte[] name = Encoding.UTF8.GetBytes(Path.GetFileName(path) + "\n");
+                sha.TransformBlock(name, 0, name.Length, null, 0);
+                byte[] body = Encoding.UTF8.GetBytes(File.ReadAllText(path).Replace("\r\n", "\n") + "\n");
+                sha.TransformBlock(body, 0, body.Length, null, 0);
+            }
+            sha.TransformFinalBlock(new byte[0], 0, 0);
+            Hash = BitConverter.ToString(sha.Hash).Replace("-", "").ToLowerInvariant();
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="RunicGenerateEmbeddedCoreHash" BeforeTargets="CoreCompile" DependsOnTargets="PrepareForBuild">
+    <ItemGroup>
+      <_RunicEmbeddedCoreSource Include="$(RunicEmbeddedCoreDirectory)*.cs" />
+    </ItemGroup>
+    <Error Condition="'@(_RunicEmbeddedCoreSource)' == ''" Text="No embedded core sources were found under $(RunicEmbeddedCoreDirectory)." />
+    <RunicHashEmbeddedCore Files="@(_RunicEmbeddedCoreSource)">
+      <Output TaskParameter="Hash" PropertyName="RunicEmbeddedCoreHash" />
+    </RunicHashEmbeddedCore>
+    <ItemGroup>
+      <_RunicEmbeddedCoreLine Include="// &lt;auto-generated&gt; Runic embedded core identity. Do not edit%3B regenerated on every build." />
+      <_RunicEmbeddedCoreLine Include="namespace RunicAutomation" />
+      <_RunicEmbeddedCoreLine Include="{" />
+      <_RunicEmbeddedCoreLine Include="    internal static class EmbeddedCore" />
+      <_RunicEmbeddedCoreLine Include="    {" />
+      <_RunicEmbeddedCoreLine Include="        /// &lt;summary&gt;SHA-256 of the Shared/InventorySafety sources compiled into this assembly.&lt;/summary&gt;" />
+      <_RunicEmbeddedCoreLine Include="        internal const string Hash = &quot;$(RunicEmbeddedCoreHash)&quot;%3B" />
+      <_RunicEmbeddedCoreLine Include="    }" />
+      <_RunicEmbeddedCoreLine Include="}" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(RunicEmbeddedCoreGenerated)" Lines="@(_RunicEmbeddedCoreLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(RunicEmbeddedCoreGenerated)" />
+      <FileWrites Include="$(RunicEmbeddedCoreGenerated)" />
+    </ItemGroup>
+    <Message Importance="normal" Text="Runic embedded core hash: $(RunicEmbeddedCoreHash)" />
+  </Target>
+</Project>

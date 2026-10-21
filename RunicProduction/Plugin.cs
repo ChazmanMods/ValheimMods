@@ -39,7 +39,7 @@ public sealed class Plugin : BaseUnityPlugin
                 NearbyIngredientContainerIndex.SeedLoadedContainers();
                 ProductionDiagnostics.MarkAvailable();
                 Logger.LogInfo(
-                    $"{Name} v{Version} ready: server-authoritative inventory and production transactions, " +
+                    $"{Name} v{Version} ready (core {RunicAutomation.EmbeddedCoreAgreement.ShortHash}): server-authoritative inventory and production transactions, " +
                     "persistent explicit links, and bounded exemplar replenishment.");
             }
             catch (Exception exception)

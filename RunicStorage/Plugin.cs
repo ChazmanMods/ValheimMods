@@ -83,7 +83,7 @@ public sealed class Plugin : BaseUnityPlugin
 			_harmony.PatchAll(typeof(Plugin).Assembly);
 			RunicAutomation.Operations.InventoryOperationNetwork.RegisterModule("storage");
 			Index.RefreshLoadedContainers();
-			Logger.LogInfo((object)$"Runic Storage v{Version} ready: server inventory authority, multi-access chests, SmartSort, Quick Stack, Restock, Search, Sort, Store All, and Consolidate.");
+			Logger.LogInfo((object)$"Runic Storage v{Version} ready (core {RunicAutomation.EmbeddedCoreAgreement.ShortHash}): server inventory authority, multi-access chests, SmartSort, Quick Stack, Restock, Search, Sort, Store All, and Consolidate.");
 			if (!ContainerHoverContents.IsSupported)
 			{
 				Logger.LogWarning((object)"Chest-content hover is unavailable because its installed Container/PrivateArea adapter signatures did not match. Other Storage features remain enabled.");

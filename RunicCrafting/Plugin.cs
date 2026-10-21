@@ -41,7 +41,7 @@ public sealed class Plugin : BaseUnityPlugin
                 RunicAutomation.Operations.InventoryOperationNetwork.RegisterModule("crafting");
                 WorkshopAccessCommands.Initialize();
                 Logger.LogInfo(
-                    Name + " v" + Version + " ready. " + Configuration.StateSummary +
+                    Name + " v" + Version + " ready (core " + RunicAutomation.EmbeddedCoreAgreement.ShortHash + "). " + Configuration.StateSummary +
                     ". Nearby crafting, building and manual fueling use live native inventories in the original action.");
             }
             catch (Exception exception)
