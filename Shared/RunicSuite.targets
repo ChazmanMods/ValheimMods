@@ -8,11 +8,11 @@
   -->
   <Import Project="$(MSBuildThisFileDirectory)RunicSuite.props" />
 
-  <PropertyGroup>
-    <RunicSuiteVersionGenerated>$(IntermediateOutputPath)RunicSuiteVersion.g.cs</RunicSuiteVersionGenerated>
-  </PropertyGroup>
-
   <Target Name="RunicGenerateSuiteVersion" BeforeTargets="CoreCompile" DependsOnTargets="PrepareForBuild">
+    <!-- Evaluated at execution time: IntermediateOutputPath is set by the SDK targets, which import after the project body. -->
+    <PropertyGroup>
+      <RunicSuiteVersionGenerated>$(IntermediateOutputPath)RunicSuiteVersion.g.cs</RunicSuiteVersionGenerated>
+    </PropertyGroup>
     <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(RunicSuiteVersion)', '^[0-9]+\.[0-9]+\.[0-9]+$'))"
            Text="RunicSuiteVersion '$(RunicSuiteVersion)' in Shared/RunicSuite.props is not three-part Major.Minor.Patch." />
     <ItemGroup>

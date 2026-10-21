@@ -10,7 +10,6 @@
   -->
   <PropertyGroup>
     <RunicEmbeddedCoreDirectory>$(MSBuildThisFileDirectory)</RunicEmbeddedCoreDirectory>
-    <RunicEmbeddedCoreGenerated>$(IntermediateOutputPath)RunicEmbeddedCore.g.cs</RunicEmbeddedCoreGenerated>
   </PropertyGroup>
 
   <UsingTask TaskName="RunicHashEmbeddedCore" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
@@ -44,6 +43,10 @@
   </UsingTask>
 
   <Target Name="RunicGenerateEmbeddedCoreHash" BeforeTargets="CoreCompile" DependsOnTargets="PrepareForBuild">
+    <!-- Evaluated at execution time: IntermediateOutputPath is set by the SDK targets, which import after the project body. -->
+    <PropertyGroup>
+      <RunicEmbeddedCoreGenerated>$(IntermediateOutputPath)RunicEmbeddedCore.g.cs</RunicEmbeddedCoreGenerated>
+    </PropertyGroup>
     <ItemGroup>
       <_RunicEmbeddedCoreSource Include="$(RunicEmbeddedCoreDirectory)*.cs" />
     </ItemGroup>
